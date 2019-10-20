@@ -215,15 +215,43 @@ bool match_matches_window(Match *match, i3Window *window) {
     }
 
     if (match->window_mode != WM_ANY) {
-        if ((con = con_by_window_id(window->id)) == NULL)
+        if ((con = con_by_window_id(window->id)) == NULL) {
             return false;
+        }
 
-        const bool floating = (con_inside_floating(con) != NULL);
-
-        if ((match->window_mode == WM_TILING && floating) ||
-            (match->window_mode == WM_FLOATING && !floating)) {
-            LOG("window_mode does not match\n");
-            return false;
+        switch (match->window_mode) {
+            case WM_TILING_AUTO:
+                if (con->floating != FLOATING_AUTO_OFF) {
+                    return false;
+                }
+                break;
+            case WM_TILING_USER:
+                if (con->floating != FLOATING_USER_OFF) {
+                    return false;
+                }
+                break;
+            case WM_TILING:
+                if (con_inside_floating(con) != NULL) {
+                    return false;
+                }
+                break;
+            case WM_FLOATING_AUTO:
+                if (con->floating != FLOATING_AUTO_ON) {
+                    return false;
+                }
+                break;
+            case WM_FLOATING_USER:
+                if (con->floating != FLOATING_USER_ON) {
+                    return false;
+                }
+                break;
+            case WM_FLOATING:
+                if (con_inside_floating(con) == NULL) {
+                    return false;
+                }
+                break;
+            case WM_ANY:
+                assert(false);
         }
 
         LOG("window_mode matches\n");
@@ -364,6 +392,23 @@ void match_parse_property(Match *match, const char *ctype, const char *cvalue) {
 
     if (strcmp(ctype, "tiling") == 0) {
         match->window_mode = WM_TILING;
+        return;
+    }
+
+    if (strcmp(ctype, "tiling_auto") == 0) {
+        match->window_mode = WM_TILING_AUTO;
+        return;
+    }
+    if (strcmp(ctype, "tiling_user") == 0) {
+        match->window_mode = WM_TILING_USER;
+        return;
+    }
+    if (strcmp(ctype, "floating_auto") == 0) {
+        match->window_mode = WM_FLOATING_AUTO;
+        return;
+    }
+    if (strcmp(ctype, "floating_user") == 0) {
+        match->window_mode = WM_FLOATING_USER;
         return;
     }
 

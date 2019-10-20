@@ -191,7 +191,10 @@ state CRITERIA:
   ctype = 'title'       -> CRITERION
   ctype = 'urgent'      -> CRITERION
   ctype = 'workspace'   -> CRITERION
-  ctype = 'tiling', 'floating'
+  # This is a hack here because the parser does not support optional arguments,
+  # in order to be able to handle for example both 'tiling' and 'tiling_auto',
+  # see #3588.
+  ctype = 'tiling_auto', 'tiling_user', 'floating_auto', 'floating_user', 'tiling', 'floating'
       -> call cfg_criteria_add($ctype, NULL); CRITERIA
   ']'
       -> call cfg_criteria_pop_state()
