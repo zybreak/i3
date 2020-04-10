@@ -99,11 +99,22 @@ is(parser_calls($config),
 
 $config = <<'EOT';
 for_window [class="^Chrome"] floating enable
+for_window [class=^Chrome] floating enable
+for_window [floating_from="auto" class="==Class=="] nop floating
+for_window [floating_from=auto class="==Class=="] nop floating
 EOT
 
 $expected = <<'EOT';
 cfg_criteria_add(class, ^Chrome)
 cfg_for_window(floating enable)
+cfg_criteria_add(class, ^Chrome)
+cfg_for_window(floating enable)
+cfg_criteria_add(floating_from, auto)
+cfg_criteria_add(class, ==Class==)
+cfg_for_window(nop floating)
+cfg_criteria_add(floating_from, auto)
+cfg_criteria_add(class, ==Class==)
+cfg_for_window(nop floating)
 EOT
 
 is(parser_calls($config),

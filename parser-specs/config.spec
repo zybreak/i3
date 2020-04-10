@@ -181,26 +181,41 @@ state NO_FOCUS_END:
 
 # Criteria: Used by for_window and assign.
 state CRITERIA:
-  ctype = 'class'       -> CRITERION
-  ctype = 'instance'    -> CRITERION
-  ctype = 'window_role' -> CRITERION
-  ctype = 'con_id'      -> CRITERION
-  ctype = 'id'          -> CRITERION
-  ctype = 'window_type' -> CRITERION
-  ctype = 'con_mark'    -> CRITERION
-  ctype = 'title'       -> CRITERION
-  ctype = 'urgent'      -> CRITERION
-  ctype = 'workspace'   -> CRITERION
-  # This is a hack here because the parser does not support optional arguments,
-  # in order to be able to handle for example both 'tiling' and 'tiling_auto',
-  # see #3588.
-  ctype = 'tiling_auto', 'tiling_user', 'floating_auto', 'floating_user', 'tiling', 'floating'
-      -> call cfg_criteria_add($ctype, NULL); CRITERIA
+  ctype = 'class'         -> CRITERION
+  ctype = 'instance'      -> CRITERION
+  ctype = 'window_role'   -> CRITERION
+  ctype = 'con_id'        -> CRITERION
+  ctype = 'id'            -> CRITERION
+  ctype = 'window_type'   -> CRITERION
+  ctype = 'con_mark'      -> CRITERION
+  ctype = 'title'         -> CRITERION
+  ctype = 'urgent'        -> CRITERION
+  ctype = 'workspace'     -> CRITERION
+  ctype = 'floating_from' -> CRITERION_FROM
+  ctype = 'tiling_from'   -> CRITERION_FROM
+  ctype = 'tiling', 'floating'
+       -> call cfg_criteria_add($ctype, NULL); CRITERIA
   ']'
       -> call cfg_criteria_pop_state()
 
 state CRITERION:
   '=' -> CRITERION_STR
+
+state CRITERION_FROM:
+  '=' -> CRITERION_FROM_STR_START
+
+state CRITERION_FROM_STR_START:
+  '"' -> CRITERION_FROM_STR
+  kind = 'auto', 'user'
+    -> call cfg_criteria_add($ctype, $kind); CRITERIA
+
+state CRITERION_FROM_STR:
+  kind = 'auto', 'user'
+    -> CRITERION_FROM_STR_END
+
+state CRITERION_FROM_STR_END:
+  '"'
+    -> call cfg_criteria_add($ctype, $kind); CRITERIA
 
 state CRITERION_STR:
   cvalue = word

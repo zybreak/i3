@@ -20,11 +20,11 @@ font -misc-fixed-medium-r-normal--13-120-75-75-C-70-iso10646-1
 for_window [tiling] mark --add tiling
 for_window [floating] mark --add floating
 
-for_window [tiling_auto] mark --add tiling_auto
-for_window [floating_auto] mark --add floating_auto
+for_window [tiling_from="auto"] mark --add tiling_auto
+for_window [floating_from="auto"] mark --add floating_auto
 
-for_window [tiling_user] mark --add tiling_user
-for_window [floating_user] mark --add floating_user
+for_window [tiling_from="user" title="."] mark --add tiling_user
+for_window [floating_from="user" title="."] mark --add floating_user
 EOT
 use X11::XCB qw(PROP_MODE_REPLACE);
 

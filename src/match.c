@@ -395,25 +395,36 @@ void match_parse_property(Match *match, const char *ctype, const char *cvalue) {
         return;
     }
 
-    if (strcmp(ctype, "tiling_auto") == 0) {
+    if (strcmp(ctype, "tiling_from") == 0 &&
+        cvalue != NULL &&
+        strcmp(cvalue, "auto") == 0) {
         match->window_mode = WM_TILING_AUTO;
         return;
     }
-    if (strcmp(ctype, "tiling_user") == 0) {
+
+    if (strcmp(ctype, "tiling_from") == 0 &&
+        cvalue != NULL &&
+        strcmp(cvalue, "user") == 0) {
         match->window_mode = WM_TILING_USER;
-        return;
-    }
-    if (strcmp(ctype, "floating_auto") == 0) {
-        match->window_mode = WM_FLOATING_AUTO;
-        return;
-    }
-    if (strcmp(ctype, "floating_user") == 0) {
-        match->window_mode = WM_FLOATING_USER;
         return;
     }
 
     if (strcmp(ctype, "floating") == 0) {
         match->window_mode = WM_FLOATING;
+        return;
+    }
+
+    if (strcmp(ctype, "floating_from") == 0 &&
+        cvalue != NULL &&
+        strcmp(cvalue, "auto") == 0) {
+        match->window_mode = WM_FLOATING_AUTO;
+        return;
+    }
+
+    if (strcmp(ctype, "floating_from") == 0 &&
+        cvalue != NULL &&
+        strcmp(cvalue, "user") == 0) {
+        match->window_mode = WM_FLOATING_USER;
         return;
     }
 
