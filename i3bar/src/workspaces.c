@@ -19,7 +19,6 @@ struct workspaces_json_params {
     struct ws_head *workspaces;
     i3_ws *workspaces_walk;
     char *cur_key;
-    char *json;
 };
 
 /*
@@ -220,25 +219,18 @@ static yajl_callbacks workspaces_callbacks = {
 };
 
 /*
- * Start parsing the received JSON string
+ * Parse the received JSON string
  *
  */
-void parse_workspaces_json(char *json) {
-    /* FIXME: Fasciliate stream processing, i.e. allow starting to interpret
-     * JSON in chunks */
-    struct workspaces_json_params params;
-
+void parse_workspaces_json(const unsigned char *json, size_t size) {
     free_workspaces();
 
+    struct workspaces_json_params params;
     params.workspaces_walk = NULL;
     params.cur_key = NULL;
-    params.json = json;
 
-    yajl_handle handle;
-    yajl_status state;
-    handle = yajl_alloc(&workspaces_callbacks, NULL, (void *)&params);
-
-    state = yajl_parse(handle, (const unsigned char *)json, strlen(json));
+    yajl_handle handle = yajl_alloc(&workspaces_callbacks, NULL, (void *)&params);
+    yajl_status state = yajl_parse(handle, json, size);
 
     /* FIXME: Proper error handling for JSON parsing */
     switch (state) {
@@ -252,7 +244,6 @@ void parse_workspaces_json(char *json) {
     }
 
     yajl_free(handle);
-
     FREE(params.cur_key);
 }
 

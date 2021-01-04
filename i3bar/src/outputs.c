@@ -21,7 +21,6 @@ struct outputs_json_params {
     struct outputs_head *outputs;
     i3_output *outputs_walk;
     char *cur_key;
-    char *json;
     bool in_rect;
 };
 
@@ -263,21 +262,17 @@ void init_outputs(void) {
 }
 
 /*
- * Start parsing the received JSON string
+ * Parse the received JSON string
  *
  */
-void parse_outputs_json(char *json) {
+void parse_outputs_json(const unsigned char *json, size_t size) {
     struct outputs_json_params params;
     params.outputs_walk = NULL;
     params.cur_key = NULL;
-    params.json = json;
     params.in_rect = false;
 
-    yajl_handle handle;
-    yajl_status state;
-    handle = yajl_alloc(&outputs_callbacks, NULL, (void *)&params);
-
-    state = yajl_parse(handle, (const unsigned char *)json, strlen(json));
+    yajl_handle handle = yajl_alloc(&outputs_callbacks, NULL, (void *)&params);
+    yajl_status state = yajl_parse(handle, json, size);
 
     /* FIXME: Proper errorhandling for JSON-parsing */
     switch (state) {

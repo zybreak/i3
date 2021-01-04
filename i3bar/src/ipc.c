@@ -24,14 +24,14 @@ ev_io *i3_connection;
 
 const char *sock_path;
 
-typedef void (*handler_t)(char *);
+typedef void (*handler_t)(const unsigned char *, size_t);
 
 /*
  * Called, when we get a reply to a command from i3.
  * Since i3 does not give us much feedback on commands, we do not much
  *
  */
-static void got_command_reply(char *reply) {
+static void got_command_reply(const unsigned char *reply, size_t size) {
     /* TODO: Error handling for command replies */
 }
 
@@ -39,9 +39,9 @@ static void got_command_reply(char *reply) {
  * Called, when we get a reply with workspaces data
  *
  */
-static void got_workspace_reply(char *reply) {
+static void got_workspace_reply(const unsigned char *reply, size_t size) {
     DLOG("Got workspace data!\n");
-    parse_workspaces_json(reply);
+    parse_workspaces_json(reply, size);
     draw_bars(false);
 }
 
@@ -50,7 +50,7 @@ static void got_workspace_reply(char *reply) {
  * Since i3 does not give us much feedback on commands, we do not much
  *
  */
-static void got_subscribe_reply(char *reply) {
+static void got_subscribe_reply(const unsigned char *reply, size_t size) {
     DLOG("Got subscribe reply: %s\n", reply);
     /* TODO: Error handling for subscribe commands */
 }
@@ -59,12 +59,12 @@ static void got_subscribe_reply(char *reply) {
  * Called, when we get a reply with outputs data
  *
  */
-static void got_output_reply(char *reply) {
+static void got_output_reply(const unsigned char *reply, size_t size) {
     DLOG("Clearing old output configuration...\n");
     free_outputs();
 
     DLOG("Parsing outputs JSON...\n");
-    parse_outputs_json(reply);
+    parse_outputs_json(reply, size);
     DLOG("Reconfiguring windows...\n");
     reconfig_windows(false);
 
@@ -84,10 +84,10 @@ static void got_output_reply(char *reply) {
  * Called when we get the configuration for our bar instance
  *
  */
-static void got_bar_config(char *reply) {
+static void got_bar_config(const unsigned char *reply, size_t size) {
     if (!config.bar_id) {
         DLOG("Received bar list \"%s\"\n", reply);
-        parse_get_first_i3bar_config(reply);
+        parse_get_first_i3bar_config(reply, size);
 
         if (!config.bar_id) {
             ELOG("No bar configuration found, please configure a bar block in your i3 config file.\n");
@@ -106,7 +106,7 @@ static void got_bar_config(char *reply) {
     i3_send_msg(I3_IPC_MESSAGE_TYPE_GET_OUTPUTS, NULL);
 
     free_colors(&(config.colors));
-    parse_config_json(reply);
+    parse_config_json(reply, size);
 
     /* Now we can actually use 'config', so let's subscribe to the appropriate
      * events and request the workspaces if necessary. */
@@ -143,7 +143,7 @@ handler_t reply_handlers[] = {
  * Called, when a workspace event arrives (i.e. the user changed the workspace)
  *
  */
-static void got_workspace_event(char *event) {
+static void got_workspace_event(const unsigned char *event, size_t size) {
     DLOG("Got workspace event!\n");
     i3_send_msg(I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
 }
@@ -152,7 +152,7 @@ static void got_workspace_event(char *event) {
  * Called, when an output event arrives (i.e. the screen configuration changed)
  *
  */
-static void got_output_event(char *event) {
+static void got_output_event(const unsigned char *event, size_t size) {
     DLOG("Got output event!\n");
     i3_send_msg(I3_IPC_MESSAGE_TYPE_GET_OUTPUTS, NULL);
 }
@@ -161,9 +161,9 @@ static void got_output_event(char *event) {
  * Called, when a mode event arrives (i3 changed binding mode).
  *
  */
-static void got_mode_event(char *event) {
+static void got_mode_event(const unsigned char *event, size_t size) {
     DLOG("Got mode event!\n");
-    parse_mode_json(event);
+    parse_mode_json(event, size);
     draw_bars(false);
 }
 
@@ -180,11 +180,11 @@ static bool strings_differ(char *a, char *b) {
  * Called, when a barconfig_update event arrives (i.e. i3 changed the bar hidden_state or mode)
  *
  */
-static void got_bar_config_update(char *event) {
+static void got_bar_config_update(const unsigned char *event, size_t size) {
     /* check whether this affect this bar instance by checking the bar_id */
     char *expected_id;
     sasprintf(&expected_id, "\"id\":\"%s\"", config.bar_id);
-    char *found_id = strstr(event, expected_id);
+    char *found_id = strstr((const char*)event, expected_id);
     FREE(expected_id);
     if (found_id == NULL)
         return;
@@ -201,7 +201,7 @@ static void got_bar_config_update(char *event) {
     config.command = NULL;
     bar_display_mode_t old_mode = config.hide_on_modifier;
 
-    parse_config_json(event);
+    parse_config_json(event, size);
     if (old_mode != config.hide_on_modifier) {
         reconfig_windows(true);
     }
@@ -281,7 +281,7 @@ static void got_data(struct ev_loop *loop, ev_io *watcher, int events) {
 
     /* Now that we know, what to expect, we can start read()ing the rest
      * of the message */
-    char *buffer = smalloc(size + 1);
+    unsigned char *buffer = smalloc(size + 1);
     rec = 0;
 
     while (rec < size) {
@@ -301,10 +301,11 @@ static void got_data(struct ev_loop *loop, ev_io *watcher, int events) {
     /* And call the callback (indexed by the type) */
     if (type & (1UL << 31)) {
         type ^= 1UL << 31;
-        event_handlers[type](buffer);
+        event_handlers[type](buffer, size);
     } else {
-        if (reply_handlers[type])
-            reply_handlers[type](buffer);
+        if (reply_handlers[type]) {
+            reply_handlers[type](buffer, size);
+        }
     }
 
     FREE(header);
