@@ -183,8 +183,14 @@ static int config_string_cb(void *params_, const unsigned char *val, size_t _len
     }
 
     if (!strcmp(cur_key, "status_command")) {
-        DLOG("command = %.*s\n", len, val);
+        DLOG("status_command = %.*s\n", len, val);
         sasprintf(&config.command, "%.*s", len, val);
+        return 1;
+    }
+
+    if (!strcmp(cur_key, "workspace_command")) {
+        DLOG("workspace_command = %.*s\n", len, val);
+        sasprintf(&config.workspace_command, "%.*s", len, val);
         return 1;
     }
 
@@ -381,6 +387,11 @@ void parse_config_json(const unsigned char *json, size_t size) {
             ELOG("Could not parse config reply!\n");
             exit(EXIT_FAILURE);
             break;
+    }
+
+    if (config.disable_ws && config.workspace_command) {
+        ELOG("You have specified 'workspace_buttons no'. Your 'workspace_command %s' will be ignored.\n", config.workspace_command);
+        FREE(config.workspace_command);
     }
 
     yajl_free(handle);

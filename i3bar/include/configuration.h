@@ -52,6 +52,7 @@ typedef struct config_t {
     bool strip_ws_name;
     char *bar_id;
     char *command;
+    char *workspace_command;
     char *fontname;
     i3String *separator_symbol;
     TAILQ_HEAD(tray_outputs_head, tray_output_t) tray_outputs;

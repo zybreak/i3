@@ -27,6 +27,15 @@ const char *sock_path;
 typedef void (*handler_t)(const unsigned char *, size_t);
 
 /*
+ * Returns true when i3bar is configured to require workspace information from
+ * i3.
+ *
+ */
+static bool i3_provides_workspaces(void) {
+    return !config.disable_ws && config.workspace_command == NULL;
+}
+
+/*
  * Called, when we get a reply to a command from i3.
  * Since i3 does not give us much feedback on commands, we do not much
  *
@@ -73,8 +82,19 @@ static void got_output_reply(const unsigned char *reply, size_t size) {
         kick_tray_clients(o_walk);
     }
 
-    if (!config.disable_ws) {
+    if (i3_provides_workspaces()) {
         i3_send_msg(I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
+    } else if (config.workspace_command) {
+        /* Communication with the workspace child is one-way. Since we called
+         * free_outputs() and free_workspaces() we have lost our workspace
+         * information which will result in no workspace buttons. A
+         * well-behaving client should be subscribed to output events as well
+         * and re-send the output information to i3bar. Even in that case
+         * though there is a race condition where the child can send the new
+         * workspace information after the output change before i3bar receives
+         * the output event from i3. For this reason, we re-parse the latest
+         * received JSON. */
+        repeat_last_ws_json();
     }
 
     draw_bars(false);
@@ -111,8 +131,9 @@ static void got_bar_config(const unsigned char *reply, size_t size) {
     /* Now we can actually use 'config', so let's subscribe to the appropriate
      * events and request the workspaces if necessary. */
     subscribe_events();
-    if (!config.disable_ws)
+    if (i3_provides_workspaces()) {
         i3_send_msg(I3_IPC_MESSAGE_TYPE_GET_WORKSPACES, NULL);
+    }
 
     /* Initialize the rest of XCB */
     init_xcb_late(config.fontname);
@@ -121,6 +142,7 @@ static void got_bar_config(const unsigned char *reply, size_t size) {
     init_colors(&(config.colors));
 
     start_child(config.command);
+    start_ws_child(config.workspace_command);
 }
 
 /* Data structure to easily call the reply handlers later */
@@ -184,7 +206,7 @@ static void got_bar_config_update(const unsigned char *event, size_t size) {
     /* check whether this affect this bar instance by checking the bar_id */
     char *expected_id;
     sasprintf(&expected_id, "\"id\":\"%s\"", config.bar_id);
-    char *found_id = strstr((const char*)event, expected_id);
+    char *found_id = strstr((const char *)event, expected_id);
     FREE(expected_id);
     if (found_id == NULL)
         return;
@@ -198,7 +220,9 @@ static void got_bar_config_update(const unsigned char *event, size_t size) {
     DLOG("Received bar config update \"%s\"\n", event);
 
     char *old_command = config.command;
+    char *old_workspace_command = config.workspace_command;
     config.command = NULL;
+    config.workspace_command = NULL;
     bar_display_mode_t old_mode = config.hide_on_modifier;
 
     parse_config_json(event, size);
@@ -217,6 +241,12 @@ static void got_bar_config_update(const unsigned char *event, size_t size) {
         start_child(config.command);
     }
     free(old_command);
+    if (strings_differ(old_workspace_command, config.workspace_command)) {
+        free_workspaces();
+        kill_ws_child();
+        start_ws_child(config.workspace_command);
+    }
+    free(old_workspace_command);
 
     draw_bars(false);
 }
@@ -374,9 +404,9 @@ void destroy_connection(void) {
  *
  */
 void subscribe_events(void) {
-    if (config.disable_ws) {
-        i3_send_msg(I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[ \"output\", \"mode\", \"barconfig_update\" ]");
-    } else {
+    if (i3_provides_workspaces()) {
         i3_send_msg(I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[ \"workspace\", \"output\", \"mode\", \"barconfig_update\" ]");
+    } else {
+        i3_send_msg(I3_IPC_MESSAGE_TYPE_SUBSCRIBE, "[ \"output\", \"mode\", \"barconfig_update\" ]");
     }
 }

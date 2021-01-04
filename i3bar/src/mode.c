@@ -104,7 +104,7 @@ void parse_mode_json(const unsigned char *json, size_t size) {
     params.cur_key = NULL;
     params.mode = &binding;
 
-    yajl_handle handle=yajl_alloc(&mode_callbacks, NULL, (void *)&params);
+    yajl_handle handle = yajl_alloc(&mode_callbacks, NULL, (void *)&params);
     yajl_status state = yajl_parse(handle, json, size);
 
     /* FIXME: Proper error handling for JSON parsing */

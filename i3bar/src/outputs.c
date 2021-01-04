@@ -314,12 +314,14 @@ void free_outputs(void) {
  *
  */
 i3_output *get_output_by_name(char *name) {
-    i3_output *walk;
     if (name == NULL) {
         return NULL;
     }
+    const bool is_primary = !strcasecmp(name, "primary");
+
+    i3_output *walk;
     SLIST_FOREACH (walk, outputs, slist) {
-        if (!strcmp(walk->name, name)) {
+        if ((is_primary && walk->primary) || !strcmp(walk->name, name)) {
             break;
         }
     }

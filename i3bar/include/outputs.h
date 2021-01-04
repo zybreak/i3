@@ -25,7 +25,7 @@ extern struct outputs_head* outputs;
  * Parse the received JSON string
  *
  */
-void parse_outputs_json(const unsigned char * json, size_t size);
+void parse_outputs_json(const unsigned char* json, size_t size);
 
 /*
  * Initiate the outputs list
