@@ -698,25 +698,12 @@ executable(
   link_with: libi3,
 )
 
-anyevent_i3 = custom_target(
-  'anyevent-i3',
-  # Should be AnyEvent-I3/blib/lib/AnyEvent/I3.pm,
-  # but see https://github.com/mesonbuild/meson/issues/2320
-  output: 'AnyEvent-I3.stamp',
-  command: [
-    'sh',
-    '-c',
-    'cp -r @0@/AnyEvent-I3 . && cd AnyEvent-I3 && perl Makefile.PL && make && touch ../AnyEvent-I3.stamp'.format(meson.current_source_dir()),
-  ],
-)
-
 if meson.version().version_compare('>=0.46.0')
   test(
     'complete-run',
     perl,
     args: [complete_run],
     depends: [
-      anyevent_i3,
       i3test_pm,
     ],
     timeout: 120,  # Default of 30 seconds can cause timeouts on slower machines
