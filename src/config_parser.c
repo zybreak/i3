@@ -751,9 +751,8 @@ static char *migrate_config(char *input, off_t size) {
  * Launch nagbar to indicate errors in the configuration file.
  */
 void start_config_error_nagbar(const char *configpath, bool has_errors) {
-    char *editaction, *pageraction;
+    char *editaction;
     sasprintf(&editaction, "i3-sensible-editor \"%s\" && i3-msg reload\n", configpath);
-    sasprintf(&pageraction, "i3-sensible-pager \"%s\"\n", errorfilename);
     char *argv[] = {
         NULL, /* will be replaced by the executable path */
         "-f",
@@ -765,14 +764,10 @@ void start_config_error_nagbar(const char *configpath, bool has_errors) {
         "-b",
         "edit config",
         editaction,
-        (errorfilename ? "-b" : NULL),
-        (has_errors ? "show errors" : "show warnings"),
-        pageraction,
         NULL};
 
     start_nagbar(&config_error_nagbar_pid, argv);
     free(editaction);
-    free(pageraction);
 }
 
 /*
