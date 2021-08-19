@@ -303,7 +303,6 @@ iconv_dep = cc.find_library('iconv', required: false)
 libsn_dep = dependency('libstartup-notification-1.0', method: 'pkg-config')
 xcb_dep = dependency('xcb', method: 'pkg-config')
 xcb_xkb_dep = dependency('xcb-xkb', method: 'pkg-config')
-xcb_xinerama_dep = dependency('xcb-xinerama', method: 'pkg-config')
 xcb_randr_dep = dependency('xcb-randr', method: 'pkg-config')
 xcb_shape_dep = dependency('xcb-shape', method: 'pkg-config')
 xcb_util_dep = dependency('xcb-util', method: 'pkg-config')
@@ -415,7 +414,6 @@ i3srcs = [
   'src/x.c',
   'src/xcb.c',
   'src/xcursor.c',
-  'src/xinerama.c',
 ]
 
 # Verify the perl interpreter is present for running parser_gen,
@@ -460,7 +458,6 @@ common_deps = [
   libsn_dep,
   xcb_dep,
   xcb_xkb_dep,
-  xcb_xinerama_dep,
   xcb_randr_dep,
   xcb_shape_dep,
   xcb_util_dep,

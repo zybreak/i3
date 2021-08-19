@@ -324,10 +324,6 @@ CFGFUN(mouse_warping, const char *value) {
         config.mouse_warping = POINTER_WARPING_OUTPUT;
 }
 
-CFGFUN(force_xinerama, const char *value) {
-    config.force_xinerama = boolstr(value);
-}
-
 CFGFUN(disable_randr15, const char *value) {
     config.disable_randr15 = boolstr(value);
 }

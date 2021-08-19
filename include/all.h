@@ -50,7 +50,6 @@
 #include "configuration.h"
 #include "handlers.h"
 #include "randr.h"
-#include "xinerama.h"
 #include "con.h"
 #include "load_layout.h"
 #include "render.h"

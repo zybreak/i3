@@ -24,7 +24,6 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <xcb/xinerama.h>
 #include <xcb/bigreq.h>
 
 #ifdef I3_ASAN_ENABLED
@@ -99,8 +98,6 @@ struct ws_assignments_head ws_assignments = TAILQ_HEAD_INITIALIZER(ws_assignment
 /* We hope that those are supported and set them to true */
 bool xkb_supported = true;
 bool shape_supported = true;
-
-bool force_xinerama = false;
 
 /* Define all atoms as global variables */
 #define xmacro(atom) xcb_atom_t A_##atom;
@@ -294,8 +291,6 @@ int main(int argc, char *argv[]) {
         {"help", no_argument, 0, 'h'},
         {"layout", required_argument, 0, 'L'},
         {"restart", required_argument, 0, 0},
-        {"force-xinerama", no_argument, 0, 0},
-        {"force_xinerama", no_argument, 0, 0},
         {"disable-randr15", no_argument, 0, 0},
         {"disable_randr15", no_argument, 0, 0},
         {"disable-signalhandler", no_argument, 0, 0},
@@ -369,16 +364,7 @@ int main(int argc, char *argv[]) {
                 /* DEPRECATED, ignored for the next 3 versions (3.e, 3.f, 3.g) */
                 break;
             case 0:
-                if (strcmp(long_options[option_index].name, "force-xinerama") == 0 ||
-                    strcmp(long_options[option_index].name, "force_xinerama") == 0) {
-                    force_xinerama = true;
-                    ELOG("Using Xinerama instead of RandR. This option should be "
-                         "avoided at all cost because it does not refresh the list "
-                         "of screens, so you cannot configure displays at runtime. "
-                         "Please check if your driver really does not support RandR "
-                         "and disable this option as soon as you can.\n");
-                    break;
-                } else if (strcmp(long_options[option_index].name, "disable-randr15") == 0 ||
+                if (strcmp(long_options[option_index].name, "disable-randr15") == 0 ||
                            strcmp(long_options[option_index].name, "disable_randr15") == 0) {
                     disable_randr15 = true;
                     break;
@@ -432,12 +418,6 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "\t-L <file>   path to the serialized layout during restarts\n");
                 fprintf(stderr, "\t-v          display version and exit\n");
                 fprintf(stderr, "\t-V          enable verbose mode\n");
-                fprintf(stderr, "\n");
-                fprintf(stderr, "\t--force-xinerama\n"
-                                "\tUse Xinerama instead of RandR.\n"
-                                "\tThis option should only be used if you are stuck with the\n"
-                                "\told nVidia closed source driver (older than 302.17), which does\n"
-                                "\tnot support RandR.\n");
                 fprintf(stderr, "\n");
                 fprintf(stderr, "\t--get-socketpath\n"
                                 "\tRetrieve the i3 IPC socket path from X11, print it, then exit.\n");
@@ -580,11 +560,7 @@ int main(int argc, char *argv[]) {
     xcb_prefetch_extension_data(conn, &xcb_shape_id);
     /* BIG-REQUESTS is used by libxcb internally. */
     xcb_prefetch_extension_data(conn, &xcb_big_requests_id);
-    if (force_xinerama) {
-        xcb_prefetch_extension_data(conn, &xcb_xinerama_id);
-    } else {
-        xcb_prefetch_extension_data(conn, &xcb_randr_id);
-    }
+    xcb_prefetch_extension_data(conn, &xcb_randr_id);
 
     /* Place requests for the atoms we need as soon as possible */
 #define xmacro(atom) \
@@ -650,10 +626,6 @@ int main(int argc, char *argv[]) {
             config.ipc_socket_path = get_process_filename("ipc-socket");
         else
             config.ipc_socket_path = sstrdup(config.ipc_socket_path);
-    }
-
-    if (config.force_xinerama) {
-        force_xinerama = true;
     }
 
     xcb_void_cookie_t cookie;
@@ -800,11 +772,6 @@ int main(int argc, char *argv[]) {
         fake_outputs_init(fake_outputs);
         FREE(fake_outputs);
         config.fake_outputs = NULL;
-    } else if (force_xinerama) {
-        /* Force Xinerama (for drivers which don't support RandR yet, esp. the
-         * nVidia binary graphics driver), when specified either in the config
-         * file or on command-line */
-        xinerama_init();
     } else {
         DLOG("Checking for XRandR...\n");
         randr_init(&randr_base, disable_randr15 || config.disable_randr15);

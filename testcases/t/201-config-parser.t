@@ -530,8 +530,6 @@ my $expected_all_tokens = "ERROR: CONFIG: Expected one of these tokens: <end>, '
         mouse_warping
         focus_wrapping
         force_focus_wrapping
-        force_xinerama
-        force-xinerama
         disable_randr15
         disable-randr15
         workspace_auto_back_and_forth
