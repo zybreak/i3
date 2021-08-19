@@ -53,8 +53,7 @@ after modifying the configuration file.
 == EXAMPLE
 
 ------------------------------------------------
-i3-nagbar -m 'You have an error in your i3 config file!' \
--b 'edit config' 'i3-sensible-editor ~/.config/i3/config'
+i3-nagbar -m 'You have an error in your i3 config file!'
 ------------------------------------------------
 
 == SEE ALSO

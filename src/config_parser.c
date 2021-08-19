@@ -751,8 +751,6 @@ static char *migrate_config(char *input, off_t size) {
  * Launch nagbar to indicate errors in the configuration file.
  */
 void start_config_error_nagbar(const char *configpath, bool has_errors) {
-    char *editaction;
-    sasprintf(&editaction, "i3-sensible-editor \"%s\" && i3-msg reload\n", configpath);
     char *argv[] = {
         NULL, /* will be replaced by the executable path */
         "-f",
@@ -761,13 +759,9 @@ void start_config_error_nagbar(const char *configpath, bool has_errors) {
         (has_errors ? "error" : "warning"),
         "-m",
         (has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works."),
-        "-b",
-        "edit config",
-        editaction,
         NULL};
 
     start_nagbar(&config_error_nagbar_pid, argv);
-    free(editaction);
 }
 
 /*
