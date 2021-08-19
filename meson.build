@@ -203,7 +203,6 @@ if get_option('mans')
     'man/i3-config-wizard.man',
     'man/i3-migrate-config-to-v4.man',
     'man/i3-sensible-editor.man',
-    'man/i3-sensible-pager.man',
     'man/i3-sensible-terminal.man',
     'man/i3-dump-log.man',
   ]
@@ -277,7 +276,6 @@ else
 	'man/i3-config-wizard.1',
 	'man/i3-migrate-config-to-v4.1',
 	'man/i3-sensible-editor.1',
-	'man/i3-sensible-pager.1',
 	'man/i3-sensible-terminal.1',
 	'man/i3-dump-log.1',
 	'man/i3-dmenu-desktop.1',
@@ -578,7 +576,6 @@ install_data(
     'i3-migrate-config-to-v4',
     'i3-save-tree',
     'i3-sensible-editor',
-    'i3-sensible-pager',
     'i3-sensible-terminal',
   ],
   install_dir: 'bin',
