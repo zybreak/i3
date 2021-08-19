@@ -201,7 +201,6 @@ if get_option('mans')
     'man/i3-input.man',
     'man/i3-nagbar.man',
     'man/i3-config-wizard.man',
-    'man/i3-migrate-config-to-v4.man',
     'man/i3-sensible-terminal.man',
     'man/i3-dump-log.man',
   ]
@@ -272,7 +271,6 @@ else
 	'man/i3-input.1',
 	'man/i3-nagbar.1',
 	'man/i3-config-wizard.1',
-	'man/i3-migrate-config-to-v4.1',
 	'man/i3-sensible-terminal.1',
 	'man/i3-dump-log.1',
 	'man/i3-save-tree.1',
@@ -565,7 +563,6 @@ executable(
 
 install_data(
   [
-    'i3-migrate-config-to-v4',
     'i3-save-tree',
     'i3-sensible-terminal',
   ],
