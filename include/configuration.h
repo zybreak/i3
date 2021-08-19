@@ -163,16 +163,6 @@ struct Config {
      * parent" more often. */
     focus_wrapping_t focus_wrapping;
 
-    /** By default, use the RandR API for multi-monitor setups.
-     * Unfortunately, the nVidia binary graphics driver doesn't support
-     * this API. Instead, it only support the less powerful Xinerama API,
-     * which can be enabled by this option.
-     *
-     * Note: this option takes only effect on the initial startup (eg.
-     * reconfiguration is not possible). On startup, the list of screens
-     * is fetched once and never updated. */
-    bool force_xinerama;
-
     /** Don’t use RandR 1.5 for querying outputs. */
     bool disable_randr15;
 

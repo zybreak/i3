@@ -234,8 +234,7 @@ data structure will then be filled and i3 will check each window using
 +match_matches_window()+ to find the windows affected by this command.
 
 src/randr.c::
-The RandR API is used to get (and re-query) the configured outputs (monitors,
-…). Legacy Xinerama support resides in +src/xinerama.c+.
+The RandR API is used to get (and re-query) the configured outputs (monitors, …).
 
 src/render.c::
 Renders the tree data structure by assigning coordinates to every node. These
@@ -362,7 +361,7 @@ should be chosen for those:
 
  * Establish the xcb connection
  * Check for XKB extension on the separate X connection, load Xcursor
- * Check for RandR screens (with a fall-back to Xinerama)
+ * Check for RandR screens
  * Grab the keycodes for which bindings exist
  * Manage all existing windows
  * Enter the event loop

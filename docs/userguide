@@ -1224,31 +1224,6 @@ focus_wrapping no
 focus_wrapping force
 -----------------
 
-=== Forcing Xinerama
-
-As explained in-depth in <https://i3wm.org/docs/multi-monitor.html>, some X11
-video drivers (especially the nVidia binary driver) only provide support for
-Xinerama instead of RandR. In such a situation, i3 must be told to use the
-inferior Xinerama API explicitly and therefore don’t provide support for
-reconfiguring your screens on the fly (they are read only once on startup and
-that’s it).
-
-For people who cannot modify their +~/.xsession+ to add the
-+--force-xinerama+ commandline parameter, a configuration option is provided:
-
-*Syntax*:
----------------------
-force_xinerama yes|no
----------------------
-
-*Example*:
-------------------
-force_xinerama yes
-------------------
-
-Also note that your output names are not descriptive (like +HDMI1+) when using
-Xinerama, instead they are counted up, starting at 0: +xinerama-0+, +xinerama-1+, …
-
 [[workspace_auto_back_and_forth]]
 === Automatic back-and-forth when switching to the current workspace
 

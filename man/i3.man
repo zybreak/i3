@@ -32,11 +32,6 @@ Display version number (and date of the last commit).
 -V::
 Be verbose.
 
---force-xinerama::
-Use Xinerama instead of RandR. This option should only be used if you are stuck
-with the old nVidia closed source driver (older than 302.17) which does not
-support RandR.
-
 --get-socketpath::
 Retrieve the i3 IPC socket path from X11, print it, then exit.
 
@@ -56,18 +51,6 @@ wmii developers and contributors did a great job. Thank you for inspiring us to
 create i3.
 
 Please be aware that i3 is primarily targeted at advanced users and developers.
-
-=== IMPORTANT NOTE TO nVidia BINARY DRIVER USERS
-
-If you are using the nVidia binary graphics driver (also known as 'blob')
-before version 302.17, you need to use the +--force-xinerama+ flag (in your
-~/.xsession) when starting i3, like so:
-
-----------------------------------------------
-exec i3 --force-xinerama -V >>~/.i3/i3log 2>&1
-----------------------------------------------
-
-See also docs/multi-monitor for the full explanation.
 
 === TERMINOLOGY
 
