@@ -241,7 +241,6 @@ if get_option('mans')
   endforeach
 
   pod2man_inputs = [
-    'i3-dmenu-desktop',
     'i3-save-tree',
   ]
   foreach m : pod2man_inputs
@@ -276,7 +275,6 @@ else
 	'man/i3-migrate-config-to-v4.1',
 	'man/i3-sensible-terminal.1',
 	'man/i3-dump-log.1',
-	'man/i3-dmenu-desktop.1',
 	'man/i3-save-tree.1',
       ],
       install_dir: man1,
@@ -567,7 +565,6 @@ executable(
 
 install_data(
   [
-    'i3-dmenu-desktop',
     'i3-migrate-config-to-v4',
     'i3-save-tree',
     'i3-sensible-terminal',
