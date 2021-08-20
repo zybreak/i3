@@ -25,7 +25,7 @@
 #include <xcb/xcb.h>
 
 #include "libi3.h"
-#include "handlers.h"
+#include <xcb/randr.h>
 
 #include <ev.h>
 #include <fcntl.h>

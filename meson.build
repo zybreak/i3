@@ -307,8 +307,6 @@ gobject_dep = dependency('gobject-2.0', method: 'pkg-config')
 
 ev_dep = cc.find_library('ev')
 
-inc = include_directories('include')
-
 libi3srcs = [
   'libi3/boolstr.c',
   'libi3/create_socket.c',
@@ -350,7 +348,7 @@ endif
 libi3 = static_library(
   'i3',
   libi3srcs,
-  include_directories: inc,
+  include_directories: include_directories('include'),
   dependencies: [
     pangocairo_dep,
     config_h,
@@ -467,7 +465,7 @@ executable(
   'i3',
   i3srcs,
   install: true,
-  include_directories: inc,
+  include_directories: include_directories('include', 'src/include'),
   dependencies: common_deps,
   link_with: libi3,
 )
@@ -509,7 +507,7 @@ executable(
   'i3-dump-log',
   'i3-dump-log/main.c',
   install: true,
-  include_directories: inc,
+  include_directories: include_directories('include'),
   dependencies: common_deps,
   link_with: libi3,
 )
@@ -619,7 +617,7 @@ endif
 executable(
   'test.inject_randr15',
   'testcases/inject_randr1.5.c',
-  include_directories: inc,
+  include_directories: include_directories('include'),
   dependencies: common_deps,
   link_with: libi3,
 )
@@ -630,7 +628,7 @@ executable(
     'src/commands_parser.c',
     command_parser,
   ],
-  include_directories: inc,
+  include_directories: include_directories('include', 'src/include'),
   c_args: '-DTEST_PARSER',
   dependencies: common_deps,
   link_with: libi3,
@@ -642,7 +640,7 @@ executable(
     'src/config_parser.c',
     config_parser,
   ],
-  include_directories: inc,
+  include_directories: include_directories('include', 'src/include'),
   c_args: '-DTEST_PARSER',
   dependencies: common_deps,
   link_with: libi3,
