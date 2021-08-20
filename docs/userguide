@@ -962,12 +962,10 @@ file in the following way:
 *Start iceweasel on workspace 3 (once)*:
 -------------------------------------------------------------------------------
 # Start iceweasel on workspace 3, then switch back to workspace 1
-# (Being a command-line utility, i3-msg does not support startup notifications,
-#  hence the exec --no-startup-id.)
 # (Starting iceweasel with i3’s exec command is important in order to make i3
 #  create a startup notification context, without which the iceweasel window(s)
 #  cannot be matched onto the workspace on which the command was started.)
-exec --no-startup-id i3-msg 'workspace 3; exec iceweasel; workspace 1'
+exec --no-startup-id i3 'workspace 3; exec iceweasel; workspace 1'
 -------------------------------------------------------------------------------
 
 === Automatically starting applications on i3 startup
@@ -1117,7 +1115,7 @@ user can create that directory.
 ipc-socket ~/.i3/i3-ipc.sock
 ----------------------------
 
-You can then use the +i3-msg+ application to perform any command listed in
+You can then use the +i3+ application to perform any command listed in
 <<list_of_commands>>.
 
 === Focus follows mouse
@@ -1888,13 +1886,12 @@ flag will cause all tray icons to have a transparent background.
 == List of commands
 
 Commands are what you bind to specific keypresses. You can also issue commands
-at runtime without pressing a key by using the IPC interface. An easy way to
-do this is to use the +i3-msg+ utility:
+at runtime without pressing a key by using the IPC interface.
 
 *Example*:
 --------------------------
 # execute this on your shell to make the current container borderless
-i3-msg border none
+i3 border none
 --------------------------
 
 [[command_chaining]]
@@ -2431,10 +2428,10 @@ rename workspace to <new_name>
 
 *Examples*:
 --------------------------------------------------------------------------
-i3-msg 'rename workspace 5 to 6'
-i3-msg 'rename workspace 1 to "1: www"'
-i3-msg 'rename workspace "1: www" to "10: www"'
-i3-msg 'rename workspace to "2: mail"'
+i3 'rename workspace 5 to 6'
+i3 'rename workspace 1 to "1: www"'
+i3 'rename workspace "1: www" to "10: www"'
+i3 'rename workspace to "2: mail"'
 --------------------------------------------------------------------------
 
 If you want to rename workspaces on demand while keeping the navigation stable,
@@ -2752,7 +2749,7 @@ bindsym $mod+x shmlog toggle
 
 # or, from a terminal:
 # increase the shared memory log buffer to 50 MiB
-i3-msg shmlog $((50*1024*1024))
+i3 shmlog $((50*1024*1024))
 ---------------
 
 === Enabling debug logging

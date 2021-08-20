@@ -729,8 +729,8 @@ floating windows:
 
 == User commands (parser-specs/commands.spec)
 
-In the configuration file and when using i3 interactively (with +i3-msg+, for
-example), you use commands to make i3 do things, like focus a different window,
+In the configuration file and when using i3 interactively,
+you use commands to make i3 do things, like focus a different window,
 set a window to fullscreen, and so on. An example command is +floating enable+,
 which enables floating mode for the currently focused window. See the
 appropriate section in the link:userguide.html[User’s Guide] for a reference of

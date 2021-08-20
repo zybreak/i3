@@ -64,7 +64,7 @@ If you cannot restart i3 for some reason, you can enable debug logging on the
 fly:
 
 ---------------------------------------
-i3-msg 'debuglog on; shmlog on; reload'
+i3 'debuglog on; shmlog on; reload'
 ---------------------------------------
 
 == Reproducing the problem

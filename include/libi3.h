@@ -5,7 +5,7 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  * libi3: contains functions which are used by i3 *and* accompanying tools such
- * as i3-msg, i3-config-wizard, …
+ * as i3-config-wizard, …
  *
  */
 #pragma once

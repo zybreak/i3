@@ -188,7 +188,7 @@ sub update_output {
             ($bg, $fg) = qw(4c7899 ffffff) if $ws->{visible};
             ($bg, $fg) = qw(900000 ffffff) if $ws->{urgent};
 
-            my $cmd = q|i3-msg "workspace | . $ws->{name} . q|"|;
+            my $cmd = q|i3 "workspace | . $ws->{name} . q|"|;
             my $name = $ws->{name};
 
             # Begin the clickable area

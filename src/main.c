@@ -464,7 +464,7 @@ int main(int argc, char *argv[]) {
                         shmlog_size);
                 fprintf(stderr, "\n");
                 fprintf(stderr, "If you pass plain text arguments, i3 will interpret them as a command\n"
-                                "to send to a currently running i3 (like i3-msg). This allows you to\n"
+                                "to send to a currently running i3 (like old i3-msg). This allows you to\n"
                                 "use nice and logical commands, such as:\n"
                                 "\n"
                                 "\ti3 border none\n"
@@ -479,7 +479,7 @@ int main(int argc, char *argv[]) {
         exit(load_configuration(override_configpath, C_VALIDATE) ? EXIT_SUCCESS : EXIT_FAILURE);
     }
 
-    /* If the user passes more arguments, we act like i3-msg would: Just send
+    /* If the user passes more arguments, we act like old i3-msg would: Just send
      * the arguments as an IPC message to i3. This allows for nice semantic
      * commands such as 'i3 border none'. */
     if (optind < argc) {
@@ -488,7 +488,7 @@ int main(int argc, char *argv[]) {
          * arguments by mistake. */
         set_verbosity(true);
 
-        LOG("Additional arguments passed. Sending them as a command to i3.\n");
+        DLOG("Additional arguments passed. Sending them as a command to i3.\n");
         char *payload = NULL;
         while (optind < argc) {
             if (!payload) {

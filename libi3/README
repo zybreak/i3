@@ -2,7 +2,7 @@ Introduction
 ============
 
 libi3 is an *INTERNAL* library which contains functions that i3 and related
-tools (i3-msg, i3-nagbar, i3-config-wizard, i3bar) use.
+tools (i3-nagbar, i3-config-wizard, i3bar) use.
 
 It is NOT to be used by other programs.
 

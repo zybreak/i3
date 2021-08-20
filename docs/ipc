@@ -17,7 +17,7 @@ filename character set (see mkdtemp(3)). You can get the socketpath from i3 by
 executing +i3 --get-socketpath+, which will print the path to the standard
 output (plus a newline).
 
-All i3 utilities, like +i3-msg+ will read the +I3_SOCKET_PATH+
+All i3 utilities will read the +I3_SOCKET_PATH+
 X11 property, stored on the X11 root window.
 
 [WARNING]
