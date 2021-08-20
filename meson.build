@@ -476,12 +476,6 @@ executable(
   link_with: libi3,
 )
 
-# This is the only currently working way of installing a symbolic link:
-meson.add_install_script(
-  'meson/meson-install-i3-with-shmlog',
-  get_option('bindir'),
-)
-
 executable(
   'i3bar',
   [

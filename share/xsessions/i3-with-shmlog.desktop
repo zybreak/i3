@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=i3 (with debug log)
 Comment=improved dynamic tiling window manager
-Exec=i3-with-shmlog
+Exec=i3 --shmlog-size 26214400
 Type=Application
 Keywords=tiling;wm;windowmanager;window;manager;
