@@ -33,7 +33,7 @@
  ³ xcb-util-cursor, to be precise.
  ⁴ Depending on your distribution, this might be considered part of xcb-util.
 
- i3bar, i3-msg, i3-input, i3-nagbar and i3-config-wizard do not introduce any
+ i3bar, i3-msg, i3-nagbar and i3-config-wizard do not introduce any
  new dependencies.
 
  i3-save-tree is implemented in Perl and needs AnyEvent::I3 (>= 0.12) and
