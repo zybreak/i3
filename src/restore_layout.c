@@ -9,7 +9,26 @@
  *
  *
  */
-#include "all.h"
+#include <err.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <xcb/xcb.h>
+#include <xcb/xcb_aux.h>
+#include <xcb/xcb_icccm.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "log.h"
+#include "xcb.h"
+#include "i3.h"
+#include "configuration.h"
+#include "con.h"
+#include "match.h"
+#include "xcursor.h"
+#include "restore_layout.h"
 
 #ifdef I3_ASAN_ENABLED
 #include <sanitizer/lsan_interface.h>

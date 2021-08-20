@@ -7,7 +7,18 @@
  * assignments.c: Assignments for specific windows (for_window).
  *
  */
-#include "all.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "tree.h"
+#include "log.h"
+#include "i3.h"
+#include "match.h"
+#include "assignments.h"
+#include "commands_parser.h"
 
 /*
  * Checks the list of assignments for the given window and runs all matching

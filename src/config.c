@@ -8,12 +8,30 @@
  *           the correct path, switching key bindings mode).
  *
  */
-#include "all.h"
+#include <config.h>
 
-#include <libgen.h>
-#include <unistd.h>
+#include <assert.h>
+#include <err.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include <xkbcommon/xkbcommon.h>
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "tree.h"
+#include "log.h"
+#include "workspace.h"
+#include "i3.h"
+#include "x.h"
+#include "configuration.h"
+#include "match.h"
+#include "bindings.h"
+#include "config_parser.h"
 
 char *current_configpath = NULL;
 char *current_config = NULL;

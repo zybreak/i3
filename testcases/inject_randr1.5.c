@@ -12,20 +12,26 @@
  * have been marked as such to make such a refactoring easier.
  *
  */
-#include "all.h"
+#include <err.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "handlers.h"
 
 #include <ev.h>
 #include <fcntl.h>
 #include <getopt.h>
-#include <libgen.h>
-#include <sys/mman.h>
-#include <sys/resource.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
 #include <sys/un.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 static void uds_connection_cb(EV_P_ ev_io *w, int revents);

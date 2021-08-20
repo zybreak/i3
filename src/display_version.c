@@ -8,7 +8,21 @@
  *                    i3 --moreversion.
  *
  */
-#include "all.h"
+#include <err.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "ipc.h"
+#include "log.h"
+#include "i3.h"
+#include "configuration.h"
+#include "display_version.h"
 
 #include <fcntl.h>
 #include <time.h>

@@ -7,7 +7,15 @@
  * regex.c: Interface to libPCRE (perl compatible regular expressions).
  *
  */
-#include "all.h"
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "log.h"
+#include "regex.h"
 
 /*
  * Creates a new 'regex' struct containing the given pattern and a PCRE

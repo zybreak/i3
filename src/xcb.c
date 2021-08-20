@@ -7,7 +7,21 @@
  * xcb.c: Helper functions for easier usage of XCB
  *
  */
-#include "all.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "log.h"
+#include "xcb.h"
+#include "i3.h"
+#include "configuration.h"
+#include "handlers.h"
+#include "xcursor.h"
 
 unsigned int xcb_numlock_mask;
 

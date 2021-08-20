@@ -8,7 +8,22 @@
  *                restart.
  *
  */
-#include "all.h"
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "log.h"
+#include "workspace.h"
+#include "x.h"
+#include "floating.h"
+#include "configuration.h"
+#include "con.h"
+#include "load_layout.h"
+#include "match.h"
+#include "regex.h"
 
 #include <locale.h>
 

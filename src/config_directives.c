@@ -7,7 +7,26 @@
  * config_directives.c: all config storing functions (see config_parser.c)
  *
  */
-#include "all.h"
+#include <assert.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "ipc.h"
+#include "log.h"
+#include "i3.h"
+#include "configuration.h"
+#include "match.h"
+#include "bindings.h"
+#include "config_directives.h"
+#include "config_parser.h"
 
 #include <wordexp.h>
 

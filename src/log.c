@@ -7,24 +7,27 @@
  * log.c: Logging functions.
  *
  */
-#include <config.h>
-
-#include "all.h"
-#include "shmlog.h"
-
-#include <ev.h>
-#include <libgen.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 #include <errno.h>
-#include <fcntl.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/mman.h>
 #include <sys/stat.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "log.h"
+#include "shmlog.h"
+
+#include <ev.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <fcntl.h>
+#include <sys/mman.h>
 #include <sys/time.h>
 #include <unistd.h>
 

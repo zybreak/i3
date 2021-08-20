@@ -7,7 +7,18 @@
  * scratchpad.c: Moving windows to the scratchpad and making them visible again.
  *
  */
-#include "all.h"
+#include <stdbool.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "tree.h"
+#include "log.h"
+#include "workspace.h"
+#include "floating.h"
+#include "configuration.h"
+#include "con.h"
+#include "scratchpad.h"
 
 /*
  * Moves the specified window to the __i3_scratch workspace, making it floating

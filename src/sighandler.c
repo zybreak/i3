@@ -5,7 +5,24 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "all.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <sys/types.h>
+
+#include <xcb/xcb.h>
+#include <xcb/xcb_keysyms.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "log.h"
+#include "xcb.h"
+#include "i3.h"
+#include "configuration.h"
+#include "randr.h"
+#include "xcursor.h"
+#include "sighandler.h"
 
 #include <signal.h>
 #include <sys/wait.h>

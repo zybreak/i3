@@ -7,11 +7,43 @@
  * commands.c: all command functions (see commands_parser.c)
  *
  */
-#include "all.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "ipc.h"
+#include "tree.h"
+#include "log.h"
+#include "workspace.h"
+#include "x.h"
+#include "floating.h"
+#include "configuration.h"
+#include "randr.h"
+#include "con.h"
+#include "load_layout.h"
+#include "render.h"
+#include "match.h"
+#include "resize.h"
+#include "move.h"
+#include "output.h"
+#include "ewmh.h"
+#include "regex.h"
+#include "startup.h"
+#include "scratchpad.h"
+#include "commands.h"
+#include "commands_parser.h"
+#include "bindings.h"
+#include "config_parser.h"
+#include "restore_layout.h"
 #include "shmlog.h"
 
 #include <fcntl.h>
-#include <stdint.h>
 #include <unistd.h>
 
 // Macros to make the YAJL API a bit easier to use.

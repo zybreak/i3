@@ -7,7 +7,25 @@
  * drag.c: click and drag.
  *
  */
-#include "all.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "tree.h"
+#include "log.h"
+#include "i3.h"
+#include "drag.h"
+#include "configuration.h"
+#include "handlers.h"
+#include "con.h"
+#include "xcursor.h"
+#include "main.h"
 
 /* Custom data structure used to track dragging-related events. */
 struct drag_x11_cb {

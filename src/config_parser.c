@@ -23,9 +23,9 @@
  *    nearest <error> token.
  *
  */
-#include "all.h"
-
-#include <fcntl.h>
+#include <assert.h>
+#include <errno.h>
+#include <limits.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -33,7 +33,18 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/wait.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "log.h"
+#include "i3.h"
+#include "configuration.h"
+#include "bindings.h"
+#include "config_directives.h"
+#include "config_parser.h"
+
+#include <fcntl.h>
 #include <unistd.h>
 #include <libgen.h>
 

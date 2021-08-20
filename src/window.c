@@ -7,7 +7,25 @@
  * window.c: Updates window attributes (X11 hints/properties).
  *
  */
-#include "all.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <xcb/xcb.h>
+#include <xcb/xcb_icccm.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "log.h"
+#include "xcb.h"
+#include "configuration.h"
+#include "con.h"
+#include "render.h"
+#include "window.h"
+#include "ewmh.h"
+#include "assignments.h"
 
 #include <math.h>
 

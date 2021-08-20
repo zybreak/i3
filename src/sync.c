@@ -7,7 +7,16 @@
  * sync.c: i3 sync protocol: https://i3wm.org/docs/testsuite.html#i3_sync
  *
  */
-#include "all.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "log.h"
+#include "xcb.h"
+#include "sync.h"
 
 void sync_respond(xcb_window_t window, uint32_t rnd) {
     DLOG("[i3 sync protocol] Sending random value %d back to X11 window 0x%08x\n", rnd, window);

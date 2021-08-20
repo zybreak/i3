@@ -7,9 +7,27 @@
  * click.c: Button press (mouse click) events.
  *
  */
-#include "all.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 
-#include <time.h>
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "tree.h"
+#include "log.h"
+#include "workspace.h"
+#include "i3.h"
+#include "click.h"
+#include "floating.h"
+#include "configuration.h"
+#include "con.h"
+#include "resize.h"
+#include "output.h"
+#include "commands_parser.h"
+#include "bindings.h"
 
 typedef enum { CLICK_BORDER = 0,
                CLICK_DECORATION = 1,

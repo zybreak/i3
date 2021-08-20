@@ -8,7 +8,21 @@
  *           various rects. Needs to be pushed to X11 (see x.c) to be visible.
  *
  */
-#include "all.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <stdlib.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "log.h"
+#include "x.h"
+#include "configuration.h"
+#include "con.h"
+#include "render.h"
+#include "output.h"
 
 #include <math.h>
 

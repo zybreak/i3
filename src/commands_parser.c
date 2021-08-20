@@ -23,7 +23,23 @@
  * instead of actually calling any function).
  *
  */
-#include "all.h"
+#include <assert.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "ipc.h"
+#include "log.h"
+#include "commands.h"
+#include "commands_parser.h"
+#include "config_parser.h"
 
 // Macros to make the YAJL API a bit easier to use.
 #define y(x, ...) (command_output.json_gen != NULL ? yajl_gen_##x(command_output.json_gen, ##__VA_ARGS__) : 0)

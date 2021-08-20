@@ -9,7 +9,33 @@
  *        …).
  *
  */
-#include "all.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "ipc.h"
+#include "tree.h"
+#include "log.h"
+#include "xcb.h"
+#include "workspace.h"
+#include "i3.h"
+#include "x.h"
+#include "floating.h"
+#include "configuration.h"
+#include "con.h"
+#include "render.h"
+#include "match.h"
+#include "output.h"
+#include "ewmh.h"
+#include "startup.h"
+#include "scratchpad.h"
 #include "yajl_utils.h"
 
 static void con_on_remove_child(Con *con);

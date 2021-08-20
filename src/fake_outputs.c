@@ -8,7 +8,18 @@
  * which don’t support multi-monitor in a useful way) and for our testsuite.
  *
  */
-#include "all.h"
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "log.h"
+#include "configuration.h"
+#include "randr.h"
+#include "output.h"
+#include "fake_outputs.h"
 
 static int num_screens;
 

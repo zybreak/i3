@@ -7,7 +7,38 @@
  * manage.c: Initially managing new windows (or existing ones on restart).
  *
  */
-#include "all.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include <xcb/xcb.h>
+#include <xcb/xcb_aux.h>
+#include <xcb/xcb_icccm.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "ipc.h"
+#include "tree.h"
+#include "log.h"
+#include "xcb.h"
+#include "manage.h"
+#include "workspace.h"
+#include "i3.h"
+#include "x.h"
+#include "floating.h"
+#include "configuration.h"
+#include "randr.h"
+#include "con.h"
+#include "render.h"
+#include "window.h"
+#include "match.h"
+#include "output.h"
+#include "ewmh.h"
+#include "assignments.h"
+#include "startup.h"
+#include "bindings.h"
+#include "restore_layout.h"
 
 /*
  * Match frame and window depth. This is needed because X will refuse to reparent a

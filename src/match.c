@@ -11,7 +11,24 @@
  * match_matches_window() to find the windows affected by this command.
  *
  */
-#include "all.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "tree.h"
+#include "log.h"
+#include "xcb.h"
+#include "configuration.h"
+#include "con.h"
+#include "match.h"
+#include "regex.h"
 
 /* From sys/time.h, not sure if it’s available on all systems. */
 #define _i3_timercmp(a, b, CMP) \

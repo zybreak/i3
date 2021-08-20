@@ -8,14 +8,38 @@
  *
  */
 
-#include "all.h"
+#include <config.h>
+
+#include <assert.h>
+#include <errno.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "ipc.h"
+#include "tree.h"
+#include "log.h"
+#include "xcb.h"
+#include "workspace.h"
+#include "i3.h"
+#include "configuration.h"
+#include "randr.h"
+#include "con.h"
+#include "output.h"
+#include "commands_parser.h"
+#include "sync.h"
 #include "yajl_utils.h"
 
 #include <ev.h>
 #include <fcntl.h>
-#include <libgen.h>
 #include <locale.h>
-#include <stdint.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>

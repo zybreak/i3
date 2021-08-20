@@ -7,7 +7,32 @@
  * floating.c: Floating windows.
  *
  */
-#include "all.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "ipc.h"
+#include "tree.h"
+#include "log.h"
+#include "xcb.h"
+#include "workspace.h"
+#include "i3.h"
+#include "x.h"
+#include "floating.h"
+#include "drag.h"
+#include "configuration.h"
+#include "randr.h"
+#include "con.h"
+#include "render.h"
+#include "xcursor.h"
+#include "move.h"
+#include "output.h"
 
 #include <math.h>
 

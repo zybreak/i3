@@ -8,7 +8,43 @@
  *             …).
  *
  */
-#include "all.h"
+#include <assert.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <xcb/xcb.h>
+#include <xcb/xcb_icccm.h>
+#include <xcb/xcb_keysyms.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "ipc.h"
+#include "tree.h"
+#include "log.h"
+#include "xcb.h"
+#include "manage.h"
+#include "workspace.h"
+#include "i3.h"
+#include "x.h"
+#include "click.h"
+#include "key_press.h"
+#include "floating.h"
+#include "configuration.h"
+#include "handlers.h"
+#include "randr.h"
+#include "con.h"
+#include "render.h"
+#include "window.h"
+#include "output.h"
+#include "ewmh.h"
+#include "startup.h"
+#include "scratchpad.h"
+#include "bindings.h"
+#include "sync.h"
 
 #include <sys/time.h>
 #include <time.h>

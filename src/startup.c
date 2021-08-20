@@ -10,7 +10,24 @@
  *            the appropriate workspace.
  *
  */
-#include "all.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "ipc.h"
+#include "tree.h"
+#include "log.h"
+#include "xcb.h"
+#include "i3.h"
+#include "con.h"
+#include "xcursor.h"
+#include "startup.h"
 #include "sd-daemon.h"
 
 #include <paths.h>

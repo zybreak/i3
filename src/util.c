@@ -8,7 +8,28 @@
  *         also libi3).
  *
  */
-#include "all.h"
+#include <err.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "ipc.h"
+#include "tree.h"
+#include "log.h"
+#include "manage.h"
+#include "i3.h"
+#include "configuration.h"
+#include "bindings.h"
+#include "config_parser.h"
 
 #include <ctype.h>
 #include <fcntl.h>

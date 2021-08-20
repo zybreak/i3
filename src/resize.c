@@ -7,7 +7,24 @@
  * resize.c: Interactive resizing.
  *
  */
-#include "all.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "tree.h"
+#include "log.h"
+#include "xcb.h"
+#include "x.h"
+#include "drag.h"
+#include "configuration.h"
+#include "con.h"
+#include "xcursor.h"
+#include "resize.h"
 
 /*
  * This is an ugly data structure which we need because there is no standard

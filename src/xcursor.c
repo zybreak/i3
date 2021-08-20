@@ -7,12 +7,16 @@
  * xcursor.c: xcursor support for themed cursors.
  *
  */
-#include <config.h>
-
-#include "all.h"
-
 #include <assert.h>
 #include <err.h>
+#include <stdint.h>
+#include <stdlib.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "i3.h"
+#include "xcursor.h"
 
 #include <xcb/xcb_cursor.h>
 

@@ -7,7 +7,23 @@
  * ewmh.c: Get/set certain EWMH properties easily.
  *
  */
-#include "all.h"
+#include <stdbool.h>
+#include <stdint.h>
+#include <string.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "tree.h"
+#include "log.h"
+#include "xcb.h"
+#include "workspace.h"
+#include "i3.h"
+#include "configuration.h"
+#include "con.h"
+#include "output.h"
+#include "ewmh.h"
 
 #include "i3-atoms_NET_SUPPORTED.xmacro.h"
 

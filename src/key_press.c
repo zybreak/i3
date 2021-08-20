@@ -7,7 +7,17 @@
  * key_press.c: key press handler
  *
  */
-#include "all.h"
+#include <stdbool.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "log.h"
+#include "i3.h"
+#include "key_press.h"
+#include "commands_parser.h"
+#include "bindings.h"
 
 /*
  * There was a KeyPress or KeyRelease (both events have the same fields). We

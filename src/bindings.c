@@ -6,7 +6,28 @@
  *
  * bindings.c: Functions for configuring, finding and, running bindings.
  */
-#include "all.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+
+#include <xcb/xcb.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "ipc.h"
+#include "tree.h"
+#include "log.h"
+#include "xcb.h"
+#include "i3.h"
+#include "configuration.h"
+#include "commands_parser.h"
+#include "bindings.h"
+#include "config_directives.h"
+#include "config_parser.h"
 
 #include <math.h>
 

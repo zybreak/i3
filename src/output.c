@@ -7,7 +7,20 @@
  * output.c: Output (monitor) related functions.
  *
  */
-#include "all.h"
+#include <assert.h>
+#include <stdbool.h>
+#include <string.h>
+
+#include "libi3.h"
+#include "data.h"
+#include "util.h"
+#include "tree.h"
+#include "log.h"
+#include "workspace.h"
+#include "configuration.h"
+#include "randr.h"
+#include "con.h"
+#include "output.h"
 
 /*
  * Returns the content container below the given output container.
