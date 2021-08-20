@@ -2421,8 +2421,7 @@ specify a default name if there's currently no workspace starting with a "1".
 You can rename workspaces. This might be useful to start with the default
 numbered workspaces, do your work, and rename the workspaces afterwards to
 reflect what’s actually on them. You can also omit the old name to rename
-the currently focused workspace. This is handy if you want to use the
-rename command with +i3-input+.
+the currently focused workspace.
 
 *Syntax*:
 ----------------------------------------------------
@@ -2436,7 +2435,6 @@ i3-msg 'rename workspace 5 to 6'
 i3-msg 'rename workspace 1 to "1: www"'
 i3-msg 'rename workspace "1: www" to "10: www"'
 i3-msg 'rename workspace to "2: mail"'
-bindsym $mod+r exec i3-input -F 'rename workspace to "%s"' -P 'New name: '
 --------------------------------------------------------------------------
 
 If you want to rename workspaces on demand while keeping the navigation stable,

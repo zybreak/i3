@@ -81,7 +81,6 @@ my @binaries = qw(
                    @abs_top_builddir@/i3bar
                    @abs_top_builddir@/i3-config-wizard
                    @abs_top_builddir@/i3-dump-log
-                   @abs_top_builddir@/i3-input
                    @abs_top_builddir@/i3-msg
                    @abs_top_builddir@/i3-nagbar
                );

@@ -36,7 +36,6 @@ my @binaries = qw(
     build/i3
     build/i3-config-wizard
     build/i3-dump-log
-    build/i3-input
     build/i3-msg
     build/i3-nagbar
     build/i3bar

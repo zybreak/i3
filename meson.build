@@ -198,7 +198,6 @@ if get_option('mans')
     'man/i3.man',
     'man/i3bar.man',
     'man/i3-msg.man',
-    'man/i3-input.man',
     'man/i3-nagbar.man',
     'man/i3-config-wizard.man',
     'man/i3-sensible-terminal.man',
@@ -268,7 +267,6 @@ else
 	'man/i3.1',
 	'man/i3bar.1',
 	'man/i3-msg.1',
-	'man/i3-input.1',
 	'man/i3-nagbar.1',
 	'man/i3-config-wizard.1',
 	'man/i3-sensible-terminal.1',
@@ -520,20 +518,6 @@ executable(
 executable(
   'i3-dump-log',
   'i3-dump-log/main.c',
-  install: true,
-  include_directories: inc,
-  dependencies: common_deps,
-  link_with: libi3,
-)
-
-executable(
-  'i3-input',
-  [
-    'i3-input/i3-input.h',
-    'i3-input/keysym2ucs.h',
-    'i3-input/keysym2ucs.c',
-    'i3-input/main.c',
-  ],
   install: true,
   include_directories: inc,
   dependencies: common_deps,
