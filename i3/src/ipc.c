@@ -184,7 +184,7 @@ void ipc_send_event(const char *event, uint32_t message_type, const char *payloa
  * For shutdown events, we send the reason for the shutdown.
  */
 static void ipc_send_shutdown_event(shutdown_reason_t reason) {
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
     y(map_open);
 
     ystr("change");
@@ -884,7 +884,7 @@ static void dump_bar_config(yajl_gen gen, Barconfig *config) {
 
 IPC_HANDLER(tree) {
     setlocale(LC_NUMERIC, "C");
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
     dump_node(gen, croot, false);
     setlocale(LC_NUMERIC, "");
 
@@ -902,7 +902,7 @@ IPC_HANDLER(tree) {
  *
  */
 IPC_HANDLER(get_workspaces) {
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
     y(array_open);
 
     Con *focused_ws = con_get_workspace(focused);
@@ -969,7 +969,7 @@ IPC_HANDLER(get_workspaces) {
  *
  */
 IPC_HANDLER(get_outputs) {
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
     y(array_open);
 
     Output *output;
@@ -1023,7 +1023,7 @@ IPC_HANDLER(get_outputs) {
  *
  */
 IPC_HANDLER(get_marks) {
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
     y(array_open);
 
     Con *con;
@@ -1049,7 +1049,7 @@ IPC_HANDLER(get_marks) {
  *
  */
 IPC_HANDLER(get_version) {
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
     y(map_open);
 
     ystr("major");
@@ -1094,7 +1094,7 @@ IPC_HANDLER(get_version) {
  *
  */
 IPC_HANDLER(get_bar_config) {
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
 
     /* If no ID was passed, we return a JSON array with all IDs */
     if (message_size == 0) {
@@ -1155,7 +1155,7 @@ IPC_HANDLER(get_bar_config) {
  *
  */
 IPC_HANDLER(get_binding_modes) {
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
 
     y(array_open);
     struct Mode *mode;
@@ -1255,7 +1255,7 @@ IPC_HANDLER(subscribe) {
  * Returns the raw last loaded i3 configuration file contents.
  */
 IPC_HANDLER(get_config) {
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
 
     y(map_open);
 
@@ -1277,7 +1277,7 @@ IPC_HANDLER(get_config) {
  * synchronization point in event-related tests.
  */
 IPC_HANDLER(send_tick) {
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
 
     y(map_open);
 
@@ -1361,7 +1361,7 @@ IPC_HANDLER(sync) {
 }
 
 IPC_HANDLER(get_binding_state) {
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
 
     y(map_open);
 
@@ -1553,7 +1553,7 @@ ipc_client *ipc_new_client_on_fd(EV_P_ int fd) {
  */
 yajl_gen ipc_marshal_workspace_event(const char *change, Con *current, Con *old) {
     setlocale(LC_NUMERIC, "C");
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
 
     y(map_open);
 
@@ -1605,7 +1605,7 @@ void ipc_send_window_event(const char *property, Con *con) {
          property, con, (con->window ? con->window->id : XCB_WINDOW_NONE));
 
     setlocale(LC_NUMERIC, "C");
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
 
     y(map_open);
 
@@ -1632,7 +1632,7 @@ void ipc_send_window_event(const char *property, Con *con) {
 void ipc_send_barconfig_update_event(Barconfig *barconfig) {
     DLOG("Issue barconfig_update event for id = %s\n", barconfig->id);
     setlocale(LC_NUMERIC, "C");
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
 
     dump_bar_config(gen, barconfig);
 
@@ -1653,7 +1653,7 @@ void ipc_send_binding_event(const char *event_type, Binding *bind) {
 
     setlocale(LC_NUMERIC, "C");
 
-    yajl_gen gen = ygenalloc();
+    yajl_gen gen = yajl_gen_alloc(NULL);
 
     y(map_open);
 
