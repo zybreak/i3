@@ -198,7 +198,7 @@ static void ipc_send_shutdown_event(shutdown_reason_t reason) {
     y(map_close);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
 
     y(get_buf, &payload, &length);
     ipc_send_event("shutdown", I3_IPC_EVENT_SHUTDOWN, (const char *)payload);
@@ -246,7 +246,7 @@ IPC_HANDLER(run_command) {
     command_result_free(result);
 
     const unsigned char *reply;
-    ylength length;
+    size_t length;
     yajl_gen_get_buf(gen, &reply, &length);
 
     ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_COMMAND,
@@ -889,7 +889,7 @@ IPC_HANDLER(tree) {
     setlocale(LC_NUMERIC, "");
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_TREE, payload);
@@ -956,7 +956,7 @@ IPC_HANDLER(get_workspaces) {
     y(array_close);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_WORKSPACES, payload);
@@ -1010,7 +1010,7 @@ IPC_HANDLER(get_outputs) {
     y(array_close);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_OUTPUTS, payload);
@@ -1037,7 +1037,7 @@ IPC_HANDLER(get_marks) {
     y(array_close);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_MARKS, payload);
@@ -1081,7 +1081,7 @@ IPC_HANDLER(get_version) {
     y(map_close);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_VERSION, payload);
@@ -1106,7 +1106,7 @@ IPC_HANDLER(get_bar_config) {
         y(array_close);
 
         const unsigned char *payload;
-        ylength length;
+        size_t length;
         y(get_buf, &payload, &length);
 
         ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_BAR_CONFIG, payload);
@@ -1143,7 +1143,7 @@ IPC_HANDLER(get_bar_config) {
     }
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_BAR_CONFIG, payload);
@@ -1165,7 +1165,7 @@ IPC_HANDLER(get_binding_modes) {
     y(array_close);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_BINDING_MODES, payload);
@@ -1177,7 +1177,7 @@ IPC_HANDLER(get_binding_modes) {
  *
  */
 static int add_subscription(void *extra, const unsigned char *s,
-                            ylength len) {
+                            size_t len) {
     ipc_client *client = extra;
 
     DLOG("should add subscription to extra %p, sub %.*s\n", client, (int)len, s);
@@ -1265,7 +1265,7 @@ IPC_HANDLER(get_config) {
     y(map_close);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_CONFIG, payload);
@@ -1290,7 +1290,7 @@ IPC_HANDLER(send_tick) {
     y(map_close);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_event("tick", I3_IPC_EVENT_TICK, (const char *)payload);
@@ -1371,7 +1371,7 @@ IPC_HANDLER(get_binding_state) {
     y(map_close);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_GET_BINDING_STATE, payload);
@@ -1588,7 +1588,7 @@ void ipc_send_workspace_event(const char *change, Con *current, Con *old) {
     yajl_gen gen = ipc_marshal_workspace_event(change, current, old);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_event("workspace", I3_IPC_EVENT_WORKSPACE, (const char *)payload);
@@ -1618,7 +1618,7 @@ void ipc_send_window_event(const char *property, Con *con) {
     y(map_close);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_event("window", I3_IPC_EVENT_WINDOW, (const char *)payload);
@@ -1637,7 +1637,7 @@ void ipc_send_barconfig_update_event(Barconfig *barconfig) {
     dump_bar_config(gen, barconfig);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_event("barconfig_update", I3_IPC_EVENT_BARCONFIG_UPDATE, (const char *)payload);
@@ -1666,7 +1666,7 @@ void ipc_send_binding_event(const char *event_type, Binding *bind) {
     y(map_close);
 
     const unsigned char *payload;
-    ylength length;
+    size_t length;
     y(get_buf, &payload, &length);
 
     ipc_send_event("binding", I3_IPC_EVENT_BINDING, (const char *)payload);

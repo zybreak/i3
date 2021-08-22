@@ -20,4 +20,3 @@
 #define ystr(str) yajl_gen_string(gen, (unsigned char *)str, strlen(str))
 
 #define yalloc(callbacks, client) yajl_alloc(callbacks, NULL, client)
-typedef size_t ylength;

@@ -533,7 +533,7 @@ void workspace_show(Con *workspace) {
             tree_close_internal(old, DONT_KILL_WINDOW, false);
 
             const unsigned char *payload;
-            ylength length;
+            size_t length;
             y(get_buf, &payload, &length);
             ipc_send_event("workspace", I3_IPC_EVENT_WORKSPACE, (const char *)payload);
 

@@ -2024,7 +2024,7 @@ static void con_on_remove_child(Con *con) {
             tree_close_internal(con, DONT_KILL_WINDOW, false);
 
             const unsigned char *payload;
-            ylength length;
+            size_t length;
             y(get_buf, &payload, &length);
             ipc_send_event("workspace", I3_IPC_EVENT_WORKSPACE, (const char *)payload);
 
