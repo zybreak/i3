@@ -28,7 +28,6 @@
 #include "output.h"
 #include "ewmh.h"
 #include "commands_parser.h"
-#include "yajl_utils.h"
 
 /*
  * Stores a copy of the name of the last used workspace for the workspace
@@ -534,10 +533,10 @@ void workspace_show(Con *workspace) {
 
             const unsigned char *payload;
             size_t length;
-            y(get_buf, &payload, &length);
+            yajl_gen_get_buf(gen, &payload, &length);
             ipc_send_event("workspace", I3_IPC_EVENT_WORKSPACE, (const char *)payload);
 
-            y(free);
+            yajl_gen_free(gen);
 
             /* Avoid calling output_push_sticky_windows later with a freed container. */
             if (old == old_focus) {

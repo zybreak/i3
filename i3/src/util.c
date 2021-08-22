@@ -231,9 +231,6 @@ static char **add_argument(char **original, char *opt_char, char *opt_arg, char 
     return result;
 }
 
-#define y(x, ...) yajl_gen_##x(gen, ##__VA_ARGS__)
-#define ystr(str) yajl_gen_string(gen, (unsigned char *)str, strlen(str))
-
 static char *store_restart_layout(void) {
     setlocale(LC_NUMERIC, "C");
     yajl_gen gen = yajl_gen_alloc(NULL);
@@ -244,7 +241,7 @@ static char *store_restart_layout(void) {
 
     const unsigned char *payload;
     size_t length;
-    y(get_buf, &payload, &length);
+    yajl_gen_get_buf(gen, &payload, &length);
 
     /* create a temporary file if one hasn't been specified, or just
      * resolve the tildes in the specified path */
@@ -286,7 +283,7 @@ static char *store_restart_layout(void) {
         DLOG("layout: %.*s\n", (int)length, payload);
     }
 
-    y(free);
+    yajl_gen_free(gen);
 
     return filename;
 }

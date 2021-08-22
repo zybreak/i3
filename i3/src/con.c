@@ -36,7 +36,8 @@
 #include "ewmh.h"
 #include "startup.h"
 #include "scratchpad.h"
-#include "yajl_utils.h"
+
+#define ystr(str) yajl_gen_string(gen, (unsigned char *)str, strlen(str))
 
 static void con_on_remove_child(Con *con);
 
@@ -2025,10 +2026,10 @@ static void con_on_remove_child(Con *con) {
 
             const unsigned char *payload;
             size_t length;
-            y(get_buf, &payload, &length);
+            yajl_gen_get_buf(gen, &payload, &length);
             ipc_send_event("workspace", I3_IPC_EVENT_WORKSPACE, (const char *)payload);
 
-            y(free);
+            yajl_gen_free(gen);
         }
         return;
     }

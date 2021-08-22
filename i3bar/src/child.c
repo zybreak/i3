@@ -8,7 +8,6 @@
  *
  */
 #include "common.h"
-#include "yajl_utils.h"
 
 #include <err.h>
 #include <errno.h>
@@ -30,6 +29,8 @@
 i3bar_child child = {0};
 #define DLOG_CHILD DLOG("%s: pid=%ld stopped=%d stop_signal=%d cont_signal=%d click_events=%d click_events_init=%d\n", \
                         __func__, (long)child.pid, child.stopped, child.stop_signal, child.cont_signal, child.click_events, child.click_events_init)
+
+#define ystr(str) yajl_gen_string(gen, (unsigned char *)str, strlen(str))
 
 /* stdin- and SIGCHLD-watchers */
 ev_io *stdin_io;

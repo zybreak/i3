@@ -35,7 +35,6 @@
 #include "output.h"
 #include "commands_parser.h"
 #include "sync.h"
-#include "yajl_utils.h"
 
 #include <ev.h>
 #include <fcntl.h>
@@ -46,6 +45,12 @@
 
 #include <yajl/yajl_gen.h>
 #include <yajl/yajl_parse.h>
+
+/* Shorter names for all those yajl_gen_* functions */
+#define y(x, ...) yajl_gen_##x(gen, ##__VA_ARGS__)
+#define ystr(str) yajl_gen_string(gen, (unsigned char *)str, strlen(str))
+
+#define yalloc(callbacks, client) yajl_alloc(callbacks, NULL, client)
 
 char *current_socketpath = NULL;
 
