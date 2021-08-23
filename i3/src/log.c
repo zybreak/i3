@@ -31,10 +31,6 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-#if defined(__APPLE__)
-#include <sys/sysctl.h>
-#endif
-
 static bool debug_logging = false;
 static bool verbose = false;
 static FILE *errorfile;
@@ -112,14 +108,8 @@ void init_logging(void) {
         }
     }
     if (physical_mem_bytes == 0) {
-#if defined(__APPLE__)
-        int mib[2] = {CTL_HW, HW_MEMSIZE};
-        size_t length = sizeof(long long);
-        sysctl(mib, 2, &physical_mem_bytes, &length, NULL, 0);
-#else
         physical_mem_bytes = (long long)sysconf(_SC_PHYS_PAGES) *
                              sysconf(_SC_PAGESIZE);
-#endif
     }
     /* Start SHM logging if shmlog_size is > 0. shmlog_size is SHMLOG_SIZE by
      * default on development versions, and 0 on release versions. If it is
@@ -152,7 +142,7 @@ void open_logbuffer(void) {
         return;
     }
 
-#if defined(__OpenBSD__) || defined(__APPLE__)
+#if defined(__OpenBSD__)
     if (ftruncate(logbuffer_shm, logbuffer_size) == -1) {
         fprintf(stderr, "Could not ftruncate SHM segment for the i3 log: %s\n", strerror(errno));
 #else
