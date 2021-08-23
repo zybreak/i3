@@ -53,12 +53,6 @@
 #error "SYSCONFDIR not defined"
 #endif
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 #include "xcb.h"
 xcb_visualtype_t *visual_type = NULL;
 
@@ -745,7 +739,7 @@ int main(int argc, char *argv[]) {
     while ((o = getopt_long(argc, argv, options_string, long_options, &option_index)) != -1) {
         switch (o) {
             case 's':
-                FREE(socket_path);
+                free(socket_path);
                 socket_path = sstrdup(optarg);
                 break;
             case 'v':
