@@ -13,9 +13,6 @@ project(
     # TODO(https://github.com/i3/i3/issues/4087): switch to
     # 'buildtype=debugoptimized',
   ],
-  # Ubuntu 18.04 (supported until 2023) has meson 0.45.
-  # We can revisit our minimum supported meson version
-  # if it turns out to be too hard to maintain.
   meson_version: '>=0.53.0',
 )
 
@@ -23,7 +20,7 @@ cc = meson.get_compiler('c')
 add_project_arguments(cc.get_supported_arguments(['-Wunused-value']), language: 'c')
 
 # https://github.com/mesonbuild/meson/issues/2166#issuecomment-629696911
-meson.add_dist_script('meson/meson-dist-script')
+# meson.add_dist_script('meson/meson-dist-script')
 
 ################################################################################
 # Version handling
@@ -39,7 +36,7 @@ if version_array.length() > 2
 else
   cdata.set('PATCH_VERSION', 0)
 endif
-cdata.set_quoted('I3_VERSION', '@VCS_TAG@')
+cdata.set_quoted('I3_VERSION', meson.project_version())
 cdata.set_quoted('SYSCONFDIR', join_paths(get_option('prefix'), get_option('sysconfdir')))
 
 if get_option('b_sanitize').split(',').contains('address')
@@ -49,19 +46,12 @@ endif
 cdata.set('HAVE_STRNDUP', cc.has_function('strndup'))
 cdata.set('HAVE_MKDIRP', cc.has_function('mkdirp'))
 
-# Instead of generating config.h directly, make vcs_tag generate it so that
-# @VCS_TAG@ is replaced.
-config_h_in = configure_file(
-  output: 'config.h.in',
+configure_file(
+  output: 'config.h',
   configuration: cdata,
 )
-config_h = declare_dependency(
-  sources: vcs_tag(
-    input: config_h_in,
-    output: 'config.h',
-    fallback: meson.project_version() + '-non-git',
-  )
-)
+
+config_h_dir = include_directories('.')
 
 # Required for e.g. struct ucred to be defined as per unix(7).
 add_project_arguments('-D_GNU_SOURCE', language: 'c')
@@ -119,8 +109,34 @@ common_deps = [
   glib_dep,
   gobject_dep,
   ev_dep,
-  config_h,
 ]
+
+# Verify the perl interpreter is present for running parser_gen,
+# ensuring a good error message when it isn’t:
+perl = find_program('perl')
+parser_gen = find_program('generate-command-parser.pl')
+
+command_parser = custom_target(
+  'command_parser',
+  input: 'parser-specs/commands.spec',
+  output: [
+    'GENERATED_command_enums.h',
+    'GENERATED_command_tokens.h',
+    'GENERATED_command_call.h',
+  ],
+  command: [perl, parser_gen, '--input=@INPUT@', '--prefix=command'],
+)
+
+config_parser = custom_target(
+  'config_parser',
+  input: 'parser-specs/config.spec',
+  output: [
+    'GENERATED_config_enums.h',
+    'GENERATED_config_tokens.h',
+    'GENERATED_config_call.h',
+  ],
+  command: [parser_gen, '--input=@INPUT@', '--prefix=config'],
+)
 
 subdir('libi3')
 subdir('i3')

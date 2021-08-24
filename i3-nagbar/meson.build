@@ -7,7 +7,7 @@ executable(
     'main.c',
   ],
   install: true,
-  include_directories: [ '../include', '../libi3/include' ],
+  include_directories: [ '../include', '../libi3/include', config_h_dir ],
   dependencies: common_deps,
   link_with: libi3,
 )

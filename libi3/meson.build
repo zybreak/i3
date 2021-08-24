@@ -41,9 +41,8 @@ endif
 libi3 = static_library(
   'i3',
   libi3srcs,
-  include_directories: [ '../include', '../i3/include', 'include' ],
+  include_directories: [ '../include', '../i3/include', 'include', config_h_dir ],
   dependencies: [
     pangocairo_dep,
-    config_h,
   ],
 )

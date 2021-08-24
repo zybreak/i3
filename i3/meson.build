@@ -45,42 +45,14 @@ i3_srcs = [
   'src/xcursor.c',
 ]
 
-# Verify the perl interpreter is present for running parser_gen,
-# ensuring a good error message when it isn’t:
-perl = find_program('perl')
-parser_gen = find_program('generate-command-parser.pl')
-
-command_parser = custom_target(
-  'command_parser',
-  input: 'parser-specs/commands.spec',
-  output: [
-    'GENERATED_command_enums.h',
-    'GENERATED_command_tokens.h',
-    'GENERATED_command_call.h',
-  ],
-  command: [perl, parser_gen, '--input=@INPUT@', '--prefix=command'],
-)
-
 i3_srcs += command_parser
-
-config_parser = custom_target(
-  'config_parser',
-  input: 'parser-specs/config.spec',
-  output: [
-    'GENERATED_config_enums.h',
-    'GENERATED_config_tokens.h',
-    'GENERATED_config_call.h',
-  ],
-  command: [parser_gen, '--input=@INPUT@', '--prefix=config'],
-)
-
 i3_srcs += config_parser
 
 i3 = executable(
   'i3',
   i3_srcs,
   install: true,
-  include_directories: [ '../include', '../libi3/include', 'include', 'src/include' ],
+  include_directories: [ '../include', '../libi3/include', 'include', 'src/include', config_h_dir ],
   dependencies: common_deps,
   link_with: libi3,
 )
