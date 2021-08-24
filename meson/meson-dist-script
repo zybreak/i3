@@ -19,7 +19,6 @@ rm -rf \
    travis/ \
    .clang-format \
    .editorconfig \
-   i3bar/.gitignore \
    .travis.yml \
    logo.svg \
    README.md \
