@@ -8,12 +8,13 @@ man1 = join_paths(get_option('mandir'), 'man1')
 
 if get_option('mans')
   asciidoc = find_program('asciidoc')
-  asciidoc_cdata = configuration_data()
-  asciidoc_cdata.set('PACKAGE_VERSION', meson.project_version())
+
   asciidoc_conf = configure_file(
     input: 'asciidoc.conf.in',
     output: 'asciidoc.conf',
-    configuration: asciidoc_cdata,
+    configuration: {
+        'PACKAGE_VERSION': meson.project_version()
+    },
   )
 
   xmlto = find_program('xmlto')
@@ -64,7 +65,7 @@ if get_option('mans')
   endforeach
 
   pod2man_inputs = [
-    '../i3-save-tree',
+    '../utils/i3-save-tree',
   ]
   foreach m : pod2man_inputs
     custom_target(

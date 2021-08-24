@@ -126,19 +126,11 @@ subdir('libi3')
 subdir('i3')
 subdir('i3bar')
 subdir('i3-config-wizard')
-subdir('i3-dump-log')
 subdir('i3-nagbar')
+subdir('utils')
 subdir('docs')
 subdir('man')
 subdir('testcases')
-
-install_data(
-  [
-    'i3-save-tree',
-    'i3-sensible-terminal',
-  ],
-  install_dir: 'bin',
-)
 
 install_subdir(
   'etc',
