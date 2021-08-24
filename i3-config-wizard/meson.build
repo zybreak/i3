@@ -9,7 +9,7 @@ executable(
     config_parser,
   ],
   install: true,
-  include_directories: include_directories('../include'),
+  include_directories: [ '../include', '../libi3/include' ],
   dependencies: common_deps,
   link_with: libi3,
 )

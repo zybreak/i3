@@ -80,7 +80,12 @@ i3 = executable(
   'i3',
   i3_srcs,
   install: true,
-  include_directories: [ '../include', 'include', 'src/include' ],
+  include_directories: [ '../include', '../libi3/include', 'include', 'src/include' ],
   dependencies: common_deps,
   link_with: libi3,
+)
+
+install_headers(
+  'include/i3/ipc.h',
+  subdir: 'i3',
 )

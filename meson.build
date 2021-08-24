@@ -152,7 +152,3 @@ install_subdir(
   install_dir: get_option('datadir'),
 )
 
-install_headers(
-  'include/i3/ipc.h',
-  subdir: 'i3',
-)

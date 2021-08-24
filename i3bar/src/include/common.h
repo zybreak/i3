@@ -11,7 +11,7 @@
 
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
-#include "libi3.h"
+#include "../../../libi3/include/libi3.h"
 #include "queue.h"
 
 typedef struct rect_t rect;

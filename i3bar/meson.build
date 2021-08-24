@@ -14,7 +14,7 @@ executable(
     'src/xcb.c',
   ],
   install: true,
-  include_directories: include_directories('../include', 'include'),
+  include_directories: include_directories('../include', '../i3/include', '../libi3/include', 'src/include'),
   dependencies: common_deps,
   link_with: libi3,
 )

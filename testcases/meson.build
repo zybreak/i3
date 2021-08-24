@@ -68,7 +68,7 @@ endif
 executable(
   'test.inject_randr15',
   'inject_randr1.5.c',
-  include_directories: include_directories('../include'),
+  include_directories: [ '../include', '../libi3/include' ],
   dependencies: common_deps,
   link_with: libi3,
 )
@@ -79,7 +79,7 @@ executable(
     '../i3/src/commands_parser.c',
     command_parser,
   ],
-  include_directories: include_directories('../include', '../i3/include'),
+  include_directories: [ '../include', '../i3/src/include', '../i3/include', '../libi3/include' ],
   c_args: '-DTEST_PARSER',
   dependencies: common_deps,
   link_with: libi3,
@@ -91,7 +91,7 @@ executable(
     '../i3/src/config_parser.c',
     config_parser,
   ],
-  include_directories: include_directories('../include', '../i3/include'),
+  include_directories: [ '../include', '../i3/src/include', '../i3/include', '../libi3/include' ],
   c_args: '-DTEST_PARSER',
   dependencies: common_deps,
   link_with: libi3,
