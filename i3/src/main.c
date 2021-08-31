@@ -54,7 +54,6 @@
 #include <libgen.h>
 #include <locale.h>
 #include <signal.h>
-#include <sys/mman.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -109,9 +108,6 @@ xcb_colormap_t colormap;
 struct ev_loop *main_loop;
 
 xcb_key_symbols_t *keysyms;
-
-/* Default shmlog size if not set by user. */
-const int default_shmlog_size = 25 * 1024 * 1024;
 
 /* The list of key bindings */
 struct bindings_head *bindings;
@@ -208,11 +204,6 @@ void main_set_x11_cb(bool enable) {
  *
  */
 static void i3_exit(void) {
-    if (*shmlogname != '\0') {
-        fprintf(stderr, "Closing SHM log \"%s\"\n", shmlogname);
-        fflush(stderr);
-        shm_unlink(shmlogname);
-    }
     ipc_shutdown(SHUTDOWN_REASON_EXIT, -1);
     unlink(config.ipc_socket_path);
     if (current_log_stream_socket_path != NULL) {
@@ -243,9 +234,6 @@ static void i3_exit(void) {
  *
  */
 static void handle_core_signal(int sig, siginfo_t *info, void *data) {
-    if (*shmlogname != '\0') {
-        shm_unlink(shmlogname);
-    }
     raise(sig);
 }
 
@@ -329,8 +317,6 @@ int main(int argc, char *argv[]) {
         {"disable-randr15", no_argument, 0, 0},
         {"disable_randr15", no_argument, 0, 0},
         {"disable-signalhandler", no_argument, 0, 0},
-        {"shmlog-size", required_argument, 0, 0},
-        {"shmlog_size", required_argument, 0, 0},
         {"get-socketpath", no_argument, 0, 0},
         {"get_socketpath", no_argument, 0, 0},
         {"fake_outputs", required_argument, 0, 0},
@@ -354,9 +340,6 @@ int main(int argc, char *argv[]) {
     /* Init logging *before* initializing debug_build to guarantee early
      * (file) logging. */
     init_logging();
-
-    /* On release builds, disable SHM logging by default. */
-    shmlog_size = (is_debug_build() ? default_shmlog_size : 0);
 
     start_argv = argv;
 
@@ -420,14 +403,6 @@ int main(int argc, char *argv[]) {
                     }
 
                     exit(EXIT_FAILURE);
-                } else if (strcmp(long_options[option_index].name, "shmlog-size") == 0 ||
-                           strcmp(long_options[option_index].name, "shmlog_size") == 0) {
-                    shmlog_size = atoi(optarg);
-                    /* Re-initialize logging immediately to get as many
-                     * logmessages as possible into the SHM log. */
-                    init_logging();
-                    LOG("Limiting SHM log size to %d bytes\n", shmlog_size);
-                    break;
                 } else if (strcmp(long_options[option_index].name, "restart") == 0) {
                     FREE(layout_path);
                     layout_path = sstrdup(optarg);
@@ -456,12 +431,6 @@ int main(int argc, char *argv[]) {
                 fprintf(stderr, "\n");
                 fprintf(stderr, "\t--get-socketpath\n"
                                 "\tRetrieve the i3 IPC socket path from X11, print it, then exit.\n");
-                fprintf(stderr, "\n");
-                fprintf(stderr, "\t--shmlog-size <limit>\n"
-                                "\tLimits the size of the i3 SHM log to <limit> bytes. Setting this\n"
-                                "\tto 0 disables SHM logging entirely.\n"
-                                "\tThe default is %d bytes.\n",
-                        shmlog_size);
                 fprintf(stderr, "\n");
                 fprintf(stderr, "If you pass plain text arguments, i3 will interpret them as a command\n"
                                 "to send to a currently running i3 (like old i3-msg). This allows you to\n"

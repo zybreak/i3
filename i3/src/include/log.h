@@ -30,8 +30,6 @@
 #define DLOG(fmt, ...) debuglog("%s:%s:%d - " fmt, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 
 extern char *errorfilename;
-extern char *shmlogname;
-extern int shmlog_size;
 extern char *current_log_stream_socket_path;
 
 /**
@@ -40,18 +38,6 @@ extern char *current_log_stream_socket_path;
  *
  */
 void init_logging(void);
-
-/**
- * Opens the logbuffer.
- *
- */
-void open_logbuffer(void);
-
-/**
- * Closes the logbuffer.
- *
- */
-void close_logbuffer(void);
 
 /**
  * Checks if debug logging is active.

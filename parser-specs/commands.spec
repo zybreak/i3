@@ -19,7 +19,6 @@ state INITIAL:
   'exit' -> call cmd_exit()
   'restart' -> call cmd_restart()
   'reload' -> call cmd_reload()
-  'shmlog' -> SHMLOG
   'debuglog' -> DEBUGLOG
   'border' -> BORDER
   'layout' -> LAYOUT
@@ -73,12 +72,6 @@ state EXEC:
       ->
   command = string
       -> call cmd_exec($nosn, $command)
-
-# shmlog <size>|toggle|on|off
-state SHMLOG:
-  # argument may be a number
-  argument = string
-    -> call cmd_shmlog($argument)
 
 # debuglog toggle|on|off
 state DEBUGLOG:

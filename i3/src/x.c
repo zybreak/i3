@@ -1443,20 +1443,6 @@ void x_set_name(Con *con, const char *name) {
 }
 
 /*
- * Set up the I3_SHMLOG_PATH atom.
- *
- */
-void update_shmlog_atom(void) {
-    if (*shmlogname == '\0') {
-        xcb_delete_property(conn, root, A_I3_SHMLOG_PATH);
-    } else {
-        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, root,
-                            A_I3_SHMLOG_PATH, A_UTF8_STRING, 8,
-                            strlen(shmlogname), shmlogname);
-    }
-}
-
-/*
  * Sets up i3 specific atoms (I3_SOCKET_PATH and I3_CONFIG_PATH)
  *
  */
@@ -1470,7 +1456,6 @@ void x_set_i3_atoms(void) {
                         strlen(current_configpath), current_configpath);
     xcb_change_property(conn, XCB_PROP_MODE_REPLACE, root, A_I3_LOG_STREAM_SOCKET_PATH, A_UTF8_STRING, 8,
                         strlen(current_log_stream_socket_path), current_log_stream_socket_path);
-    update_shmlog_atom();
 }
 
 /*

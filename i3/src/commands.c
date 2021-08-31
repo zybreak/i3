@@ -41,7 +41,6 @@
 #include "bindings.h"
 #include "config_parser.h"
 #include "restore_layout.h"
-#include "shmlog.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -2305,38 +2304,6 @@ void cmd_bar_hidden_state(I3_CMD, const char *bar_hidden_state, const char *bar_
          * updated all active bars now. */
         ysuccess(true);
     }
-}
-
-/*
- * Implementation of 'shmlog <size>|toggle|on|off'
- *
- */
-void cmd_shmlog(I3_CMD, const char *argument) {
-    if (!strcmp(argument, "toggle"))
-        /* Toggle shm log, if size is not 0. If it is 0, set it to default. */
-        shmlog_size = shmlog_size ? -shmlog_size : default_shmlog_size;
-    else if (!strcmp(argument, "on"))
-        shmlog_size = default_shmlog_size;
-    else if (!strcmp(argument, "off"))
-        shmlog_size = 0;
-    else {
-        long new_size = 0;
-        if (!parse_long(argument, &new_size, 0)) {
-            yerror("Failed to parse %s into a shmlog size.", argument);
-            return;
-        }
-        /* If shm logging now, restart logging with the new size. */
-        if (shmlog_size > 0) {
-            shmlog_size = 0;
-            LOG("Restarting shm logging...\n");
-            init_logging();
-        }
-        shmlog_size = (int)new_size;
-    }
-    LOG("%s shm logging\n", shmlog_size > 0 ? "Enabling" : "Disabling");
-    init_logging();
-    update_shmlog_atom();
-    ysuccess(true);
 }
 
 /*
