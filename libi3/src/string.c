@@ -78,37 +78,6 @@ i3String *i3string_from_markup_with_length(const char *from_markup, size_t num_b
 }
 
 /*
- * Build an i3String from an UCS-2 encoded string.
- * Returns the newly-allocated i3String.
- *
- */
-i3String *i3string_from_ucs2(const xcb_char2b_t *from_ucs2, size_t num_glyphs) {
-    i3String *str = scalloc(1, sizeof(i3String));
-
-    /* Copy the actual text to our i3String */
-    str->ucs2 = scalloc(num_glyphs, sizeof(xcb_char2b_t));
-    memcpy(str->ucs2, from_ucs2, num_glyphs * sizeof(xcb_char2b_t));
-
-    /* Store the length */
-    str->num_glyphs = num_glyphs;
-
-    str->utf8 = NULL;
-    str->num_bytes = 0;
-
-    return str;
-}
-
-/*
- * Copies the given i3string.
- * Note that this will not free the source string.
- */
-i3String *i3string_copy(i3String *str) {
-    i3String *copy = i3string_from_utf8(i3string_as_utf8(str));
-    copy->pango_markup = str->pango_markup;
-    return copy;
-}
-
-/*
  * Free an i3String.
  *
  */
@@ -172,17 +141,6 @@ bool i3string_is_markup(i3String *str) {
  */
 void i3string_set_markup(i3String *str, bool pango_markup) {
     str->pango_markup = pango_markup;
-}
-
-/*
- * Escape pango markup characters in the given string.
- */
-i3String *i3string_escape_markup(i3String *str) {
-    const char *text = i3string_as_utf8(str);
-    char *escaped = g_markup_escape_text(text, -1);
-    i3String *result = i3string_from_utf8(escaped);
-    free(escaped);
-    return result;
 }
 
 /*

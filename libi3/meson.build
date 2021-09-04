@@ -2,7 +2,6 @@
 
 libi3srcs = [
   'src/boolstr.c',
-  'src/create_socket.c',
   'src/dpi.c',
   'src/draw_util.c',
   'src/fake_configure_notify.c',

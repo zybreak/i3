@@ -216,19 +216,6 @@ i3String *i3string_from_utf8_with_length(const char *from_utf8, ssize_t num_byte
 i3String *i3string_from_markup_with_length(const char *from_markup, size_t num_bytes);
 
 /**
- * Build an i3String from an UCS-2 encoded string.
- * Returns the newly-allocated i3String.
- *
- */
-i3String *i3string_from_ucs2(const xcb_char2b_t *from_ucs2, size_t num_glyphs);
-
-/**
- * Copies the given i3string.
- * Note that this will not free the source string.
- */
-i3String *i3string_copy(i3String *str);
-
-/**
  * Free an i3String.
  *
  */
@@ -274,11 +261,6 @@ bool i3string_is_markup(i3String *str);
  * Set whether the i3String should use Pango markup.
  */
 void i3string_set_markup(i3String *str, bool pango_markup);
-
-/**
- * Escape pango markup characters in the given string.
- */
-i3String *i3string_escape_markup(i3String *str);
 
 /**
  * Returns the number of glyphs in an i3String.
@@ -644,16 +626,6 @@ void draw_util_copy_surface(surface_t *src, surface_t *dest, double src_x, doubl
  *
  */
 void set_nonblock(int sockfd);
-
-/**
- * Creates the UNIX domain socket at the given path, sets it to non-blocking
- * mode, bind()s and listen()s on it.
- *
- * The full path to the socket is stored in the char* that out_socketpath points
- * to.
- *
- */
-int create_socket(const char *filename, char **out_socketpath);
 
 /**
  * Checks if the given path exists by calling stat().
