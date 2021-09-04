@@ -34,8 +34,6 @@ extern const char *i3_version;
  * this before starting any other process, since we set RLIMIT_CORE to
  * RLIM_INFINITY for i3 debugging versions. */
 extern struct rlimit original_rlimit_core;
-/** Whether this version of i3 is a debug build or a release build. */
-extern bool debug_build;
 /** The number of file descriptors passed via socket activation. */
 extern int listen_fds;
 extern int conn_screen;
@@ -55,7 +53,6 @@ extern xcb_timestamp_t last_timestamp;
 extern SnDisplay *sndisplay;
 extern xcb_key_symbols_t *keysyms;
 extern char **start_argv;
-extern Display *xlibdpy, *xkbdpy;
 extern int xkb_current_group;
 extern TAILQ_HEAD(bindings_head, Binding) *bindings;
 extern const char *current_binding_mode;
@@ -69,10 +66,8 @@ extern SLIST_HEAD(stack_wins_head, Stack_Window) stack_wins;
  * pixmaps. Will use 32 bit depth and an appropriate visual, if available,
  * otherwise the root window’s default (usually 24 bit TrueColor). */
 extern uint8_t root_depth;
-extern xcb_visualid_t visual_id;
 extern xcb_colormap_t colormap;
 
 extern bool xkb_supported, shape_supported;
 extern xcb_window_t root;
 extern struct ev_loop *main_loop;
-extern bool only_check_config;

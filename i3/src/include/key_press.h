@@ -17,15 +17,3 @@
  *
  */
 void handle_key_press(xcb_key_press_event_t *event);
-
-/**
- * Kills the commanderror i3-nagbar process, if any.
- *
- * Called when reloading/restarting, since the user probably fixed their wrong
- * keybindings.
- *
- * If wait_for_it is set (restarting), this function will waitpid(), otherwise,
- * ev is assumed to handle it (reloading).
- *
- */
-void kill_commanderror_nagbar(bool wait_for_it);

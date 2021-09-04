@@ -115,12 +115,6 @@ void init_tray_colors(void);
 void destroy_window(i3_output *output);
 
 /*
- * Reallocate the statusline buffer
- *
- */
-void realloc_sl_buffer(void);
-
-/*
  * Reconfigure all bars and create new for newly activated outputs
  *
  */
