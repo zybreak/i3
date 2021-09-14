@@ -345,54 +345,37 @@ static int parse_restart_fd(void) {
     return fd;
 }
 
-int main(int argc, char *argv[]) {
-    /* Keep a symbol pointing to the I3_VERSION string constant so that we have
-     * it in gdb backtraces. */
-    static const char *_i3_version __attribute__((used)) = I3_VERSION;
-    char *override_configpath = NULL;
-    bool autostart = true;
-    char *layout_path = NULL;
-    bool delete_layout_path = false;
-    bool disable_randr15 = false;
-    char *fake_outputs = NULL;
-    bool disable_signalhandler = false;
-    bool only_check_config = false;
+// program arguments
+static char *override_configpath = NULL;
+static bool autostart = true;
+static char *layout_path = NULL;
+static bool delete_layout_path = false;
+static bool disable_randr15 = false;
+static char *fake_outputs = NULL;
+static bool disable_signalhandler = false;
+static bool only_check_config = false;
+
+static void parse_args(int argc, char *argv[]) {
     static struct option long_options[] = {
-        {"no-autostart", no_argument, 0, 'a'},
-        {"config", required_argument, 0, 'c'},
-        {"version", no_argument, 0, 'v'},
-        {"moreversion", no_argument, 0, 'm'},
-        {"more-version", no_argument, 0, 'm'},
-        {"more_version", no_argument, 0, 'm'},
-        {"help", no_argument, 0, 'h'},
-        {"layout", required_argument, 0, 'L'},
-        {"restart", required_argument, 0, 0},
-        {"disable-randr15", no_argument, 0, 0},
-        {"disable_randr15", no_argument, 0, 0},
-        {"disable-signalhandler", no_argument, 0, 0},
-        {"get-socketpath", no_argument, 0, 0},
-        {"get_socketpath", no_argument, 0, 0},
-        {"fake_outputs", required_argument, 0, 0},
-        {"fake-outputs", required_argument, 0, 0},
-        {"force-old-config-parser-v4.4-only", no_argument, 0, 0},
-        {0, 0, 0, 0}};
+            {"no-autostart", no_argument, 0, 'a'},
+            {"config", required_argument, 0, 'c'},
+            {"version", no_argument, 0, 'v'},
+            {"moreversion", no_argument, 0, 'm'},
+            {"more-version", no_argument, 0, 'm'},
+            {"more_version", no_argument, 0, 'm'},
+            {"help", no_argument, 0, 'h'},
+            {"layout", required_argument, 0, 'L'},
+            {"restart", required_argument, 0, 0},
+            {"disable-randr15", no_argument, 0, 0},
+            {"disable_randr15", no_argument, 0, 0},
+            {"disable-signalhandler", no_argument, 0, 0},
+            {"get-socketpath", no_argument, 0, 0},
+            {"get_socketpath", no_argument, 0, 0},
+            {"fake_outputs", required_argument, 0, 0},
+            {"fake-outputs", required_argument, 0, 0},
+            {"force-old-config-parser-v4.4-only", no_argument, 0, 0},
+            {0, 0, 0, 0}};
     int option_index = 0, opt;
-
-    setlocale(LC_ALL, "");
-
-    /* Get the RLIMIT_CORE limit at startup time to restore this before
-     * starting processes. */
-    getrlimit(RLIMIT_CORE, &original_rlimit_core);
-
-    /* Disable output buffering to make redirects in .xsession actually useful for debugging */
-    if (!isatty(fileno(stdout)))
-        setbuf(stdout, NULL);
-
-    srand(time(NULL));
-
-    /* Init logging *before* initializing debug_build to guarantee early
-     * (file) logging. */
-    init_logging();
 
     start_argv = argv;
 
@@ -436,7 +419,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 0:
                 if (strcmp(long_options[option_index].name, "disable-randr15") == 0 ||
-                           strcmp(long_options[option_index].name, "disable_randr15") == 0) {
+                    strcmp(long_options[option_index].name, "disable_randr15") == 0) {
                     disable_randr15 = true;
                     break;
                 } else if (strcmp(long_options[option_index].name, "disable-signalhandler") == 0) {
@@ -470,7 +453,7 @@ int main(int argc, char *argv[]) {
                     ELOG("You are passing --force-old-config-parser-v4.4-only, but that flag was removed by now.\n");
                     break;
                 }
-            /* fall-through */
+                /* fall-through */
             default:
                 fprintf(stderr, "Usage: %s [-c configfile] [-d all] [-a] [-v] [-V] [-C]\n", argv[0]);
                 fprintf(stderr, "\n");
@@ -496,6 +479,116 @@ int main(int argc, char *argv[]) {
                 exit(opt == 'h' ? EXIT_SUCCESS : EXIT_FAILURE);
         }
     }
+}
+
+void handle_extra_args(int argc, char *argv[])  {
+    /* We enable verbose mode so that the user knows what’s going on.
+     * This should make it easier to find mistakes when the user passes
+     * arguments by mistake. */
+    set_verbosity(true);
+
+    DLOG("Additional arguments passed. Sending them as a command to i3.\n");
+    char *payload = NULL;
+    while (optind < argc) {
+        if (!payload) {
+            payload = sstrdup(argv[optind]);
+        } else {
+            char *both;
+            sasprintf(&both, "%s %s", payload, argv[optind]);
+            free(payload);
+            payload = both;
+        }
+        optind++;
+    }
+    DLOG("Command is: %s (%zd bytes)\n", payload, strlen(payload));
+    char *socket_path = root_atom_contents("I3_SOCKET_PATH", NULL, 0);
+    if (!socket_path) {
+        ELOG("Could not get i3 IPC socket path\n");
+        exit(1);
+    }
+
+    int sockfd = socket(AF_LOCAL, SOCK_STREAM, 0);
+    if (sockfd == -1)
+        err(EXIT_FAILURE, "Could not create socket");
+
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(struct sockaddr_un));
+    addr.sun_family = AF_LOCAL;
+    strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
+    FREE(socket_path);
+    if (connect(sockfd, (const struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0)
+        err(EXIT_FAILURE, "Could not connect to i3");
+
+    if (ipc_send_message(sockfd, strlen(payload), I3_IPC_MESSAGE_TYPE_RUN_COMMAND,
+                         (uint8_t *)payload) == -1)
+        err(EXIT_FAILURE, "IPC: write()");
+    FREE(payload);
+
+    uint32_t reply_length;
+    uint32_t reply_type;
+    uint8_t *reply;
+    int ret;
+    if ((ret = ipc_recv_message(sockfd, &reply_type, &reply_length, &reply)) != 0) {
+        if (ret == -1)
+            err(EXIT_FAILURE, "IPC: read()");
+        exit(1);
+    }
+    if (reply_type != I3_IPC_REPLY_TYPE_COMMAND)
+        errx(EXIT_FAILURE, "IPC: received reply of type %d but expected %d (COMMAND)", reply_type, I3_IPC_REPLY_TYPE_COMMAND);
+    printf("%.*s\n", reply_length, reply);
+    FREE(reply);
+}
+
+void enable_coredumps() {
+    struct rlimit limit = {RLIM_INFINITY, RLIM_INFINITY};
+    setrlimit(RLIMIT_CORE, &limit);
+
+    /* The following code is helpful, but not required. We thus don’t pay
+     * much attention to error handling, non-linux or other edge cases. */
+    LOG("CORE DUMPS: You are running a development version of i3, so coredumps were automatically enabled (ulimit -c unlimited).\n");
+    size_t cwd_size = 1024;
+    char *cwd = smalloc(cwd_size);
+    char *cwd_ret;
+    while ((cwd_ret = getcwd(cwd, cwd_size)) == NULL && errno == ERANGE) {
+        cwd_size = cwd_size * 2;
+        cwd = srealloc(cwd, cwd_size);
+    }
+    if (cwd_ret != NULL)
+        LOG("CORE DUMPS: Your current working directory is \"%s\".\n", cwd);
+    int patternfd;
+    if ((patternfd = open("/proc/sys/kernel/core_pattern", O_RDONLY)) >= 0) {
+        memset(cwd, '\0', cwd_size);
+        if (read(patternfd, cwd, cwd_size) > 0)
+            /* a trailing newline is included in cwd */
+            LOG("CORE DUMPS: Your core_pattern is: %s", cwd);
+        close(patternfd);
+    }
+    free(cwd);
+}
+
+int main(int argc, char *argv[]) {
+    /* Keep a symbol pointing to the I3_VERSION string constant so that we have
+     * it in gdb backtraces. */
+    static const char *_i3_version __attribute__((used)) = I3_VERSION;
+
+
+    setlocale(LC_ALL, "");
+
+    /* Get the RLIMIT_CORE limit at startup time to restore this before
+     * starting processes. */
+    getrlimit(RLIMIT_CORE, &original_rlimit_core);
+
+    /* Disable output buffering to make redirects in .xsession actually useful for debugging */
+    if (!isatty(fileno(stdout)))
+        setbuf(stdout, NULL);
+
+    srand(time(NULL));
+
+    /* Init logging *before* initializing debug_build to guarantee early
+     * (file) logging. */
+    init_logging();
+
+    parse_args(argc, argv);
 
     if (only_check_config) {
         exit(load_configuration(override_configpath, C_VALIDATE) ? EXIT_SUCCESS : EXIT_FAILURE);
@@ -505,61 +598,7 @@ int main(int argc, char *argv[]) {
      * the arguments as an IPC message to i3. This allows for nice semantic
      * commands such as 'i3 border none'. */
     if (optind < argc) {
-        /* We enable verbose mode so that the user knows what’s going on.
-         * This should make it easier to find mistakes when the user passes
-         * arguments by mistake. */
-        set_verbosity(true);
-
-        DLOG("Additional arguments passed. Sending them as a command to i3.\n");
-        char *payload = NULL;
-        while (optind < argc) {
-            if (!payload) {
-                payload = sstrdup(argv[optind]);
-            } else {
-                char *both;
-                sasprintf(&both, "%s %s", payload, argv[optind]);
-                free(payload);
-                payload = both;
-            }
-            optind++;
-        }
-        DLOG("Command is: %s (%zd bytes)\n", payload, strlen(payload));
-        char *socket_path = root_atom_contents("I3_SOCKET_PATH", NULL, 0);
-        if (!socket_path) {
-            ELOG("Could not get i3 IPC socket path\n");
-            return 1;
-        }
-
-        int sockfd = socket(AF_LOCAL, SOCK_STREAM, 0);
-        if (sockfd == -1)
-            err(EXIT_FAILURE, "Could not create socket");
-
-        struct sockaddr_un addr;
-        memset(&addr, 0, sizeof(struct sockaddr_un));
-        addr.sun_family = AF_LOCAL;
-        strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
-        FREE(socket_path);
-        if (connect(sockfd, (const struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0)
-            err(EXIT_FAILURE, "Could not connect to i3");
-
-        if (ipc_send_message(sockfd, strlen(payload), I3_IPC_MESSAGE_TYPE_RUN_COMMAND,
-                             (uint8_t *)payload) == -1)
-            err(EXIT_FAILURE, "IPC: write()");
-        FREE(payload);
-
-        uint32_t reply_length;
-        uint32_t reply_type;
-        uint8_t *reply;
-        int ret;
-        if ((ret = ipc_recv_message(sockfd, &reply_type, &reply_length, &reply)) != 0) {
-            if (ret == -1)
-                err(EXIT_FAILURE, "IPC: read()");
-            return 1;
-        }
-        if (reply_type != I3_IPC_REPLY_TYPE_COMMAND)
-            errx(EXIT_FAILURE, "IPC: received reply of type %d but expected %d (COMMAND)", reply_type, I3_IPC_REPLY_TYPE_COMMAND);
-        printf("%.*s\n", reply_length, reply);
-        FREE(reply);
+        handle_extra_args(argc, argv);
         return 0;
     }
 
@@ -568,30 +607,7 @@ int main(int argc, char *argv[]) {
 
     /* Try to enable core dumps by default when running a debug build */
     if (is_debug_build()) {
-        struct rlimit limit = {RLIM_INFINITY, RLIM_INFINITY};
-        setrlimit(RLIMIT_CORE, &limit);
-
-        /* The following code is helpful, but not required. We thus don’t pay
-         * much attention to error handling, non-linux or other edge cases. */
-        LOG("CORE DUMPS: You are running a development version of i3, so coredumps were automatically enabled (ulimit -c unlimited).\n");
-        size_t cwd_size = 1024;
-        char *cwd = smalloc(cwd_size);
-        char *cwd_ret;
-        while ((cwd_ret = getcwd(cwd, cwd_size)) == NULL && errno == ERANGE) {
-            cwd_size = cwd_size * 2;
-            cwd = srealloc(cwd, cwd_size);
-        }
-        if (cwd_ret != NULL)
-            LOG("CORE DUMPS: Your current working directory is \"%s\".\n", cwd);
-        int patternfd;
-        if ((patternfd = open("/proc/sys/kernel/core_pattern", O_RDONLY)) >= 0) {
-            memset(cwd, '\0', cwd_size);
-            if (read(patternfd, cwd, cwd_size) > 0)
-                /* a trailing newline is included in cwd */
-                LOG("CORE DUMPS: Your core_pattern is: %s", cwd);
-            close(patternfd);
-        }
-        free(cwd);
+        enable_coredumps();
     }
 
     LOG("i3 %s starting\n", i3_version);
