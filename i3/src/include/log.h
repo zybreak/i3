@@ -27,10 +27,7 @@
    is, delete the preceding comma */
 #define LOG(fmt, ...) verboselog(fmt, ##__VA_ARGS__)
 #define ELOG(fmt, ...) errorlog("ERROR: " fmt, ##__VA_ARGS__)
-#define DLOG(fmt, ...) debuglog("%s:%s:%d - " fmt, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
-
-extern char *errorfilename;
-extern char *current_log_stream_socket_path;
+#define DLOG(fmt, ...) debuglog("DEBUG: %s:%s:%d - " fmt, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 
 /**
  * Initializes logging by creating an error logfile in /tmp (or
@@ -60,23 +57,21 @@ void set_debug_logging(const bool _debug_logging);
 void set_verbosity(bool _verbose);
 
 /**
- * Logs the given message to stdout while prefixing the current time to it,
- * but only if debug logging was activated.
+ * Logs the given message if debug logging is activated.
  *
  */
 void debuglog(char *fmt, ...)
     __attribute__((format(printf, 1, 2)));
 
 /**
- * Logs the given message to stdout while prefixing the current time to it.
+ * Logs the given message.
  *
  */
 void errorlog(char *fmt, ...)
     __attribute__((format(printf, 1, 2)));
 
 /**
- * Logs the given message to stdout while prefixing the current time to it,
- * but only if verbose mode is activated.
+ * Logs the given message if verbose logging is activated.
  *
  */
 void verboselog(char *fmt, ...)
@@ -88,5 +83,3 @@ void verboselog(char *fmt, ...)
  * failures. This function is invoked automatically when exiting.
  */
 void purge_zerobyte_logfile(void);
-
-void log_new_client(EV_P_ struct ev_io *w, int revents);

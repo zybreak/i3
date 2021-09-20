@@ -30,18 +30,8 @@
 
 static bool debug_logging = false;
 static bool verbose = false;
-static FILE *errorfile;
-char *errorfilename;
-
-typedef struct log_client {
-    int fd;
-
-    TAILQ_ENTRY(log_client)
-    clients;
-} log_client;
-
-TAILQ_HEAD(log_client_head, log_client)
-log_clients = TAILQ_HEAD_INITIALIZER(log_clients);
+static FILE *logfile;
+static char *logfilename;
 
 /*
  * Initializes logging by creating an error logfile in /tmp (or
@@ -51,16 +41,16 @@ log_clients = TAILQ_HEAD_INITIALIZER(log_clients);
  *
  */
 void init_logging(void) {
-    if (!errorfilename) {
-        if (!(errorfilename = get_process_filename("errorlog")))
-            fprintf(stderr, "Could not initialize errorlog\n");
+    if (!logfilename) {
+        if (!(logfilename = get_process_filename("log")))
+            fprintf(stderr, "Could not initialize log\n");
         else {
-            errorfile = fopen(errorfilename, "w");
-            if (!errorfile) {
-                fprintf(stderr, "Could not initialize errorlog on %s: %s\n",
-                        errorfilename, strerror(errno));
+            logfile = fopen(logfilename, "w");
+            if (!logfile) {
+                fprintf(stderr, "Could not initialize log on %s: %s\n",
+                        logfilename, strerror(errno));
             } else {
-                if (fcntl(fileno(errorfile), F_SETFD, FD_CLOEXEC)) {
+                if (fcntl(fileno(logfile), F_SETFD, FD_CLOEXEC)) {
                     fprintf(stderr, "Could not set close-on-exec flag\n");
                 }
             }
@@ -102,11 +92,7 @@ void set_debug_logging(const bool _debug_logging) {
  * This is to be called by *LOG() which includes filename/linenumber/function.
  *
  */
-static void vlog(const bool print, const char *fmt, va_list args) {
-
-    if (!(print)) {
-        return;
-    }
+static void vlog(const char *fmt, va_list args) {
 
     /* Precisely one page to not consume too much memory but to hold enough
      * data to be useful. */
@@ -146,7 +132,13 @@ void verboselog(char *fmt, ...) {
         return;
 
     va_start(args, fmt);
-    vlog(verbose, fmt, args);
+    vlog(fmt, args);
+    va_end(args);
+
+    /* also log to the error logfile, if opened */
+    va_start(args, fmt);
+    vfprintf(logfile, fmt, args);
+    fflush(logfile);
     va_end(args);
 }
 
@@ -158,13 +150,13 @@ void errorlog(char *fmt, ...) {
     va_list args;
 
     va_start(args, fmt);
-    vlog(true, fmt, args);
+    vlog(fmt, args);
     va_end(args);
 
     /* also log to the error logfile, if opened */
     va_start(args, fmt);
-    vfprintf(errorfile, fmt, args);
-    fflush(errorfile);
+    vfprintf(logfile, fmt, args);
+    fflush(logfile);
     va_end(args);
 }
 
@@ -181,7 +173,13 @@ void debuglog(char *fmt, ...) {
         return;
 
     va_start(args, fmt);
-    vlog(debug_logging, fmt, args);
+    vlog(fmt, args);
+    va_end(args);
+
+    /* also log to the error logfile, if opened */
+    va_start(args, fmt);
+    vfprintf(logfile, fmt, args);
+    fflush(logfile);
     va_end(args);
 }
 
@@ -194,52 +192,20 @@ void purge_zerobyte_logfile(void) {
     struct stat st;
     char *slash;
 
-    if (!errorfilename)
+    if (!logfilename)
         return;
 
     /* don't delete the log file if it contains something */
-    if ((stat(errorfilename, &st)) == -1 || st.st_size > 0)
+    if ((stat(logfilename, &st)) == -1 || st.st_size > 0)
         return;
 
-    if (unlink(errorfilename) == -1)
+    if (unlink(logfilename) == -1)
         return;
 
-    if ((slash = strrchr(errorfilename, '/')) != NULL) {
+    if ((slash = strrchr(logfilename, '/')) != NULL) {
         *slash = '\0';
         /* possibly fails with ENOTEMPTY if there are files (or
          * sockets) left. */
-        rmdir(errorfilename);
+        rmdir(logfilename);
     }
-}
-
-char *current_log_stream_socket_path = NULL;
-
-/*
- * Handler for activity on the listening socket, meaning that a new client
- * has just connected and we should accept() them. Sets up the event handler
- * for activity on the new connection and inserts the file descriptor into
- * the list of log clients.
- *
- */
-void log_new_client(EV_P_ struct ev_io *w, int revents) {
-    struct sockaddr_un peer;
-    socklen_t len = sizeof(struct sockaddr_un);
-    int fd;
-    if ((fd = accept(w->fd, (struct sockaddr *)&peer, &len)) < 0) {
-        if (errno != EINTR) {
-            perror("accept()");
-        }
-        return;
-    }
-
-    /* Close this file descriptor on exec() */
-    (void)fcntl(fd, F_SETFD, FD_CLOEXEC);
-
-    set_nonblock(fd);
-
-    log_client *client = scalloc(1, sizeof(log_client));
-    client->fd = fd;
-    TAILQ_INSERT_TAIL(&log_clients, client, clients);
-
-    DLOG("log: new client connected on fd %d\n", fd);
 }
