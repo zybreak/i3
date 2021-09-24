@@ -370,7 +370,6 @@ static void parse_args(int argc, char *argv[]) {
             {"get_socketpath", no_argument, 0, 0},
             {"fake_outputs", required_argument, 0, 0},
             {"fake-outputs", required_argument, 0, 0},
-            {"force-old-config-parser-v4.4-only", no_argument, 0, 0},
             {0, 0, 0, 0}};
     int option_index = 0, opt;
 
@@ -411,9 +410,6 @@ static void parse_args(int argc, char *argv[]) {
                 LOG("Enabling debug logging\n");
                 set_debug_logging(true);
                 break;
-            case 'l':
-                /* DEPRECATED, ignored for the next 3 versions (3.e, 3.f, 3.g) */
-                break;
             case 0:
                 if (strcmp(long_options[option_index].name, "disable-randr15") == 0 ||
                     strcmp(long_options[option_index].name, "disable_randr15") == 0) {
@@ -445,9 +441,6 @@ static void parse_args(int argc, char *argv[]) {
                            strcmp(long_options[option_index].name, "fake_outputs") == 0) {
                     LOG("Initializing fake outputs: %s\n", optarg);
                     fake_outputs = sstrdup(optarg);
-                    break;
-                } else if (strcmp(long_options[option_index].name, "force-old-config-parser-v4.4-only") == 0) {
-                    ELOG("You are passing --force-old-config-parser-v4.4-only, but that flag was removed by now.\n");
                     break;
                 }
                 /* fall-through */
