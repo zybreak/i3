@@ -37,7 +37,6 @@ struct stack {
 
 struct parser_ctx {
     bool use_nagbar;
-    bool assume_v4;
 
     int state;
     Match current_match;

@@ -578,7 +578,6 @@ int main(int argc, char *argv[]) {
     memset(&stack, '\0', sizeof(struct stack));
     struct parser_ctx ctx = {
         .use_nagbar = false,
-        .assume_v4 = false,
         .stack = &stack,
     };
     SLIST_INIT(&(ctx.variables));
@@ -588,73 +587,6 @@ int main(int argc, char *argv[]) {
 }
 
 #else
-
-/*
- * Goes through each line of buf (separated by \n) and checks for statements /
- * commands which only occur in i3 v4 configuration files. If it finds any, it
- * returns version 4, otherwise it returns version 3.
- *
- */
-static int detect_version(char *buf) {
-    char *walk = buf;
-    char *line = buf;
-    while (*walk != '\0') {
-        if (*walk != '\n') {
-            walk++;
-            continue;
-        }
-
-        /* check for some v4-only statements */
-        if (strncasecmp(line, "bindcode", strlen("bindcode")) == 0 ||
-            strncasecmp(line, "include", strlen("include")) == 0 ||
-            strncasecmp(line, "force_focus_wrapping", strlen("force_focus_wrapping")) == 0 ||
-            strncasecmp(line, "# i3 config file (v4)", strlen("# i3 config file (v4)")) == 0 ||
-            strncasecmp(line, "workspace_layout", strlen("workspace_layout")) == 0) {
-            LOG("deciding for version 4 due to this line: %.*s\n", (int)(walk - line), line);
-            return 4;
-        }
-
-        /* if this is a bind statement, we can check the command */
-        if (strncasecmp(line, "bind", strlen("bind")) == 0) {
-            char *bind = strchr(line, ' ');
-            if (bind == NULL)
-                goto next;
-            while ((*bind == ' ' || *bind == '\t') && *bind != '\0')
-                bind++;
-            if (*bind == '\0')
-                goto next;
-            if ((bind = strchr(bind, ' ')) == NULL)
-                goto next;
-            while ((*bind == ' ' || *bind == '\t') && *bind != '\0')
-                bind++;
-            if (*bind == '\0')
-                goto next;
-            if (strncasecmp(bind, "layout", strlen("layout")) == 0 ||
-                strncasecmp(bind, "floating", strlen("floating")) == 0 ||
-                strncasecmp(bind, "workspace", strlen("workspace")) == 0 ||
-                strncasecmp(bind, "focus left", strlen("focus left")) == 0 ||
-                strncasecmp(bind, "focus right", strlen("focus right")) == 0 ||
-                strncasecmp(bind, "focus up", strlen("focus up")) == 0 ||
-                strncasecmp(bind, "focus down", strlen("focus down")) == 0 ||
-                strncasecmp(bind, "border normal", strlen("border normal")) == 0 ||
-                strncasecmp(bind, "border 1pixel", strlen("border 1pixel")) == 0 ||
-                strncasecmp(bind, "border pixel", strlen("border pixel")) == 0 ||
-                strncasecmp(bind, "border borderless", strlen("border borderless")) == 0 ||
-                strncasecmp(bind, "--no-startup-id", strlen("--no-startup-id")) == 0 ||
-                strncasecmp(bind, "bar", strlen("bar")) == 0) {
-                LOG("deciding for version 4 due to this line: %.*s\n", (int)(walk - line), line);
-                return 4;
-            }
-        }
-
-    next:
-        /* advance to the next line */
-        walk++;
-        line = walk;
-    }
-
-    return 3;
-}
 
 /**
  * Launch nagbar to indicate errors in the configuration file.
@@ -951,20 +883,6 @@ parse_file_result_t parse_file(struct parser_ctx *ctx, const char *f) {
         }
     }
 
-    /* analyze the string to find out whether this is an old config file (3.x)
-     * or a new config file (4.x). If it’s old, we run the converter script. */
-    int version = 4;
-    if (!ctx->assume_v4) {
-        version = detect_version(buf);
-    }
-    if (version == 3) {
-        LOG("\n");
-        LOG("**********************************************************************\n");
-        LOG("ERROR: Using and old config file format\n");
-        LOG("**********************************************************************\n");
-        LOG("\n");
-    }
-
     struct context *context = scalloc(1, sizeof(struct context));
     context->filename = f;
     parse_config(ctx, new, context);
@@ -976,8 +894,6 @@ parse_file_result_t parse_file(struct parser_ctx *ctx, const char *f) {
 
     if (ctx->use_nagbar && (context->has_errors || context->has_warnings || invalid_sets)) {
         ELOG("FYI: You are using i3 version %s\n", i3_version);
-        if (version == 3)
-            ELOG("Please convert your configfile first, then fix any remaining errors (see above).\n");
 
         start_config_error_nagbar(f, context->has_errors || invalid_sets);
     }
