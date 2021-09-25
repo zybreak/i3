@@ -34,8 +34,6 @@ extern const char *i3_version;
  * this before starting any other process, since we set RLIMIT_CORE to
  * RLIM_INFINITY for i3 debugging versions. */
 extern struct rlimit original_rlimit_core;
-/** The number of file descriptors passed via socket activation. */
-extern int listen_fds;
 extern int conn_screen;
 /**
  * The EWMH support window that is used to indicate that an EWMH-compliant

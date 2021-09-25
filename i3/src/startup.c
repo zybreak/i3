@@ -15,8 +15,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <systemd/sd-daemon.h>
-
 #include <xcb/xcb.h>
 
 #include "libi3.h"
@@ -194,15 +192,6 @@ void start_application(const char *command, bool no_startup_id) {
         /* Child process */
         setsid();
         setrlimit(RLIMIT_CORE, &original_rlimit_core);
-        /* Close all socket activation file descriptors explicitly, we disabled
-         * FD_CLOEXEC to keep them open when restarting i3. */
-        for (int fd = SD_LISTEN_FDS_START;
-             fd < (SD_LISTEN_FDS_START + listen_fds);
-             fd++) {
-            close(fd);
-        }
-        unsetenv("LISTEN_PID");
-        unsetenv("LISTEN_FDS");
         signal(SIGPIPE, SIG_DFL);
         if (fork() == 0) {
             /* Setup the environment variable(s) */

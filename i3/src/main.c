@@ -59,7 +59,6 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <xcb/bigreq.h>
-#include <systemd/sd-daemon.h>
 
 #ifdef I3_ASAN_ENABLED
 #include <sanitizer/lsan_interface.h>
@@ -896,35 +895,6 @@ int main(int argc, char *argv[]) {
         struct ev_io *ipc_io = scalloc(1, sizeof(struct ev_io));
         ev_io_init(ipc_io, ipc_new_client, ipc_socket, EV_READ);
         ev_io_start(main_loop, ipc_io);
-    }
-
-    /* Also handle the UNIX domain sockets passed via socket activation. The
-     * parameter 1 means "remove the environment variables", we don’t want to
-     * pass these to child processes. */
-    listen_fds = sd_listen_fds(0);
-    if (listen_fds < 0)
-        ELOG("socket activation: Error in sd_listen_fds\n");
-    else if (listen_fds == 0)
-        DLOG("socket activation: no sockets passed\n");
-    else {
-        int flags;
-        for (int fd = SD_LISTEN_FDS_START;
-             fd < (SD_LISTEN_FDS_START + listen_fds);
-             fd++) {
-            DLOG("socket activation: also listening on fd %d\n", fd);
-
-            /* sd_listen_fds() enables FD_CLOEXEC by default.
-             * However, we need to keep the file descriptors open for in-place
-             * restarting, therefore we explicitly disable FD_CLOEXEC. */
-            if ((flags = fcntl(fd, F_GETFD)) < 0 ||
-                fcntl(fd, F_SETFD, flags & ~FD_CLOEXEC) < 0) {
-                ELOG("Could not disable FD_CLOEXEC on fd %d\n", fd);
-            }
-
-            struct ev_io *ipc_io = scalloc(1, sizeof(struct ev_io));
-            ev_io_init(ipc_io, ipc_new_client, fd, EV_READ);
-            ev_io_start(main_loop, ipc_io);
-        }
     }
 
     {
