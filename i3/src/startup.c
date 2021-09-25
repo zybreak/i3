@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <systemd/sd-daemon.h>
+
 #include <xcb/xcb.h>
 
 #include "libi3.h"
@@ -28,7 +30,6 @@
 #include "con.h"
 #include "xcursor.h"
 #include "startup.h"
-#include "sd-daemon.h"
 
 #include <paths.h>
 #include <sys/types.h>

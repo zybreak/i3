@@ -31,7 +31,6 @@ i3_srcs = [
   'src/resize.c',
   'src/restore_layout.c',
   'src/scratchpad.c',
-  'src/sd-daemon.c',
   'src/sighandler.c',
   'src/startup.c',
   'src/sync.c',

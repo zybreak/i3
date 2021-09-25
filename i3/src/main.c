@@ -59,12 +59,11 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <xcb/bigreq.h>
+#include <systemd/sd-daemon.h>
 
 #ifdef I3_ASAN_ENABLED
 #include <sanitizer/lsan_interface.h>
 #endif
-
-#include "sd-daemon.h"
 
 #include "i3-atoms_NET_SUPPORTED.xmacro.h"
 #include "i3-atoms_rest.xmacro.h"
