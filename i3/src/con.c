@@ -80,7 +80,6 @@ Con *con_new_skeleton(Con *parent, i3Window *window) {
     TAILQ_INIT(&(new->nodes_head));
     TAILQ_INIT(&(new->focus_head));
     TAILQ_INIT(&(new->swallow_head));
-    TAILQ_INIT(&(new->marks_head));
 
     if (parent != NULL)
         con_attach(new, parent, false);
@@ -110,12 +109,6 @@ void con_free(Con *con) {
         TAILQ_REMOVE(&(con->swallow_head), match, matches);
         match_free(match);
         free(match);
-    }
-    while (!TAILQ_EMPTY(&(con->marks_head))) {
-        mark_t *mark = TAILQ_FIRST(&(con->marks_head));
-        TAILQ_REMOVE(&(con->marks_head), mark, marks);
-        FREE(mark->name);
-        FREE(mark);
     }
     DLOG("con %p freed\n", con);
     free(con);
@@ -741,135 +734,6 @@ Con *con_by_frame_id(xcb_window_t frame) {
 }
 
 /*
- * Returns the container with the given mark or NULL if no such container
- * exists.
- *
- */
-Con *con_by_mark(const char *mark) {
-    Con *con;
-    TAILQ_FOREACH (con, &all_cons, all_cons) {
-        if (con_has_mark(con, mark))
-            return con;
-    }
-
-    return NULL;
-}
-
-/*
- * Returns true if and only if the given containers holds the mark.
- *
- */
-bool con_has_mark(Con *con, const char *mark) {
-    mark_t *current;
-    TAILQ_FOREACH (current, &(con->marks_head), marks) {
-        if (strcmp(current->name, mark) == 0)
-            return true;
-    }
-
-    return false;
-}
-
-/*
- * Toggles the mark on a container.
- * If the container already has this mark, the mark is removed.
- * Otherwise, the mark is assigned to the container.
- *
- */
-void con_mark_toggle(Con *con, const char *mark, mark_mode_t mode) {
-    assert(con != NULL);
-    DLOG("Toggling mark \"%s\" on con = %p.\n", mark, con);
-
-    if (con_has_mark(con, mark)) {
-        con_unmark(con, mark);
-    } else {
-        con_mark(con, mark, mode);
-    }
-}
-
-/*
- * Assigns a mark to the container.
- *
- */
-void con_mark(Con *con, const char *mark, mark_mode_t mode) {
-    assert(con != NULL);
-    DLOG("Setting mark \"%s\" on con = %p.\n", mark, con);
-
-    con_unmark(NULL, mark);
-    if (mode == MM_REPLACE) {
-        DLOG("Removing all existing marks on con = %p.\n", con);
-
-        mark_t *current;
-        while (!TAILQ_EMPTY(&(con->marks_head))) {
-            current = TAILQ_FIRST(&(con->marks_head));
-            con_unmark(con, current->name);
-        }
-    }
-
-    mark_t *new = scalloc(1, sizeof(mark_t));
-    new->name = sstrdup(mark);
-    TAILQ_INSERT_TAIL(&(con->marks_head), new, marks);
-    ipc_send_window_event("mark", con);
-
-    con->mark_changed = true;
-}
-
-/*
- * Removes marks from containers.
- * If con is NULL, all containers are considered.
- * If name is NULL, this removes all existing marks.
- * Otherwise, it will only remove the given mark (if it is present).
- *
- */
-void con_unmark(Con *con, const char *name) {
-    Con *current;
-    if (name == NULL) {
-        DLOG("Unmarking all containers.\n");
-        TAILQ_FOREACH (current, &all_cons, all_cons) {
-            if (con != NULL && current != con)
-                continue;
-
-            if (TAILQ_EMPTY(&(current->marks_head)))
-                continue;
-
-            mark_t *mark;
-            while (!TAILQ_EMPTY(&(current->marks_head))) {
-                mark = TAILQ_FIRST(&(current->marks_head));
-                FREE(mark->name);
-                TAILQ_REMOVE(&(current->marks_head), mark, marks);
-                FREE(mark);
-
-                ipc_send_window_event("mark", current);
-            }
-
-            current->mark_changed = true;
-        }
-    } else {
-        DLOG("Removing mark \"%s\".\n", name);
-        current = (con == NULL) ? con_by_mark(name) : con;
-        if (current == NULL) {
-            DLOG("No container found with this mark, so there is nothing to do.\n");
-            return;
-        }
-
-        DLOG("Found mark on con = %p. Removing it now.\n", current);
-        current->mark_changed = true;
-
-        mark_t *mark;
-        TAILQ_FOREACH (mark, &(current->marks_head), marks) {
-            if (strcmp(mark->name, name) != 0)
-                continue;
-
-            FREE(mark->name);
-            TAILQ_REMOVE(&(current->marks_head), mark, marks);
-            FREE(mark);
-
-            ipc_send_window_event("mark", current);
-            break;
-        }
-    }
-}
-
-/*
  * Returns the first container below 'con' which wants to swallow this window
  * TODO: priority
  *
@@ -1379,53 +1243,6 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
     ipc_send_window_event("move", con);
     ewmh_update_wm_desktop();
     return true;
-}
-
-/*
- * Moves the given container to the given mark.
- *
- */
-bool con_move_to_mark(Con *con, const char *mark) {
-    Con *target = con_by_mark(mark);
-    if (target == NULL) {
-        DLOG("found no container with mark \"%s\"\n", mark);
-        return false;
-    }
-
-    /* For target containers in the scratchpad, we just send the window to the scratchpad. */
-    if (con_get_workspace(target) == workspace_get("__i3_scratch")) {
-        DLOG("target container is in the scratchpad, moving container to scratchpad.\n");
-        scratchpad_move(con);
-        return true;
-    }
-
-    /* For floating target containers, we just send the window to the same workspace. */
-    if (con_is_floating(target)) {
-        DLOG("target container is floating, moving container to target's workspace.\n");
-        con_move_to_workspace(con, con_get_workspace(target), true, false, false);
-        return true;
-    }
-
-    if (target->type == CT_WORKSPACE && con_is_leaf(target)) {
-        DLOG("target container is an empty workspace, simply moving the container there.\n");
-        con_move_to_workspace(con, target, true, false, false);
-        return true;
-    }
-
-    /* For split containers, we use the currently focused container within it.
-     * This allows setting marks on, e.g., tabbed containers which will move
-     * con to a new tab behind the focused tab. */
-    if (con_is_split(target)) {
-        DLOG("target is a split container, descending to the currently focused child.\n");
-        target = TAILQ_FIRST(&(target->focus_head));
-    }
-
-    if (con == target || con_has_parent(target, con)) {
-        DLOG("cannot move the container to or inside itself, aborting.\n");
-        return false;
-    }
-
-    return _con_move_to_con(con, target, false, true, false, false, true);
 }
 
 /*
@@ -2458,14 +2275,6 @@ void con_merge_into(Con *old, Con *new) {
     new->sticky = old->sticky;
 
     con_set_urgency(new, old->urgent);
-
-    mark_t *mark;
-    TAILQ_FOREACH (mark, &(old->marks_head), marks) {
-        TAILQ_INSERT_TAIL(&(new->marks_head), mark, marks);
-        ipc_send_window_event("mark", new);
-    }
-    new->mark_changed = (TAILQ_FIRST(&(old->marks_head)) != NULL);
-    TAILQ_INIT(&(old->marks_head));
 
     tree_close_internal(old, DONT_KILL_WINDOW, false);
 }

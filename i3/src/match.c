@@ -58,7 +58,6 @@ bool match_is_empty(Match *match) {
      * TAILQ and I don’t want to start with things like assuming that the
      * last member of a struct really is at the end in memory… */
     return (match->title == NULL &&
-            match->mark == NULL &&
             match->application == NULL &&
             match->class == NULL &&
             match->instance == NULL &&
@@ -91,7 +90,6 @@ void match_copy(Match *dest, Match *src) {
     } while (0)
 
     DUPLICATE_REGEX(title);
-    DUPLICATE_REGEX(mark);
     DUPLICATE_REGEX(application);
     DUPLICATE_REGEX(class);
     DUPLICATE_REGEX(instance);
@@ -214,27 +212,6 @@ bool match_matches_window(Match *match, i3Window *window) {
         }
     }
 
-    if (match->mark != NULL) {
-        if ((con = con_by_window_id(window->id)) == NULL)
-            return false;
-
-        bool matched = false;
-        mark_t *mark;
-        TAILQ_FOREACH (mark, &(con->marks_head), marks) {
-            if (regex_matches(match->mark, mark->name)) {
-                matched = true;
-                break;
-            }
-        }
-
-        if (matched) {
-            LOG("mark matches\n");
-        } else {
-            LOG("mark does not match\n");
-            return false;
-        }
-    }
-
     if (match->window_mode != WM_ANY) {
         if ((con = con_by_window_id(window->id)) == NULL) {
             return false;
@@ -295,7 +272,6 @@ void match_free(Match *match) {
     regex_free(match->application);
     regex_free(match->class);
     regex_free(match->instance);
-    regex_free(match->mark);
     regex_free(match->window_role);
     regex_free(match->workspace);
     regex_free(match->machine);
@@ -382,12 +358,6 @@ void match_parse_property(Match *match, const char *ctype, const char *cvalue) {
             match->error = sstrdup("unknown window_type value");
         }
 
-        return;
-    }
-
-    if (strcmp(ctype, "con_mark") == 0) {
-        regex_free(match->mark);
-        match->mark = regex_new(cvalue);
         return;
     }
 

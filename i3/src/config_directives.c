@@ -410,10 +410,6 @@ CFGFUN(title_align, const char *alignment) {
     }
 }
 
-CFGFUN(show_marks, const char *value) {
-    config.show_marks = boolstr(value);
-}
-
 static char *current_workspace = NULL;
 
 CFGFUN(workspace, const char *workspace, const char *output) {

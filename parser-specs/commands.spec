@@ -31,8 +31,6 @@ state INITIAL:
   'sticky' -> STICKY
   'split' -> SPLIT
   'floating' -> FLOATING
-  'mark' -> MARK
-  'unmark' -> UNMARK
   'resize' -> RESIZE
   'rename' -> RENAME
   'nop' -> NOP
@@ -50,7 +48,6 @@ state CRITERIA:
   ctype = 'con_id'      -> CRITERION
   ctype = 'id'          -> CRITERION
   ctype = 'window_type' -> CRITERION
-  ctype = 'con_mark'    -> CRITERION
   ctype = 'title'       -> CRITERION
   ctype = 'urgent'      -> CRITERION
   ctype = 'workspace'   -> CRITERION
@@ -207,22 +204,6 @@ state FLOATING:
   floating = 'enable', 'disable', 'toggle'
       -> call cmd_floating($floating)
 
-# mark [--add|--replace] [--toggle] <mark>
-state MARK:
-  mode = '--add', '--replace'
-      ->
-  toggle = '--toggle'
-      ->
-  mark = string
-      -> call cmd_mark($mark, $mode, $toggle)
-
-# unmark [mark]
-state UNMARK:
-  end
-      -> call cmd_unmark($mark)
-  mark = string
-      -> call cmd_unmark($mark)
-
 # resize
 state RESIZE:
   way = 'grow', 'shrink'
@@ -320,7 +301,6 @@ state RENAME_WORKSPACE_TO_NEW_NAME:
 # move <direction> [<amount> [px|ppt]]
 # move [window|container] [to] workspace [<str>|next|prev|next_on_output|prev_on_output|current]
 # move [window|container] [to] output <str>
-# move [window|container] [to] mark <str>
 # move [window|container] [to] scratchpad
 # move workspace to [output] <str>
 # move scratchpad
@@ -339,8 +319,6 @@ state MOVE:
       -> MOVE_WORKSPACE
   'output'
       -> MOVE_TO_OUTPUT
-  'mark'
-      -> MOVE_TO_MARK
   'scratchpad'
       -> call cmd_move_scratchpad()
   direction = 'left', 'right', 'up', 'down'
@@ -383,10 +361,6 @@ state MOVE_TO_OUTPUT:
       -> call cmd_move_con_to_output($output, 0); MOVE_TO_OUTPUT
   end
       -> call cmd_move_con_to_output(NULL, 0); INITIAL
-
-state MOVE_TO_MARK:
-  mark = string
-      -> call cmd_move_con_to_mark($mark)
 
 state MOVE_WORKSPACE_TO_OUTPUT:
   'output'
@@ -445,7 +419,7 @@ state SWAP:
       ->
   'with'
       ->
-  mode = 'id', 'con_id', 'mark'
+  mode = 'id', 'con_id'
       -> SWAP_ARGUMENT
 
 state SWAP_ARGUMENT:

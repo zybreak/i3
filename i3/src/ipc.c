@@ -424,14 +424,6 @@ void dump_node(yajl_gen gen, struct Con *con, bool inplace_restart) {
     ystr("urgent");
     y(bool, con->urgent);
 
-    ystr("marks");
-    y(array_open);
-    mark_t *mark;
-    TAILQ_FOREACH (mark, &(con->marks_head), marks) {
-        ystr(mark->name);
-    }
-    y(array_close);
-
     ystr("focused");
     y(bool, (con == focused));
 
@@ -1023,33 +1015,6 @@ IPC_HANDLER(get_outputs) {
 }
 
 /*
- * Formats the reply message for a GET_MARKS request and sends it to the
- * client
- *
- */
-IPC_HANDLER(get_marks) {
-    yajl_gen gen = yajl_gen_alloc(NULL);
-    y(array_open);
-
-    Con *con;
-    TAILQ_FOREACH (con, &all_cons, all_cons) {
-        mark_t *mark;
-        TAILQ_FOREACH (mark, &(con->marks_head), marks) {
-            ystr(mark->name);
-        }
-    }
-
-    y(array_close);
-
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
-
-    ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_MARKS, payload);
-    y(free);
-}
-
-/*
  * Returns the version of i3
  *
  */
@@ -1385,13 +1350,12 @@ IPC_HANDLER(get_binding_state) {
 
 /* The index of each callback function corresponds to the numeric
  * value of the message type (see include/i3/ipc.h) */
-handler_t handlers[13] = {
+handler_t handlers[12] = {
     handle_run_command,
     handle_get_workspaces,
     handle_subscribe,
     handle_get_outputs,
     handle_tree,
-    handle_get_marks,
     handle_get_bar_config,
     handle_get_version,
     handle_get_binding_modes,

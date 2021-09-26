@@ -231,27 +231,6 @@ void cmd_criteria_match_windows(I3_CMD) {
             }
         }
 
-        if (current_match->mark != NULL && !TAILQ_EMPTY(&(current->con->marks_head))) {
-            accept_match = true;
-            bool matched_by_mark = false;
-
-            mark_t *mark;
-            TAILQ_FOREACH (mark, &(current->con->marks_head), marks) {
-                if (!regex_matches(current_match->mark, mark->name))
-                    continue;
-
-                DLOG("match by mark\n");
-                matched_by_mark = true;
-                break;
-            }
-
-            if (!matched_by_mark) {
-                DLOG("mark does not match.\n");
-                FREE(current);
-                continue;
-            }
-        }
-
         if (current->con->window != NULL) {
             if (match_matches_window(current_match, current->con->window)) {
                 DLOG("matches window!\n");
@@ -991,58 +970,6 @@ void cmd_workspace_name(I3_CMD, const char *name, const char *_no_auto_back_and_
 }
 
 /*
- * Implementation of 'mark [--add|--replace] [--toggle] <mark>'
- *
- */
-void cmd_mark(I3_CMD, const char *mark, const char *mode, const char *toggle) {
-    HANDLE_EMPTY_MATCH;
-
-    owindow *current = TAILQ_FIRST(&owindows);
-    if (current == NULL) {
-        yerror("Given criteria don't match a window");
-        return;
-    }
-
-    /* Marks must be unique, i.e., no two windows must have the same mark. */
-    if (current != TAILQ_LAST(&owindows, owindows_head)) {
-        yerror("A mark must not be put onto more than one window");
-        return;
-    }
-
-    DLOG("matching: %p / %s\n", current->con, current->con->name);
-
-    mark_mode_t mark_mode = (mode == NULL || strcmp(mode, "--replace") == 0) ? MM_REPLACE : MM_ADD;
-    if (toggle != NULL) {
-        con_mark_toggle(current->con, mark, mark_mode);
-    } else {
-        con_mark(current->con, mark, mark_mode);
-    }
-
-    cmd_output->needs_tree_render = true;
-    // XXX: default reply for now, make this a better reply
-    ysuccess(true);
-}
-
-/*
- * Implementation of 'unmark [mark]'
- *
- */
-void cmd_unmark(I3_CMD, const char *mark) {
-    if (match_is_empty(current_match)) {
-        con_unmark(NULL, mark);
-    } else {
-        owindow *current;
-        TAILQ_FOREACH (current, &owindows, owindows) {
-            con_unmark(current->con, mark);
-        }
-    }
-
-    cmd_output->needs_tree_render = true;
-    // XXX: default reply for now, make this a better reply
-    ysuccess(true);
-}
-
-/*
  * Implementation of 'mode <string>'.
  *
  */
@@ -1162,26 +1089,6 @@ void cmd_move_con_to_output(I3_CMD, const char *name, bool move_workspace) {
     } else {
         yerror("No output matched");
     }
-}
-
-/*
- * Implementation of 'move [container|window] [to] mark <str>'.
- *
- */
-void cmd_move_con_to_mark(I3_CMD, const char *mark) {
-    DLOG("moving window to mark \"%s\"\n", mark);
-
-    HANDLE_EMPTY_MATCH;
-
-    bool result = true;
-    owindow *current;
-    TAILQ_FOREACH (current, &owindows, owindows) {
-        DLOG("moving matched window %p / %s to mark \"%s\"\n", current->con, current->con->name, mark);
-        result &= con_move_to_mark(current->con, mark);
-    }
-
-    cmd_output->needs_tree_render = true;
-    ysuccess(result);
 }
 
 /*
@@ -1965,7 +1872,7 @@ void cmd_scratchpad_show(I3_CMD) {
 }
 
 /*
- * Implementation of 'swap [container] [with] id|con_id|mark <arg>'.
+ * Implementation of 'swap [container] [with] id|con_id <arg>'.
  *
  */
 void cmd_swap(I3_CMD, const char *mode, const char *arg) {
@@ -1998,8 +1905,6 @@ void cmd_swap(I3_CMD, const char *mode, const char *arg) {
         }
 
         con = con_by_con_id(target);
-    } else if (strcmp(mode, "mark") == 0) {
-        con = con_by_mark(arg);
     } else {
         yerror("Unhandled swap mode \"%s\". This is a bug.", mode);
         return;

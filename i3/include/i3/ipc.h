@@ -45,9 +45,6 @@ typedef struct i3_ipc_header {
 /** Requests the tree layout from i3 */
 #define I3_IPC_MESSAGE_TYPE_GET_TREE 4
 
-/** Request the current defined marks from i3 */
-#define I3_IPC_MESSAGE_TYPE_GET_MARKS 5
-
 /** Request the configuration for a specific 'bar' */
 #define I3_IPC_MESSAGE_TYPE_GET_BAR_CONFIG 6
 

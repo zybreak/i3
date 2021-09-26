@@ -46,7 +46,6 @@ state INITIAL:
   'force_display_urgency_hint'             -> FORCE_DISPLAY_URGENCY_HINT
   'focus_on_window_activation'             -> FOCUS_ON_WINDOW_ACTIVATION
   'title_align'                            -> TITLE_ALIGN
-  'show_marks'                             -> SHOW_MARKS
   'workspace'                              -> WORKSPACE
   'ipc_socket', 'ipc-socket'               -> IPC_SOCKET
   'ipc_kill_timeout'                       -> IPC_KILL_TIMEOUT
@@ -192,7 +191,6 @@ state CRITERIA:
   ctype = 'con_id'        -> CRITERION
   ctype = 'id'            -> CRITERION
   ctype = 'window_type'   -> CRITERION
-  ctype = 'con_mark'      -> CRITERION
   ctype = 'title'         -> CRITERION
   ctype = 'urgent'        -> CRITERION
   ctype = 'workspace'     -> CRITERION
@@ -272,11 +270,6 @@ state FORCE_DISPLAY_URGENCY_HINT:
 state TITLE_ALIGN:
   alignment = 'left', 'center', 'right'
       -> call cfg_title_align($alignment)
-
-# show_marks
-state SHOW_MARKS:
-  value = word
-      -> call cfg_show_marks($value)
 
 state FORCE_DISPLAY_URGENCY_HINT_MS:
   'ms'

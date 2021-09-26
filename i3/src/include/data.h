@@ -45,7 +45,6 @@ typedef struct Con Con;
 typedef struct Match Match;
 typedef struct Assignment Assignment;
 typedef struct Window i3Window;
-typedef struct mark_t mark_t;
 
 /******************************************************************************
  * Helper types
@@ -504,7 +503,6 @@ struct Match {
     struct regex *application;
     struct regex *class;
     struct regex *instance;
-    struct regex *mark;
     struct regex *window_role;
     struct regex *workspace;
     struct regex *machine;
@@ -600,12 +598,6 @@ typedef enum { CF_NONE = 0,
                CF_OUTPUT = 1,
                CF_GLOBAL = 2 } fullscreen_mode_t;
 
-struct mark_t {
-    char *name;
-
-    TAILQ_ENTRY(mark_t) marks;
-};
-
 /**
  * A 'Con' represents everything from the X11 root window down to a single X11 window.
  *
@@ -670,11 +662,6 @@ struct Con {
      * group. The contents are shared between all of them, that is they are
      * displayed on whichever of the containers is currently visible */
     char *sticky_group;
-
-    /* user-definable marks to jump to this container later */
-    TAILQ_HEAD(marks_head, mark_t) marks_head;
-    /* cached to decide whether a redraw is needed */
-    bool mark_changed;
 
     double percent;
 

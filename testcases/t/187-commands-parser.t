@@ -168,8 +168,6 @@ is(parser_calls('unknown_literal'),
        sticky
        split
        floating
-       mark
-       unmark
        resize
        rename
        nop

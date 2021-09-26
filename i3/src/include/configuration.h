@@ -194,10 +194,6 @@ struct Config {
         FOWA_NONE
     } focus_on_window_activation;
 
-    /** Specifies whether or not marks should be displayed in the window
-     * decoration. Marks starting with a "_" will be ignored either way. */
-    bool show_marks;
-
     /** Title alignment options. */
     enum {
         ALIGN_LEFT,

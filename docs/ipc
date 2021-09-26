@@ -133,8 +133,6 @@ OUTPUTS (3)::
 	Reply to the GET_OUTPUTS message.
 TREE (4)::
 	Reply to the GET_TREE message.
-MARKS (5)::
-	Reply to the GET_MARKS message.
 BAR_CONFIG (6)::
 	Reply to the GET_BAR_CONFIG message.
 VERSION (7)::

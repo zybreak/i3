@@ -537,7 +537,6 @@ void x_draw_decoration(Con *con) {
         (con->window == NULL || !con->window->name_x_changed) &&
         !parent->pixmap_recreated &&
         !con->pixmap_recreated &&
-        !con->mark_changed &&
         memcmp(p, con->deco_render_params, sizeof(struct deco_render_params)) == 0) {
         free(p);
         goto copy_pixmaps;
@@ -556,7 +555,6 @@ void x_draw_decoration(Con *con) {
 
     parent->pixmap_recreated = false;
     con->pixmap_recreated = false;
-    con->mark_changed = false;
 
     /* 2: draw the client.background, but only for the parts around the window_rect */
     if (con->window != NULL) {
@@ -665,43 +663,6 @@ void x_draw_decoration(Con *con) {
             icon_size);
     }
 
-    int mark_width = 0;
-    if (config.show_marks && !TAILQ_EMPTY(&(con->marks_head))) {
-        char *formatted_mark = sstrdup("");
-        bool had_visible_mark = false;
-
-        mark_t *mark;
-        TAILQ_FOREACH (mark, &(con->marks_head), marks) {
-            if (mark->name[0] == '_')
-                continue;
-            had_visible_mark = true;
-
-            char *buf;
-            sasprintf(&buf, "%s[%s]", formatted_mark, mark->name);
-            free(formatted_mark);
-            formatted_mark = buf;
-        }
-
-        if (had_visible_mark) {
-            i3String *mark = i3string_from_utf8(formatted_mark);
-            mark_width = predict_text_width(mark);
-
-            int mark_offset_x = (config.title_align == ALIGN_RIGHT)
-                                    ? title_padding
-                                    : deco_width - mark_width - title_padding;
-
-            draw_util_text(mark, &(parent->frame_buffer),
-                           p->color->text, p->color->background,
-                           con->deco_rect.x + mark_offset_x,
-                           con->deco_rect.y + text_offset_y, mark_width);
-            I3STRING_FREE(mark);
-
-            mark_width += title_padding;
-        }
-
-        FREE(formatted_mark);
-    }
-
     i3String *title = NULL;
     if (win == NULL) {
         if (con->title_format == NULL) {
@@ -725,22 +686,22 @@ void x_draw_decoration(Con *con) {
     int title_offset_x;
     switch (config.title_align) {
         case ALIGN_LEFT:
-            /* (pad)[text    ](pad)[mark + its pad) */
+            /* (pad)[text    ](pad) */
             title_offset_x = title_padding;
             break;
         case ALIGN_CENTER:
-            /* (pad)[  text  ](pad)[mark + its pad)
+            /* (pad)[  text  ](pad)
              * To center the text inside its allocated space, the surface
              * between the brackets, we use the formula
              * (surface_width - predict_text_width) / 2
-             * where surface_width = deco_width - 2 * pad - mark_width
+             * where surface_width = deco_width - 2 * pad
              * so, offset = pad + (surface_width - predict_text_width) / 2 =
-             * = … = (deco_width - mark_width - predict_text_width) / 2 */
-            title_offset_x = max(title_padding, (deco_width - mark_width - predict_text_width(title)) / 2);
+             * = … = (deco_width - predict_text_width) / 2 */
+            title_offset_x = max(title_padding, (deco_width - predict_text_width(title)) / 2);
             break;
         case ALIGN_RIGHT:
-            /* [mark + its pad](pad)[    text](pad) */
-            title_offset_x = max(title_padding + mark_width, deco_width - title_padding - predict_text_width(title));
+            /* (pad)[    text](pad) */
+            title_offset_x = max(title_padding, deco_width - title_padding - predict_text_width(title));
             break;
     }
 
@@ -748,7 +709,7 @@ void x_draw_decoration(Con *con) {
                    p->color->text, p->color->background,
                    con->deco_rect.x + text_offset_x + title_offset_x,
                    con->deco_rect.y + text_offset_y,
-                   deco_width - text_offset_x - mark_width - 2 * title_padding);
+                   deco_width - text_offset_x - 2 * title_padding);
 
     if (win == NULL || con->title_format != NULL) {
         I3STRING_FREE(title);

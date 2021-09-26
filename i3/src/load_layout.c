@@ -41,19 +41,8 @@ static bool parsing_deco_rect;
 static bool parsing_window_rect;
 static bool parsing_geometry;
 static bool parsing_focus;
-static bool parsing_marks;
 struct Match *current_swallow;
 static bool swallow_is_empty;
-static int num_marks;
-/* We need to save each container that needs to be marked if we want to support
- * marking non-leaf containers. In their case, the end_map for their children is
- * called before their own end_map, so marking json_node would end up marking
- * the latest child. We can't just mark containers immediately after we parse a
- * mark because of #2511. */
-struct pending_marks {
-    char *mark;
-    Con *con_to_be_marked;
-} * marks;
 
 /* This list is used for reordering the focus stack after parsing the 'focus'
  * array. */
@@ -166,18 +155,6 @@ static int json_end_map(void *ctx) {
             floating_check_size(json_node, false);
         }
 
-        if (num_marks > 0) {
-            for (int i = 0; i < num_marks; i++) {
-                Con *con = marks[i].con_to_be_marked;
-                char *mark = marks[i].mark;
-                con_mark(con, mark, MM_ADD);
-                free(mark);
-            }
-
-            FREE(marks);
-            num_marks = 0;
-        }
-
         LOG("attaching\n");
         con_attach(json_node, json_node->parent, true);
         LOG("Creating window\n");
@@ -216,14 +193,11 @@ static int json_end_map(void *ctx) {
 
 static int json_end_array(void *ctx) {
     LOG("end of array\n");
-    if (!parsing_swallows && !parsing_focus && !parsing_marks) {
+    if (!parsing_swallows && !parsing_focus) {
         con_fix_percent(json_node);
     }
     if (parsing_swallows) {
         parsing_swallows = false;
-    }
-    if (parsing_marks) {
-        parsing_marks = false;
     }
 
     if (parsing_focus) {
@@ -275,11 +249,6 @@ static int json_key(void *ctx, const unsigned char *val, size_t len) {
     if (strcasecmp(last_key, "focus") == 0)
         parsing_focus = true;
 
-    if (strcasecmp(last_key, "marks") == 0) {
-        num_marks = 0;
-        parsing_marks = true;
-    }
-
     return 1;
 }
 
@@ -307,13 +276,6 @@ static int json_string(void *ctx, const unsigned char *val, size_t len) {
             ELOG("swallow key %s unknown\n", last_key);
         }
         free(sval);
-    } else if (parsing_marks) {
-        char *mark;
-        sasprintf(&mark, "%.*s", (int)len, val);
-
-        marks = srealloc(marks, (++num_marks) * sizeof(struct pending_marks));
-        marks[num_marks - 1].mark = sstrdup(mark);
-        marks[num_marks - 1].con_to_be_marked = json_node;
     } else {
         if (strcasecmp(last_key, "name") == 0) {
             json_node->name = scalloc(len + 1, 1);
@@ -418,13 +380,6 @@ static int json_string(void *ctx, const unsigned char *val, size_t len) {
             else
                 LOG("Unhandled \"last_splitlayout\": %s\n", buf);
             free(buf);
-        } else if (strcasecmp(last_key, "mark") == 0) {
-            DLOG("Found deprecated key \"mark\".\n");
-
-            char *buf = NULL;
-            sasprintf(&buf, "%.*s", (int)len, val);
-
-            con_mark(json_node, buf, MM_REPLACE);
         } else if (strcasecmp(last_key, "floating") == 0) {
             char *buf = NULL;
             sasprintf(&buf, "%.*s", (int)len, val);
@@ -675,7 +630,6 @@ void tree_append_json(Con *con, const char *buf, const size_t len, char **errorm
     parsing_window_rect = false;
     parsing_geometry = false;
     parsing_focus = false;
-    parsing_marks = false;
     setlocale(LC_NUMERIC, "C");
     const yajl_status stat = yajl_parse(hand, (const unsigned char *)buf, len);
     if (stat != yajl_status_ok) {
