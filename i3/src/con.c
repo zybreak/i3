@@ -37,8 +37,6 @@
 #include "startup.h"
 #include "scratchpad.h"
 
-#define ystr(str) yajl_gen_string(gen, (unsigned char *)str, strlen(str))
-
 static void con_on_remove_child(Con *con);
 
 /*
