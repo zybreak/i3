@@ -35,7 +35,6 @@
 #include "output.h"
 #include "ewmh.h"
 #include "startup.h"
-#include "scratchpad.h"
 
 static void con_on_remove_child(Con *con);
 
