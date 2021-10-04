@@ -113,12 +113,6 @@ void x_raise_con(Con *con);
 void x_set_name(Con *con, const char *name);
 
 /**
- * Set up the SHMLOG_PATH atom.
- *
- */
-void update_shmlog_atom(void);
-
-/**
  * Sets up i3 specific atoms (I3_SOCKET_PATH and I3_CONFIG_PATH)
  *
  */
