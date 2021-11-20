@@ -15,7 +15,6 @@
 
 #include <yajl/yajl_gen.h>
 
-SLIST_HEAD(variables_head, Variable);
 extern pid_t config_error_nagbar_pid;
 
 struct stack_entry {
@@ -56,7 +55,7 @@ struct parser_ctx {
    ******************************************************************************/
     struct stack *stack;
 
-    struct variables_head variables;
+    std::vector<Variable*> *variables;
 
     bool has_errors;
 };

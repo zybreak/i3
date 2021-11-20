@@ -139,7 +139,7 @@ void ipc_send_binding_event(const char *event_type, Binding *bind);
  * Set the maximum duration that we allow for a connection with an unwriteable
  * socket.
  */
-void ipc_set_kill_timeout(ev_tstamp new);
+void ipc_set_kill_timeout(ev_tstamp newTimeout);
 
 /**
  * Sends a restart reply to the IPC client on the specified fd.

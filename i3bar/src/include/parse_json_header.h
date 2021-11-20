@@ -12,7 +12,7 @@
 
 #include <config.h>
 
-#include <stdint.h>
+#include <cstdint>
 
 /**
  * Parse the JSON protocol header to determine protocol version and features.

@@ -39,4 +39,4 @@ bool scratchpad_show(Con *con);
  * the scratchpad window moving when shown repeatedly.
  *
  */
-void scratchpad_fix_resolution(void);
+void scratchpad_fix_resolution();

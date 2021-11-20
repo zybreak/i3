@@ -50,8 +50,6 @@
         pointer = NULL; \
     } while (0)
 
-#define CALL(obj, member, ...) obj->member(obj, ##__VA_ARGS__)
-
 #define SWAP(first, second, type) \
     do {                          \
         type tmp_SWAP = first;    \
@@ -140,7 +138,7 @@ char *pango_escape_markup(char *input);
  * kill_nagbar() to kill the bar later on.
  *
  */
-void start_nagbar(pid_t *nagbar_pid, char *argv[]);
+void start_nagbar(pid_t *nagbar_pid, const char *argv[]);
 
 /**
  * Kills the i3-nagbar process, if nagbar_pid != -1.

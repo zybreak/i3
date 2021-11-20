@@ -14,4 +14,4 @@
  * to generate a backtrace and rescue their session.
  *
  */
-void setup_signal_handler(void);
+void setup_signal_handler();

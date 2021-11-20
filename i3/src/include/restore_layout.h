@@ -19,7 +19,7 @@
  * on the wire to X11 and thus also in the code.
  *
  */
-void restore_connect(void);
+void restore_connect();
 
 /**
  * Open placeholder windows for all children of parent. The placeholder window

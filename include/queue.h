@@ -95,9 +95,6 @@
         struct type *slh_first; /* first element */ \
     }
 
-#define SLIST_HEAD_INITIALIZER(head) \
-    { NULL }
-
 #define SLIST_ENTRY(type)                         \
     struct {                                      \
         struct type *sle_next; /* next element */ \
@@ -115,11 +112,6 @@
     for ((var) = SLIST_FIRST(head);     \
          (var) != SLIST_END(head);      \
          (var) = SLIST_NEXT(var, field))
-
-#define SLIST_FOREACH_PREVPTR(var, varp, head, field) \
-    for ((varp) = &SLIST_FIRST((head));               \
-         ((var) = *(varp)) != SLIST_END(head);        \
-         (varp) = &SLIST_NEXT((var), field))
 
 /*
  * Singly-linked List functions.
@@ -141,11 +133,6 @@
         (head)->slh_first = (elm);                 \
     } while (0)
 
-#define SLIST_REMOVE_NEXT(head, elm, field)                            \
-    do {                                                               \
-        (elm)->field.sle_next = (elm)->field.sle_next->field.sle_next; \
-    } while (0)
-
 #define SLIST_REMOVE_HEAD(head, field)                         \
     do {                                                       \
         (head)->slh_first = (head)->slh_first->field.sle_next; \
@@ -163,153 +150,6 @@
             curelm->field.sle_next = curelm->field.sle_next->field.sle_next; \
             _Q_INVALIDATE((elm)->field.sle_next);                            \
         }                                                                    \
-    } while (0)
-
-/*
- * List definitions.
- */
-#define LIST_HEAD(name, type)                      \
-    struct name {                                  \
-        struct type *lh_first; /* first element */ \
-    }
-
-#define LIST_HEAD_INITIALIZER(head) \
-    { NULL }
-
-#define LIST_ENTRY(type)                                              \
-    struct {                                                          \
-        struct type *le_next;  /* next element */                     \
-        struct type **le_prev; /* address of previous next element */ \
-    }
-
-/*
- * List access methods
- */
-#define LIST_FIRST(head) ((head)->lh_first)
-#define LIST_END(head) NULL
-#define LIST_EMPTY(head) (LIST_FIRST(head) == LIST_END(head))
-#define LIST_NEXT(elm, field) ((elm)->field.le_next)
-
-#define LIST_FOREACH(var, head, field) \
-    for ((var) = LIST_FIRST(head);     \
-         (var) != LIST_END(head);      \
-         (var) = LIST_NEXT(var, field))
-
-/*
- * List functions.
- */
-#define LIST_INIT(head)                    \
-    do {                                   \
-        LIST_FIRST(head) = LIST_END(head); \
-    } while (0)
-
-#define LIST_INSERT_AFTER(listelm, elm, field)                               \
-    do {                                                                     \
-        if (((elm)->field.le_next = (listelm)->field.le_next) != NULL)       \
-            (listelm)->field.le_next->field.le_prev = &(elm)->field.le_next; \
-        (listelm)->field.le_next = (elm);                                    \
-        (elm)->field.le_prev = &(listelm)->field.le_next;                    \
-    } while (0)
-
-#define LIST_INSERT_BEFORE(listelm, elm, field)           \
-    do {                                                  \
-        (elm)->field.le_prev = (listelm)->field.le_prev;  \
-        (elm)->field.le_next = (listelm);                 \
-        *(listelm)->field.le_prev = (elm);                \
-        (listelm)->field.le_prev = &(elm)->field.le_next; \
-    } while (0)
-
-#define LIST_INSERT_HEAD(head, elm, field)                           \
-    do {                                                             \
-        if (((elm)->field.le_next = (head)->lh_first) != NULL)       \
-            (head)->lh_first->field.le_prev = &(elm)->field.le_next; \
-        (head)->lh_first = (elm);                                    \
-        (elm)->field.le_prev = &(head)->lh_first;                    \
-    } while (0)
-
-#define LIST_REMOVE(elm, field)                                         \
-    do {                                                                \
-        if ((elm)->field.le_next != NULL)                               \
-            (elm)->field.le_next->field.le_prev = (elm)->field.le_prev; \
-        *(elm)->field.le_prev = (elm)->field.le_next;                   \
-        _Q_INVALIDATE((elm)->field.le_prev);                            \
-        _Q_INVALIDATE((elm)->field.le_next);                            \
-    } while (0)
-
-#define LIST_REPLACE(elm, elm2, field)                                     \
-    do {                                                                   \
-        if (((elm2)->field.le_next = (elm)->field.le_next) != NULL)        \
-            (elm2)->field.le_next->field.le_prev = &(elm2)->field.le_next; \
-        (elm2)->field.le_prev = (elm)->field.le_prev;                      \
-        *(elm2)->field.le_prev = (elm2);                                   \
-        _Q_INVALIDATE((elm)->field.le_prev);                               \
-        _Q_INVALIDATE((elm)->field.le_next);                               \
-    } while (0)
-
-/*
- * Simple queue definitions.
- */
-#define SIMPLEQ_HEAD(name, type)                                \
-    struct name {                                               \
-        struct type *sqh_first; /* first element */             \
-        struct type **sqh_last; /* addr of last next element */ \
-    }
-
-#define SIMPLEQ_HEAD_INITIALIZER(head) \
-    { NULL, &(head).sqh_first }
-
-#define SIMPLEQ_ENTRY(type)                       \
-    struct {                                      \
-        struct type *sqe_next; /* next element */ \
-    }
-
-/*
- * Simple queue access methods.
- */
-#define SIMPLEQ_FIRST(head) ((head)->sqh_first)
-#define SIMPLEQ_END(head) NULL
-#define SIMPLEQ_EMPTY(head) (SIMPLEQ_FIRST(head) == SIMPLEQ_END(head))
-#define SIMPLEQ_NEXT(elm, field) ((elm)->field.sqe_next)
-
-#define SIMPLEQ_FOREACH(var, head, field) \
-    for ((var) = SIMPLEQ_FIRST(head);     \
-         (var) != SIMPLEQ_END(head);      \
-         (var) = SIMPLEQ_NEXT(var, field))
-
-/*
- * Simple queue functions.
- */
-#define SIMPLEQ_INIT(head)                     \
-    do {                                       \
-        (head)->sqh_first = NULL;              \
-        (head)->sqh_last = &(head)->sqh_first; \
-    } while (0)
-
-#define SIMPLEQ_INSERT_HEAD(head, elm, field)                    \
-    do {                                                         \
-        if (((elm)->field.sqe_next = (head)->sqh_first) == NULL) \
-            (head)->sqh_last = &(elm)->field.sqe_next;           \
-        (head)->sqh_first = (elm);                               \
-    } while (0)
-
-#define SIMPLEQ_INSERT_TAIL(head, elm, field)      \
-    do {                                           \
-        (elm)->field.sqe_next = NULL;              \
-        *(head)->sqh_last = (elm);                 \
-        (head)->sqh_last = &(elm)->field.sqe_next; \
-    } while (0)
-
-#define SIMPLEQ_INSERT_AFTER(head, listelm, elm, field)                  \
-    do {                                                                 \
-        if (((elm)->field.sqe_next = (listelm)->field.sqe_next) == NULL) \
-            (head)->sqh_last = &(elm)->field.sqe_next;                   \
-        (listelm)->field.sqe_next = (elm);                               \
-    } while (0)
-
-#define SIMPLEQ_REMOVE_HEAD(head, field)                                     \
-    do {                                                                     \
-        if (((head)->sqh_first = (head)->sqh_first->field.sqe_next) == NULL) \
-            (head)->sqh_last = &(head)->sqh_first;                           \
     } while (0)
 
 /*
@@ -445,12 +285,6 @@
         struct type *cqh_last;  /* last element */  \
     }
 
-#define CIRCLEQ_HEAD_INITIALIZER(head) \
-    {                                  \
-        CIRCLEQ_END(&head)             \
-        , CIRCLEQ_END(&head)           \
-    }
-
 #define CIRCLEQ_ENTRY(type)                           \
     struct {                                          \
         struct type *cqe_next; /* next element */     \
@@ -465,8 +299,6 @@
 #define CIRCLEQ_END(head) ((void *)(head))
 #define CIRCLEQ_NEXT(elm, field) ((elm)->field.cqe_next)
 #define CIRCLEQ_PREV(elm, field) ((elm)->field.cqe_prev)
-#define CIRCLEQ_EMPTY(head) \
-    (CIRCLEQ_FIRST(head) == CIRCLEQ_END(head))
 
 #define CIRCLEQ_FOREACH(var, head, field) \
     for ((var) = CIRCLEQ_FIRST(head);     \
@@ -481,56 +313,6 @@
 /*
  * Circular queue functions.
  */
-#define CIRCLEQ_INIT(head)                     \
-    do {                                       \
-        (head)->cqh_first = CIRCLEQ_END(head); \
-        (head)->cqh_last = CIRCLEQ_END(head);  \
-    } while (0)
-
-#define CIRCLEQ_INSERT_AFTER(head, listelm, elm, field)        \
-    do {                                                       \
-        (elm)->field.cqe_next = (listelm)->field.cqe_next;     \
-        (elm)->field.cqe_prev = (listelm);                     \
-        if ((listelm)->field.cqe_next == CIRCLEQ_END(head))    \
-            (head)->cqh_last = (elm);                          \
-        else                                                   \
-            (listelm)->field.cqe_next->field.cqe_prev = (elm); \
-        (listelm)->field.cqe_next = (elm);                     \
-    } while (0)
-
-#define CIRCLEQ_INSERT_BEFORE(head, listelm, elm, field)       \
-    do {                                                       \
-        (elm)->field.cqe_next = (listelm);                     \
-        (elm)->field.cqe_prev = (listelm)->field.cqe_prev;     \
-        if ((listelm)->field.cqe_prev == CIRCLEQ_END(head))    \
-            (head)->cqh_first = (elm);                         \
-        else                                                   \
-            (listelm)->field.cqe_prev->field.cqe_next = (elm); \
-        (listelm)->field.cqe_prev = (elm);                     \
-    } while (0)
-
-#define CIRCLEQ_INSERT_HEAD(head, elm, field)          \
-    do {                                               \
-        (elm)->field.cqe_next = (head)->cqh_first;     \
-        (elm)->field.cqe_prev = CIRCLEQ_END(head);     \
-        if ((head)->cqh_last == CIRCLEQ_END(head))     \
-            (head)->cqh_last = (elm);                  \
-        else                                           \
-            (head)->cqh_first->field.cqe_prev = (elm); \
-        (head)->cqh_first = (elm);                     \
-    } while (0)
-
-#define CIRCLEQ_INSERT_TAIL(head, elm, field)         \
-    do {                                              \
-        (elm)->field.cqe_next = CIRCLEQ_END(head);    \
-        (elm)->field.cqe_prev = (head)->cqh_last;     \
-        if ((head)->cqh_first == CIRCLEQ_END(head))   \
-            (head)->cqh_first = (elm);                \
-        else                                          \
-            (head)->cqh_last->field.cqe_next = (elm); \
-        (head)->cqh_last = (elm);                     \
-    } while (0)
-
 #define CIRCLEQ_REMOVE(head, elm, field)                                   \
     do {                                                                   \
         if ((elm)->field.cqe_next == CIRCLEQ_END(head))                    \
@@ -543,18 +325,4 @@
             (elm)->field.cqe_prev->field.cqe_next = (elm)->field.cqe_next; \
         _Q_INVALIDATE((elm)->field.cqe_prev);                              \
         _Q_INVALIDATE((elm)->field.cqe_next);                              \
-    } while (0)
-
-#define CIRCLEQ_REPLACE(head, elm, elm2, field)                                    \
-    do {                                                                           \
-        if (((elm2)->field.cqe_next = (elm)->field.cqe_next) == CIRCLEQ_END(head)) \
-            (head)->cqh_last = (elm2);                                             \
-        else                                                                       \
-            (elm2)->field.cqe_next->field.cqe_prev = (elm2);                       \
-        if (((elm2)->field.cqe_prev = (elm)->field.cqe_prev) == CIRCLEQ_END(head)) \
-            (head)->cqh_first = (elm2);                                            \
-        else                                                                       \
-            (elm2)->field.cqe_prev->field.cqe_next = (elm2);                       \
-        _Q_INVALIDATE((elm)->field.cqe_prev);                                      \
-        _Q_INVALIDATE((elm)->field.cqe_next);                                      \
     } while (0)

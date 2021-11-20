@@ -15,7 +15,7 @@
  * Updates all the EWMH desktop properties.
  *
  */
-void ewmh_update_desktop_properties(void);
+void ewmh_update_desktop_properties();
 
 /**
  * Updates _NET_CURRENT_DESKTOP with the current desktop number.
@@ -24,14 +24,14 @@ void ewmh_update_desktop_properties(void);
  * and _NET_NUMBER_OF_DESKTOPS - 1.
  *
  */
-void ewmh_update_current_desktop(void);
+void ewmh_update_current_desktop();
 
 /**
  * Updates _NET_WM_DESKTOP for all windows.
  * A request will only be made if the cached value differs from the calculated value.
  *
  */
-void ewmh_update_wm_desktop(void);
+void ewmh_update_wm_desktop();
 
 /**
  * Updates _NET_ACTIVE_WINDOW with the currently focused window.
@@ -81,7 +81,7 @@ void ewmh_update_focused(xcb_window_t window, bool is_focused);
  * Set up the EWMH hints on the root window.
  *
  */
-void ewmh_setup_hints(void);
+void ewmh_setup_hints();
 
 /**
  * i3 currently does not support _NET_WORKAREA, because it does not correspond
@@ -98,7 +98,7 @@ void ewmh_setup_hints(void);
  * desktop applications to place desktop icons appropriately.
  *
  */
-void ewmh_update_workarea(void);
+void ewmh_update_workarea();
 
 /**
  * Returns the workspace container as enumerated by the EWMH desktop model.

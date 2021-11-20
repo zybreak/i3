@@ -43,20 +43,20 @@ void tree_split(Con *con, orientation_t orientation);
  * Moves focus one level up. Returns true if focus changed.
  *
  */
-bool level_up(void);
+bool level_up();
 
 /**
  * Moves focus one level down. Returns true if focus changed.
  *
  */
-bool level_down(void);
+bool level_down();
 
 /**
  * Renders the tree, that is rendering all outputs using render_con() and
  * pushing the changes to X11 using x_push_changes().
  *
  */
-void tree_render(void);
+void tree_render();
 
 /**
  * Changes focus in the given direction

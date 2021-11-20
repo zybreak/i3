@@ -15,9 +15,9 @@
 
 #include "data.h"
 #include <xcb/randr.h>
+#include <vector>
 
-TAILQ_HEAD(outputs_head, xoutput);
-extern struct outputs_head outputs;
+extern std::vector<Output*> outputs;
 
 typedef enum {
     CLOSEST_OUTPUT = 0,

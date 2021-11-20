@@ -28,7 +28,7 @@ void manage_existing_windows(xcb_window_t root);
  * side-effects which are to be expected when continuing to run i3.
  *
  */
-void restore_geometry(void);
+void restore_geometry();
 
 /**
  * Do some sanity checks and then reparent the window.

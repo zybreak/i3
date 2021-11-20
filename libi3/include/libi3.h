@@ -12,9 +12,9 @@
 
 #include <config.h>
 
-#include <stdbool.h>
-#include <stdarg.h>
-#include <stdio.h>
+
+#include <cstdarg>
+#include <cstdio>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xcb_keysyms.h>
@@ -34,6 +34,10 @@
 #define XCB_BUTTON_SCROLL_LEFT 6
 #define XCB_BUTTON_SCROLL_RIGHT 7
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * XCB connection and root screen
  *
@@ -47,7 +51,7 @@ extern xcb_screen_t *root_screen;
  */
 typedef struct _i3String i3String;
 
-typedef struct Font i3Font;
+typedef struct i3Font i3Font;
 
 /**
  * Data structure for cached font information:
@@ -55,7 +59,7 @@ typedef struct Font i3Font;
  * - font height (multiple calls needed to get it)
  *
  */
-struct Font {
+struct i3Font {
     /** The type of font */
     enum {
         FONT_TYPE_NONE = 0,
@@ -89,17 +93,17 @@ struct Font {
 /* Since this file also gets included by utilities which don’t use the i3 log
  * infrastructure, we define a fallback. */
 #if !defined(LOG)
-void verboselog(char *fmt, ...)
+void verboselog(char const *fmt, ...)
     __attribute__((format(printf, 1, 2)));
 #define LOG(fmt, ...) verboselog("[libi3] " __FILE__ " " fmt, ##__VA_ARGS__)
 #endif
 #if !defined(ELOG)
-void errorlog(char *fmt, ...)
+void errorlog(char const *fmt, ...)
     __attribute__((format(printf, 1, 2)));
 #define ELOG(fmt, ...) errorlog("[libi3] ERROR: " fmt, ##__VA_ARGS__)
 #endif
 #if !defined(DLOG)
-void debuglog(char *fmt, ...)
+void debuglog(char const *fmt, ...)
     __attribute__((format(printf, 1, 2)));
 #define DLOG(fmt, ...) debuglog("%s:%s:%d - " fmt, __FILE__, __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #endif
@@ -510,11 +514,13 @@ char *resolve_tilde(const char *path);
 char *get_config_path(const char *override_configpath, bool use_system_paths);
 
 #ifndef HAVE_MKDIRP
+
 /**
  * Emulates mkdir -p (creates any missing folders)
  *
  */
 int mkdirp(const char *path, mode_t mode);
+
 #endif
 
 /** Helper structure for usage in format_placeholders(). */
@@ -651,3 +657,7 @@ bool is_background_set(xcb_connection_t *conn, xcb_screen_t *screen);
  *
  */
 bool boolstr(const char *str);
+
+#ifdef __cplusplus
+}
+#endif

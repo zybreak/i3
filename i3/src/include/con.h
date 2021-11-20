@@ -498,4 +498,4 @@ uint32_t con_rect_size_in_orientation(Con *con);
  * old container.
  *
  */
-void con_merge_into(Con *old, Con *new);
+void con_merge_into(Con *old, Con *newCon);

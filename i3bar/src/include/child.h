@@ -11,7 +11,7 @@
 
 #include <config.h>
 
-#include <stdbool.h>
+
 
 #define STDIN_CHUNK_SIZE 1024
 
@@ -60,32 +60,32 @@ void start_child(char *command);
  * kill()s the child process (if any). Called when exit()ing.
  *
  */
-void kill_child_at_exit(void);
+void kill_child_at_exit();
 
 /*
  * kill()s the child process (if any) and closes and
  * free()s the stdin- and SIGCHLD-watchers
  *
  */
-void kill_child(void);
+void kill_child();
 
 /*
  * Sends a SIGSTOP to the child process (if existent)
  *
  */
-void stop_child(void);
+void stop_child();
 
 /*
  * Sends a SIGCONT to the child process (if existent)
  *
  */
-void cont_child(void);
+void cont_child();
 
 /*
  * Whether or not the child want click events
  *
  */
-bool child_want_click_events(void);
+bool child_want_click_events();
 
 /*
  * Generates a click event, if enabled.

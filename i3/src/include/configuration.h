@@ -15,15 +15,15 @@
 #include "queue.h"
 #include "i3.h"
 
-typedef struct IncludedFile IncludedFile;
+typedef struct Mode Mode;
 typedef struct Config Config;
 typedef struct Barconfig Barconfig;
 extern char *current_configpath;
 extern char *current_config;
 extern Config config;
-extern SLIST_HEAD(modes_head, Mode) modes;
-extern TAILQ_HEAD(barconfig_head, Barconfig) barconfigs;
-extern TAILQ_HEAD(includedfiles_head, IncludedFile) included_files;
+extern std::vector<Mode*> *modes;
+extern std::vector<Barconfig*> *barconfigs;
+extern std::vector<char*> *included_files;
 
 /**
  * Used during the config file lexing/parsing to keep the state of the lexer
@@ -67,18 +67,6 @@ struct Variable {
     char *key;
     char *value;
     char *next_match;
-
-    SLIST_ENTRY(Variable) variables;
-};
-
-/**
- * List entry struct for an included file.
- *
- */
-struct IncludedFile {
-    char *path;
-
-    TAILQ_ENTRY(IncludedFile) files;
 };
 
 /**
@@ -91,8 +79,29 @@ struct Mode {
     char *name;
     bool pango_markup;
     struct bindings_head *bindings;
+};
 
-    SLIST_ENTRY(Mode) modes;
+enum conf_fowa_t {
+    /* Focus if the target workspace is visible, set urgency hint otherwise. */
+    FOWA_SMART,
+    /* Always set the urgency hint. */
+    FOWA_URGENT,
+    /* Always focus the window. */
+    FOWA_FOCUS,
+    /* Ignore the request (no focus, no urgency hint). */
+    FOWA_NONE
+};
+
+enum conf_pdf_t {
+    /* display (and focus) the popup when it belongs to the fullscreen
+     * window only. */
+    PDF_SMART = 0,
+
+    /* leave fullscreen mode unconditionally */
+    PDF_LEAVE_FULLSCREEN = 1,
+
+    /* just ignore the popup, that is, don’t map it */
+    PDF_IGNORE = 2,
 };
 
 /**
@@ -183,16 +192,7 @@ struct Config {
     float workspace_urgency_timer;
 
     /** Behavior when a window sends a NET_ACTIVE_WINDOW message. */
-    enum {
-        /* Focus if the target workspace is visible, set urgency hint otherwise. */
-        FOWA_SMART,
-        /* Always set the urgency hint. */
-        FOWA_URGENT,
-        /* Always focus the window. */
-        FOWA_FOCUS,
-        /* Ignore the request (no focus, no urgency hint). */
-        FOWA_NONE
-    } focus_on_window_activation;
+    enum conf_fowa_t focus_on_window_activation;
 
     /** Title alignment options. */
     enum {
@@ -233,21 +233,25 @@ struct Config {
     } bar;
 
     /** What should happen when a new popup is opened during fullscreen mode */
-    enum {
-        /* display (and focus) the popup when it belongs to the fullscreen
-         * window only. */
-        PDF_SMART = 0,
-
-        /* leave fullscreen mode unconditionally */
-        PDF_LEAVE_FULLSCREEN = 1,
-
-        /* just ignore the popup, that is, don’t map it */
-        PDF_IGNORE = 2,
-    } popup_during_fullscreen;
+    enum conf_pdf_t popup_during_fullscreen;
 
     /* The number of currently parsed barconfigs */
     int number_barconfigs;
 };
+
+enum config_hidden_state_t {
+    S_HIDE = 0,
+    S_SHOW = 1
+};
+
+enum config_mode_t {
+    M_DOCK = 0,
+    M_HIDE = 1,
+    M_INVISIBLE = 2
+};
+
+enum config_bar_position_t { P_BOTTOM = 0,
+    P_TOP = 1 };
 
 /**
  * Holds the status bar configuration (i3bar). One of these structures is
@@ -279,13 +283,10 @@ struct Barconfig {
     char *socket_path;
 
     /** Bar display mode (hide unless modifier is pressed or show in dock mode or always hide in invisible mode) */
-    enum { M_DOCK = 0,
-           M_HIDE = 1,
-           M_INVISIBLE = 2 } mode;
+    enum config_mode_t mode;
 
     /* The current hidden_state of the bar, which indicates whether it is hidden or shown */
-    enum { S_HIDE = 0,
-           S_SHOW = 1 } hidden_state;
+    enum config_hidden_state_t hidden_state;
 
     /** Bar modifier (to show bar when in hide mode). */
     uint32_t modifier;
@@ -293,8 +294,7 @@ struct Barconfig {
     TAILQ_HEAD(bar_bindings_head, Barbinding) bar_bindings;
 
     /** Bar position (bottom by default). */
-    enum { P_BOTTOM = 0,
-           P_TOP = 1 } position;
+    enum config_bar_position_t position;
 
     /** Command that should be run to execute i3bar, give a full path if i3bar is not
      * in your $PATH.
@@ -305,7 +305,7 @@ struct Barconfig {
      * Will be passed to the shell. */
     char *status_command;
 
-    /** Font specification for all text rendered on the bar. */
+    /** i3Font specification for all text rendered on the bar. */
     char *font;
 
     /** A custom separator to use instead of a vertical line. */
@@ -363,8 +363,6 @@ struct Barconfig {
         char *binding_mode_bg;
         char *binding_mode_text;
     } colors;
-
-    TAILQ_ENTRY(Barconfig) configs;
 };
 
 /**

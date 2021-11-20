@@ -16,7 +16,10 @@
 
 #include <xcb/shape.h>
 #include <xcb/xcb_keysyms.h>
+
+#define explicit dont_use_cxx_explicit
 #include <xcb/xkb.h>
+#undef explicit
 
 #include <X11/XKBlib.h>
 

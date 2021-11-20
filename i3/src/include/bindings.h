@@ -56,7 +56,7 @@ Binding *get_binding_from_xcb_event(xcb_generic_event_t *event);
  * Translates keysymbols to keycodes for all bindings which use keysyms.
  *
  */
-void translate_keysyms(void);
+void translate_keysyms();
 
 /**
  * Switches the key bindings to the given mode, if the mode exists
@@ -77,7 +77,7 @@ void switch_mode(const char *new_mode);
  * keybinding.
  *
  */
-void reorder_bindings(void);
+void reorder_bindings();
 
 /**
  * Checks for duplicate key bindings (the same keycode or keysym is configured
@@ -106,7 +106,7 @@ CommandResult *run_binding(Binding *bind, Con *con);
  * Loads the XKB keymap from the X11 server and feeds it to xkbcommon.
  *
  */
-bool load_keymap(void);
+bool load_keymap();
 
 /**
  * Returns a list of buttons that should be grabbed on a window.
@@ -115,4 +115,4 @@ bool load_keymap(void);
  * config.
  * The list is terminated by a 0.
  */
-int *bindings_get_buttons_to_grab(void);
+int *bindings_get_buttons_to_grab();

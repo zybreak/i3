@@ -26,7 +26,7 @@ enum xcursor_cursor_t {
     XCURSOR_CURSOR_MAX
 };
 
-void xcursor_load_cursors(void);
+void xcursor_load_cursors();
 xcb_cursor_t xcursor_get_cursor(enum xcursor_cursor_t c);
 
 /**

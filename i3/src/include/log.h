@@ -34,13 +34,13 @@
  * XDG_RUNTIME_DIR, see get_process_filename()).
  *
  */
-void init_logging(void);
+void init_logging();
 
 /**
  * Checks if debug logging is active.
  *
  */
-bool get_debug_logging(void);
+bool get_debug_logging();
 
 /**
  * Set debug logging.
@@ -60,21 +60,21 @@ void set_verbosity(bool _verbose);
  * Logs the given message if debug logging is activated.
  *
  */
-void debuglog(char *fmt, ...)
+void debuglog(char const *fmt, ...)
     __attribute__((format(printf, 1, 2)));
 
 /**
  * Logs the given message.
  *
  */
-void errorlog(char *fmt, ...)
+void errorlog(char const *fmt, ...)
     __attribute__((format(printf, 1, 2)));
 
 /**
  * Logs the given message if verbose logging is activated.
  *
  */
-void verboselog(char *fmt, ...)
+void verboselog(char const *fmt, ...)
     __attribute__((format(printf, 1, 2)));
 
 /**
@@ -82,4 +82,4 @@ void verboselog(char *fmt, ...)
  * because --get-socketpath was called. We don't care for syscall
  * failures. This function is invoked automatically when exiting.
  */
-void purge_zerobyte_logfile(void);
+void purge_zerobyte_logfile();

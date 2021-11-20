@@ -4,7 +4,7 @@ executable(
   'i3-config-wizard',
   [
     'i3-config-wizard-atoms.xmacro.h',
-    'main.c',
+    'main.cpp',
     'xcb.h',
     config_parser,
   ],

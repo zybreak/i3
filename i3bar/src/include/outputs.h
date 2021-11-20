@@ -31,13 +31,13 @@ void parse_outputs_json(char* json);
  * Initiate the outputs list
  *
  */
-void init_outputs(void);
+void init_outputs();
 
 /*
  * free() all outputs data structures.
  *
  */
-void free_outputs(void);
+void free_outputs();
 
 /*
  * Returns the output with the given name
@@ -57,7 +57,7 @@ struct i3_output {
     bool primary; /* If it is the primary output */
     bool visible; /* If the bar is visible on this output */
     int ws;       /* The number of the currently visible ws */
-    rect rect;    /* The rect (relative to the root window) */
+    struct rect_t rect;    /* The rect (relative to the root window) */
 
     /* Off-screen buffer for preliminary rendering of the bar. */
     surface_t buffer;

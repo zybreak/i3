@@ -76,7 +76,7 @@ executable(
 executable(
   'test.commands_parser',
   [
-    '../i3/src/commands_parser.c',
+    '../i3/src/commands_parser.cpp',
     command_parser,
   ],
   include_directories: [ '../include', '../i3/src/include', '../i3/include', '../libi3/include', config_h_dir ],
@@ -88,7 +88,7 @@ executable(
 executable(
   'test.config_parser',
   [
-    '../i3/src/config_parser.c',
+    '../i3/src/config_parser.cpp',
     config_parser,
   ],
   include_directories: [ '../include', '../i3/src/include', '../i3/include', '../libi3/include', config_h_dir ],

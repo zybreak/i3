@@ -5,19 +5,17 @@
 
 project(
   'i3',
-  'c',
-  version: '4.19.2',
+  'cpp',
+  version: '4.19.1',
   default_options: [
-    'c_std=c11',
+    'cpp_std=c++20',
     'warning_level=1',  # enable all warnings (-Wall)
-    # TODO(https://github.com/i3/i3/issues/4087): switch to
-    # 'buildtype=debugoptimized',
   ],
   meson_version: '>=0.53.0',
 )
 
-cc = meson.get_compiler('c')
-add_project_arguments(cc.get_supported_arguments(['-Wunused-value']), language: 'c')
+cpp = meson.get_compiler('cpp')
+add_project_arguments(cpp.get_supported_arguments(['-Wunused-value']), language: 'cpp')
 
 # https://github.com/mesonbuild/meson/issues/2166#issuecomment-629696911
 # meson.add_dist_script('meson/meson-dist-script')
@@ -43,8 +41,8 @@ if get_option('b_sanitize').split(',').contains('address')
   cdata.set('I3_ASAN_ENABLED', 1)
 endif
 
-cdata.set('HAVE_STRNDUP', cc.has_function('strndup'))
-cdata.set('HAVE_MKDIRP', cc.has_function('mkdirp'))
+cdata.set('HAVE_STRNDUP', cpp.has_function('strndup'))
+cdata.set('HAVE_MKDIRP', cpp.has_function('mkdirp'))
 
 configure_file(
   output: 'config.h',
@@ -54,12 +52,12 @@ configure_file(
 config_h_dir = include_directories('.')
 
 # Required for e.g. struct ucred to be defined as per unix(7).
-add_project_arguments('-D_GNU_SOURCE', language: 'c')
+#add_project_arguments('-D_GNU_SOURCE', language: 'c')
 
 # https://mesonbuild.com/howtox.html#add-math-library-lm-portably
-m_dep = cc.find_library('m', required: false)
-rt_dep = cc.find_library('rt', required: false)
-iconv_dep = cc.find_library('iconv', required: false)
+m_dep = cpp.find_library('m', required: false)
+rt_dep = cpp.find_library('rt', required: false)
+iconv_dep = cpp.find_library('iconv', required: false)
 
 libsn_dep = dependency('libstartup-notification-1.0', method: 'pkg-config')
 xcb_dep = dependency('xcb', method: 'pkg-config')
@@ -80,7 +78,7 @@ pangocairo_dep = dependency('pangocairo', method: 'pkg-config')
 glib_dep = dependency('glib-2.0', method: 'pkg-config')
 gobject_dep = dependency('gobject-2.0', method: 'pkg-config')
 
-ev_dep = cc.find_library('ev')
+ev_dep = cpp.find_library('ev')
 
 # src/log.c uses threading primitives for synchronization
 thread_dep = dependency('threads')
@@ -146,7 +144,7 @@ subdir('i3-nagbar')
 subdir('utils')
 subdir('docs')
 subdir('man')
-subdir('testcases')
+#subdir('testcases')
 
 install_subdir(
   'etc',

@@ -11,7 +11,7 @@
 
 #include <config.h>
 
-#include <stdint.h>
+#include <cstdint>
 //#include "outputs.h"
 
 #define _NET_SYSTEM_TRAY_ORIENTATION_HORZ 0
@@ -24,7 +24,7 @@
 
 /* We define xcb_request_failed as a macro to include the relevant line number */
 #define xcb_request_failed(cookie, err_msg) _xcb_request_failed(cookie, err_msg, __LINE__)
-int _xcb_request_failed(xcb_void_cookie_t cookie, char *err_msg, int line);
+int _xcb_request_failed(xcb_void_cookie_t cookie, const char *err_msg, int line);
 
 struct xcb_color_strings_t {
     char *bar_fg;
@@ -60,7 +60,7 @@ extern int separator_symbol_width;
  * depend on 'config'.
  *
  */
-char *init_xcb_early(void);
+char *init_xcb_early();
 
 /**
  * Initialization which depends on 'config' being usable. Called after the
@@ -80,13 +80,13 @@ void init_colors(const struct xcb_color_strings_t *colors);
  * Called once, before the program terminates.
  *
  */
-void clean_xcb(void);
+void clean_xcb();
 
 /*
  * Get the earlier requested atoms and save them in the prepared data structure
  *
  */
-void get_atoms(void);
+void get_atoms();
 
 /*
  * Reparents all tray clients of the specified output to the root window. This
@@ -106,7 +106,7 @@ void kick_tray_clients(i3_output *output);
  * See also https://bugzilla.gnome.org/show_bug.cgi?id=679591
  *
  */
-void init_tray_colors(void);
+void init_tray_colors();
 
 /*
  * Destroy the bar of the specified output
@@ -130,7 +130,7 @@ void draw_bars(bool force_unhide);
  * Redraw the bars, i.e. simply copy the buffer to the barwindow
  *
  */
-void redraw_bars(void);
+void redraw_bars();
 
 /*
  * Set the current binding mode

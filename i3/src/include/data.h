@@ -14,8 +14,9 @@
 
 #include <xcb/randr.h>
 #include <pcre.h>
-#include <sys/time.h>
+#include <ctime>
 #include <cairo/cairo.h>
+#include <vector>
 
 #include "queue.h"
 
@@ -44,7 +45,7 @@ typedef struct xoutput Output;
 typedef struct Con Con;
 typedef struct Match Match;
 typedef struct Assignment Assignment;
-typedef struct Window i3Window;
+typedef struct i3Window i3Window;
 
 /******************************************************************************
  * Helper types
@@ -262,6 +263,18 @@ struct Binding_Keycode {
     TAILQ_ENTRY(Binding_Keycode) keycodes;
 };
 
+enum binding_upon_t {
+        /* This binding will only be executed upon KeyPress events */
+        B_UPON_KEYPRESS = 0,
+                /* This binding will be executed either upon a KeyRelease event, or… */
+        B_UPON_KEYRELEASE = 1,
+                /* …upon a KeyRelease event, even if the modifiers don’t match. This
+                 * state is triggered from get_binding() when the corresponding
+                 * KeyPress (!) happens, so that users can release the modifier keys
+                 * before releasing the actual key. */
+        B_UPON_KEYRELEASE_IGNORE_MODS = 2,
+};
+
 /******************************************************************************
  * Major types
  *****************************************************************************/
@@ -279,17 +292,7 @@ struct Binding {
 
     /** If true, the binding should be executed upon a KeyRelease event, not a
      * KeyPress (the default). */
-    enum {
-        /* This binding will only be executed upon KeyPress events */
-        B_UPON_KEYPRESS = 0,
-        /* This binding will be executed either upon a KeyRelease event, or… */
-        B_UPON_KEYRELEASE = 1,
-        /* …upon a KeyRelease event, even if the modifiers don’t match. This
-         * state is triggered from get_binding() when the corresponding
-         * KeyPress (!) happens, so that users can release the modifier keys
-         * before releasing the actual key. */
-        B_UPON_KEYRELEASE_IGNORE_MODS = 2,
-    } release;
+    enum binding_upon_t release;
 
     /** If this is true for a mouse binding, the binding should be executed
      * when the button is pressed over the window border. */
@@ -345,11 +348,6 @@ struct Autostart {
     TAILQ_ENTRY(Autostart) autostarts_always;
 };
 
-struct output_name {
-    char *name;
-    SLIST_ENTRY(output_name) names;
-};
-
 /**
  * An Output is a physical output on your graphics driver. Outputs which
  * are currently in use have (output->active == true). Each output has a
@@ -374,23 +372,25 @@ struct xoutput {
     /** List of names for the output.
      * An output always has at least one name; the first name is
      * considered the primary one. */
-    SLIST_HEAD(names_head, output_name) names_head;
+    std::vector<char*> *names;
 
     /** Pointer to the Con which represents this output */
     Con *con;
 
     /** x, y, width, height */
     Rect rect;
-
-    TAILQ_ENTRY(xoutput) outputs;
 };
+
+enum i3window_dock_t { W_NODOCK = 0,
+    W_DOCK_TOP = 1,
+    W_DOCK_BOTTOM = 2 };
 
 /**
  * A 'Window' is a type which contains an xcb_window_t and all the related
  * information (hints like _NET_WM_NAME for that window).
  *
  */
-struct Window {
+struct i3Window {
     xcb_window_t id;
 
     /** Holds the xcb_window_t (just an ID) for the leader window (logical
@@ -437,9 +437,7 @@ struct Window {
     uint32_t wm_desktop;
 
     /** Whether the window says it is a dock window */
-    enum { W_NODOCK = 0,
-           W_DOCK_TOP = 1,
-           W_DOCK_BOTTOM = 2 } dock;
+    enum i3window_dock_t dock;
 
     /** When this window was marked urgent. 0 means not urgent */
     struct timeval urgent;
@@ -487,6 +485,32 @@ struct Window {
     bool swallowed;
 };
 
+enum match_dock_t {
+    M_DONTCHECK = -1,
+    M_NODOCK = 0,
+    M_DOCK_ANY = 1,
+    M_DOCK_TOP = 2,
+    M_DOCK_BOTTOM = 3
+};
+
+enum match_insert_t { M_HERE = 0,
+    M_ASSIGN_WS,
+    M_BELOW };
+
+enum match_urgent_t {
+    U_DONTCHECK = -1,
+    U_LATEST = 0,
+    U_OLDEST = 1
+};
+
+enum match_window_mode_t { WM_ANY = 0,
+    WM_TILING_AUTO,
+    WM_TILING_USER,
+    WM_TILING,
+    WM_FLOATING_AUTO,
+    WM_FLOATING_USER,
+    WM_FLOATING };
+
 /**
  * A "match" is a data structure which acts like a mask or expression to match
  * certain windows or not. For example, when using commands, you can specify a
@@ -501,32 +525,16 @@ struct Match {
 
     struct regex *title;
     struct regex *application;
-    struct regex *class;
+    struct regex *window_class;
     struct regex *instance;
     struct regex *window_role;
     struct regex *workspace;
     struct regex *machine;
     xcb_atom_t window_type;
-    enum {
-        U_DONTCHECK = -1,
-        U_LATEST = 0,
-        U_OLDEST = 1
-    } urgent;
-    enum {
-        M_DONTCHECK = -1,
-        M_NODOCK = 0,
-        M_DOCK_ANY = 1,
-        M_DOCK_TOP = 2,
-        M_DOCK_BOTTOM = 3
-    } dock;
+    match_urgent_t urgent;
+    enum match_dock_t dock;
     xcb_window_t id;
-    enum { WM_ANY = 0,
-           WM_TILING_AUTO,
-           WM_TILING_USER,
-           WM_TILING,
-           WM_FLOATING_AUTO,
-           WM_FLOATING_USER,
-           WM_FLOATING } window_mode;
+    match_window_mode_t window_mode;
     Con *con_id;
     bool match_all_windows;
 
@@ -539,9 +547,7 @@ struct Match {
      *            (dockareas)
      *
      */
-    enum { M_HERE = 0,
-           M_ASSIGN_WS,
-           M_BELOW } insert_where;
+     enum match_insert_t insert_where;
 
     TAILQ_ENTRY(Match) matches;
 
@@ -549,6 +555,15 @@ struct Match {
      * Leads to not setting focus when managing a new window, because the old
      * focus stack should be restored. */
     bool restart_mode;
+};
+
+enum assignment_type_t {
+    A_ANY = 0,
+    A_COMMAND = (1 << 0),
+    A_TO_WORKSPACE = (1 << 1),
+    A_NO_FOCUS = (1 << 2),
+    A_TO_WORKSPACE_NUMBER = (1 << 3),
+    A_TO_OUTPUT = (1 << 4)
 };
 
 /**
@@ -571,14 +586,7 @@ struct Assignment {
      * assignment_for() function.
      *
      */
-    enum {
-        A_ANY = 0,
-        A_COMMAND = (1 << 0),
-        A_TO_WORKSPACE = (1 << 1),
-        A_NO_FOCUS = (1 << 2),
-        A_TO_WORKSPACE_NUMBER = (1 << 3),
-        A_TO_OUTPUT = (1 << 4)
-    } type;
+     assignment_type_t type;
 
     /** the criteria to check if a window matches */
     Match match;
@@ -597,6 +605,49 @@ struct Assignment {
 typedef enum { CF_NONE = 0,
                CF_OUTPUT = 1,
                CF_GLOBAL = 2 } fullscreen_mode_t;
+
+typedef enum {
+    CT_ROOT = 0,
+    CT_OUTPUT = 1,
+    CT_CON = 2,
+    CT_FLOATING_CON = 3,
+    CT_WORKSPACE = 4,
+    CT_DOCKAREA = 5
+} con_type_t;
+
+struct floating_head {
+    struct Con *tqh_first;
+    struct Con **tqh_last;
+};
+
+struct nodes_head {
+    struct Con *tqh_first;
+    struct Con **tqh_last;
+};
+
+struct focus_head {
+    struct Con *tqh_first;
+    struct Con **tqh_last;
+};
+
+typedef enum {
+    FLOATING_AUTO_OFF = 0,
+    FLOATING_USER_OFF = 1,
+    FLOATING_AUTO_ON = 2,
+    FLOATING_USER_ON = 3
+} con_floating_t;
+
+enum con_scratchpad_t {
+    /* Not a scratchpad window. */
+    SCRATCHPAD_NONE = 0,
+
+    /* Just moved to scratchpad, not resized by the user yet.
+     * Window will be auto-centered and sized appropriately. */
+    SCRATCHPAD_FRESH = 1,
+
+    /* The user changed position/size of the scratchpad window. */
+    SCRATCHPAD_CHANGED = 2
+};
 
 /**
  * A 'Con' represents everything from the X11 root window down to a single X11 window.
@@ -621,14 +672,7 @@ struct Con {
     surface_t frame_buffer;
     bool pixmap_recreated;
 
-    enum {
-        CT_ROOT = 0,
-        CT_OUTPUT = 1,
-        CT_CON = 2,
-        CT_FLOATING_CON = 3,
-        CT_WORKSPACE = 4,
-        CT_DOCKAREA = 5
-    } type;
+    con_type_t type;
 
     /** the workspace number, if this Con is of type CT_WORKSPACE and the
      * workspace is not a named workspace (for named workspaces, num == -1) */
@@ -669,7 +713,7 @@ struct Con {
     int border_width;
     int current_border_width;
 
-    struct Window *window;
+    struct i3Window *window;
 
     /* timer used for disabling urgency */
     struct ev_timer *urgency_timer;
@@ -678,12 +722,15 @@ struct Con {
     struct deco_render_params *deco_render_params;
 
     /* Only workspace-containers can have floating clients */
-    TAILQ_HEAD(floating_head, Con) floating_head;
+    struct floating_head floating_head;
 
-    TAILQ_HEAD(nodes_head, Con) nodes_head;
-    TAILQ_HEAD(focus_head, Con) focus_head;
+    struct nodes_head nodes_head;
+    struct focus_head focus_head;
 
-    TAILQ_HEAD(swallow_head, Match) swallow_head;
+    struct swallow_head {
+        struct Match *tqh_first;
+        struct Match **tqh_last;
+    } swallow_head;
 
     fullscreen_mode_t fullscreen_mode;
 
@@ -714,32 +761,29 @@ struct Con {
      * user. The user’s choice overwrites automatic mode, of course. The
      * order of the values is important because we check with >=
      * FLOATING_AUTO_ON if a client is floating. */
-    enum {
-        FLOATING_AUTO_OFF = 0,
-        FLOATING_USER_OFF = 1,
-        FLOATING_AUTO_ON = 2,
-        FLOATING_USER_ON = 3
-    } floating;
+    con_floating_t floating;
 
-    TAILQ_ENTRY(Con) nodes;
-    TAILQ_ENTRY(Con) focused;
-    TAILQ_ENTRY(Con) all_cons;
-    TAILQ_ENTRY(Con) floating_windows;
+    struct {
+        struct Con *tqe_next;
+        struct Con **tqe_prev;
+    } nodes;
+    struct {
+        struct Con *tqe_next;
+        struct Con **tqe_prev;
+    } focused;
+    struct {
+        struct Con *tqe_next;
+        struct Con **tqe_prev;
+    } all_cons;
+    struct {
+        struct Con *tqe_next;
+        struct Con **tqe_prev;
+    } floating_windows;
 
     /** callbacks */
     void (*on_remove_child)(Con *);
 
-    enum {
-        /* Not a scratchpad window. */
-        SCRATCHPAD_NONE = 0,
-
-        /* Just moved to scratchpad, not resized by the user yet.
-         * Window will be auto-centered and sized appropriately. */
-        SCRATCHPAD_FRESH = 1,
-
-        /* The user changed position/size of the scratchpad window. */
-        SCRATCHPAD_CHANGED = 2
-    } scratchpad_state;
+    enum con_scratchpad_t scratchpad_state;
 
     /* The ID of this container before restarting. Necessary to correctly
      * interpret back-references in the JSON (such as the focus stack). */

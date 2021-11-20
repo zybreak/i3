@@ -46,4 +46,4 @@ void render_con(Con *con);
  * Returns the height for the decorations
  *
  */
-int render_deco_height(void);
+int render_deco_height();

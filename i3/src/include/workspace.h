@@ -80,7 +80,7 @@ Con *workspace_get(const char *num);
  * that the config-file order is used, not the i3-internal order.
  *
  */
-void extract_workspace_names_from_bindings(void);
+void extract_workspace_names_from_bindings();
 
 /**
  * Returns a pointer to a new workspace in the given output. The workspace
@@ -114,37 +114,37 @@ void workspace_show_by_name(const char *num);
  * Returns the next workspace.
  *
  */
-Con *workspace_next(void);
+Con *workspace_next();
 
 /**
  * Returns the previous workspace.
  *
  */
-Con *workspace_prev(void);
+Con *workspace_prev();
 
 /**
  * Returns the next workspace on the same output
  *
  */
-Con *workspace_next_on_output(void);
+Con *workspace_next_on_output();
 
 /**
  * Returns the previous workspace on the same output
  *
  */
-Con *workspace_prev_on_output(void);
+Con *workspace_prev_on_output();
 
 /**
  * Focuses the previously focused workspace.
  *
  */
-void workspace_back_and_forth(void);
+void workspace_back_and_forth();
 
 /**
  * Returns the previously focused workspace con, or NULL if unavailable.
  *
  */
-Con *workspace_back_and_forth_get(void);
+Con *workspace_back_and_forth_get();
 
 /**
  * Goes through all clients on the given workspace and updates the workspace’s

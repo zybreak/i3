@@ -23,4 +23,4 @@
  * The i3 binary you are running: /home/michael/i3/i3
  *
  */
-void display_running_version(void);
+void display_running_version();

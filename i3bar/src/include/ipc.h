@@ -11,7 +11,7 @@
 
 #include <config.h>
 
-#include <stdint.h>
+#include <cstdint>
 
 /*
  * Initiate a connection to i3.
@@ -24,7 +24,7 @@ void init_connection(const char *socket_path);
  * Destroy the connection to i3.
  *
  */
-void destroy_connection(void);
+void destroy_connection();
 
 /*
  * Sends a message to i3.
@@ -37,4 +37,4 @@ int i3_send_msg(uint32_t type, const char *payload);
  * Subscribe to all the i3-events, we need
  *
  */
-void subscribe_events(void);
+void subscribe_events();
