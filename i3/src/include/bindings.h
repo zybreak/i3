@@ -147,9 +147,9 @@ struct Binding {
  * be parsed.
  *
  */
-Binding *configure_binding(const char *bindtype, const char *modifiers, const char *input_code,
-                           const char *release, const char *border, const char *whole_window,
-                           const char *exclude_titlebar, const char *command, const std::string &modename,
+Binding *configure_binding(const std::string_view &bindtype, const std::string_view &modifiers, const std::string_view &input_code,
+                           bool release, bool border, bool whole_window,
+                           bool exclude_titlebar, const std::string_view &command, const std::string_view &modename,
                            bool pango_markup);
 
 /**

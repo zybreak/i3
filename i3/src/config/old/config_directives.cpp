@@ -65,7 +65,7 @@ namespace cfg {
             LOG(fmt::sprintf("Including config file %s\n",  resolved_path));
 
             try {
-                Parser parser{resolved_path, result.ctx};
+                OldParser parser{resolved_path, result.ctx};
                 switch (parser.parse_file()) {
                     case PARSE_FILE_SUCCESS:
                         included_files.emplace_back(resolved_path);
@@ -124,44 +124,6 @@ namespace cfg {
     /*******************************************************************************
      * Utility functions
      ******************************************************************************/
-
-    /*
-     * A utility function to convert a string containing the group and modifiers to
-     * the corresponding bit mask.
-     */
-    i3_event_state_mask_t event_state_from_str(const char *str) {
-        /* It might be better to use strtok() here, but the simpler strstr() should
-         * do for now. */
-        i3_event_state_mask_t result = 0;
-        if (str == nullptr)
-            return result;
-        if (strstr(str, "Mod1") != nullptr)
-            result |= XCB_KEY_BUT_MASK_MOD_1;
-        if (strstr(str, "Mod2") != nullptr)
-            result |= XCB_KEY_BUT_MASK_MOD_2;
-        if (strstr(str, "Mod3") != nullptr)
-            result |= XCB_KEY_BUT_MASK_MOD_3;
-        if (strstr(str, "Mod4") != nullptr)
-            result |= XCB_KEY_BUT_MASK_MOD_4;
-        if (strstr(str, "Mod5") != nullptr)
-            result |= XCB_KEY_BUT_MASK_MOD_5;
-        if (strstr(str, "Control") != nullptr ||
-            strstr(str, "Ctrl") != nullptr)
-            result |= XCB_KEY_BUT_MASK_CONTROL;
-        if (strstr(str, "Shift") != nullptr)
-            result |= XCB_KEY_BUT_MASK_SHIFT;
-
-        if (strstr(str, "Group1") != nullptr)
-            result |= (I3_XKB_GROUP_MASK_1 << 16);
-        if (strstr(str, "Group2") != nullptr ||
-            strstr(str, "Mode_switch") != nullptr)
-            result |= (I3_XKB_GROUP_MASK_2 << 16);
-        if (strstr(str, "Group3") != nullptr)
-            result |= (I3_XKB_GROUP_MASK_3 << 16);
-        if (strstr(str, "Group4") != nullptr)
-            result |= (I3_XKB_GROUP_MASK_4 << 16);
-        return result;
-    }
 
     static char *font_pattern;
 

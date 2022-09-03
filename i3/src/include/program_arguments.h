@@ -7,6 +7,7 @@
 struct program_arguments {
     std::string override_configpath{};
     bool autostart{true};
+    bool new_parser{false};
     std::string layout_path{};
     bool delete_layout_path{false};
     bool disable_signalhandler{false};

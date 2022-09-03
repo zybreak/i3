@@ -83,7 +83,7 @@ executable(
     'mock.cpp',
     command_parser,
   ],
-  include_directories: [ '../lib', '../i3/src/include', '../libi3/include', '../lib/i3_ipc/include', config_h_dir ],
+  include_directories: [ '../lib', '../i3/src/include', '../i3/src/config/old', '../libi3/include', '../lib/i3_ipc/include', config_h_dir ],
   cpp_args: '-DTEST_PARSER',
   dependencies: common_deps,
   link_with: libi3,
@@ -93,17 +93,39 @@ executable(
   'test.config_parser',
   [
     'config_parser.cpp',
-    '../i3/src/config_parser.cpp',
+    '../i3/src/config/old/config_parser.cpp',
     '../i3/src/parser_stack.cpp',
     '../i3/src/global.cpp',
     'mock.cpp',
     config_parser,
   ],
-  include_directories: [ '../lib', '../i3/src/include', '../libi3/include', '../lib/i3_ipc/include', config_h_dir ],
+  include_directories: [ '../lib', '../i3/src/include', '../i3/src/config/old', '../libi3/include', '../lib/i3_ipc/include', config_h_dir ],
   cpp_args: '-DTEST_PARSER',
   dependencies: common_deps,
   link_with: libi3,
 )
+
+parser_deps = common_deps
+parser_deps += antlr_dep
+
+executable(
+  'test.config_parser_new',
+  [
+    'config_parser_new.cpp',
+    '../i3/src/config/new/config_parser.cpp',
+    '../i3/src/config/new/parser-specs/configBaseListener.cpp',
+    '../i3/src/config/new/parser-specs/configLexer.cpp',
+    '../i3/src/config/new/parser-specs/configParser.cpp',
+    '../i3/src/config/new/parser-specs/configListener.cpp',
+    '../i3/src/global.cpp',
+    'mock_new.cpp',
+  ],
+  include_directories: [ '../lib', '../i3/src/include', '../i3/src/', '../i3/src/config/new', '../libi3/include', '../lib/i3_ipc/include', config_h_dir, '/usr/include/antlr4-runtime' ],
+  cpp_args: '-DTEST_PARSER',
+  dependencies: parser_deps,
+  link_with: libi3,
+)
+
 
 test(
   'complete-run',

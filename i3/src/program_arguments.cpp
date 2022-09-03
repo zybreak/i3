@@ -22,7 +22,7 @@ program_arguments parse_args(int argc, char *argv[]) {
 
     start_argv = argv;
 
-    while ((opt = getopt_long(argc, argv, "c:CvmaL:hld:V", long_options, &option_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "pc:CvmaL:hld:V", long_options, &option_index)) != -1) {
         switch (opt) {
             case 'a':
                 LOG("Autostart disabled using -a\n");
@@ -34,6 +34,9 @@ program_arguments parse_args(int argc, char *argv[]) {
                 break;
             case 'c':
                 args.override_configpath = optarg;
+                break;
+            case 'p':
+                args.new_parser = true;
                 break;
             case 'C':
                 LOG("Checking configuration file only (-C)\n");
@@ -80,6 +83,7 @@ program_arguments parse_args(int argc, char *argv[]) {
                 fprintf(stderr, "\t-a          disable autostart ('exec' lines in config)\n");
                 fprintf(stderr, "\t-c <file>   use the provided configfile instead\n");
                 fprintf(stderr, "\t-C          validate configuration file and exit\n");
+                fprintf(stderr, "\t-p          use new configuration parser\n");
                 fprintf(stderr, "\t-d all      enable debug output\n");
                 fprintf(stderr, "\t-L <file>   path to the serialized layout during restarts\n");
                 fprintf(stderr, "\t-v          display version and exit\n");

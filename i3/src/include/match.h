@@ -93,6 +93,7 @@ public:
 
     Match() = default;
     Match(const Match &src);
+    Match(const Match &&src);
     Match& operator=(Match &&src) noexcept;
     ~Match();
     /**

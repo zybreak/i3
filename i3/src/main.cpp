@@ -639,6 +639,8 @@ int main(int argc, char *argv[]) {
 
     auto args = parse_args(argc, argv);
 
+    global.new_parser = args.new_parser;
+
     if (args.only_check_config) {
         exit(load_configuration(&args.override_configpath, config_load_t::C_VALIDATE) ? EXIT_SUCCESS : EXIT_FAILURE);
     }

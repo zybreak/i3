@@ -14,12 +14,6 @@
 #include "config_parser.h"
 
 namespace cfg {
-/**
- * A utility function to convert a string containing the group and modifiers to
- * the corresponding bit mask.
- */
-    i3_event_state_mask_t event_state_from_str(const char *str);
-
 /* The following functions are called by the config parser, see
  * parser-specs/config.spec. They get the parsed parameters and store them in
  * our data structures, e.g. cfg_font gets a font name and stores it in

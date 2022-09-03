@@ -8,7 +8,7 @@ project(
   'cpp',
   version: '4.19.1',
   default_options: [
-    'cpp_std=c++20',
+    'cpp_std=c++23',
     #'warning_level=1',  # enable all warnings (-Wall)
   ],
   meson_version: '>=0.53.0',
@@ -74,6 +74,7 @@ fmt_dep = dependency('fmt', method: 'pkg-config')
 nlohmann_json_dep = dependency('nlohmann_json', method: 'pkg-config')
 
 ev_dep = cpp.find_library('ev')
+antlr_dep = cpp.find_library('libantlr4-runtime')
 
 common_deps = [
   fmt_dep,

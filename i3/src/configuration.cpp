@@ -31,6 +31,9 @@
 #include "match.h"
 #include "bindings.h"
 #include "config_parser.h"
+#include "global.h"
+#include "src/config/new/config_parser.h"
+#include "config/new/config_applier.h"
 
 std::string current_configpath{};
 char *current_config = nullptr;
@@ -190,8 +193,14 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
 
     parse_file_result_t result;
     try {
-        Parser parser{ resolved_path, load_type };
-        result = parser.parse_file();
+        if (global.new_parser) {
+            ConfigApplier configListener{};
+            NewParser np{ resolved_path, load_type, configListener };
+            result = np.parse_file();
+        } else {
+            OldParser op = OldParser{ resolved_path, load_type };
+            result = op.parse_file();
+        }
         if (result == PARSE_FILE_FAILED) {
             errx(EXIT_FAILURE, "Could not open configuration file: %s\n", strerror((*__errno_location())));
         }

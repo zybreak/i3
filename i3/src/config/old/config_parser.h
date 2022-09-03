@@ -16,6 +16,7 @@
 #include "criteria_state.h"
 #include "match.h"
 #include "global.h"
+#include "../base_parser.h"
 
 /**
  * Holds a user-assigned variable for parsing the configuration file. The key
@@ -77,12 +78,6 @@ struct ConfigResultIR {
  */
 void start_config_error_nagbar(bool has_errors);
 
-enum parse_file_result_t {
-    PARSE_FILE_FAILED = -1,
-    PARSE_FILE_SUCCESS = 0,
-    PARSE_FILE_CONFIG_ERRORS = 1,
-};
-
 /**
  * Parses the given file by first replacing the variables, then calling
  * parse_config and launching i3-nagbar if use_nagbar is true.
@@ -91,7 +86,7 @@ enum parse_file_result_t {
  * parsing.
  *
  */
-class Parser {
+class OldParser : public BaseParser {
 private:
     const char *filename;
     char *old_dir;
@@ -100,8 +95,8 @@ private:
 public:
     struct parser_ctx *parent_ctx = nullptr;
     struct parser_ctx ctx{};
-    Parser(const char *filename, struct parser_ctx &parent_ctx);
-    Parser(const char *filename, config_load_t load_type);
-    ~Parser();
+    OldParser(const char *filename, struct parser_ctx &parent_ctx);
+    OldParser(const char *filename, config_load_t load_type);
+    ~OldParser();
     parse_file_result_t parse_file();
 };

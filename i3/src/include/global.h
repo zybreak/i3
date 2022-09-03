@@ -46,6 +46,8 @@ struct global {
 
     xcb_screen_t *root_screen;
     xcb_connection_t *conn;
+
+    bool new_parser;
 };
 
 extern struct global global;

@@ -701,12 +701,12 @@ static char* replace_variables(char *n, char *buf, __off_t size, parser_ctx &ctx
 }
 
 
-Parser::Parser(const char *filename, struct parser_ctx &parent_ctx) : Parser(filename, parent_ctx.load_type) {
+OldParser::OldParser(const char *filename, struct parser_ctx &parent_ctx) : OldParser(filename, parent_ctx.load_type) {
     this->parent_ctx = &parent_ctx;
     this->ctx.variables = parent_ctx.variables;
 }
 
-Parser::Parser(const char *filename, config_load_t load_type) : filename(filename) {
+OldParser::OldParser(const char *filename, config_load_t load_type) : filename(filename) {
     this->ctx.load_type = load_type;
     this->old_dir = get_current_dir_name();
     char *dir = nullptr;
@@ -729,7 +729,7 @@ Parser::Parser(const char *filename, config_load_t load_type) : filename(filenam
     }
 }
 
-Parser::~Parser() {
+OldParser::~OldParser() {
     chdir(this->old_dir);
     free(this->old_dir);
     fclose(fstr);
@@ -740,7 +740,7 @@ Parser::~Parser() {
  * parse_config and possibly launching i3-nagbar.
  *
  */
-parse_file_result_t Parser::parse_file() {
+parse_file_result_t OldParser::parse_file() {
     struct stat stbuf{};
 
     if (fstat(fd, &stbuf) == -1) {

@@ -25,7 +25,7 @@
 #include "configuration.h"
 #include "commands_parser.h"
 #include "bindings.h"
-#include "config_directives.h"
+#include "global.h"
 #include "config_parser.h"
 #include "nagbar.h"
 
@@ -74,26 +74,26 @@ static struct Mode *mode_from_name(const std::string &name, bool pango_markup) {
  * be parsed.
  *
  */
-Binding *configure_binding(const char *bindtype, const char *modifiers, const char *input_code,
-                           const char *release, const char *border, const char *whole_window,
-                           const char *exclude_titlebar, const char *command, const std::string &modename,
+Binding *configure_binding(const std::string_view &bindtype, const std::string_view &modifiers, const std::string_view &input_code,
+                           bool release, bool border, bool whole_window,
+                           bool exclude_titlebar, const std::string_view &command, const std::string_view &modename,
                            bool pango_markup) {
     auto new_binding = std::make_unique<Binding>();
     DLOG(fmt::sprintf("Binding %p bindtype %s, modifiers %s, input code %s, release %s\n",  (void*)new_binding.get(), bindtype, modifiers, input_code, release));
-    new_binding->release = (release != nullptr ? B_UPON_KEYRELEASE : B_UPON_KEYPRESS);
-    new_binding->border = (border != nullptr);
-    new_binding->whole_window = (whole_window != nullptr);
-    new_binding->exclude_titlebar = (exclude_titlebar != nullptr);
-    if (strcmp(bindtype, "bindsym") == 0) {
-        new_binding->input_type = (strncasecmp(input_code, "button", (sizeof("button") - 1)) == 0
+    new_binding->release = (release ? B_UPON_KEYRELEASE : B_UPON_KEYPRESS);
+    new_binding->border = border;
+    new_binding->whole_window = whole_window;
+    new_binding->exclude_titlebar = exclude_titlebar;
+    if (strcmp(bindtype.data(), "bindsym") == 0) {
+        new_binding->input_type = (strncasecmp(input_code.data(), "button", (sizeof("button") - 1)) == 0
                                        ? B_MOUSE
                                        : B_KEYBOARD);
 
-        new_binding->symbol = sstrdup(input_code);
+        new_binding->symbol = sstrdup(input_code.data());
     } else {
         long keycode;
-        if (!parse_long(input_code, &keycode, 10)) {
-             ELOG(fmt::sprintf("Could not parse \"%s\" as an input code, ignoring this binding.\n", input_code));
+        if (!parse_long(input_code.data(), &keycode, 10)) {
+             ELOG(fmt::sprintf("Could not parse \"%s\" as an input code, ignoring this binding.\n", input_code.data()));
             return nullptr;
         }
 
@@ -101,7 +101,7 @@ Binding *configure_binding(const char *bindtype, const char *modifiers, const ch
         new_binding->input_type = B_KEYBOARD;
     }
     new_binding->command = command;
-    new_binding->event_state_mask = cfg::event_state_from_str(modifiers);
+    new_binding->event_state_mask = event_state_from_str(modifiers.data());
     int group_bits_set = 0;
     if ((new_binding->event_state_mask >> 16) & I3_XKB_GROUP_MASK_1)
         group_bits_set++;
@@ -114,7 +114,7 @@ Binding *configure_binding(const char *bindtype, const char *modifiers, const ch
     if (group_bits_set > 1)
         ELOG("Keybinding has more than one Group specified, but your X server is always in precisely one group. The keybinding can never trigger.\n");
 
-    struct Mode *mode = mode_from_name(modename, pango_markup);
+    struct Mode *mode = mode_from_name(modename.data(), pango_markup);
 
     auto new_binding_ptr = new_binding.get();
     mode->bindings.push_back(std::move(new_binding));
