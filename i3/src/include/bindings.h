@@ -10,16 +10,136 @@
 #pragma once
 
 #include <config.h>
+#include <set>
 
 #include "commands_parser.h"
+#include "con.h"
 
-extern pid_t command_error_nagbar_pid;
+struct CommandResult;
+
+/**
+ * Binding input types. See Binding::input_type.
+ */
+enum input_type_t {
+    B_KEYBOARD = 0,
+    B_MOUSE = 1
+};
 
 /**
  * The name of the default mode.
  *
  */
 extern const char *DEFAULT_BINDING_MODE;
+
+/**
+ * The lower 16 bits contain a xcb_key_but_mask_t, the higher 16 bits contain
+ * an i3_xkb_group_mask_t. This type is necessary for the fallback logic to
+ * work when handling XKB groups (see ticket #1775) and makes the code which
+ * locates keybindings upon KeyPress/KeyRelease events simpler.
+ */
+typedef uint32_t i3_event_state_mask_t;
+
+/**
+ * Stores a resolved keycode (from a keysym), including the modifier mask. Will
+ * be passed to xcb_grab_key().
+ *
+ */
+struct Binding_Keycode {
+    xcb_keycode_t keycode{};
+    i3_event_state_mask_t modifiers{};
+
+    Binding_Keycode() = default;
+
+    Binding_Keycode(const Binding_Keycode &bind_keycode) {
+        keycode = bind_keycode.keycode;
+        modifiers = bind_keycode.modifiers;
+    }
+
+    Binding_Keycode& operator=(const Binding_Keycode &bind_keycode) {
+        keycode = bind_keycode.keycode;
+        modifiers = bind_keycode.modifiers;
+        return *this;
+    }
+};
+
+enum binding_upon_t {
+    /* This binding will only be executed upon KeyPress events */
+    B_UPON_KEYPRESS = 0,
+    /* This binding will be executed either upon a KeyRelease event, or… */
+    B_UPON_KEYRELEASE = 1,
+    /* …upon a KeyRelease event, even if the modifiers don’t match. This
+     * state is triggered from get_binding() when the corresponding
+     * KeyPress (!) happens, so that users can release the modifier keys
+     * before releasing the actual key. */
+    B_UPON_KEYRELEASE_IGNORE_MODS = 2,
+};
+
+/**
+ * Bitmask for matching XCB_XKB_GROUP_1 to XCB_XKB_GROUP_4.
+ */
+enum i3_xkb_group_mask_t {
+    I3_XKB_GROUP_MASK_ANY = 0,
+    I3_XKB_GROUP_MASK_1 = (1 << 0),
+    I3_XKB_GROUP_MASK_2 = (1 << 1),
+    I3_XKB_GROUP_MASK_3 = (1 << 2),
+    I3_XKB_GROUP_MASK_4 = (1 << 3)
+};
+
+/**
+ * Holds a keybinding, consisting of a keycode combined with modifiers and the
+ * command which is executed as soon as the key is pressed (see
+ * src/config_parser.c)
+ *
+ */
+struct Binding {
+    /* The type of input this binding is for. (Mouse bindings are not yet
+     * implemented. All bindings are currently assumed to be keyboard bindings.) */
+    input_type_t input_type;
+
+    /** If true, the binding should be executed upon a KeyRelease event, not a
+     * KeyPress (the default). */
+    enum binding_upon_t release;
+
+    /** If this is true for a mouse binding, the binding should be executed
+     * when the button is pressed over the window border. */
+    bool border{};
+
+    /** If this is true for a mouse binding, the binding should be executed
+     * when the button is pressed over any part of the window, not just the
+     * title bar (default). */
+    bool whole_window{};
+
+    /** If this is true for a mouse binding, the binding should only be
+     * executed if the button press was not on the titlebar. */
+    bool exclude_titlebar{};
+
+    /** Keycode to bind */
+    uint32_t keycode{};
+
+    /** Bitmask which is applied against event->state for KeyPress and
+     * KeyRelease events to determine whether this binding applies to the
+     * current state. */
+    i3_event_state_mask_t event_state_mask{};
+
+    /** Symbol the user specified in configfile, if any. This needs to be
+     * stored with the binding to be able to re-convert it into a keycode
+     * if the keyboard mapping changes (using Xmodmap for example) */
+    char *symbol{};
+
+    /** Only in use if symbol != NULL. Contains keycodes which generate the
+     * specified symbol. Useful for unbinding and checking which binding was
+     * used when a key press event comes in. */
+     std::deque<Binding_Keycode*> keycodes_head{};
+
+    /** Command, like in command mode */
+    std::string command{};
+
+    Binding() = default;
+
+    Binding(const Binding &bind);
+
+    ~Binding();
+};
 
 /**
  * Adds a binding from config parameters given as strings and returns a
@@ -29,8 +149,15 @@ extern const char *DEFAULT_BINDING_MODE;
  */
 Binding *configure_binding(const char *bindtype, const char *modifiers, const char *input_code,
                            const char *release, const char *border, const char *whole_window,
-                           const char *exclude_titlebar, const char *command, const char *mode,
+                           const char *exclude_titlebar, const char *command, const std::string &modename,
                            bool pango_markup);
+
+/**
+ * Ungrabs all keys, to be called before re-grabbing the keys because of a
+ * mapping_notify event or a configuration file reload
+ *
+ */
+void ungrab_all_keys(xcb_connection_t *conn);
 
 /**
  * Grab the bound keys (tell X to send us keypress events for those keycodes)
@@ -86,12 +213,7 @@ void reorder_bindings();
  * i3-nagbar.
  *
  */
-void check_for_duplicate_bindings(struct context *context);
-
-/**
- * Frees the binding. If bind is null, it simply returns.
- */
-void binding_free(Binding *bind);
+bool has_duplicate_bindings();
 
 /**
  * Runs the given binding and handles parse errors. If con is passed, it will
@@ -100,7 +222,7 @@ void binding_free(Binding *bind);
  * render tree if needs_tree_render is true. Free with command_result_free().
  *
  */
-CommandResult *run_binding(Binding *bind, Con *con);
+CommandResult run_binding(Binding *bind, Con *con);
 
 /**
  * Loads the XKB keymap from the X11 server and feeds it to xkbcommon.
@@ -115,4 +237,4 @@ bool load_keymap();
  * config.
  * The list is terminated by a 0.
  */
-int *bindings_get_buttons_to_grab();
+std::set<int> bindings_get_buttons_to_grab();

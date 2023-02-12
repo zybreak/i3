@@ -110,7 +110,7 @@ void x_raise_con(Con *con);
  * i3 windows in xwininfo -root -all.
  *
  */
-void x_set_name(Con *con, const char *name);
+void x_set_name(Con *con, const std::string &name);
 
 /**
  * Sets up i3 specific atoms (I3_SOCKET_PATH and I3_CONFIG_PATH)

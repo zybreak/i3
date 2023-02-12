@@ -11,6 +11,7 @@
 #include <err.h>
 #include <cerrno>
 #include <climits>
+#include <fstream>
 
 #include <cstdint>
 #include <cstdio>
@@ -20,16 +21,15 @@
 #include <sys/types.h>
 
 #include "libi3.h"
-#include "data.h"
 #include "util.h"
-#include "ipc.h"
+#include "i3_ipc/include/i3-ipc.h"
 #include "tree.h"
-#include "log.h"
 #include "manage.h"
 #include "i3.h"
 #include "configuration.h"
 #include "bindings.h"
 #include "config_parser.h"
+#include "nagbar.h"
 
 #include <cctype>
 #include <fcntl.h>
@@ -38,48 +38,11 @@
 #include <clocale>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <fmt/core.h>
+
 #if defined(__OpenBSD__)
 #include <sys/cdefs.h>
 #endif
-
-int min(int a, int b) {
-    return (a < b ? a : b);
-}
-
-int max(int a, int b) {
-    return (a > b ? a : b);
-}
-
-bool rect_contains(Rect rect, uint32_t x, uint32_t y) {
-    return (x >= rect.x &&
-            x <= (rect.x + rect.width) &&
-            y >= rect.y &&
-            y <= (rect.y + rect.height));
-}
-
-Rect rect_add(Rect a, Rect b) {
-    return (Rect){a.x + b.x,
-                  a.y + b.y,
-                  a.width + b.width,
-                  a.height + b.height};
-}
-
-Rect rect_sub(Rect a, Rect b) {
-    return (Rect){a.x - b.x,
-                  a.y - b.y,
-                  a.width - b.width,
-                  a.height - b.height};
-}
-
-Rect rect_sanitize_dimensions(Rect rect) {
-    rect.width = (int32_t)rect.width <= 0 ? 1 : rect.width;
-    rect.height = (int32_t)rect.height <= 0 ? 1 : rect.height;
-    return rect;
-}
-
-bool rect_equals(Rect a, Rect b) {
-    return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
-}
 
 /*
  * Returns true if the name consists of only digits.
@@ -127,16 +90,13 @@ bool layout_from_name(const char *layout_str, layout_t *out) {
  * interpreted as a "named workspace".
  *
  */
-int ws_name_to_number(const char *name) {
+int ws_name_to_number(const std::string &name) {
     /* positive integers and zero are interpreted as numbers */
-    char *endptr = nullptr;
-    errno = 0;
-    long long parsed_num = strtoll(name, &endptr, 10);
-    if (errno != 0 || parsed_num > INT32_MAX || parsed_num < 0 || endptr == name) {
-        parsed_num = -1;
+    try {
+        return std::stoi(name, nullptr, 10);
+    } catch (const std::logic_error &e) {
+        return -1;
     }
-
-    return parsed_num;
 }
 
 /*
@@ -201,7 +161,7 @@ void exec_i3_utility(char *name, char *argv[]) {
  * Goes through the list of arguments (for exec()) and add/replace the given option,
  * including the option name, its argument, and the option character.
  */
-static char **add_argument(char **original, char *opt_char, char *opt_arg, char *opt_name) {
+static char **add_argument(char **original, const char *opt_char, const char *opt_arg, const char *opt_name) {
     int num_args;
     for (num_args = 0; original[num_args] != nullptr; num_args++)
         ;
@@ -221,69 +181,86 @@ static char **add_argument(char **original, char *opt_char, char *opt_arg, char 
                 skip_next = true;
             continue;
         }
-        result[write_index++] = original[i];
+        result[write_index++] = sstrdup(original[i]);
     }
 
     /* add the arguments we'll replace */
-    result[write_index++] = opt_char;
-    result[write_index] = opt_arg;
+    result[write_index++] = (opt_char != nullptr) ? sstrdup(opt_char) : nullptr;
+    result[write_index] = (opt_arg != nullptr) ? sstrdup(opt_arg) : nullptr;
 
     return result;
 }
 
-static char *store_restart_layout() {
-    setlocale(LC_NUMERIC, "C");
-    yajl_gen gen = yajl_gen_alloc(nullptr);
+/**
+ * Wrapper around correct write which returns -1 (meaning that
+ * write failed) or count (meaning that all bytes were written)
+ *
+ */
+static ssize_t writeall(int fd, const void *buf, size_t count) {
+    size_t written = 0;
 
-    dump_node(gen, croot, true);
+    while (written < count) {
+        const ssize_t n = write(fd, ((char *)buf) + written, count - written);
+        if (n == -1) {
+            if (errno == EINTR || errno == EAGAIN)
+                continue;
+            return n;
+        }
+        written += (size_t)n;
+    }
+
+    return written;
+}
+
+static std::string store_restart_layout() {
+    setlocale(LC_NUMERIC, "C");
+
+    auto j = dump_node(croot, true);
 
     setlocale(LC_NUMERIC, "");
 
-    const unsigned char *payload;
-    size_t length;
-    yajl_gen_get_buf(gen, &payload, &length);
-
     /* create a temporary file if one hasn't been specified, or just
      * resolve the tildes in the specified path */
-    char *filename;
+    std::string filename;
     if (config.restart_state_path == nullptr) {
-        filename = get_process_filename("restart-state");
-        if (!filename)
-            return nullptr;
+        auto f = get_process_filename("restart-state");
+        if (!f)
+            return "";
+        else
+            filename = f;
     } else {
-        filename = resolve_tilde(config.restart_state_path);
+        auto f = resolve_tilde(config.restart_state_path);
+        filename = f;
     }
 
     /* create the directory, it could have been cleaned up before restarting or
      * may not exist at all in case it was user-specified. */
-    char *filenamecopy = sstrdup(filename);
+    char *filenamecopy = sstrdup(filename.c_str());
     char *base = dirname(filenamecopy);
-    DLOG("Creating \"%s\" for storing the restart layout\n", base);
+     DLOG(fmt::sprintf("Creating \"%s\" for storing the restart layout\n", base));
     if (mkdirp(base, DEFAULT_DIR_MODE) != 0)
-        ELOG("Could not create \"%s\" for storing the restart layout, layout will be lost.\n", base);
+         ELOG(fmt::sprintf("Could not create \"%s\" for storing the restart layout, layout will be lost.\n", base));
     free(filenamecopy);
 
-    int fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+    int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
     if (fd == -1) {
         perror("open()");
-        free(filename);
-        return nullptr;
+        return "";
     }
 
-    if (writeall(fd, payload, length) == -1) {
-        ELOG("Could not write restart layout to \"%s\", layout will be lost: %s\n", filename, strerror(errno));
-        free(filename);
+    auto payload = j.dump();
+
+    if (writeall(fd, payload.c_str(), payload.length()) == -1) {
+         ELOG(fmt::sprintf("Could not write restart layout to \"%s\", layout will be lost: %s\n", filename, strerror(errno)));
         close(fd);
-        return nullptr;
+        return "";
     }
 
     close(fd);
 
-    if (length > 0) {
-        DLOG("layout: %.*s\n", (int)length, payload);
+    if (payload.length() > 0) {
+        DLOG(fmt::sprintf("layout: %.*s\n",  (int)payload.length(), payload));
     }
-
-    yajl_gen_free(gen);
 
     return filename;
 }
@@ -294,27 +271,29 @@ static char *store_restart_layout() {
  *
  */
 void i3_restart(bool forget_layout) {
-    char *restart_filename = forget_layout ? nullptr : store_restart_layout();
-
-    kill_nagbar(config_error_nagbar_pid, true);
-    kill_nagbar(command_error_nagbar_pid, true);
+    kill_nagbar(global.config_error_nagbar_pid, true);
+    kill_nagbar(global.command_error_nagbar_pid, true);
 
     restore_geometry();
 
     ipc_shutdown(SHUTDOWN_REASON_RESTART, -1);
 
-    LOG("restarting \"%s\"...\n", start_argv[0]);
+     LOG(fmt::sprintf("restarting \"%s\"...\n", start_argv[0]));
     /* make sure -a is in the argument list or add it */
-    start_argv = add_argument(start_argv, (char*)"-a", nullptr, nullptr);
+    start_argv = add_argument(start_argv, "-a", nullptr, nullptr);
 
     /* make debuglog-on persist */
     if (get_debug_logging()) {
-        start_argv = add_argument(start_argv, (char*)"-d", (char*)"all", nullptr);
+        start_argv = add_argument(start_argv, "-d", "all", nullptr);
     }
 
     /* replace -r <file> so that the layout is restored */
-    if (restart_filename != nullptr) {
-        start_argv = add_argument(start_argv, (char*)"--restart", restart_filename, (char*)"-r");
+    if (!forget_layout) {
+        std::string restart_filename = store_restart_layout();
+
+        if (!restart_filename.empty()) {
+            start_argv = add_argument(start_argv, "--restart", restart_filename.c_str(), "-r");
+        }
     }
 
     execvp(start_argv[0], start_argv);
@@ -327,96 +306,13 @@ void i3_restart(bool forget_layout) {
  * If the string has to be escaped, the input string will be free'd.
  *
  */
-char *pango_escape_markup(char *input) {
+std::string pango_escape_markup(std::string input) {
     if (!font_is_pango())
         return input;
 
-    char *escaped = g_markup_escape_text(input, -1);
-    FREE(input);
+    char *escaped = g_markup_escape_text(input.c_str(), -1);
 
     return escaped;
-}
-
-/*
- * Handler which will be called when we get a SIGCHLD for the nagbar, meaning
- * it exited (or could not be started, depending on the exit code).
- *
- */
-static void nagbar_exited(EV_P_ ev_child *watcher, int revents) {
-    ev_child_stop(EV_A_ watcher);
-
-    int exitcode = WEXITSTATUS(watcher->rstatus);
-    if (!WIFEXITED(watcher->rstatus)) {
-        ELOG("i3-nagbar (%d) did not exit normally. This is not an error if the config was reloaded while a nagbar was active.\n", watcher->pid);
-    } else if (exitcode != 0) {
-        ELOG("i3-nagbar (%d) process exited with status %d\n", watcher->pid, exitcode);
-    } else {
-        DLOG("i3-nagbar (%d) process exited with status %d\n", watcher->pid, exitcode);
-    }
-
-    auto *nagbar_pid = (pid_t*)watcher->data;
-    if (*nagbar_pid == watcher->pid) {
-        /* Only reset if the watched nagbar is the active nagbar */
-        *nagbar_pid = -1;
-    }
-}
-
-/*
- * Starts an i3-nagbar instance with the given parameters. Takes care of
- * handling SIGCHLD and killing i3-nagbar when i3 exits.
- *
- * The resulting PID will be stored in *nagbar_pid and can be used with
- * kill_nagbar() to kill the bar later on.
- *
- */
-void start_nagbar(pid_t *nagbar_pid, const char *argv[]) {
-    if (*nagbar_pid != -1) {
-        DLOG("i3-nagbar already running (PID %d), not starting again.\n", *nagbar_pid);
-        return;
-    }
-
-    *nagbar_pid = fork();
-    if (*nagbar_pid == -1) {
-        warn("Could not fork()");
-        return;
-    }
-
-    /* child */
-    if (*nagbar_pid == 0)
-        exec_i3_utility((char*)"i3-nagbar", (char**)argv);
-
-    DLOG("Starting i3-nagbar with PID %d\n", *nagbar_pid);
-
-    /* parent */
-    /* install a child watcher */
-    auto *child = (ev_child*)smalloc(sizeof(ev_child));
-    ev_child_init(child, &nagbar_exited, *nagbar_pid, 0);
-    child->data = nagbar_pid;
-    ev_child_start(main_loop, child);
-}
-
-/*
- * Kills the i3-nagbar process, if nagbar_pid != -1.
- *
- * If wait_for_it is set (restarting i3), this function will waitpid(),
- * otherwise, ev is assumed to handle it (reloading).
- *
- */
-void kill_nagbar(pid_t nagbar_pid, bool wait_for_it) {
-    if (nagbar_pid == -1)
-        return;
-
-    if (kill(nagbar_pid, SIGTERM) == -1)
-        warn("kill(configerror_nagbar) failed");
-
-    if (!wait_for_it)
-        return;
-
-    /* When restarting, we don’t enter the ev main loop anymore and after the
-     * exec(), our old pid is no longer watched. So, ev won’t handle SIGCHLD
-     * for us and we would end up with a <defunct> process. Therefore we
-     * waitpid() here. */
-    waitpid(nagbar_pid, nullptr, 0);
 }
 
 /*
@@ -442,29 +338,22 @@ bool parse_long(const char *str, long *out, int base) {
  * size, or NULL if -1 is returned.
  *
  */
-ssize_t slurp(const char *path, char **buf) {
-    FILE *f;
-    if ((f = fopen(path, "r")) == nullptr) {
-        ELOG("Cannot open file \"%s\": %s\n", path, strerror(errno));
-        return -1;
+std::string slurp(const std::string &path) {
+    std::filebuf fb;
+    if (!fb.open(path, std::ios::in)) {
+         ELOG(fmt::sprintf("Cannot open file \"%s\"", path));
+        throw std::runtime_error(fmt::format("Cannot open file \"{}\"", path));
     }
-    struct stat stbuf{};
-    if (fstat(fileno(f), &stbuf) != 0) {
-        ELOG("Cannot fstat() \"%s\": %s\n", path, strerror(errno));
-        fclose(f);
-        return -1;
+
+    try {
+        std::istream is(&fb);
+        std::string s(std::istreambuf_iterator<char>(is), {});
+        fb.close();
+        return s;
+    }  catch (std::exception &e) {
+        fb.close();
+        throw e;
     }
-    /* Allocate one extra NUL byte to make the buffer usable with C string
-     * functions. yajl doesn’t need this, but this makes slurp safer. */
-    *buf = (char*)scalloc(stbuf.st_size + 1, 1);
-    size_t n = fread(*buf, 1, stbuf.st_size, f);
-    fclose(f);
-    if ((ssize_t)n != stbuf.st_size) {
-        ELOG("File \"%s\" could not be read entirely: got %zd, want %" PRIi64 "\n", path, n, (int64_t)stbuf.st_size);
-        FREE(*buf);
-        return -1;
-    }
-    return (ssize_t)n;
 }
 
 /*
@@ -493,4 +382,68 @@ direction_t direction_from_orientation_position(orientation_t orientation, posit
     } else {
         return position == BEFORE ? D_UP : D_DOWN;
     }
+}
+
+ssize_t writeall_nonblock(int fd, const void *buf, size_t count) {
+    size_t written = 0;
+
+    while (written < count) {
+        const ssize_t n = write(fd, ((char *)buf) + written, count - written);
+        if (n == -1) {
+            if (errno == EAGAIN) {
+                return written;
+            } else if (errno == EINTR) {
+                continue;
+            } else {
+                return n;
+            }
+        }
+        written += (size_t)n;
+    }
+    return written;
+}
+
+/*
+ * All-in-one function which returns the modifier mask (XCB_MOD_MASK_*) for the
+ * given keysymbol, for example for XCB_NUM_LOCK (usually configured to mod2).
+ *
+ * This function initiates one round-trip. Use get_mod_mask_for() directly if
+ * you already have the modifier mapping and key symbols.
+ *
+ */
+uint32_t aio_get_mod_mask_for(uint32_t keysym, xcb_key_symbols_t *symbols) {
+    xcb_get_modifier_mapping_cookie_t cookie;
+    xcb_get_modifier_mapping_reply_t *modmap_r;
+
+    xcb_flush(global.conn);
+
+    /* Get the current modifier mapping (this is blocking!) */
+    cookie = xcb_get_modifier_mapping(global.conn);
+    if (!(modmap_r = xcb_get_modifier_mapping_reply(global.conn, cookie, nullptr)))
+        return 0;
+
+    uint32_t result = get_mod_mask_for(keysym, symbols, modmap_r);
+    free(modmap_r);
+    return result;
+}
+
+/*
+ * Returns true if this version of i3 is a debug build (anything which is not a
+ * release version), based on the git version number.
+ *
+ */
+bool is_debug_build() {
+    /* i3_version contains either something like this:
+     *     "4.0.2 (2011-11-11)" (release version)
+     * or: "4.0.2-123-gC0FFEE"  (debug version)
+     *
+     * So we check for the offset of the first opening round bracket to
+     * determine whether this is a git version or a release version. */
+    if (strchr(I3_VERSION, '(') == nullptr) {
+        return true;  // e.g. 4.0.2-123-gC0FFEE
+    }
+    /* In practice, debug versions do not contain parentheses at all,
+     * but leave the logic as it was before so that we can re-add
+     * parentheses if we chose to. */
+    return ((strchr(I3_VERSION, '(') - I3_VERSION) > 10);
 }

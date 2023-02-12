@@ -15,28 +15,27 @@
 
 #include "libi3.h"
 
-#include "data.h"
 #include "util.h"
-#include "log.h"
 #include "xcb.h"
 #include "i3.h"
 #include "configuration.h"
 #include "randr.h"
 #include "xcursor.h"
 #include "sighandler.h"
+#include "global.h"
 
 #include <sys/wait.h>
 #include <unistd.h>
+#include <filesystem>
 
-typedef struct dialog_t {
+struct dialog_t {
     xcb_window_t id;
     xcb_colormap_t colormap;
     Rect dims;
     surface_t surface;
-    TAILQ_ENTRY(dialog_t) dialogs;
-} dialog_t;
+};
 
-static TAILQ_HEAD(dialogs_head, dialog_t) dialogs = TAILQ_HEAD_INITIALIZER(dialogs);
+static std::vector<dialog_t*> dialogs{};
 static int raised_signal;
 static int backtrace_done = 0;
 
@@ -78,7 +77,7 @@ static int sighandler_backtrace() {
         FREE(filename);
         sasprintf(&filename, "%s/i3-backtrace.%d.%d.txt", tmpdir, pid_parent, suffix);
         suffix++;
-    } while (path_exists(filename));
+    } while (std::filesystem::exists(filename));
 
     pid_t pid_gdb = fork();
     if (pid_gdb < 0) {
@@ -139,7 +138,7 @@ static int sighandler_backtrace() {
     if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
         DLOG("GDB did not run properly\n");
         return -1;
-    } else if (!path_exists(filename)) {
+    } else if (!std::filesystem::exists(filename)) {
         DLOG("GDB executed successfully, but no backtrace was generated\n");
         return -1;
     }
@@ -147,8 +146,8 @@ static int sighandler_backtrace() {
 }
 
 static void sighandler_setup() {
-    border_width = logical_px(border_width);
-    margin = logical_px(margin);
+    border_width = logical_px(global.root_screen, border_width);
+    margin = logical_px(global.root_screen, margin);
 
     int num_lines = 5;
     message_intro = i3string_from_utf8("i3 has just crashed. Please report a bug for this.");
@@ -157,7 +156,7 @@ static void sighandler_setup() {
     message_option_restart = i3string_from_utf8("- 'r' to restart i3 in-place");
     message_option_forget = i3string_from_utf8("- 'f' to forget the previous layout and restart i3");
 
-    int width_longest_message = predict_text_width(message_intro2);
+    int width_longest_message = predict_text_width(global.conn, global.root_screen, message_intro2);
 
     dialog_width = width_longest_message + 2 * border_width + 2 * margin;
     dialog_height = num_lines * config.font.height + 2 * border_width + 2 * margin;
@@ -170,11 +169,11 @@ static void sighandler_create_dialogs() {
         }
 
         auto *dialog = (struct dialog_t *)scalloc(1, sizeof(struct dialog_t));
-        TAILQ_INSERT_TAIL(&dialogs, dialog, dialogs);
+        dialogs.push_back(dialog);
 
         xcb_visualid_t visual = get_visualid_by_depth(root_depth);
-        dialog->colormap = xcb_generate_id(conn);
-        xcb_create_colormap(conn, XCB_COLORMAP_ALLOC_NONE, dialog->colormap, root, visual);
+        dialog->colormap = xcb_generate_id(global.conn);
+        xcb_create_colormap(global.conn, XCB_COLORMAP_ALLOC_NONE, dialog->colormap, root, visual);
 
         uint32_t mask = 0;
         uint32_t values[4];
@@ -182,11 +181,11 @@ static void sighandler_create_dialogs() {
 
         /* Needs to be set in the case of a 32-bit root depth. */
         mask |= XCB_CW_BACK_PIXEL;
-        values[i++] = root_screen->black_pixel;
+        values[i++] = global.root_screen->black_pixel;
 
         /* Needs to be set in the case of a 32-bit root depth. */
         mask |= XCB_CW_BORDER_PIXEL;
-        values[i++] = root_screen->black_pixel;
+        values[i++] = global.root_screen->black_pixel;
 
         mask |= XCB_CW_OVERRIDE_REDIRECT;
         values[i++] = 1;
@@ -204,52 +203,51 @@ static void sighandler_create_dialogs() {
         dialog->dims.x -= dialog->dims.width / 2;
         dialog->dims.y -= dialog->dims.height / 2;
 
-        dialog->id = create_window(conn, dialog->dims, root_depth, visual,
+        dialog->id = create_window(global.conn, dialog->dims, root_depth, visual,
                                    XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER,
                                    true, mask, values);
 
-        draw_util_surface_init(conn, &(dialog->surface), dialog->id, get_visualtype_by_id(visual),
+        draw_util_surface_init(global.conn, &(dialog->surface), dialog->id, get_visualtype_by_id(visual),
                                dialog->dims.width, dialog->dims.height);
 
-        xcb_grab_keyboard(conn, false, dialog->id, XCB_CURRENT_TIME, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        xcb_grab_keyboard(global.conn, false, dialog->id, XCB_CURRENT_TIME, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
         /* Confine the pointer to the crash dialog. */
-        xcb_grab_pointer(conn, false, dialog->id, XCB_NONE, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, dialog->id,
+        xcb_grab_pointer(global.conn, false, dialog->id, XCB_NONE, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, dialog->id,
                          XCB_NONE, XCB_CURRENT_TIME);
     }
 
     sighandler_handle_expose();
-    xcb_flush(conn);
+    xcb_flush(global.conn);
 }
 
 static void sighandler_destroy_dialogs() {
-    while (!TAILQ_EMPTY(&dialogs)) {
-        dialog_t *dialog = TAILQ_FIRST(&dialogs);
+    while (!dialogs.empty()) {
+        dialog_t *dialog = dialogs.front();
 
-        xcb_free_colormap(conn, dialog->colormap);
-        draw_util_surface_free(conn, &(dialog->surface));
-        xcb_destroy_window(conn, dialog->id);
+        xcb_free_colormap(global.conn, dialog->colormap);
+        draw_util_surface_free(global.conn, &(dialog->surface));
+        xcb_destroy_window(global.conn, dialog->id);
 
-        TAILQ_REMOVE(&dialogs, dialog, dialogs);
+        dialogs.erase(dialogs.begin());
         free(dialog);
     }
 
-    xcb_flush(conn);
+    xcb_flush(global.conn);
 }
 
 static void sighandler_handle_expose() {
-    dialog_t *current;
-    TAILQ_FOREACH (current, &dialogs, dialogs) {
+    for (auto &current : dialogs) {
         sighandler_draw_dialog(current);
     }
 
-    xcb_flush(conn);
+    xcb_flush(global.conn);
 }
 
 static void sighandler_draw_dialog(dialog_t *dialog) {
-    const color_t black = draw_util_hex_to_color("#000000");
-    const color_t white = draw_util_hex_to_color("#FFFFFF");
-    const color_t red = draw_util_hex_to_color("#FF0000");
+    const color_t black = draw_util_hex_to_color(global.conn, global.root_screen, "#000000");
+    const color_t white = draw_util_hex_to_color(global.conn, global.root_screen, "#FFFFFF");
+    const color_t red = draw_util_hex_to_color(global.conn, global.root_screen, "#FF0000");
 
     /* Start with a clean slate and draw a red border. */
     draw_util_clear_surface(&(dialog->surface), red);
@@ -260,10 +258,10 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     const int x = border_width + margin;
     const int max_width = dialog->dims.width - 2 * x;
 
-    draw_util_text(message_intro, &(dialog->surface), white, black, x, y, max_width);
+    draw_util_text(global.conn, message_intro, &(dialog->surface), white, black, x, y, max_width);
     y += config.font.height;
 
-    draw_util_text(message_intro2, &(dialog->surface), white, black, x, y, max_width);
+    draw_util_text(global.conn, message_intro2, &(dialog->surface), white, black, x, y, max_width);
     y += config.font.height;
 
     char *bt_color = (char*)"#FFFFFF";
@@ -272,13 +270,13 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     } else if (backtrace_done > 0) {
         bt_color = (char*)"#00AA00";
     }
-    draw_util_text(message_option_backtrace, &(dialog->surface), draw_util_hex_to_color(bt_color), black, x, y, max_width);
+    draw_util_text(global.conn, message_option_backtrace, &(dialog->surface), draw_util_hex_to_color(global.conn, global.root_screen, bt_color), black, x, y, max_width);
     y += config.font.height;
 
-    draw_util_text(message_option_restart, &(dialog->surface), white, black, x, y, max_width);
+    draw_util_text(global.conn, message_option_restart, &(dialog->surface), white, black, x, y, max_width);
     y += config.font.height;
 
-    draw_util_text(message_option_forget, &(dialog->surface), white, black, x, y, max_width);
+    draw_util_text(global.conn, message_option_forget, &(dialog->surface), white, black, x, y, max_width);
     y += config.font.height;
 }
 
@@ -309,9 +307,9 @@ static void sighandler_handle_key_press(xcb_key_press_event_t *event) {
 }
 
 static void handle_signal(int sig, siginfo_t *info, void *data) {
-    DLOG("i3 crashed. SIG: %d\n", sig);
+    DLOG(fmt::sprintf("i3 crashed. SIG: %d\n",  sig));
 
-    struct sigaction action;
+    struct sigaction action{};
     action.sa_handler = SIG_DFL;
     action.sa_flags = 0;
     sigemptyset(&action.sa_mask);
@@ -323,7 +321,7 @@ static void handle_signal(int sig, siginfo_t *info, void *data) {
 
     xcb_generic_event_t *event;
     /* Yay, more own eventhandlers… */
-    while ((event = xcb_wait_for_event(conn))) {
+    while ((event = xcb_wait_for_event(global.conn))) {
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
         switch (type) {
@@ -348,7 +346,7 @@ static void handle_signal(int sig, siginfo_t *info, void *data) {
  *
  */
 void setup_signal_handler() {
-    struct sigaction action;
+    struct sigaction action{};
 
     action.sa_sigaction = handle_signal;
     action.sa_flags = SA_NODEFER | SA_RESETHAND | SA_SIGINFO;

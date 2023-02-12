@@ -10,14 +10,14 @@
 #include <cassert>
 
 #include <cstdlib>
+#include <algorithm>
+#include "ipc.h"
 
 #include "libi3.h"
 
-#include "data.h"
 #include "util.h"
-#include "ipc.h"
+#include "i3-ipc.h"
 #include "tree.h"
-#include "log.h"
 #include "workspace.h"
 #include "floating.h"
 #include "randr.h"
@@ -65,7 +65,7 @@ static Con *child_containing_con_recursively(Con *ancestor, Con *con) {
 static bool is_focused_descendant(Con *con, Con *ancestor) {
     Con *current = con;
     while (current != ancestor) {
-        if (TAILQ_FIRST(&(current->parent->focus_head)) != current) {
+        if (con::first(current->parent->focus_head) != current) {
             return false;
         }
         current = current->parent;
@@ -107,13 +107,10 @@ void insert_con_into(Con *con, Con *target, position_t position) {
         focus_before = moves_focus_from_ancestor;
     } else {
         /* Look at the focus stack order of the children of the lowest common ancestor. */
-        Con *current;
-        TAILQ_FOREACH (current, &(lca->focus_head), focused) {
-            if (current == con_ancestor || current == target_ancestor) {
-                break;
-            }
-        }
-        focus_before = (current == con_ancestor);
+        auto current_it = std::ranges::find_if(lca->focus_head, [&con_ancestor,&target_ancestor](auto &current) {
+            return (current == con_ancestor || current == target_ancestor);
+        });
+        focus_before = (current_it != lca->focus_head.end() && *current_it == con_ancestor);
     }
 
     /* If con is the focused container in our old ancestor we place the new ancestor
@@ -123,17 +120,18 @@ void insert_con_into(Con *con, Con *target, position_t position) {
      * original workspace. Without the change focus would move to B instead of staying
      * with A. */
     if (moves_focus_from_ancestor && focus_before) {
-        Con *place = TAILQ_PREV(con_ancestor, focus_head, focused);
-        TAILQ_REMOVE(&(lca->focus_head), target_ancestor, focused);
-        if (place) {
-            TAILQ_INSERT_AFTER(&(lca->focus_head), place, target_ancestor, focused);
+        auto place_it = std::ranges::find(con_ancestor->parent->focus_head, con_ancestor);
+        std::erase(lca->focus_head, target_ancestor);
+        if (place_it != con_ancestor->parent->focus_head.end()) {
+            place_it = (place_it == con_ancestor->parent->focus_head.begin()) ? place_it : std::prev(place_it);
+            lca->focus_head.insert(place_it, target_ancestor);
         } else {
-            TAILQ_INSERT_HEAD(&(lca->focus_head), target_ancestor, focused);
+            lca->focus_head.push_front(target_ancestor);
         }
     }
 
-    con_detach(con);
-    con_fix_percent(con->parent);
+    con->con_detach();
+    con->parent->con_fix_percent();
 
     /* When moving to a workspace, we respect the user’s configured
      * workspace_layout */
@@ -142,13 +140,13 @@ void insert_con_into(Con *con, Con *target, position_t position) {
         if (split != parent) {
             DLOG("Got a new split con, using that one instead\n");
             con->parent = split;
-            con_attach(con, split, false);
+            con->con_attach(split, false);
             DLOG("attached\n");
             con->percent = 0.0;
-            con_fix_percent(split);
+            split->con_fix_percent();
             con = split;
-            DLOG("ok, continuing with con %p instead\n", con);
-            con_detach(con);
+            DLOG(fmt::sprintf("ok, continuing with con %p instead\n",  (void*)con));
+            con->con_detach();
         }
     }
 
@@ -157,34 +155,37 @@ void insert_con_into(Con *con, Con *target, position_t position) {
     if (parent == lca) {
         if (focus_before) {
             /* Example layout: H [ A B* ], we move A up/down. 'target' will be H. */
-            TAILQ_INSERT_BEFORE(target, con, focused);
+            auto it = std::ranges::find(target->parent->focus_head, target);
+            target->parent->focus_head.insert(it, con);
         } else {
             /* Example layout: H [ A B* ], we move A up/down. 'target' will be H. */
-            TAILQ_INSERT_AFTER(&(parent->focus_head), target, con, focused);
+            auto it = std::ranges::find(parent->focus_head, target);
+            if (std::next(it) != parent->focus_head.end()) it++;
+            parent->focus_head.insert(it, con);
         }
     } else {
         if (focus_before) {
             /* Example layout: V [ H [ A B ] C* ], we move C up. 'target' will be A. */
-            TAILQ_INSERT_HEAD(&(parent->focus_head), con, focused);
+            parent->focus_head.push_front(con);
         } else {
             /* Example layout: V [ H [ A* B ] C ], we move C up. 'target' will be A. */
-            TAILQ_INSERT_TAIL(&(parent->focus_head), con, focused);
+            parent->focus_head.push_back(con);
         }
     }
 
     if (position == BEFORE) {
-        TAILQ_INSERT_BEFORE(target, con, nodes);
+        target->insert_before(con);
     } else if (position == AFTER) {
-        TAILQ_INSERT_AFTER(&(parent->nodes_head), target, con, nodes);
+        target->insert_after(con);
     }
 
     /* Pretend the con was just opened with regards to size percent values.
      * Since the con is moved to a completely different con, the old value
      * does not make sense anyways. */
     con->percent = 0.0;
-    con_fix_percent(parent);
+    parent->con_fix_percent();
 
-    old_parent->on_remove_child(old_parent);
+    old_parent->on_remove_child();
 }
 
 /*
@@ -194,25 +195,25 @@ void insert_con_into(Con *con, Con *target, position_t position) {
  *
  */
 static void attach_to_workspace(Con *con, Con *ws, direction_t direction) {
-    con_detach(con);
+    con->con_detach();
     Con *old_parent = con->parent;
     con->parent = ws;
 
     if (direction == D_RIGHT || direction == D_DOWN) {
-        TAILQ_INSERT_HEAD(&(ws->nodes_head), con, nodes);
+        ws->nodes_head.push_front(con);
     } else {
-        TAILQ_INSERT_TAIL(&(ws->nodes_head), con, nodes);
+        ws->nodes_head.push_back(con);
     }
-    TAILQ_INSERT_TAIL(&(ws->focus_head), con, focused);
+    ws->focus_head.push_back(con);
 
     /* Pretend the con was just opened with regards to size percent values.
      * Since the con is moved to a completely different con, the old value
      * does not make sense anyways. */
     con->percent = 0.0;
-    con_fix_percent(ws);
+    ws->con_fix_percent();
 
-    con_fix_percent(old_parent);
-    old_parent->on_remove_child(old_parent);
+    old_parent->con_fix_percent();
+    old_parent->on_remove_child();
 }
 
 /*
@@ -229,17 +230,16 @@ static void move_to_output_directed(Con *con, direction_t direction) {
         return;
     }
 
-    Con *ws = nullptr;
-    GREP_FIRST(ws, output_get_content(output->con), workspace_is_visible(child));
+    auto ws = std::ranges::find_if(output->con->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
 
-    if (!ws) {
+    if (ws != output->con->output_get_content()->nodes_head.end()) {
         DLOG("No workspace on output in this direction found. Not moving.\n");
         return;
     }
 
-    Con *old_ws = con_get_workspace(con);
+    Con *old_ws = con->con_get_workspace();
     const bool moves_focus = (focused == con);
-    attach_to_workspace(con, ws, direction);
+    attach_to_workspace(con, *ws, direction);
     if (moves_focus) {
         /* workspace_show will not correctly update the active workspace because
          * the focused container, con, is now a child of ws. To work around this
@@ -247,12 +247,13 @@ static void move_to_output_directed(Con *con, direction_t direction) {
          * 517-regress-move-direction-ipc.t) we need to temporarily set focused
          * to the old workspace. */
         focused = old_ws;
-        workspace_show(ws);
-        con_focus(con);
+        workspace_show(*ws);
+        con->con_focus();
     }
 
     /* force re-painting the indicators */
-    FREE(con->deco_render_params);
+    delete con->deco_render_params;
+    con->deco_render_params = nullptr;
 
     ipc_send_window_event("move", con);
     tree_flatten(croot);
@@ -267,7 +268,7 @@ void tree_move(Con *con, direction_t direction) {
     position_t position;
     Con *target;
 
-    DLOG("Moving in direction %d\n", direction);
+    DLOG(fmt::sprintf("Moving in direction %d\n",  direction));
 
     /* 1: get the first parent with the same orientation */
 
@@ -282,7 +283,7 @@ void tree_move(Con *con, direction_t direction) {
     }
 
     if ((con->fullscreen_mode == CF_OUTPUT) ||
-        (con->parent->type == CT_WORKSPACE && con_num_children(con->parent) == 1)) {
+        (con->parent->type == CT_WORKSPACE && con->parent->con_num_children() == 1)) {
         /* This is the only con on this workspace */
         move_to_output_directed(con, direction);
         return;
@@ -290,24 +291,25 @@ void tree_move(Con *con, direction_t direction) {
 
     orientation_t o = orientation_from_direction(direction);
 
-    Con *same_orientation = con_parent_with_orientation(con, o);
+    Con *same_orientation = con->con_parent_with_orientation(o);
     /* The do {} while is used to 'restart' at this point with a different
      * same_orientation, see the very last lines before the end of this block
      * */
     do {
         /* There is no parent container with the same orientation */
         if (!same_orientation) {
-            if (con_is_floating(con)) {
+            if (con->con_is_floating()) {
                 /* this is a floating con, we just disable floating */
                 floating_disable(con);
                 return;
             }
-            if (con_inside_floating(con)) {
+            if (con->con_inside_floating()) {
                 /* 'con' should be moved out of a floating container */
                 DLOG("Inside floating, moving to workspace\n");
-                attach_to_workspace(con, con_get_workspace(con), direction);
+                attach_to_workspace(con, con->con_get_workspace(), direction);
                 /* force re-painting the indicators */
-                FREE(con->deco_render_params);
+                delete con->deco_render_params;
+                con->deco_render_params = nullptr;
 
                 ipc_send_window_event("move", con);
                 tree_flatten(croot);
@@ -315,17 +317,17 @@ void tree_move(Con *con, direction_t direction) {
                 return;
             }
             DLOG("Force-changing orientation\n");
-            ws_force_orientation(con_get_workspace(con), o);
-            same_orientation = con_parent_with_orientation(con, o);
+            ws_force_orientation(con->con_get_workspace(), o);
+            same_orientation = con->con_parent_with_orientation(o);
         }
 
         /* easy case: the move is within this container */
         if (same_orientation == con->parent) {
             Con *swap = (direction == D_LEFT || direction == D_UP)
-                            ? TAILQ_PREV(con, nodes_head, nodes)
-                            : TAILQ_NEXT(con, nodes);
+                            ? con::previous(con, con->parent->nodes_head)
+                            : con::next(con, con->parent->nodes_head);
             if (swap) {
-                if (!con_is_leaf(swap)) {
+                if (!swap->con_is_leaf()) {
                     DLOG("Moving into our bordering branch\n");
                     target = con_descend_direction(swap, direction);
                     position = (con_orientation(target->parent) != o ||
@@ -335,7 +337,8 @@ void tree_move(Con *con, direction_t direction) {
                                     : BEFORE);
                     insert_con_into(con, target, position);
                     /* force re-painting the indicators */
-                    FREE(con->deco_render_params);
+                    delete con->deco_render_params;
+                    con->deco_render_params = nullptr;
 
                     ipc_send_window_event("move", con);
                     tree_flatten(croot);
@@ -345,16 +348,24 @@ void tree_move(Con *con, direction_t direction) {
 
                 DLOG("Swapping with sibling.\n");
                 if (direction == D_LEFT || direction == D_UP) {
-                    TAILQ_SWAP(swap, con, &(swap->parent->nodes_head), nodes);
+                    auto swap_itr = std::ranges::find(con->parent->nodes_head, swap);
+                    auto con_itr = std::ranges::find(con->parent->nodes_head, con);
+
+                    *swap_itr = con;
+                    *con_itr = swap;
                 } else {
-                    TAILQ_SWAP(con, swap, &(swap->parent->nodes_head), nodes);
+                    auto swap_itr = std::ranges::find(con->parent->nodes_head, swap);
+                    auto con_itr = std::ranges::find(con->parent->nodes_head, con);
+
+                    *swap_itr = con;
+                    *con_itr = swap;
                 }
 
                 ipc_send_window_event("move", con);
                 return;
             }
 
-            if (con->parent == con_get_workspace(con)) {
+            if (con->parent == con->con_get_workspace()) {
                 /* If we couldn't find a place to move it on this workspace, try
                  * to move it to a workspace on a different output */
                 move_to_output_directed(con, direction);
@@ -363,7 +374,7 @@ void tree_move(Con *con, direction_t direction) {
 
             /* If there was no con with which we could swap the current one,
              * search again, but starting one level higher. */
-            same_orientation = con_parent_with_orientation(con->parent, o);
+            same_orientation = con->parent->con_parent_with_orientation(o);
         }
     } while (same_orientation == nullptr);
 
@@ -380,11 +391,11 @@ void tree_move(Con *con, direction_t direction) {
         return;
     }
 
-    DLOG("above = %p\n", above);
+    DLOG(fmt::sprintf("above = %p\n",  (void*)above));
 
-    Con *next = (direction == D_UP || direction == D_LEFT ? TAILQ_PREV(above, nodes_head, nodes) : TAILQ_NEXT(above, nodes));
+    Con *next = (direction == D_UP || direction == D_LEFT) ? con::previous(above, above->parent->nodes_head) : con::next(above, above->parent->nodes_head);
 
-    if (next && !con_is_leaf(next)) {
+    if (next && !next->con_is_leaf()) {
         DLOG("Moving into the bordering branch of our adjacent container\n");
         target = con_descend_direction(next, direction);
         position = (con_orientation(target->parent) != o ||
@@ -396,7 +407,7 @@ void tree_move(Con *con, direction_t direction) {
     } else if (!next &&
                con->parent->parent->type == CT_WORKSPACE &&
                con->parent->layout != L_DEFAULT &&
-               con_num_children(con->parent) == 1) {
+            con->parent->con_num_children() == 1) {
         /* Con is the lone child of a non-default layout container at the edge
          * of the workspace. Treat it as though the workspace is its parent
          * and move it to the next output. */
@@ -410,7 +421,8 @@ void tree_move(Con *con, direction_t direction) {
     }
 
     /* force re-painting the indicators */
-    FREE(con->deco_render_params);
+    delete con->deco_render_params;
+    con->deco_render_params = nullptr;
 
     ipc_send_window_event("move", con);
     tree_flatten(croot);

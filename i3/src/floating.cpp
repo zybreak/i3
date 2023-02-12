@@ -8,6 +8,7 @@
  *
  */
 #include <cassert>
+#include <fmt/core.h>
 
 #include <cstdint>
 #include <cstdlib>
@@ -16,11 +17,9 @@
 
 #include "libi3.h"
 
-#include "data.h"
 #include "util.h"
-#include "ipc.h"
+#include "i3_ipc/include/i3-ipc.h"
 #include "tree.h"
-#include "log.h"
 #include "xcb.h"
 #include "workspace.h"
 #include "i3.h"
@@ -34,18 +33,16 @@
 #include "xcursor.h"
 #include "move.h"
 #include "output.h"
+#include "global.h"
 
 #include <cmath>
-
-#ifndef MAX
-#define MAX(x, y) ((x) > (y) ? (x) : (y))
-#endif
+#include <algorithm>
 
 /*
  * Calculates sum of heights and sum of widths of all currently active outputs
  *
  */
-static Rect total_outputs_dimensions() {
+static Rect total_outputs_dimensions(xcb_screen_t *root_screen) {
     if (outputs.empty())
         return (Rect){0, 0, root_screen->width_in_pixels, root_screen->height_in_pixels};
 
@@ -64,9 +61,8 @@ static Rect total_outputs_dimensions() {
  *
  */
 static void floating_set_hint_atom(Con *con, bool floating) {
-    if (!con_is_leaf(con)) {
-        Con *child;
-        TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+    if (!con->con_is_leaf()) {
+        for (auto &child : con->nodes_head) {
             floating_set_hint_atom(child, floating);
         }
     }
@@ -77,13 +73,13 @@ static void floating_set_hint_atom(Con *con, bool floating) {
 
     if (floating) {
         uint32_t val = 1;
-        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, con->window->id,
+        xcb_change_property(global.conn, XCB_PROP_MODE_REPLACE, con->window->id,
                             A_I3_FLOATING_WINDOW, XCB_ATOM_CARDINAL, 32, 1, &val);
     } else {
-        xcb_delete_property(conn, con->window->id, A_I3_FLOATING_WINDOW);
+        xcb_delete_property(global.conn, con->window->id, A_I3_FLOATING_WINDOW);
     }
 
-    xcb_flush(conn);
+    xcb_flush(global.conn);
 }
 
 /*
@@ -99,8 +95,8 @@ static void floating_set_hint_atom(Con *con, bool floating) {
  */
 void floating_check_size(Con *floating_con, bool prefer_height) {
     /* Define reasonable minimal and maximal sizes for floating windows */
-    const int floating_sane_min_height = 50;
-    const int floating_sane_min_width = 75;
+    const uint32_t floating_sane_min_height = 50;
+    const uint32_t floating_sane_min_width = 75;
     Rect floating_sane_max_dimensions;
     Con *focused_con = con_descend_focused(floating_con);
 
@@ -119,32 +115,32 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
     if (window != nullptr) {
         /* ICCCM says: If a base size is not provided, the minimum size is to be used in its place
          * and vice versa. */
-        int min_width = (window->min_width ? window->min_width : window->base_width);
-        int min_height = (window->min_height ? window->min_height : window->base_height);
-        int base_width = (window->base_width ? window->base_width : window->min_width);
-        int base_height = (window->base_height ? window->base_height : window->min_height);
+        uint32_t min_width = (window->min_width ? window->min_width : window->base_width);
+        uint32_t min_height = (window->min_height ? window->min_height : window->base_height);
+        uint32_t base_width = (window->base_width ? window->base_width : window->min_width);
+        uint32_t base_height = (window->base_height ? window->base_height : window->min_height);
 
         if (min_width) {
             floating_con->rect.width -= border_rect.width;
-            floating_con->rect.width = max(floating_con->rect.width, min_width);
+            floating_con->rect.width = std::max(floating_con->rect.width, min_width);
             floating_con->rect.width += border_rect.width;
         }
 
         if (min_height) {
             floating_con->rect.height -= border_rect.height;
-            floating_con->rect.height = max(floating_con->rect.height, min_height);
+            floating_con->rect.height = std::max(floating_con->rect.height, min_height);
             floating_con->rect.height += border_rect.height;
         }
 
         if (window->max_width) {
             floating_con->rect.width -= border_rect.width;
-            floating_con->rect.width = min(floating_con->rect.width, window->max_width);
+            floating_con->rect.width = std::min(floating_con->rect.width, window->max_width);
             floating_con->rect.width += border_rect.width;
         }
 
         if (window->max_height) {
             floating_con->rect.height -= border_rect.height;
-            floating_con->rect.height = min(floating_con->rect.height, window->max_height);
+            floating_con->rect.height = std::min(floating_con->rect.height, window->max_height);
             floating_con->rect.height += border_rect.height;
         }
 
@@ -206,9 +202,9 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
     if (config.floating_minimum_height != -1) {
         floating_con->rect.height -= border_rect.height;
         if (config.floating_minimum_height == 0) {
-            floating_con->rect.height = max(floating_con->rect.height, floating_sane_min_height);
+            floating_con->rect.height = std::max(floating_con->rect.height, floating_sane_min_height);
         } else {
-            floating_con->rect.height = max(floating_con->rect.height, config.floating_minimum_height);
+            floating_con->rect.height = std::max(floating_con->rect.height, (uint32_t)config.floating_minimum_height);
         }
         floating_con->rect.height += border_rect.height;
     }
@@ -216,9 +212,9 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
     if (config.floating_minimum_width != -1) {
         floating_con->rect.width -= border_rect.width;
         if (config.floating_minimum_width == 0) {
-            floating_con->rect.width = max(floating_con->rect.width, floating_sane_min_width);
+            floating_con->rect.width = std::max(floating_con->rect.width, floating_sane_min_width);
         } else {
-            floating_con->rect.width = max(floating_con->rect.width, config.floating_minimum_width);
+            floating_con->rect.width = std::max(floating_con->rect.width, (uint32_t)config.floating_minimum_width);
         }
         floating_con->rect.width += border_rect.width;
     }
@@ -226,13 +222,13 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
     /* Unless user requests otherwise (-1), ensure width/height do not exceed
      * configured maxima or, if unconfigured, limit to combined width of all
      * outputs */
-    floating_sane_max_dimensions = total_outputs_dimensions();
+    floating_sane_max_dimensions = total_outputs_dimensions(global.root_screen);
     if (config.floating_maximum_height != -1) {
         floating_con->rect.height -= border_rect.height;
         if (config.floating_maximum_height == 0) {
-            floating_con->rect.height = min(floating_con->rect.height, floating_sane_max_dimensions.height);
+            floating_con->rect.height = std::min(floating_con->rect.height, floating_sane_max_dimensions.height);
         } else {
-            floating_con->rect.height = min(floating_con->rect.height, config.floating_maximum_height);
+            floating_con->rect.height = std::min(floating_con->rect.height, (uint32_t)config.floating_maximum_height);
         }
         floating_con->rect.height += border_rect.height;
     }
@@ -240,9 +236,9 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
     if (config.floating_maximum_width != -1) {
         floating_con->rect.width -= border_rect.width;
         if (config.floating_maximum_width == 0) {
-            floating_con->rect.width = min(floating_con->rect.width, floating_sane_max_dimensions.width);
+            floating_con->rect.width = std::min(floating_con->rect.width, floating_sane_max_dimensions.width);
         } else {
-            floating_con->rect.width = min(floating_con->rect.width, config.floating_maximum_width);
+            floating_con->rect.width = std::min(floating_con->rect.width, (uint32_t)config.floating_maximum_width);
         }
         floating_con->rect.width += border_rect.width;
     }
@@ -251,12 +247,12 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
 bool floating_enable(Con *con, bool automatic) {
     bool set_focus = (con == focused);
 
-    if (con_is_docked(con)) {
+    if (con->con_is_docked()) {
         LOG("Container is a dock window, not enabling floating mode.\n");
         return false;
     }
 
-    if (con_is_floating(con)) {
+    if (con->con_is_floating()) {
         LOG("Container is already in floating mode, not doing anything.\n");
         return false;
     }
@@ -273,7 +269,7 @@ bool floating_enable(Con *con, bool automatic) {
          * We need to reuse its focus position later. */
         Con *ancestor = con;
         while (ancestor->parent->type != CT_WORKSPACE) {
-            focus_before_parent &= TAILQ_FIRST(&(ancestor->parent->focus_head)) == ancestor;
+            focus_before_parent &= con::first(ancestor->parent->focus_head) == ancestor;
             ancestor = ancestor->parent;
         }
         /* Consider the part of the focus stack of our current workspace:
@@ -287,51 +283,53 @@ bool floating_enable(Con *con, bool automatic) {
          * or before S_{i+1}.
          */
         if (focus_before_parent) {
-            focus_head_placeholder = TAILQ_PREV(ancestor, focus_head, focused);
+            focus_head_placeholder = con::previous(ancestor, ancestor->parent->focus_head);
         } else {
-            focus_head_placeholder = TAILQ_NEXT(ancestor, focused);
+            focus_head_placeholder = con::next(ancestor, ancestor->parent->focus_head);
         }
     }
 
     /* 1: detach the container from its parent */
     /* TODO: refactor this with tree_close_internal() */
-    con_detach(con);
-    con_fix_percent(con->parent);
+    con->con_detach();
+    con->parent->con_fix_percent();
 
     /* 2: create a new container to render the decoration on, add
      * it as a floating window to the workspace */
-    Con *nc = con_new(nullptr, nullptr);
+    Con *nc = new Con();
     /* we need to set the parent afterwards instead of passing it as an
-     * argument to con_new() because nc would be inserted into the tiling layer
+     * argument to new Con() because nc would be inserted into the tiling layer
      * otherwise. */
-    Con *ws = con_get_workspace(con);
+    Con *ws = con->con_get_workspace();
     nc->parent = ws;
     nc->type = CT_FLOATING_CON;
     nc->layout = L_SPLITH;
     /* We insert nc already, even though its rect is not yet calculated. This
      * is necessary because otherwise the workspace might be empty (and get
      * closed in tree_close_internal()) even though it’s not. */
-    TAILQ_INSERT_HEAD(&(ws->floating_head), nc, floating_windows);
+    ws->floating_windows.push_front(nc);
 
-    struct focus_head *fh = &(ws->focus_head);
+    auto &fh = ws->focus_head;
     if (focus_before_parent) {
         if (focus_head_placeholder) {
-            TAILQ_INSERT_AFTER(fh, focus_head_placeholder, nc, focused);
+            auto it = std::ranges::find(fh, focus_head_placeholder);
+            if (it != fh.end()) it++;
+            fh.insert(it, nc);
         } else {
-            TAILQ_INSERT_HEAD(fh, nc, focused);
+            fh.push_front(nc);
         }
     } else {
         if (focus_head_placeholder) {
-            TAILQ_INSERT_BEFORE(focus_head_placeholder, nc, focused);
+            fh.insert(std::ranges::find(fh, focus_head_placeholder), nc);
         } else {
             /* Also used for the set_focus case */
-            TAILQ_INSERT_TAIL(fh, nc, focused);
+            fh.push_back(nc);
         }
     }
 
     /* check if the parent container is empty and close it if so */
     if ((con->parent->type == CT_CON || con->parent->type == CT_FLOATING_CON) &&
-        con_num_children(con->parent) == 0) {
+            con->parent->con_num_children() == 0) {
         DLOG("Old container empty after setting this child to floating, closing\n");
         Con *parent = con->parent;
         /* clear the pointer before calling tree_close_internal in which the memory is freed */
@@ -339,31 +337,27 @@ bool floating_enable(Con *con, bool automatic) {
         tree_close_internal(parent, DONT_KILL_WINDOW, false);
     }
 
-    char *name;
-    sasprintf(&name, "[i3 con] floatingcon around %p", con);
-    x_set_name(nc, name);
-    free(name);
+    x_set_name(nc, fmt::format("[i3 con] floatingcon around {}", (void *) con));
 
     /* find the height for the decorations */
     int deco_height = render_deco_height();
 
-    DLOG("Original rect: (%d, %d) with %d x %d\n", con->rect.x, con->rect.y, con->rect.width, con->rect.height);
-    DLOG("Geometry = (%d, %d) with %d x %d\n", con->geometry.x, con->geometry.y, con->geometry.width, con->geometry.height);
+    DLOG(fmt::sprintf("Original rect: (%d, %d) with %d x %d\n",  con->rect.x, con->rect.y, con->rect.width, con->rect.height));
+    DLOG(fmt::sprintf("Geometry = (%d, %d) with %d x %d\n",  con->geometry.x, con->geometry.y, con->geometry.width, con->geometry.height));
     nc->rect = con->geometry;
     /* If the geometry was not set (split containers), we need to determine a
      * sensible one by combining the geometry of all children */
-    if (rect_equals(nc->rect, (Rect){0, 0, 0, 0})) {
+    if (nc->rect == (Rect){0, 0, 0, 0}) {
         DLOG("Geometry not set, combining children\n");
-        Con *child;
-        TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
-            DLOG("child geometry: %d x %d\n", child->geometry.width, child->geometry.height);
+        for (auto &child : con->nodes_head) {
+            DLOG(fmt::sprintf("child geometry: %d x %d\n",  child->geometry.width, child->geometry.height));
             nc->rect.width += child->geometry.width;
-            nc->rect.height = max(nc->rect.height, child->geometry.height);
+            nc->rect.height = std::max(nc->rect.height, child->geometry.height);
         }
     }
 
-    TAILQ_INSERT_TAIL(&(nc->nodes_head), con, nodes);
-    TAILQ_INSERT_TAIL(&(nc->focus_head), con, focused);
+    nc->nodes_head.push_back(con);
+    nc->focus_head.push_back(con);
 
     /* 3: attach the child to the new parent container. We need to do this
      * because con_border_style_rect() needs to access con->parent. */
@@ -411,10 +405,10 @@ bool floating_enable(Con *con, bool automatic) {
     /* Sanity check: Are the coordinates on the appropriate output? If not, we
      * need to change them */
     Output *current_output = get_output_from_rect(nc->rect);
-    Con *correct_output = con_get_output(ws);
+    Con *correct_output = ws->con_get_output();
     if (!current_output || current_output->con != correct_output) {
-        DLOG("This floating window is on the wrong output, fixing coordinates (currently (%d, %d))\n",
-             nc->rect.x, nc->rect.y);
+        DLOG(fmt::sprintf("This floating window is on the wrong output, fixing coordinates (currently (%d, %d))\n",
+             nc->rect.x, nc->rect.y));
 
         /* If moving from one output to another, keep the relative position
          * consistent (e.g. a centered dialog will remain centered). */
@@ -428,7 +422,7 @@ bool floating_enable(Con *con, bool automatic) {
         }
     }
 
-    DLOG("Floating rect: (%d, %d) with %d x %d\n", nc->rect.x, nc->rect.y, nc->rect.width, nc->rect.height);
+    DLOG(fmt::sprintf("Floating rect: (%d, %d) with %d x %d\n",  nc->rect.x, nc->rect.y, nc->rect.width, nc->rect.height));
 
     /* 5: Subtract the deco_height in order to make the floating window appear
      * at precisely the position it specified in its original geometry (which
@@ -436,13 +430,13 @@ bool floating_enable(Con *con, bool automatic) {
     deco_height = (con->border_style == BS_NORMAL ? render_deco_height() : 0);
     nc->rect.y -= deco_height;
 
-    DLOG("Corrected y = %d (deco_height = %d)\n", nc->rect.y, deco_height);
+    DLOG(fmt::sprintf("Corrected y = %d (deco_height = %d)\n",  nc->rect.y, deco_height));
 
     /* render the cons to get initial window_rect correct */
     render_con(nc);
 
     if (set_focus)
-        con_activate(con);
+        con->con_activate();
 
     floating_set_hint_atom(nc, true);
     ipc_send_window_event("floating", con);
@@ -450,13 +444,13 @@ bool floating_enable(Con *con, bool automatic) {
 }
 
 void floating_disable(Con *con) {
-    if (!con_is_floating(con)) {
+    if (!con->con_is_floating()) {
         LOG("Container isn't floating, not doing anything.\n");
         return;
     }
 
-    Con *ws = con_get_workspace(con);
-    if (con_is_internal(ws)) {
+    Con *ws = con->con_get_workspace();
+    if (ws->con_is_internal()) {
         LOG("Can't disable floating for container in internal workspace.\n");
         return;
     }
@@ -464,12 +458,12 @@ void floating_disable(Con *con) {
 
     if (tiling_focused->type == CT_WORKSPACE) {
         Con *parent = con->parent;
-        con_detach(con);
+        con->con_detach();
         con->parent = nullptr;
         tree_close_internal(parent, DONT_KILL_WINDOW, true);
-        con_attach(con, tiling_focused, false);
+        con->con_attach(tiling_focused, false);
         con->percent = 0.0;
-        con_fix_percent(con->parent);
+        con->parent->con_fix_percent();
     } else {
         insert_con_into(con, tiling_focused, AFTER);
     }
@@ -489,12 +483,12 @@ void floating_disable(Con *con) {
 void toggle_floating_mode(Con *con, bool automatic) {
     /* forbid the command to toggle floating on a CT_FLOATING_CON */
     if (con->type == CT_FLOATING_CON) {
-        ELOG("Cannot toggle floating mode on con = %p because it is of type CT_FLOATING_CON.\n", con);
+        ELOG(fmt::sprintf("Cannot toggle floating mode on con = %p because it is of type CT_FLOATING_CON.\n",  (void*)con));
         return;
     }
 
     /* see if the client is already floating */
-    if (con_is_floating(con)) {
+    if (con->con_is_floating()) {
         LOG("already floating, re-setting to tiling\n");
 
         floating_disable(con);
@@ -509,9 +503,10 @@ void toggle_floating_mode(Con *con, bool automatic) {
  *
  */
 void floating_raise_con(Con *con) {
-    DLOG("Raising floating con %p / %s\n", con, con->name);
-    TAILQ_REMOVE(&(con->parent->floating_head), con, floating_windows);
-    TAILQ_INSERT_TAIL(&(con->parent->floating_head), con, floating_windows);
+    DLOG(fmt::sprintf("Raising floating con %p / %s\n",  (void*)con, con->name));
+    auto con_ptr = std::ranges::find(con->parent->floating_windows, con);
+    if (con_ptr != con->parent->floating_windows.end()) con->parent->floating_windows.erase(con_ptr);
+    con->parent->floating_windows.push_back(con);
 }
 
 /*
@@ -520,7 +515,7 @@ void floating_raise_con(Con *con) {
  *
  */
 bool floating_maybe_reassign_ws(Con *con) {
-    if (con_is_internal(con_get_workspace(con))) {
+    if (con->con_get_workspace()->con_is_internal()) {
         DLOG("Con in an internal workspace\n");
         return false;
     }
@@ -532,24 +527,24 @@ bool floating_maybe_reassign_ws(Con *con) {
         return false;
     }
 
-    if (con_get_output(con) == output->con) {
+    if (con->con_get_output() == output->con) {
         DLOG("still the same ws\n");
         return false;
     }
 
     DLOG("Need to re-assign!\n");
 
-    Con *content = output_get_content(output->con);
-    Con *ws = TAILQ_FIRST(&(content->focus_head));
-    DLOG("Moving con %p / %s to workspace %p / %s\n", con, con->name, ws, ws->name);
+    Con *content = output->con->output_get_content();
+    Con *ws = con::first(content->focus_head);
+    DLOG(fmt::sprintf("Moving con %p / %s to workspace %p / %s\n",  (void*)con, con->name, (void*)ws, ws->name));
     Con *needs_focus = con_descend_focused(con);
-    if (!con_inside_focused(needs_focus)) {
+    if (!needs_focus->con_inside_focused()) {
         needs_focus = nullptr;
     }
     con_move_to_workspace(con, ws, false, true, false);
     if (needs_focus) {
         workspace_show(ws);
-        con_activate(needs_focus);
+        needs_focus->con_activate();
     }
     return true;
 }
@@ -570,7 +565,7 @@ void floating_center(Con *con, Rect rect) {
 void floating_move_to_pointer(Con *con) {
     assert(con->type == CT_FLOATING_CON);
 
-    xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(conn, xcb_query_pointer(conn, root), nullptr);
+    xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(global.conn, xcb_query_pointer(global.conn, root), nullptr);
     if (reply == nullptr) {
         ELOG("could not query pointer position, not moving this container\n");
         return;
@@ -588,8 +583,8 @@ void floating_move_to_pointer(Con *con) {
     FREE(reply);
 
     /* Correct target coordinates to be in-bounds. */
-    x = MAX(x, (int32_t)output->rect.x);
-    y = MAX(y, (int32_t)output->rect.y);
+    x = std::max(x, (int32_t)output->rect.x);
+    y = std::max(y, (int32_t)output->rect.y);
     if (x + con->rect.width > output->rect.x + output->rect.width)
         x = output->rect.x + output->rect.width - con->rect.width;
     if (y + con->rect.height > output->rect.y + output->rect.height)
@@ -606,7 +601,7 @@ DRAGGING_CB(drag_window_callback) {
 
     render_con(con);
     x_push_node(con);
-    xcb_flush(conn);
+    xcb_flush(global.conn);
 
     /* Check if we cross workspace boundaries while moving */
     if (!floating_maybe_reassign_ws(con))
@@ -634,7 +629,7 @@ void floating_drag_window(Con *con, const xcb_button_press_event_t *event, bool 
     /* Drag the window */
     drag_result_t drag_result = drag_pointer(con, event, XCB_NONE, XCURSOR_CURSOR_MOVE, use_threshold, drag_window_callback, nullptr);
 
-    if (!con_exists(con)) {
+    if (!con->exists()) {
         DLOG("The container has been closed in the meantime.\n");
         return;
     }
@@ -689,8 +684,8 @@ DRAGGING_CB(resize_window_callback) {
 
     /* User wants to keep proportions, so we may have to adjust our values */
     if (params->proportional) {
-        dest_width = max(dest_width, (int)(dest_height * ratio));
-        dest_height = max(dest_height, (int)(dest_width / ratio));
+        dest_width = std::max(dest_width, (uint32_t)(dest_height * ratio));
+        dest_height = std::max(dest_height, (uint32_t)(dest_width / ratio));
     }
 
     con->rect = (Rect){(uint32_t)dest_x, (uint32_t)dest_y, dest_width, dest_height};
@@ -748,7 +743,7 @@ void floating_resize_window(Con *con, const bool proportional,
 
     drag_result_t drag_result = drag_pointer(con, event, XCB_NONE, cursor, false, resize_window_callback, &params);
 
-    if (!con_exists(con)) {
+    if (!con->exists()) {
         DLOG("The container has been closed in the meantime.\n");
         return;
     }
@@ -797,8 +792,8 @@ bool floating_reposition(Con *con, Rect newrect) {
  *
  */
 void floating_resize(Con *floating_con, uint32_t x, uint32_t y) {
-    DLOG("floating resize to %dx%d px\n", x, y);
-    Rect *rect = &floating_con->rect;
+    DLOG(fmt::sprintf("floating resize to %dx%d px\n",  x, y));
+    Rect &rect = floating_con->rect;
     Con *focused_con = con_descend_focused(floating_con);
     if (focused_con->window == nullptr) {
         DLOG("No window is focused. Not resizing.\n");
@@ -806,13 +801,13 @@ void floating_resize(Con *floating_con, uint32_t x, uint32_t y) {
     }
     int wi = focused_con->window->width_increment;
     int hi = focused_con->window->height_increment;
-    bool prefer_height = (rect->width == x);
-    rect->width = x;
-    rect->height = y;
+    bool prefer_height = (rect.width == x);
+    rect.width = x;
+    rect.height = y;
     if (wi)
-        rect->width += (wi - 1 - rect->width) % wi;
+        rect.width += (wi - 1 - rect.width) % wi;
     if (hi)
-        rect->height += (hi - 1 - rect->height) % hi;
+        rect.height += (hi - 1 - rect.height) % hi;
 
     floating_check_size(floating_con, prefer_height);
 
@@ -827,23 +822,23 @@ void floating_resize(Con *floating_con, uint32_t x, uint32_t y) {
  *
  */
 void floating_fix_coordinates(Con *con, Rect *old_rect, Rect *new_rect) {
-    DLOG("Fixing coordinates of floating window %p (rect (%d, %d), %d x %d)\n",
-         con, con->rect.x, con->rect.y, con->rect.width, con->rect.height);
-    DLOG("old_rect = (%d, %d), %d x %d\n",
-         old_rect->x, old_rect->y, old_rect->width, old_rect->height);
-    DLOG("new_rect = (%d, %d), %d x %d\n",
-         new_rect->x, new_rect->y, new_rect->width, new_rect->height);
+    DLOG(fmt::sprintf("Fixing coordinates of floating window %p (rect (%d, %d), %d x %d)\n",
+         (void*)con, con->rect.x, con->rect.y, con->rect.width, con->rect.height));
+    DLOG(fmt::sprintf("old_rect = (%d, %d), %d x %d\n",
+         old_rect->x, old_rect->y, old_rect->width, old_rect->height));
+    DLOG(fmt::sprintf("new_rect = (%d, %d), %d x %d\n",
+         new_rect->x, new_rect->y, new_rect->width, new_rect->height));
     /* First we get the x/y coordinates relative to the x/y coordinates
      * of the output on which the window is on */
     int32_t rel_x = con->rect.x - old_rect->x + (int32_t)(con->rect.width / 2);
     int32_t rel_y = con->rect.y - old_rect->y + (int32_t)(con->rect.height / 2);
     /* Then we calculate a fraction, for example 0.63 for a window
      * which is at y = 1212 of a 1920 px high output */
-    DLOG("rel_x = %d, rel_y = %d, fraction_x = %f, fraction_y = %f, output->w = %d, output->h = %d\n",
+    DLOG(fmt::sprintf("rel_x = %d, rel_y = %d, fraction_x = %f, fraction_y = %f, output->w = %d, output->h = %d\n",
          rel_x, rel_y, (double)rel_x / old_rect->width, (double)rel_y / old_rect->height,
-         old_rect->width, old_rect->height);
+         old_rect->width, old_rect->height));
     /* Here we have to multiply at first. Or we will lose precision when not compiled with -msse2 */
     con->rect.x = (int32_t)new_rect->x + (double)(rel_x * (int32_t)new_rect->width) / (int32_t)old_rect->width - (int32_t)(con->rect.width / 2);
     con->rect.y = (int32_t)new_rect->y + (double)(rel_y * (int32_t)new_rect->height) / (int32_t)old_rect->height - (int32_t)(con->rect.height / 2);
-    DLOG("Resulting coordinates: x = %d, y = %d\n", con->rect.x, con->rect.y);
+    DLOG(fmt::sprintf("Resulting coordinates: x = %d, y = %d\n",  con->rect.x, con->rect.y));
 }

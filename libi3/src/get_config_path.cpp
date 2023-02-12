@@ -9,6 +9,8 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <algorithm>
 
 /*
  * Get the path of the first configuration file found. If override_configpath is
@@ -18,72 +20,79 @@
  * $XDG_CONFIG_DIRS).
  *
  */
-char *get_config_path(const char *override_configpath, bool use_system_paths) {
-    char *xdg_config_home, *xdg_config_dirs, *config_path;
+std::string get_config_path(const std::string *override_configpath, bool use_system_paths) {
+    std::string xdg_config_home;
 
-    static const char *saved_configpath = nullptr;
+    static const std::string *saved_configpath = nullptr;
 
     if (override_configpath != nullptr) {
         saved_configpath = override_configpath;
-        return sstrdup(saved_configpath);
+        return *saved_configpath;
     }
 
     if (saved_configpath != nullptr) {
-        return sstrdup(saved_configpath);
+        return *saved_configpath;
     }
 
     /* 1: check for $XDG_CONFIG_HOME/i3/config */
-    if ((xdg_config_home = getenv("XDG_CONFIG_HOME")) == nullptr) {
-        xdg_config_home = (char*)"~/.config";
+    if (getenv("XDG_CONFIG_HOME") == nullptr) {
+        auto tilde = resolve_tilde("~/.config");
+        xdg_config_home = tilde;
+    } else {
+        auto tilde = resolve_tilde(getenv("XDG_CONFIG_HOME"));
+        xdg_config_home = tilde;
     }
 
-    xdg_config_home = resolve_tilde(xdg_config_home);
-    sasprintf(&config_path, "%s/i3/config", xdg_config_home);
-    free(xdg_config_home);
+    auto config_path = xdg_config_home + "/i3/config";
 
-    if (path_exists(config_path)) {
+    if (std::filesystem::exists(config_path)) {
         return config_path;
     }
-    free(config_path);
 
     /* 2: check the traditional path under the home directory */
-    config_path = resolve_tilde("~/.i3/config");
-    if (path_exists(config_path)) {
+    auto tilde = resolve_tilde("~/.i3/config");
+    config_path = tilde;
+    if (std::filesystem::exists(config_path)) {
         return config_path;
     }
-    free(config_path);
 
     /* The below paths are considered system-level, and can be skipped if the
      * caller only wants user-level configs. */
     if (!use_system_paths) {
-        return nullptr;
+        return "";
     }
 
+    std::string xdg_config_dirs;
     /* 3: check for $XDG_CONFIG_DIRS/i3/config */
-    if ((xdg_config_dirs = getenv("XDG_CONFIG_DIRS")) == nullptr) {
-        xdg_config_dirs = (char*)SYSCONFDIR "/xdg";
+    if (getenv("XDG_CONFIG_DIRS") == nullptr) {
+        xdg_config_dirs = SYSCONFDIR "/xdg";
+    } else {
+        xdg_config_dirs = getenv("XDG_CONFIG_DIRS");
     }
 
-    char *buf = sstrdup(xdg_config_dirs);
-    char *tok = strtok(buf, ":");
-    while (tok != nullptr) {
-        tok = resolve_tilde(tok);
-        sasprintf(&config_path, "%s/i3/config", tok);
-        free(tok);
-        if (path_exists(config_path)) {
-            free(buf);
-            return config_path;
+    auto first = xdg_config_dirs.begin();
+    while (true) {
+        auto found = std::find(first, xdg_config_dirs.end(), ':');
+
+        if (found == xdg_config_dirs.end()) {
+            break;
         }
-        free(config_path);
-        tok = strtok(nullptr, ":");
+
+        std::string tok = resolve_tilde(std::string(first, found).c_str());
+        tok += "/i3/config";
+
+        if (std::filesystem::exists(tok)) {
+            return tok;
+        }
+
+        first = ++found;
     }
-    free(buf);
 
     /* 4: check the traditional path under /etc */
-    config_path = (char*)SYSCONFDIR "/i3/config";
-    if (path_exists(config_path)) {
-        return sstrdup(config_path);
+    config_path = SYSCONFDIR "/i3/config";
+    if (std::filesystem::exists(config_path)) {
+        return config_path;
     }
 
-    return nullptr;
+    return "";
 }

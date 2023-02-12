@@ -15,14 +15,14 @@
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
+#include <algorithm>
+#include <filesystem>
 
 #include "libi3.h"
 
-#include "data.h"
 #include "util.h"
-#include "ipc.h"
+#include "i3_ipc/include/i3-ipc.h"
 #include "tree.h"
-#include "log.h"
 #include "xcb.h"
 #include "workspace.h"
 #include "i3.h"
@@ -37,83 +37,79 @@
 #include "output.h"
 #include "ewmh.h"
 #include "restore_layout.h"
+#include "global.h"
 
-struct Con *croot;
-struct Con *focused;
+Con *croot;
+Con *focused;
 
-struct all_cons_head all_cons = TAILQ_HEAD_INITIALIZER(all_cons);
+std::deque<Con*> all_cons{};
 
 /*
  * Create the pseudo-output __i3. Output-independent workspaces such as
  * __i3_scratch will live there.
  *
  */
-static Con* _create___i3() {
-    Con *__i3 = con_new(croot, nullptr);
-    FREE(__i3->name);
-    __i3->name = sstrdup("__i3");
-    __i3->type = CT_OUTPUT;
-    __i3->layout = L_OUTPUT;
-    con_fix_percent(croot);
-    x_set_name(__i3, "[i3 con] pseudo-output __i3");
+static Con* create_i3(Con *croot) {
+    auto con = new Con(croot, nullptr);
+    con->name.assign("__i3");
+    con->type = CT_OUTPUT;
+    con->layout = L_OUTPUT;
+    croot->con_fix_percent();
+    x_set_name(con, "[i3 con] pseudo-output __i3");
     /* For retaining the correct position/size of a scratchpad window, the
      * dimensions of the real outputs should be multiples of the __i3
      * pseudo-output. Ensuring that is the job of scratchpad_fix_resolution()
      * which gets called after this function and after detecting all the
      * outputs (or whenever an output changes). */
-    __i3->rect.width = 1280;
-    __i3->rect.height = 1024;
+    con->rect.width = 1280;
+    con->rect.height = 1024;
 
     /* Add a content container. */
     DLOG("adding main content container\n");
-    Con *content = con_new(nullptr, nullptr);
+    auto content = new Con(nullptr, nullptr);
     content->type = CT_CON;
-    FREE(content->name);
-    content->name = sstrdup("content");
+    content->name.assign("content");
     content->layout = L_SPLITH;
 
     x_set_name(content, "[i3 con] content __i3");
-    con_attach(content, __i3, false);
+    content->con_attach(con, false);
 
     /* Attach the __i3_scratch workspace. */
-    Con *ws = con_new(nullptr, nullptr);
+    auto ws = new Con(nullptr, nullptr);
     ws->type = CT_WORKSPACE;
     ws->num = -1;
-    ws->name = sstrdup("__i3_scratch");
+    ws->name.assign("__i3_scratch");
     ws->layout = L_SPLITH;
-    con_attach(ws, content, false);
+    ws->con_attach(content, false);
     x_set_name(ws, "[i3 con] workspace __i3_scratch");
     ws->fullscreen_mode = CF_OUTPUT;
 
-    return __i3;
+    return con;
 }
 
 /*
  * Loads tree from 'path' (used for in-place restarts).
  *
  */
-bool tree_restore(const char *path, xcb_get_geometry_reply_t *geometry) {
+bool tree_restore(const std::string_view &path, const xcb_get_geometry_reply_t *geometry) {
     bool result = false;
-    char *globbed = resolve_tilde(path);
-    char *buf = nullptr;
+    auto globbed = resolve_tilde(path);
+    std::string buf;
 
-    if (!path_exists(globbed)) {
-        LOG("%s does not exist, not restoring tree\n", globbed);
-        free(globbed);
-        free(buf);
+    if (!std::filesystem::exists(globbed)) {
+        LOG(fmt::sprintf("%s does not exist, not restoring tree\n",  globbed));
         return result;
     }
 
-    ssize_t len;
-    if ((len = slurp(globbed, &buf)) < 0) {
-        /* slurp already logged an error. */
-        free(globbed);
-        free(buf);
+    try {
+        auto slurped = slurp(globbed);
+        buf = slurped;
+    } catch (std::exception &e) {
         return result;
     }
 
     /* TODO: refactor the following */
-    croot = con_new(nullptr, nullptr);
+    croot = new Con();
     croot->rect = (Rect){
         (uint32_t)geometry->x,
         (uint32_t)geometry->y,
@@ -121,38 +117,34 @@ bool tree_restore(const char *path, xcb_get_geometry_reply_t *geometry) {
         geometry->height};
     focused = croot;
 
-    tree_append_json(focused, buf, len, nullptr);
+    tree_append_json(focused, buf, nullptr);
 
     DLOG("appended tree, using new root\n");
-    croot = TAILQ_FIRST(&(croot->nodes_head));
+    croot = con::first(croot->nodes_head);
     if (!croot) {
         /* tree_append_json failed. Continuing here would segfault. */
-        free(globbed);
-        free(buf);
         return result;
     }
-    DLOG("new root = %p\n", croot);
-    Con *out = TAILQ_FIRST(&(croot->nodes_head));
-    DLOG("out = %p\n", out);
-    Con *ws = TAILQ_FIRST(&(out->nodes_head));
-    DLOG("ws = %p\n", ws);
+    DLOG(fmt::sprintf("new root = %p\n",  (void*)croot));
+    Con *out = con::first(croot->nodes_head);
+    DLOG(fmt::sprintf("out = %p\n",  (void*)out));
+    Con *ws = con::first(out->nodes_head);
+    DLOG(fmt::sprintf("ws = %p\n",  (void*)ws));
 
     /* For in-place restarting into v4.2, we need to make sure the new
      * pseudo-output __i3 is present. */
-    if (strcmp(out->name, "__i3") != 0) {
+    if (strcmp(out->name.c_str(), "__i3") != 0) {
         DLOG("Adding pseudo-output __i3 during inplace restart\n");
-        Con *__i3 = _create___i3();
+        Con *__i3 = create_i3(croot);
         /* Ensure that it is the first output, other places in the code make
          * that assumption. */
-        TAILQ_REMOVE(&(croot->nodes_head), __i3, nodes);
-        TAILQ_INSERT_HEAD(&(croot->nodes_head), __i3, nodes);
+        std::erase(croot->nodes_head, __i3);
+        croot->nodes_head.push_front(__i3);
     }
 
     restore_open_placeholder_windows(croot);
     result = true;
 
-    free(globbed);
-    free(buf);
     return result;
 }
 
@@ -161,10 +153,9 @@ bool tree_restore(const char *path, xcb_get_geometry_reply_t *geometry) {
  * root node are created in randr.c for each Output.
  *
  */
-void tree_init(xcb_get_geometry_reply_t *geometry) {
-    croot = con_new(nullptr, nullptr);
-    FREE(croot->name);
-    croot->name = (char*)"root";
+void tree_init(const xcb_get_geometry_reply_t *geometry) {
+    croot = new Con();
+    croot->name.assign("root");
     croot->type = CT_ROOT;
     croot->layout = L_SPLITH;
     croot->rect = (Rect){
@@ -173,7 +164,7 @@ void tree_init(xcb_get_geometry_reply_t *geometry) {
         geometry->width,
         geometry->height};
 
-    _create___i3();
+    create_i3(croot);
 }
 
 /*
@@ -198,17 +189,17 @@ Con *tree_open_con(Con *con, i3Window *window) {
             if (con->type != CT_WORKSPACE)
                 con = con->parent;
         }
-        DLOG("con = %p\n", con);
+        DLOG(fmt::sprintf("con = %p\n",  (void*)con));
     }
 
     assert(con != nullptr);
 
     /* 3. create the container and attach it to its parent */
-    Con *new_con = con_new(con, window);
+    Con *new_con = new Con(con, window);
     new_con->layout = L_SPLITH;
 
     /* 4: re-calculate child->percent for each child */
-    con_fix_percent(con);
+    con->con_fix_percent();
 
     return new_con;
 }
@@ -229,21 +220,18 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
     if (con->urgent) {
         con_set_urgency(con, false);
         con_update_parents_urgency(con);
-        workspace_update_urgent_flag(con_get_workspace(con));
+        workspace_update_urgent_flag(con->con_get_workspace());
     }
 
-    DLOG("closing %p, kill_window = %d\n", con, kill_window);
-    Con *child, *nextchild;
+    DLOG(fmt::sprintf("closing %p, kill_window = %d\n",  (void*)con, kill_window));
     bool abort_kill = false;
     /* We cannot use TAILQ_FOREACH because the children get deleted
      * in their parent’s nodes_head */
-    for (child = TAILQ_FIRST(&(con->nodes_head)); child;) {
-        nextchild = TAILQ_NEXT(child, nodes);
-        DLOG("killing child=%p\n", child);
+    for (auto &child : con->nodes_head) {
+        DLOG(fmt::sprintf("killing child=%p\n",  (void*)child));
         if (!tree_close_internal(child, kill_window, true)) {
             abort_kill = true;
         }
-        child = nextchild;
     }
 
     if (abort_kill) {
@@ -261,10 +249,10 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
              * unmap the window,
              * then reparent it to the root window. */
             uint32_t value_list[]{XCB_NONE};
-            xcb_change_window_attributes(conn, con->window->id,
+            xcb_change_window_attributes(global.conn, con->window->id,
                                          XCB_CW_EVENT_MASK, value_list);
-            xcb_unmap_window(conn, con->window->id);
-            cookie = xcb_reparent_window(conn, con->window->id, root, con->rect.x, con->rect.y);
+            xcb_unmap_window(global.conn, con->window->id);
+            cookie = xcb_reparent_window(global.conn, con->window->id, root, con->rect.x, con->rect.y);
 
             /* Ignore X11 errors for the ReparentWindow request.
              * X11 Errors are returned when the window was already destroyed */
@@ -273,7 +261,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
             /* We are no longer handling this window, thus set WM_STATE to
              * WM_STATE_WITHDRAWN (see ICCCM 4.1.3.1) */
             long data[] = {XCB_ICCCM_WM_STATE_WITHDRAWN, XCB_NONE};
-            cookie = xcb_change_property(conn, XCB_PROP_MODE_REPLACE,
+            cookie = xcb_change_property(global.conn, XCB_PROP_MODE_REPLACE,
                                          con->window->id, A_WM_STATE, A_WM_STATE, 32, 2, data);
 
             /* Remove the window from the save set. All windows in the save set
@@ -281,11 +269,11 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
              * restarting). This is not what we want, since some apps keep
              * unmapped windows around and don’t expect them to suddenly be
              * mapped. See https://bugs.i3wm.org/1617 */
-            xcb_change_save_set(conn, XCB_SET_MODE_DELETE, con->window->id);
+            xcb_change_save_set(global.conn, XCB_SET_MODE_DELETE, con->window->id);
 
             /* Stop receiving ShapeNotify events. */
             if (shape_supported) {
-                xcb_shape_select_input(conn, con->window->id, false);
+                xcb_shape_select_input(global.conn, con->window->id, false);
             }
 
             /* Ignore X11 errors for the ReparentWindow request.
@@ -293,22 +281,22 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
             add_ignore_event(cookie.sequence, 0);
         }
         ipc_send_window_event("close", con);
-        window_free(con->window);
+        delete con->window;
         con->window = nullptr;
     }
 
-    Con *ws = con_get_workspace(con);
+    Con *ws = con->con_get_workspace();
 
     /* Figure out which container to focus next before detaching 'con'. */
     Con *next = (con == focused) ? con_next_focused(con) : nullptr;
-    DLOG("next = %p, focused = %p\n", next, focused);
+    DLOG(fmt::sprintf("next = %p, focused = %p\n",  (void*)next, (void*)focused));
 
     /* Detach the container so that it will not be rendered anymore. */
-    con_detach(con);
+    con->con_detach();
 
     /* disable urgency timer, if needed */
     if (con->urgency_timer != nullptr) {
-        DLOG("Removing urgency timer of con %p\n", con);
+        DLOG(fmt::sprintf("Removing urgency timer of con %p\n",  (void*)con));
         workspace_update_urgent_flag(ws);
         ev_timer_stop(main_loop, con->urgency_timer);
         FREE(con->urgency_timer);
@@ -317,7 +305,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
     if (con->type != CT_FLOATING_CON) {
         /* If the container is *not* floating, we might need to re-distribute
          * percentage values for the resized containers. */
-        con_fix_percent(parent);
+        parent->con_fix_percent();
     }
 
     /* Render the tree so that the surrounding containers take up the space
@@ -335,21 +323,21 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
     x_con_kill(con);
 
     if (ws == con) {
-        DLOG("Closing workspace container %s, updating EWMH atoms\n", ws->name);
+        DLOG(fmt::sprintf("Closing workspace container %s, updating EWMH atoms\n",  ws->name));
         ewmh_update_desktop_properties();
     }
 
-    con_free(con);
+    delete con;
 
     if (next) {
-        con_activate(next);
+        next->con_activate();
     } else {
         DLOG("not changing focus, the container was not focused before\n");
     }
 
     /* check if the parent container is empty now and close it */
     if (!dont_kill_parent)
-        parent->on_remove_child(parent);
+        parent->on_remove_child();
 
     return true;
 }
@@ -360,14 +348,14 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
  *
  */
 void tree_split(Con *con, orientation_t orientation) {
-    if (con_is_floating(con)) {
+    if (con->con_is_floating()) {
         DLOG("Floating containers can't be split.\n");
         return;
     }
 
     if (con->type == CT_WORKSPACE) {
-        if (con_num_children(con) < 2) {
-            if (con_num_children(con) == 0) {
+        if (con->con_num_children() < 2) {
+            if (con->con_num_children() == 0) {
                 DLOG("Changing workspace_layout to L_DEFAULT\n");
                 con->workspace_layout = L_DEFAULT;
             }
@@ -389,7 +377,7 @@ void tree_split(Con *con, orientation_t orientation) {
     /* if we are in a container whose parent contains only one
      * child (its split functionality is unused so far), we just change the
      * orientation (more intuitive than splitting again) */
-    if (con_num_children(parent) == 1 &&
+    if (parent->con_num_children() == 1 &&
         (parent->layout == L_SPLITH ||
          parent->layout == L_SPLITV)) {
         parent->layout = (orientation == HORIZ) ? L_SPLITH : L_SPLITV;
@@ -397,12 +385,14 @@ void tree_split(Con *con, orientation_t orientation) {
         return;
     }
 
-    DLOG("Splitting in orientation %d\n", orientation);
+    DLOG(fmt::sprintf("Splitting in orientation %d\n",  orientation));
 
     /* 2: replace it with a new Con */
-    Con *new_con = con_new(nullptr, nullptr);
-    TAILQ_REPLACE(&(parent->nodes_head), con, new_con, nodes);
-    TAILQ_REPLACE(&(parent->focus_head), con, new_con, focused);
+    Con *new_con = new Con();
+    auto nodes_it = std::ranges::find(parent->nodes_head, con);
+    *nodes_it = new_con;
+    auto con_it = std::ranges::find(parent->focus_head, con);
+    *con_it = new_con;
     new_con->parent = parent;
     new_con->layout = (orientation == HORIZ) ? L_SPLITH : L_SPLITV;
 
@@ -411,7 +401,7 @@ void tree_split(Con *con, orientation_t orientation) {
     con->percent = 0.0;
 
     /* 4: add it as a child to the new Con */
-    con_attach(con, new_con, false);
+    con->con_attach(new_con, false);
 }
 
 /*
@@ -422,7 +412,7 @@ bool level_up() {
     /* Skip over floating containers and go directly to the grandparent
      * (which should always be a workspace) */
     if (focused->parent->type == CT_FLOATING_CON) {
-        con_activate(focused->parent->parent);
+        focused->parent->parent->con_activate();
         return true;
     }
 
@@ -433,7 +423,7 @@ bool level_up() {
         ELOG("'focus parent': Focus is already on the workspace, cannot go higher than that.\n");
         return false;
     }
-    con_activate(focused->parent);
+    focused->parent->con_activate();
     return true;
 }
 
@@ -443,36 +433,35 @@ bool level_up() {
  */
 bool level_down() {
     /* Go down the focus stack of the current node */
-    Con *next = TAILQ_FIRST(&(focused->focus_head));
-    if (next == TAILQ_END(&(focused->focus_head))) {
+    Con *next = con::first(focused->focus_head);
+    if (next == con::last(focused->focus_head)) {
         DLOG("cannot go down\n");
         return false;
     } else if (next->type == CT_FLOATING_CON) {
         /* Floating cons shouldn't be directly focused; try immediately
          * going to the grandchild of the focused con. */
-        Con *child = TAILQ_FIRST(&(next->focus_head));
-        if (child == TAILQ_END(&(next->focus_head))) {
+        Con *child = con::first(next->focus_head);
+        if (child == con::last(next->focus_head)) {
             DLOG("cannot go down\n");
             return false;
         } else
-            next = TAILQ_FIRST(&(next->focus_head));
+            next = con::first(next->focus_head);
     }
 
-    con_activate(next);
+    next->con_activate();
     return true;
 }
 
 static void mark_unmapped(Con *con) {
-    Con *current;
 
     con->mapped = false;
-    TAILQ_FOREACH (current, &(con->nodes_head), nodes) {
+    for (auto &current : con->nodes_head) {
         mark_unmapped(current);
     }
     if (con->type == CT_WORKSPACE) {
         /* We need to call mark_unmapped on floating nodes as well since we can
          * make containers floating. */
-        TAILQ_FOREACH (current, &(con->floating_head), floating_windows) {
+        for (auto &current : con->floating_windows) {
             mark_unmapped(current);
         }
     }
@@ -500,7 +489,7 @@ void tree_render() {
 }
 
 static Con *get_tree_next_workspace(Con *con, direction_t direction) {
-    if (con_get_fullscreen_con(con, CF_GLOBAL)) {
+    if (con->con_get_fullscreen_con(CF_GLOBAL)) {
         DLOG("Cannot change workspace while in global fullscreen mode.\n");
         return nullptr;
     }
@@ -509,18 +498,17 @@ static Con *get_tree_next_workspace(Con *con, direction_t direction) {
     if (!current_output) {
         return nullptr;
     }
-    DLOG("Current output is %s\n", output_primary_name(current_output));
+    DLOG(fmt::sprintf("Current output is %s\n",  current_output->output_primary_name()));
 
     Output *next_output = get_output_next(direction, current_output, CLOSEST_OUTPUT);
     if (!next_output) {
         return nullptr;
     }
-    DLOG("Next output is %s\n", output_primary_name(next_output));
+    DLOG(fmt::sprintf("Next output is %s\n",  next_output->output_primary_name()));
 
     /* Find visible workspace on next output */
-    Con *workspace = nullptr;
-    GREP_FIRST(workspace, output_get_content(next_output->con), workspace_is_visible(child));
-    return workspace;
+    auto workspace = std::ranges::find_if(next_output->con->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
+    return workspace == next_output->con->output_get_content()->nodes_head.end() ? nullptr : *workspace;
 }
 
 /*
@@ -545,7 +533,7 @@ static Con *get_tree_next(Con *con, direction_t direction) {
         if (con->fullscreen_mode == CF_OUTPUT) {
             /* We've reached a fullscreen container. Directional focus should
              * now operate on the workspace level. */
-            con = con_get_workspace(con);
+            con = con->con_get_workspace();
             break;
         } else if (con->fullscreen_mode == CF_GLOBAL) {
             /* Focus changes should happen only inside the children of a global
@@ -561,28 +549,42 @@ static Con *get_tree_next(Con *con, direction_t direction) {
             }
 
             /* left/right focuses the previous/next floating container */
-            Con *next = previous ? TAILQ_PREV(con, floating_head, floating_windows)
-                                 : TAILQ_NEXT(con, floating_windows);
-            /* If there is no next/previous container, wrap */
-            if (!next) {
-                next = previous ? TAILQ_LAST(&(parent->floating_head), floating_head)
-                                : TAILQ_FIRST(&(parent->floating_head));
-            }
+            auto con_it = std::ranges::find(parent->floating_windows, con);
+
             /* Our parent does not list us in floating heads? */
-            assert(next);
+            assert(con_it != parent->floating_windows.end());
+
+            Con *next;
+
+            if (con_it == parent->floating_windows.begin()) {
+                if (previous) {
+                    /* If there is no next/previous container, wrap */
+                    next = parent->floating_windows.back();
+                } else {
+                    next = (std::next(con_it) == parent->floating_windows.end()) ? nullptr : *std::next(con_it);
+                }
+            } else if ((con_it+1) == parent->floating_windows.end()) {
+                if (previous) {
+                    next = (con_it == parent->floating_windows.begin()) ? nullptr : *std::prev(con_it);
+                } else {
+                    /* If there is no next/previous container, wrap */
+                    next = parent->floating_windows.front();
+                }
+            } else {
+                next = previous ? *std::prev(con_it) : *std::next(con_it);
+            }
 
             return next;
         }
 
-        if (con_num_children(parent) > 1 && con_orientation(parent) == orientation) {
-            Con *const next = previous ? TAILQ_PREV(con, nodes_head, nodes)
-                                       : TAILQ_NEXT(con, nodes);
+        if (parent->con_num_children() > 1 && con_orientation(parent) == orientation) {
+            Con *const next = previous ? con::previous(con, con->parent->nodes_head) : con::next(con, con->parent->nodes_head);
             if (next && con_fullscreen_permits_focusing(next)) {
                 return next;
             }
 
-            Con *const wrap = previous ? TAILQ_LAST(&(parent->nodes_head), nodes_head)
-                                       : TAILQ_FIRST(&(parent->nodes_head));
+            Con *const wrap = previous ? con::last(parent->nodes_head)
+                                       : con::first(parent->nodes_head);
             switch (config.focus_wrapping) {
                 case FOCUS_WRAPPING_OFF:
                     break;
@@ -639,22 +641,22 @@ void tree_next(Con *con, direction_t direction) {
         }
 
         workspace_show(next);
-        con_activate(focus);
+        focus->con_activate();
         x_set_warp_to(&(focus->rect));
         return;
     } else if (next->type == CT_FLOATING_CON) {
         /* Raise the floating window on top of other windows preserving relative
          * stack order */
         Con *parent = next->parent;
-        while (TAILQ_LAST(&(parent->floating_head), floating_head) != next) {
-            Con *last = TAILQ_LAST(&(parent->floating_head), floating_head);
-            TAILQ_REMOVE(&(parent->floating_head), last, floating_windows);
-            TAILQ_INSERT_HEAD(&(parent->floating_head), last, floating_windows);
+        while (parent->floating_windows.back() != next) {
+            Con *last = parent->floating_windows.back();
+            parent->floating_windows.pop_back();
+            parent->floating_windows.push_front(last);
         }
     }
 
-    workspace_show(con_get_workspace(next));
-    con_activate(con_descend_focused(next));
+    workspace_show(next->con_get_workspace());
+    con_descend_focused(next)->con_activate();
 }
 
 /*
@@ -662,8 +664,7 @@ void tree_next(Con *con, direction_t direction) {
  *
  */
 Con *get_tree_next_sibling(Con *con, position_t direction) {
-    Con *to_focus = (direction == BEFORE ? TAILQ_PREV(con, nodes_head, nodes)
-                                         : TAILQ_NEXT(con, nodes));
+    Con *to_focus = (direction == BEFORE) ? con::previous(con, con->parent->nodes_head) : con::next(con, con->parent->nodes_head);
     if (to_focus && con_fullscreen_permits_focusing(to_focus)) {
         return to_focus;
     }
@@ -684,103 +685,89 @@ Con *get_tree_next_sibling(Con *con, position_t direction) {
  *
  */
 void tree_flatten(Con *con) {
-    Con *current, *child, *parent = con->parent;
-    DLOG("Checking if I can flatten con = %p / %s\n", con, con->name);
+    Con *child, *parent = con->parent;
+    DLOG(fmt::sprintf("Checking if I can flatten con = %p / %s\n",  (void*)con, con->name));
 
     /* We only consider normal containers without windows */
     if (con->type != CT_CON ||
         parent->layout == L_OUTPUT || /* con == "content" */
         con->window != nullptr) {
         /* We cannot use normal foreach here because tree_flatten might close the current container. */
-        current = TAILQ_FIRST(&(con->nodes_head));
-        while (current != nullptr) {
-            Con *next = TAILQ_NEXT(current, nodes);
+        for (auto &current : con->nodes_head) {
             tree_flatten(current);
-            current = next;
         }
 
-        current = TAILQ_FIRST(&(con->floating_head));
-        while (current != nullptr) {
-            Con *next = TAILQ_NEXT(current, floating_windows);
+        for (auto &current : con->floating_windows) {
             tree_flatten(current);
-            current = next;
         }
+        return;
     }
 
     /* Ensure it got only one child */
-    child = TAILQ_FIRST(&(con->nodes_head));
-    if (child == nullptr || TAILQ_NEXT(child, nodes) != nullptr) {
+    if (con->nodes_head.size() != 1) {
         /* We cannot use normal foreach here because tree_flatten might close the current container. */
-        current = TAILQ_FIRST(&(con->nodes_head));
-        while (current != nullptr) {
-            Con *next = TAILQ_NEXT(current, nodes);
+        for (auto &current : con->nodes_head) {
             tree_flatten(current);
-            current = next;
         }
 
-        current = TAILQ_FIRST(&(con->floating_head));
-        while (current != nullptr) {
-            Con *next = TAILQ_NEXT(current, floating_windows);
-            tree_flatten(current);
-            current = next;
+        for (auto &c : con->floating_windows) {
+            tree_flatten(c);
         }
+        return;
     }
 
-    DLOG("child = %p, con = %p, parent = %p\n", child, con, parent);
+    child = con->nodes_head.front();
+
+    DLOG(fmt::sprintf("child = %p, con = %p, parent = %p\n",  (void*)child, (void*)con, (void*)parent));
 
     /* The child must have a different orientation than the con but the same as
      * the con’s parent to be redundant */
-    if (!con_is_split(con) ||
-        !con_is_split(child) ||
+    if (!con->con_is_split() ||
+        !child->con_is_split() ||
         (con->layout != L_SPLITH && con->layout != L_SPLITV) ||
         (child->layout != L_SPLITH && child->layout != L_SPLITV) ||
         con_orientation(con) == con_orientation(child) ||
         con_orientation(child) != con_orientation(parent)) {
         /* We cannot use normal foreach here because tree_flatten might close the current container. */
-        current = TAILQ_FIRST(&(con->nodes_head));
-        while (current != nullptr) {
-            Con *next = TAILQ_NEXT(current, nodes);
+        for (auto &current : con->nodes_head) {
             tree_flatten(current);
-            current = next;
         }
 
-        current = TAILQ_FIRST(&(con->floating_head));
-        while (current != nullptr) {
-            Con *next = TAILQ_NEXT(current, floating_windows);
+        for (auto &current : con->floating_windows) {
             tree_flatten(current);
-            current = next;
         }
+        return;
     }
 
     DLOG("Alright, I have to flatten this situation now. Stay calm.\n");
     /* 1: save focus */
-    Con *focus_next = TAILQ_FIRST(&(child->focus_head));
+    Con *focus_next = con::first(child->focus_head);
 
     DLOG("detaching...\n");
     /* 2: re-attach the children to the parent before con */
-    while (!TAILQ_EMPTY(&(child->nodes_head))) {
-        current = TAILQ_FIRST(&(child->nodes_head));
-        DLOG("detaching current=%p / %s\n", current, current->name);
-        con_detach(current);
+    while (!child->nodes_head.empty()) {
+        auto current = con::first(child->nodes_head);
+        DLOG(fmt::sprintf("detaching current=%p / %s\n",  (void*)current, current->name));
+        current->con_detach();
         DLOG("re-attaching\n");
         /* We don’t use con_attach() here because for a CT_CON, the special
          * case handling of con_attach() does not trigger. So all it would do
          * is calling TAILQ_INSERT_AFTER, but with the wrong container. So we
          * directly use the TAILQ macros. */
         current->parent = parent;
-        TAILQ_INSERT_BEFORE(con, current, nodes);
+        con->insert_before(current);
         DLOG("attaching to focus list\n");
-        TAILQ_INSERT_TAIL(&(parent->focus_head), current, focused);
+        parent->focus_head.push_back(current);
         current->percent = con->percent;
     }
     DLOG("re-attached all\n");
 
     /* 3: restore focus, if con was focused */
     if (focus_next != nullptr &&
-        TAILQ_FIRST(&(parent->focus_head)) == con) {
-        DLOG("restoring focus to focus_next=%p\n", focus_next);
-        TAILQ_REMOVE(&(parent->focus_head), focus_next, focused);
-        TAILQ_INSERT_HEAD(&(parent->focus_head), focus_next, focused);
+        con::first(parent->focus_head) == con) {
+        DLOG(fmt::sprintf("restoring focus to focus_next=%p\n",  (void*)focus_next));
+        std::erase(parent->focus_head, focus_next);
+        parent->focus_head.push_front(focus_next);
         DLOG("restored focus.\n");
     }
 

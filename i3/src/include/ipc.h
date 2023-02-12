@@ -12,36 +12,39 @@
 #include <config.h>
 
 #include <ev.h>
-#include <yajl/yajl_gen.h>
-#include <yajl/yajl_parse.h>
+#include <nlohmann/json.hpp>
 
-#include "data.h"
+#include "bindings.h"
 #include "tree.h"
+#include "con.h"
 #include "configuration.h"
 
-#include "i3/ipc.h"
+#include "i3-ipc.h"
 
-extern char *current_socketpath;
+extern std::string current_socketpath;
 
-typedef struct ipc_client {
+struct Binding;
+struct Barconfig;
+
+struct ipc_client {
     int fd;
 
     /* The events which this client wants to receive */
-    int num_events;
-    char **events;
+    std::vector<std::string> events{};
 
     /* For clients which subscribe to the tick event: whether the first tick
      * event has been sent by i3. */
-    bool first_tick_sent;
+    bool first_tick_sent{};
 
     struct ev_io *read_callback;
     struct ev_io *write_callback;
-    struct ev_timer *timeout;
-    uint8_t *buffer;
-    size_t buffer_size;
+    struct ev_timer *timeout{};
+    uint8_t *buffer{};
+    size_t buffer_size{};
 
-    TAILQ_ENTRY(ipc_client) clients;
-} ipc_client;
+    ipc_client(EV_P_ int fd);
+    ~ipc_client();
+};
 
 /*
  * Callback type for the different message types.
@@ -56,10 +59,6 @@ typedef struct ipc_client {
 typedef void (*handler_t)(ipc_client *, uint8_t *, int, uint32_t, uint32_t);
 
 /* Macro to declare a callback */
-#define IPC_HANDLER(name)                                           \
-    static void handle_##name(ipc_client *client, uint8_t *message, \
-                              int size, uint32_t message_size,      \
-                              uint32_t message_type)
 
 /**
  * Handler for activity on the listening socket, meaning that a new client
@@ -85,15 +84,15 @@ ipc_client *ipc_new_client_on_fd(EV_P_ int fd);
  * and subscribed to this kind of event.
  *
  */
-void ipc_send_event(const char *event, uint32_t message_type, const char *payload);
+void ipc_send_event(const char *event, uint32_t message_type, const std::string &payload);
 
 /**
  * Calls to ipc_shutdown() should provide a reason for the shutdown.
  */
-typedef enum {
+enum shutdown_reason_t {
     SHUTDOWN_REASON_RESTART,
     SHUTDOWN_REASON_EXIT
-} shutdown_reason_t;
+};
 
 /**
  * Calls shutdown() on each socket and closes it. This function is to be called
@@ -104,13 +103,13 @@ typedef enum {
  */
 void ipc_shutdown(shutdown_reason_t reason, int exempt_fd);
 
-void dump_node(yajl_gen gen, Con *con, bool inplace_restart);
+nlohmann::json dump_node(Con *con, bool inplace_restart);
 
 /**
  * Generates a json workspace event. Returns a dynamically allocated yajl
  * generator. Free with yajl_gen_free().
  */
-yajl_gen ipc_marshal_workspace_event(const char *change, Con *current, Con *old);
+nlohmann::json ipc_marshal_workspace_event(const char *change, Con *current, Con *old);
 
 /**
  * For the workspace events we send, along with the usual "change" field, also

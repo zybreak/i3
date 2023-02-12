@@ -16,17 +16,16 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <vector>
 
 #include <xcb/xcb.h>
 
 #include "libi3.h"
 
-#include "data.h"
+#include "bindings.h"
 #include "util.h"
-#include "ipc.h"
+#include "i3_ipc/include/i3-ipc.h"
 #include "tree.h"
-#include "log.h"
 #include "xcb.h"
 #include "workspace.h"
 #include "i3.h"
@@ -36,6 +35,8 @@
 #include "output.h"
 #include "commands_parser.h"
 #include "sync.h"
+#include "match.h"
+#include "regex.h"
 
 #include <ev.h>
 #include <fcntl.h>
@@ -44,18 +45,12 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#include <yajl/yajl_gen.h>
-#include <yajl/yajl_parse.h>
+#include <nlohmann/json.hpp>
+#include <ranges>
 
-/* Shorter names for all those yajl_gen_* functions */
-#define y(x, ...) yajl_gen_##x(gen, ##__VA_ARGS__)
-#define ystr(str) yajl_gen_string(gen, (unsigned char *)str, strlen(str))
+std::string current_socketpath{};
 
-#define yalloc(callbacks, client) yajl_alloc(callbacks, NULL, client)
-
-char *current_socketpath = nullptr;
-
-TAILQ_HEAD(ipc_client_head, ipc_client) all_clients = TAILQ_HEAD_INITIALIZER(all_clients);
+static std::vector<ipc_client*> all_clients{};
 
 static void ipc_client_timeout(EV_P_ ev_timer *w, int revents);
 static void ipc_socket_writeable_cb(EV_P_ struct ev_io *w, int revents);
@@ -125,7 +120,9 @@ static void ipc_push_pending(ipc_client *client) {
  * send the message if the client's buffer was empty.
  *
  */
-static void ipc_send_client_message(ipc_client *client, size_t size, const uint32_t message_type, const uint8_t *payload) {
+static void ipc_send_client_message(ipc_client *client, const uint32_t message_type, const std::string &payload) {
+    auto size = payload.length();
+
     const i3_ipc_header_t header = {
         .magic = {'i', '3', '-', 'i', 'p', 'c'},
         .size = (uint32_t)size,
@@ -136,7 +133,7 @@ static void ipc_send_client_message(ipc_client *client, size_t size, const uint3
     const bool push_now = (client->buffer_size == 0);
     client->buffer = (uint8_t*)srealloc(client->buffer, client->buffer_size + message_size);
     memcpy(client->buffer + client->buffer_size, ((void *)&header), header_size);
-    memcpy(client->buffer + client->buffer_size + header_size, payload, size);
+    memcpy(client->buffer + client->buffer_size + header_size, payload.c_str(), size);
     client->buffer_size += message_size;
 
     if (push_now) {
@@ -144,29 +141,28 @@ static void ipc_send_client_message(ipc_client *client, size_t size, const uint3
     }
 }
 
+ipc_client::~ipc_client() {
+    ev_io_stop(main_loop, read_callback);
+    FREE(read_callback);
+    ev_io_stop(main_loop, write_callback);
+    FREE(write_callback);
+    if (timeout) {
+        ev_timer_stop(main_loop, timeout);
+        FREE(timeout);
+    }
+
+    free(buffer);
+}
+
 static void free_ipc_client(ipc_client *client, int exempt_fd) {
     if (client->fd != exempt_fd) {
-        DLOG("Disconnecting client on fd %d\n", client->fd);
+        DLOG(fmt::sprintf("Disconnecting client on fd %d\n",  client->fd));
         close(client->fd);
     }
 
-    ev_io_stop(main_loop, client->read_callback);
-    FREE(client->read_callback);
-    ev_io_stop(main_loop, client->write_callback);
-    FREE(client->write_callback);
-    if (client->timeout) {
-        ev_timer_stop(main_loop, client->timeout);
-        FREE(client->timeout);
-    }
+    std::erase(all_clients, client);
 
-    free(client->buffer);
-
-    for (int i = 0; i < client->num_events; i++) {
-        free(client->events[i]);
-    }
-    free(client->events);
-    TAILQ_REMOVE(&all_clients, client, clients);
-    free(client);
+    delete client;
 }
 
 /*
@@ -174,12 +170,11 @@ static void free_ipc_client(ipc_client *client, int exempt_fd) {
  * and subscribed to this kind of event.
  *
  */
-void ipc_send_event(const char *event, uint32_t message_type, const char *payload) {
-    ipc_client *current;
-    TAILQ_FOREACH (current, &all_clients, clients) {
-        for (int i = 0; i < current->num_events; i++) {
-            if (strcasecmp(current->events[i], event) == 0) {
-                ipc_send_client_message(current, strlen(payload), message_type, (uint8_t *)payload);
+void ipc_send_event(const char *event, uint32_t message_type, const std::string &payload) {
+    for (auto &current : all_clients) {
+        for (auto &e : current->events) {
+            if (e == event) {
+                ipc_send_client_message(current, message_type, payload);
                 break;
             }
         }
@@ -190,26 +185,17 @@ void ipc_send_event(const char *event, uint32_t message_type, const char *payloa
  * For shutdown events, we send the reason for the shutdown.
  */
 static void ipc_send_shutdown_event(shutdown_reason_t reason) {
-    yajl_gen gen = yajl_gen_alloc(nullptr);
-    y(map_open);
-
-    ystr("change");
+    nlohmann::json j;
 
     if (reason == SHUTDOWN_REASON_RESTART) {
-        ystr("restart");
+        j["change"] = "restart";
     } else if (reason == SHUTDOWN_REASON_EXIT) {
-        ystr("exit");
+        j["change"] = "exit";
     }
 
-    y(map_close);
+    auto payload = j.dump();
 
-    const unsigned char *payload;
-    size_t length;
-
-    y(get_buf, &payload, &length);
-    ipc_send_event("shutdown", I3_IPC_EVENT_SHUTDOWN, (const char *)payload);
-
-    y(free);
+    ipc_send_event("shutdown", I3_IPC_EVENT_SHUTDOWN, payload);
 }
 
 /*
@@ -222,9 +208,8 @@ static void ipc_send_shutdown_event(shutdown_reason_t reason) {
 void ipc_shutdown(shutdown_reason_t reason, int exempt_fd) {
     ipc_send_shutdown_event(reason);
 
-    ipc_client *current;
-    while (!TAILQ_EMPTY(&all_clients)) {
-        current = TAILQ_FIRST(&all_clients);
+    while (!all_clients.empty()) {
+        auto &current = all_clients.front();
         if (current->fd != exempt_fd) {
             shutdown(current->fd, SHUT_RDWR);
         }
@@ -236,662 +221,537 @@ void ipc_shutdown(shutdown_reason_t reason, int exempt_fd) {
  * Executes the given command.
  *
  */
-IPC_HANDLER(run_command) {
+static void handle_run_command(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     /* To get a properly terminated buffer, we copy
      * message_size bytes out of the buffer */
-    char *command = sstrndup((const char *)message, message_size);
-    LOG("IPC: received: *%.4000s*\n", command);
-    yajl_gen gen = yajl_gen_alloc(nullptr);
+    std::string command((const char *)message, message_size);
+    LOG(fmt::sprintf("IPC: received: *%.4000s*\n",  command));
+    nlohmann::json gen;
 
-    CommandResult *result = parse_command(command, gen, client);
-    free(command);
+    CommandResult result = parse_command(command, &gen, client);
 
-    if (result->needs_tree_render)
+    if (result.needs_tree_render) {
         tree_render();
+    }
 
-    command_result_free(result);
-
-    const unsigned char *reply;
-    size_t length;
-    yajl_gen_get_buf(gen, &reply, &length);
-
-    ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_COMMAND,
-                            (const uint8_t *)reply);
-
-    yajl_gen_free(gen);
+    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_COMMAND, gen.dump());
 }
 
-static void dump_rect(yajl_gen gen, const char *name, Rect r) {
-    ystr(name);
-    y(map_open);
-    ystr("x");
-    y(integer, (int32_t)r.x);
-    ystr("y");
-    y(integer, (int32_t)r.y);
-    ystr("width");
-    y(integer, r.width);
-    ystr("height");
-    y(integer, r.height);
-    y(map_close);
+static nlohmann::json dump_rect(Rect &r) {
+    return {
+            { "x", r.x },
+            { "y", r.y },
+            { "width", r.width },
+            { "height", r.height },
+    };
 }
 
-static void dump_event_state_mask(yajl_gen gen, Binding *bind) {
-    y(array_open);
+static nlohmann::json dump_event_state_mask(Binding *bind) {
+    auto a = nlohmann::json::array();
+
     for (int i = 0; i < 20; i++) {
         if (bind->event_state_mask & (1 << i)) {
             switch (1 << i) {
                 case XCB_KEY_BUT_MASK_SHIFT:
-                    ystr("shift");
+                    a.push_back("shift");
                     break;
                 case XCB_KEY_BUT_MASK_LOCK:
-                    ystr("lock");
+                    a.push_back("lock");
                     break;
                 case XCB_KEY_BUT_MASK_CONTROL:
-                    ystr("ctrl");
+                    a.push_back("ctrl");
                     break;
                 case XCB_KEY_BUT_MASK_MOD_1:
-                    ystr("Mod1");
+                    a.push_back("Mod1");
                     break;
                 case XCB_KEY_BUT_MASK_MOD_2:
-                    ystr("Mod2");
+                    a.push_back("Mod2");
                     break;
                 case XCB_KEY_BUT_MASK_MOD_3:
-                    ystr("Mod3");
+                    a.push_back("Mod3");
                     break;
                 case XCB_KEY_BUT_MASK_MOD_4:
-                    ystr("Mod4");
+                    a.push_back("Mod4");
                     break;
                 case XCB_KEY_BUT_MASK_MOD_5:
-                    ystr("Mod5");
+                    a.push_back("Mod5");
                     break;
                 case XCB_KEY_BUT_MASK_BUTTON_1:
-                    ystr("Button1");
+                    a.push_back("Button1");
                     break;
                 case XCB_KEY_BUT_MASK_BUTTON_2:
-                    ystr("Button2");
+                    a.push_back("Button2");
                     break;
                 case XCB_KEY_BUT_MASK_BUTTON_3:
-                    ystr("Button3");
+                    a.push_back("Button3");
                     break;
                 case XCB_KEY_BUT_MASK_BUTTON_4:
-                    ystr("Button4");
+                    a.push_back("Button4");
                     break;
                 case XCB_KEY_BUT_MASK_BUTTON_5:
-                    ystr("Button5");
+                    a.push_back("Button5");
                     break;
                 case (I3_XKB_GROUP_MASK_1 << 16):
-                    ystr("Group1");
+                    a.push_back("Group1");
                     break;
                 case (I3_XKB_GROUP_MASK_2 << 16):
-                    ystr("Group2");
+                    a.push_back("Group2");
                     break;
                 case (I3_XKB_GROUP_MASK_3 << 16):
-                    ystr("Group3");
+                    a.push_back("Group3");
                     break;
                 case (I3_XKB_GROUP_MASK_4 << 16):
-                    ystr("Group4");
+                    a.push_back("Group4");
                     break;
             }
         }
     }
-    y(array_close);
+
+    return a;
 }
 
-static void dump_binding(yajl_gen gen, Binding *bind) {
-    y(map_open);
-    ystr("input_code");
-    y(integer, bind->keycode);
+static nlohmann::json dump_binding(Binding *bind) {
+    nlohmann::json j;
 
-    ystr("input_type");
-    ystr((const char *)(bind->input_type == B_KEYBOARD ? "keyboard" : "mouse"));
+    j["input_code"] = bind->keycode;
+    j["input_type"] = bind->input_type == B_KEYBOARD ? "keyboard" : "mouse";
 
-    ystr("symbol");
-    if (bind->symbol == nullptr)
-        y(null);
-    else
-        ystr(bind->symbol);
+    if (bind->symbol != nullptr)
+        j["symbol"] = bind->symbol;
 
-    ystr("command");
-    ystr(bind->command);
+    j["command"] = bind->command;
 
     // This key is only provided for compatibility, new programs should use
     // event_state_mask instead.
-    ystr("mods");
-    dump_event_state_mask(gen, bind);
+    j["mods"] = dump_event_state_mask(bind);
+    j["event_state_mask"] = dump_event_state_mask(bind);
 
-    ystr("event_state_mask");
-    dump_event_state_mask(gen, bind);
-
-    y(map_close);
+    return j;
 }
 
-void dump_node(yajl_gen gen, struct Con *con, bool inplace_restart) {
-    y(map_open);
-    ystr("id");
-    y(integer, (uintptr_t)con);
-
-    ystr("type");
+static std::string type(Con *con) {
     switch (con->type) {
         case CT_ROOT:
-            ystr("root");
-            break;
+            return "root";
         case CT_OUTPUT:
-            ystr("output");
-            break;
+            return "output";
         case CT_CON:
-            ystr("con");
-            break;
+            return "con";
         case CT_FLOATING_CON:
-            ystr("floating_con");
-            break;
+            return "floating_con";
         case CT_WORKSPACE:
-            ystr("workspace");
-            break;
+            return "workspace";
         case CT_DOCKAREA:
-            ystr("dockarea");
-            break;
+            return "dockarea";
+        default:
+            throw std::runtime_error("unknown type");
     }
+}
 
-    /* provided for backwards compatibility only. */
-    ystr("orientation");
-    if (!con_is_split(con))
-        ystr("none");
+static std::string orientation(Con *con) {
+    if (!con->con_is_split())
+        return "none";
     else {
         if (con_orientation(con) == HORIZ)
-            ystr("horizontal");
+            return "horizontal";
         else
-            ystr("vertical");
+            return "vertical";
     }
+}
 
-    ystr("scratchpad_state");
+static std::string scratchpad_state(Con *con) {
     switch (con->scratchpad_state) {
         case SCRATCHPAD_NONE:
-            ystr("none");
-            break;
+            return "none";
         case SCRATCHPAD_FRESH:
-            ystr("fresh");
-            break;
+            return "fresh";
         case SCRATCHPAD_CHANGED:
-            ystr("changed");
-            break;
+            return "changed";
+        default:
+            throw std::runtime_error("unknown scratchpad_state");
     }
+}
 
-    ystr("percent");
-    if (con->percent == 0.0)
-        y(null);
-    else
-        y(double, con->percent);
-
-    ystr("urgent");
-    y(bool, con->urgent);
-
-    ystr("focused");
-    y(bool, (con == focused));
-
-    if (con->type != CT_ROOT && con->type != CT_OUTPUT) {
-        ystr("output");
-        ystr(con_get_output(con)->name);
-    }
-
-    ystr("layout");
+static std::string layout(Con *con) {
     switch (con->layout) {
         case L_DEFAULT:
             DLOG("About to dump layout=default, this is a bug in the code.\n");
             assert(false);
             break;
         case L_SPLITV:
-            ystr("splitv");
-            break;
+            return "splitv";
         case L_SPLITH:
-            ystr("splith");
-            break;
+            return "splith";
         case L_STACKED:
-            ystr("stacked");
-            break;
+            return "stacked";
         case L_TABBED:
-            ystr("tabbed");
-            break;
+            return "tabbed";
         case L_DOCKAREA:
-            ystr("dockarea");
-            break;
+            return "dockarea";
         case L_OUTPUT:
-            ystr("output");
-            break;
+            return "output";
+        default:
+            throw std::runtime_error("unknown layout");
     }
+}
 
-    ystr("workspace_layout");
+static std::string workspace_layout(Con *con) {
     switch (con->workspace_layout) {
         case L_DEFAULT:
-            ystr("default");
-            break;
+            return "default";
         case L_STACKED:
-            ystr("stacked");
-            break;
+            return "stacked";
         case L_TABBED:
-            ystr("tabbed");
-            break;
+            return "tabbed";
         default:
-            DLOG("About to dump workspace_layout=%d (none of default/stacked/tabbed), this is a bug.\n", con->workspace_layout);
+            DLOG(fmt::sprintf("About to dump workspace_layout=%d (none of default/stacked/tabbed), this is a bug.\n",  con->workspace_layout));
             assert(false);
             break;
     }
+}
 
-    ystr("last_split_layout");
-    switch (con->layout) {
-        case L_SPLITV:
-            ystr("splitv");
-            break;
-        default:
-            ystr("splith");
-            break;
-    }
-
-    ystr("border");
+static std::string border_style(Con *con) {
     switch (con->border_style) {
         case BS_NORMAL:
-            ystr("normal");
-            break;
+            return "normal";
         case BS_NONE:
-            ystr("none");
-            break;
+            return "none";
         case BS_PIXEL:
-            ystr("pixel");
-            break;
+            return "pixel";
+        default:
+            throw std::runtime_error("unknown border_style");
+    }
+}
+
+static std::string window_type(Con *con) {
+    if (con->window->window_type == A__NET_WM_WINDOW_TYPE_NORMAL) {
+        return "normal";
+    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_DOCK) {
+        return "dock";
+    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_DIALOG) {
+        return "dialog";
+    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_UTILITY) {
+        return "utility";
+    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_TOOLBAR) {
+        return "toolbar";
+    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_SPLASH) {
+        return "splash";
+    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_MENU) {
+        return "menu";
+    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_DROPDOWN_MENU) {
+        return "dropdown_menu";
+    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_POPUP_MENU) {
+        return "popup_menu";
+    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_TOOLTIP) {
+        return "tooltip";
+    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_NOTIFICATION) {
+        return "notification";
+    } else {
+        return "unknown";
+    }
+}
+
+static std::string floating(Con *con) {
+    switch (con->floating) {
+        case FLOATING_AUTO_OFF:
+            return "auto_off";
+        case FLOATING_AUTO_ON:
+            return "auto_on";
+        case FLOATING_USER_OFF:
+            return "user_off";
+        case FLOATING_USER_ON:
+            return "user_on";
+        default:
+            throw std::runtime_error("unknown floating");
+    }
+}
+
+nlohmann::json dump_node(Con *con, bool inplace_restart) {
+    nlohmann::json j;
+
+    j["id"] = (uintptr_t)con;
+    j["type"] = type(con);
+
+    /* provided for backwards compatibility only. */
+    j["orientation"] = orientation(con);
+
+    j["scratchpad_state"] = scratchpad_state(con);
+
+    if (con->percent > 0.0)
+        j["percent"] = con->percent;
+
+    j["urgent"] = con->urgent;
+    j["focused"] = (con == focused);
+
+    if (con->type != CT_ROOT && con->type != CT_OUTPUT) {
+        j["output"] = con->con_get_output()->name;
     }
 
-    ystr("current_border_width");
-    y(integer, con->current_border_width);
+    j["layout"] = layout(con);
+    j["workspace_layout"] = workspace_layout(con);
+    j["last_split_layout"] = (con->layout == L_SPLITV) ? "splitv" : "splith";
+    j["border"] = border_style(con);
+    j["current_border_width"] = con->current_border_width;
 
-    dump_rect(gen, "rect", con->rect);
-    dump_rect(gen, "deco_rect", con->deco_rect);
-    dump_rect(gen, "window_rect", con->window_rect);
-    dump_rect(gen, "geometry", con->geometry);
+    j["rect"] = dump_rect(con->rect);
+    j["deco_rect"] = dump_rect(con->deco_rect);
+    j["window_rect"] = dump_rect(con->window_rect);
+    j["geometry"] = dump_rect(con->geometry);
 
-    ystr("name");
     if (con->window && con->window->name)
-        ystr(i3string_as_utf8(con->window->name));
-    else if (con->name != nullptr)
-        ystr(con->name);
-    else
-        y(null);
+        j["name"] = i3string_as_utf8(con->window->name);
+    else if (!con->name.empty())
+        j["name"] = con->name;
 
-    if (con->title_format != nullptr) {
-        ystr("title_format");
-        ystr(con->title_format);
+    if (!con->title_format.empty()) {
+        j["title_format"] = con->title_format;
     }
 
-    ystr("window_icon_padding");
-    y(integer, con->window_icon_padding);
+    j["window_icon_padding"] = con->window_icon_padding;
 
     if (con->type == CT_WORKSPACE) {
-        ystr("num");
-        y(integer, con->num);
+        j["num"] = con->num;
     }
 
-    ystr("window");
-    if (con->window)
-        y(integer, con->window->id);
-    else
-        y(null);
-
-    ystr("window_type");
     if (con->window) {
-        if (con->window->window_type == A__NET_WM_WINDOW_TYPE_NORMAL) {
-            ystr("normal");
-        } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_DOCK) {
-            ystr("dock");
-        } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_DIALOG) {
-            ystr("dialog");
-        } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_UTILITY) {
-            ystr("utility");
-        } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_TOOLBAR) {
-            ystr("toolbar");
-        } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_SPLASH) {
-            ystr("splash");
-        } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_MENU) {
-            ystr("menu");
-        } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_DROPDOWN_MENU) {
-            ystr("dropdown_menu");
-        } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_POPUP_MENU) {
-            ystr("popup_menu");
-        } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_TOOLTIP) {
-            ystr("tooltip");
-        } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_NOTIFICATION) {
-            ystr("notification");
-        } else {
-            ystr("unknown");
-        }
-    } else
-        y(null);
+        j["window"] = con->window->id;
+        j["window_type"] = window_type(con);
+    }
+
 
     if (con->window && !inplace_restart) {
         /* Window properties are useless to preserve when restarting because
          * they will be queried again anyway. However, for i3-save-tree(1),
          * they are very useful and save i3-save-tree dealing with X11. */
-        ystr("window_properties");
-        y(map_open);
+        auto map = nlohmann::json::object();
 
-#define DUMP_PROPERTY(key, prop_name)         \
-    do {                                      \
-        if (con->window->prop_name != NULL) { \
-            ystr(key);                        \
-            ystr(con->window->prop_name);     \
-        }                                     \
-    } while (0)
-
-        DUMP_PROPERTY("class", class_class);
-        DUMP_PROPERTY("instance", class_instance);
-        DUMP_PROPERTY("window_role", role);
-        DUMP_PROPERTY("machine", machine);
+        if (con->window->class_class != nullptr) {
+            map["class"] = con->window->class_class;
+        }
+        if (con->window->class_instance != nullptr) {
+            map["instance"] = con->window->class_instance;
+        }
+        if (con->window->role != nullptr) {
+            map["window_role"] = con->window->role;
+        }
+        if (con->window->machine != nullptr) {
+            map["machine"] = con->window->machine;
+        }
 
         if (con->window->name != nullptr) {
-            ystr("title");
-            ystr(i3string_as_utf8(con->window->name));
+            map["title"] = i3string_as_utf8(con->window->name);
         }
 
-        ystr("transient_for");
-        if (con->window->transient_for == XCB_NONE)
-            y(null);
-        else
-            y(integer, con->window->transient_for);
+        if (con->window->transient_for != XCB_NONE)
+            j["transient_for"] = con->window->transient_for;
 
-        y(map_close);
+        j["window_properties"] = map;
     }
 
-    ystr("nodes");
-    y(array_open);
-    Con *node;
     if (con->type != CT_DOCKAREA || !inplace_restart) {
-        TAILQ_FOREACH (node, &(con->nodes_head), nodes) {
-            dump_node(gen, node, inplace_restart);
-        }
-    }
-    y(array_close);
-
-    ystr("floating_nodes");
-    y(array_open);
-    TAILQ_FOREACH (node, &(con->floating_head), floating_windows) {
-        dump_node(gen, node, inplace_restart);
-    }
-    y(array_close);
-
-    ystr("focus");
-    y(array_open);
-    TAILQ_FOREACH (node, &(con->focus_head), focused) {
-        y(integer, (uintptr_t)node);
-    }
-    y(array_close);
-
-    ystr("fullscreen_mode");
-    y(integer, con->fullscreen_mode);
-
-    ystr("sticky");
-    y(bool, con->sticky);
-
-    ystr("floating");
-    switch (con->floating) {
-        case FLOATING_AUTO_OFF:
-            ystr("auto_off");
-            break;
-        case FLOATING_AUTO_ON:
-            ystr("auto_on");
-            break;
-        case FLOATING_USER_OFF:
-            ystr("user_off");
-            break;
-        case FLOATING_USER_ON:
-            ystr("user_on");
-            break;
+        auto a = nlohmann::json::array();
+        std::ranges::transform(con->nodes_head, std::back_inserter(a), [&inplace_restart](Con *node) { return dump_node(node, inplace_restart); });
+        j["nodes"] = a;
     }
 
-    ystr("swallows");
-    y(array_open);
-    Match *match;
-    TAILQ_FOREACH (match, &(con->swallow_head), matches) {
+    auto floating_nodes_array = nlohmann::json::array();
+    std::ranges::transform(con->floating_windows, std::back_inserter(floating_nodes_array), [&inplace_restart](Con *node) { return dump_node(node, inplace_restart); });
+    j["floating_nodes"] = floating_nodes_array;
+
+    auto focus_nodes_array = nlohmann::json::array();
+    std::ranges::transform(con->focus_head, std::back_inserter(focus_nodes_array), [](Con *node) { return (uintptr_t)node; });
+    j["focus"] = focus_nodes_array;
+
+    j["fullscreen_mode"] = con->fullscreen_mode;
+    j["sticky"] = con->sticky;
+    j["floating"] = floating(con);
+
+    auto swallows = nlohmann::json::array();
+    for (auto &match : con->swallow) {
         /* We will generate a new restart_mode match specification after this
          * loop, so skip this one. */
         if (match->restart_mode)
             continue;
-        y(map_open);
+
+        auto map = nlohmann::json::object();
+
         if (match->dock != M_DONTCHECK) {
-            ystr("dock");
-            y(integer, match->dock);
-            ystr("insert_where");
-            y(integer, match->insert_where);
+            map["dock"] = match->dock;
+            map["insert_where"] = match->insert_where;
         }
 
-#define DUMP_REGEX(re_name)                \
-    do {                                   \
-        if (match->re_name != NULL) {      \
-            ystr(#re_name);                \
-            ystr(match->re_name->pattern); \
-        }                                  \
-    } while (0)
+        if (match->window_class != nullptr) map["window_class"] = match->window_class->pattern;
+        if (match->instance != nullptr)     map["instance"] = match->instance->pattern;
+        if (match->window_role != nullptr)  map["window_role"] = match->window_role->pattern;
+        if (match->title != nullptr)        map["title"] = match->title->pattern;
+        if (match->machine != nullptr)      map["machine"] = match->machine->pattern;
 
-        DUMP_REGEX(window_class);
-        DUMP_REGEX(instance);
-        DUMP_REGEX(window_role);
-        DUMP_REGEX(title);
-        DUMP_REGEX(machine);
-
-#undef DUMP_REGEX
-        y(map_close);
+        swallows.push_back(map);
     }
 
     if (inplace_restart) {
         if (con->window != nullptr) {
-            y(map_open);
-            ystr("id");
-            y(integer, con->window->id);
-            ystr("restart_mode");
-            y(bool, true);
-            y(map_close);
+            swallows.push_back({
+               {"id", con->window->id},
+               {"restart_mode", true},
+           });
         }
     }
-    y(array_close);
+    j["swallows"] = swallows;
 
     if (inplace_restart && con->window != nullptr) {
-        ystr("depth");
-        y(integer, con->depth);
+        j["depth"] = con->depth;
     }
 
     if (inplace_restart && con->type == CT_ROOT && previous_workspace_name) {
-        ystr("previous_workspace_name");
-        ystr(previous_workspace_name);
+        j["previous_workspace_name"] = previous_workspace_name;
     }
 
-    y(map_close);
+    return j;
 }
 
-static void dump_bar_bindings(yajl_gen gen, Barconfig *config) {
-    if (TAILQ_EMPTY(&(config->bar_bindings)))
-        return;
+static nlohmann::json dump_bar_bindings(Barconfig *config) {
+    auto a = nlohmann::json::array();
 
-    ystr("bindings");
-    y(array_open);
+    if (config->bar_bindings.empty())
+        return a;
 
-    struct Barbinding *current;
-    TAILQ_FOREACH (current, &(config->bar_bindings), bindings) {
-        y(map_open);
-
-        ystr("input_code");
-        y(integer, current->input_code);
-        ystr("command");
-        ystr(current->command);
-        ystr("release");
-        y(bool, current->release == B_UPON_KEYRELEASE);
-
-        y(map_close);
+    for (auto &current : config->bar_bindings) {
+        a.push_back({
+            { "input_code", current->input_code },
+            { "command", current->command },
+            { "release", current->release == B_UPON_KEYRELEASE }
+        });
     }
 
-    y(array_close);
+    return a;
 }
 
-static char *canonicalize_output_name(char *name) {
+static std::string canonicalize_output_name(const std::string &name) {
     /* Do not canonicalize special output names. */
-    if (strcasecmp(name, "primary") == 0) {
+    if (strcasecmp(name.c_str(), "primary") == 0) {
         return name;
     }
     Output *output = get_output_by_name(name, false);
-    return output ? output_primary_name(output) : name;
+    return output ? output->output_primary_name() : name;
 }
 
-static void dump_bar_config(yajl_gen gen, Barconfig *config) {
-    y(map_open);
+static std::string mode(Barconfig *config) {
+    switch (config->mode) {
+        case M_HIDE:
+            return "hide";
+        case M_INVISIBLE:
+            return "invisible";
+        case M_DOCK:
+        default:
+            return "dock";
+    }
+}
 
-    ystr("id");
-    ystr(config->id);
+static std::string hidden_state(Barconfig *config) {
+    switch (config->hidden_state) {
+        case S_SHOW:
+            return "show";
+        case S_HIDE:
+        default:
+            return "hide";
+    }
+}
 
-    if (config->num_outputs > 0) {
-        ystr("outputs");
-        y(array_open);
-        for (int c = 0; c < config->num_outputs; c++) {
+static nlohmann::json dump_bar_config(Barconfig *config) {
+    nlohmann::json j;
+
+    j["id"] = config->id;
+
+    if (!config->outputs.empty()) {
+        auto a = nlohmann::json::array();
+        for (auto &output : config->outputs) {
             /* Convert monitor names (RandR ≥ 1.5) or output names
              * (RandR < 1.5) into monitor names. This way, existing
              * configs which use output names transparently keep
              * working. */
-            ystr(canonicalize_output_name(config->outputs[c]));
+            a.push_back(canonicalize_output_name(output));
         }
-        y(array_close);
+        j["outputs"] = a;
     }
 
-    if (!TAILQ_EMPTY(&(config->tray_outputs))) {
-        ystr("tray_outputs");
-        y(array_open);
-
-        struct tray_output_t *tray_output;
-        TAILQ_FOREACH (tray_output, &(config->tray_outputs), tray_outputs) {
-            ystr(canonicalize_output_name(tray_output->output));
-        }
-
-        y(array_close);
+    if (!config->tray_outputs.empty()) {
+        auto a = nlohmann::json::array();
+        std::ranges::transform(config->tray_outputs, std::back_inserter(a), [](auto &output) { return canonicalize_output_name(output); });
+        j["tray_outputs"] = a;
     }
 
-#define YSTR_IF_SET(name)       \
-    do {                        \
-        if (config->name) {     \
-            ystr(#name);        \
-            ystr(config->name); \
-        }                       \
-    } while (0)
-
-    ystr("tray_padding");
-    y(integer, config->tray_padding);
-
-    YSTR_IF_SET(socket_path);
-
-    ystr("mode");
-    switch (config->mode) {
-        case M_HIDE:
-            ystr("hide");
-            break;
-        case M_INVISIBLE:
-            ystr("invisible");
-            break;
-        case M_DOCK:
-        default:
-            ystr("dock");
-            break;
+    j["tray_padding"] = config->tray_padding;
+    if (config->socket_path) {
+        j["socket_path"] = config->socket_path;
     }
 
-    ystr("hidden_state");
-    switch (config->hidden_state) {
-        case S_SHOW:
-            ystr("show");
-            break;
-        case S_HIDE:
-        default:
-            ystr("hide");
-            break;
+    j["mode"] = mode(config);
+
+    j["hidden_state"] = hidden_state(config);
+
+
+    j["modifier"] = config->modifier;
+
+    j["bindings"] = dump_bar_bindings(config);
+
+    j["position"] = (config->position == P_BOTTOM) ? "bottom" : "top";
+
+    if (config->status_command) {
+        j["status_command"] = config->status_command;
     }
 
-    ystr("modifier");
-    y(integer, config->modifier);
-
-    dump_bar_bindings(gen, config);
-
-    ystr("position");
-    if (config->position == P_BOTTOM)
-        ystr("bottom");
-    else
-        ystr("top");
-
-    YSTR_IF_SET(status_command);
-    YSTR_IF_SET(font);
+    if (config->font) {
+        j["font"] = config->font;
+    }
 
     if (config->separator_symbol) {
-        ystr("separator_symbol");
-        ystr(config->separator_symbol);
+        j["separator_symbol"] = config->separator_symbol;
     }
 
-    ystr("workspace_buttons");
-    y(bool, !config->hide_workspace_buttons);
+    j["workspace_buttons"] = !config->hide_workspace_buttons;
+    j["workspace_min_width"] = config->workspace_min_width;
+    j["strip_workspace_numbers"] = config->strip_workspace_numbers;
+    j["strip_workspace_name"] = config->strip_workspace_name;
+    j["binding_mode_indicator"] = !config->hide_binding_mode_indicator;
+    j["verbose"] = config->verbose;
 
-    ystr("workspace_min_width");
-    y(integer, config->workspace_min_width);
+    auto m = nlohmann::json::object();
+    if (config->colors.background) { m["background"] = config->colors.background; };
+    if (config->colors.statusline) { m["statusline"] = config->colors.statusline; };
+    if (config->colors.separator) { m["separator"] = config->colors.separator; };
+    if (config->colors.focused_background) { m["focused_background"] = config->colors.focused_background; };
+    if (config->colors.focused_statusline) { m["focused_statusline"] = config->colors.focused_statusline; };
+    if (config->colors.focused_separator) { m["focused_separator"] = config->colors.focused_separator; };
+    if (config->colors.focused_workspace_border) { m["focused_workspace_border"] = config->colors.focused_workspace_border; };
+    if (config->colors.focused_workspace_bg) { m["focused_workspace_bg"] = config->colors.focused_workspace_bg; };
+    if (config->colors.focused_workspace_text) { m["focused_workspace_text"] = config->colors.focused_workspace_text; };
+    if (config->colors.active_workspace_border) { m["active_workspace_border"] = config->colors.active_workspace_border; };
+    if (config->colors.active_workspace_bg) { m["active_workspace_bg"] = config->colors.active_workspace_bg; };
+    if (config->colors.active_workspace_text) { m["active_workspace_text"] = config->colors.active_workspace_text; };
+    if (config->colors.inactive_workspace_border) { m["inactive_workspace_border"] = config->colors.inactive_workspace_border; };
+    if (config->colors.inactive_workspace_bg) { m["inactive_workspace_bg"] = config->colors.inactive_workspace_bg; };
+    if (config->colors.inactive_workspace_text) { m["inactive_workspace_text"] = config->colors.inactive_workspace_text; };
+    if (config->colors.urgent_workspace_border) { m["urgent_workspace_border"] = config->colors.urgent_workspace_border; };
+    if (config->colors.urgent_workspace_bg) { m["urgent_workspace_bg"] = config->colors.urgent_workspace_bg; };
+    if (config->colors.urgent_workspace_text) { m["urgent_workspace_text"] = config->colors.urgent_workspace_text; };
+    if (config->colors.binding_mode_border) { m["binding_mode_border"] = config->colors.binding_mode_border; };
+    if (config->colors.binding_mode_bg) { m["binding_mode_bg"] = config->colors.binding_mode_bg; };
+    if (config->colors.binding_mode_text) { m["binding_mode_text"] = config->colors.binding_mode_text; };
 
-    ystr("strip_workspace_numbers");
-    y(bool, config->strip_workspace_numbers);
+    j["colors"] = m;
 
-    ystr("strip_workspace_name");
-    y(bool, config->strip_workspace_name);
-
-    ystr("binding_mode_indicator");
-    y(bool, !config->hide_binding_mode_indicator);
-
-    ystr("verbose");
-    y(bool, config->verbose);
-
-#undef YSTR_IF_SET
-#define YSTR_IF_SET(name)              \
-    do {                               \
-        if (config->colors.name) {     \
-            ystr(#name);               \
-            ystr(config->colors.name); \
-        }                              \
-    } while (0)
-
-    ystr("colors");
-    y(map_open);
-    YSTR_IF_SET(background);
-    YSTR_IF_SET(statusline);
-    YSTR_IF_SET(separator);
-    YSTR_IF_SET(focused_background);
-    YSTR_IF_SET(focused_statusline);
-    YSTR_IF_SET(focused_separator);
-    YSTR_IF_SET(focused_workspace_border);
-    YSTR_IF_SET(focused_workspace_bg);
-    YSTR_IF_SET(focused_workspace_text);
-    YSTR_IF_SET(active_workspace_border);
-    YSTR_IF_SET(active_workspace_bg);
-    YSTR_IF_SET(active_workspace_text);
-    YSTR_IF_SET(inactive_workspace_border);
-    YSTR_IF_SET(inactive_workspace_bg);
-    YSTR_IF_SET(inactive_workspace_text);
-    YSTR_IF_SET(urgent_workspace_border);
-    YSTR_IF_SET(urgent_workspace_bg);
-    YSTR_IF_SET(urgent_workspace_text);
-    YSTR_IF_SET(binding_mode_border);
-    YSTR_IF_SET(binding_mode_bg);
-    YSTR_IF_SET(binding_mode_text);
-    y(map_close);
-
-    y(map_close);
-#undef YSTR_IF_SET
+    return j;
 }
 
-IPC_HANDLER(tree) {
+static void handle_tree(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     setlocale(LC_NUMERIC, "C");
-    yajl_gen gen = yajl_gen_alloc(nullptr);
-    dump_node(gen, croot, false);
+    auto j = dump_node(croot, false);
     setlocale(LC_NUMERIC, "");
 
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
+    auto payload = j.dump();
 
-    ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_TREE, payload);
-    y(free);
+    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_TREE, payload);
 }
 
 /*
@@ -899,66 +759,32 @@ IPC_HANDLER(tree) {
  * client
  *
  */
-IPC_HANDLER(get_workspaces) {
-    yajl_gen gen = yajl_gen_alloc(nullptr);
-    y(array_open);
+static void handle_get_workspaces(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
+    auto a = nlohmann::json::array();
 
-    Con *focused_ws = con_get_workspace(focused);
+    Con *focused_ws = focused->con_get_workspace();
 
-    Con *output;
-    TAILQ_FOREACH (output, &(croot->nodes_head), nodes) {
-        if (con_is_internal(output))
+    for (auto &output : croot->nodes_head) {
+        if (output->con_is_internal())
             continue;
-        Con *ws;
-        TAILQ_FOREACH (ws, &(output_get_content(output)->nodes_head), nodes) {
+        for (auto &ws : output->output_get_content()->nodes_head) {
             assert(ws->type == CT_WORKSPACE);
-            y(map_open);
 
-            ystr("id");
-            y(integer, (uintptr_t)ws);
-
-            ystr("num");
-            y(integer, ws->num);
-
-            ystr("name");
-            ystr(ws->name);
-
-            ystr("visible");
-            y(bool, workspace_is_visible(ws));
-
-            ystr("focused");
-            y(bool, ws == focused_ws);
-
-            ystr("rect");
-            y(map_open);
-            ystr("x");
-            y(integer, ws->rect.x);
-            ystr("y");
-            y(integer, ws->rect.y);
-            ystr("width");
-            y(integer, ws->rect.width);
-            ystr("height");
-            y(integer, ws->rect.height);
-            y(map_close);
-
-            ystr("output");
-            ystr(output->name);
-
-            ystr("urgent");
-            y(bool, ws->urgent);
-
-            y(map_close);
+            a.push_back({
+                { "id", (uintptr_t)ws },
+                { "num", ws->num },
+                { "name", ws->name },
+                { "visible", workspace_is_visible(ws) },
+                { "focused", ws == focused_ws },
+                { "rect", dump_rect(ws->rect) },
+                { "output", output->name },
+                {"urgent", ws->urgent }
+            });
         }
     }
 
-    y(array_close);
-
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
-
-    ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_WORKSPACES, payload);
-    y(free);
+    auto payload = a.dump();
+    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_WORKSPACES, payload);
 }
 
 /*
@@ -966,95 +792,51 @@ IPC_HANDLER(get_workspaces) {
  * client
  *
  */
-IPC_HANDLER(get_outputs) {
-    yajl_gen gen = yajl_gen_alloc(nullptr);
-    y(array_open);
+static void handle_get_outputs(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
+
+    auto a = nlohmann::json::array();
 
     for (Output *output : outputs) {
-        y(map_open);
 
-        ystr("name");
-        ystr(output_primary_name(output));
+        auto o = nlohmann::json::object();
 
-        ystr("active");
-        y(bool, output->active);
-
-        ystr("primary");
-        y(bool, output->primary);
-
-        ystr("rect");
-        y(map_open);
-        ystr("x");
-        y(integer, output->rect.x);
-        ystr("y");
-        y(integer, output->rect.y);
-        ystr("width");
-        y(integer, output->rect.width);
-        ystr("height");
-        y(integer, output->rect.height);
-        y(map_close);
-
-        ystr("current_workspace");
+        o["name"] = output->output_primary_name();
+        o["active"] = output->active;
+        o["primary"] = output->primary;
+        o["rect"] = dump_rect(output->rect);
         Con *ws = nullptr;
-        if (output->con && (ws = con_get_fullscreen_con(output->con, CF_OUTPUT)))
-            ystr(ws->name);
-        else
-            y(null);
+        if (output->con && (ws = output->con->con_get_fullscreen_con(CF_OUTPUT)))
+            o["current_workspace"] = ws->name;
 
-        y(map_close);
+        a.push_back(o);
     }
 
-    y(array_close);
-
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
-
-    ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_OUTPUTS, payload);
-    y(free);
+    auto payload = a.dump();
+    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_OUTPUTS, payload);
 }
 
 /*
  * Returns the version of i3
  *
  */
-IPC_HANDLER(get_version) {
-    yajl_gen gen = yajl_gen_alloc(nullptr);
-    y(map_open);
+static void handle_get_version(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
+    nlohmann::json j;
 
-    ystr("major");
-    y(integer, MAJOR_VERSION);
+    j["major"] = MAJOR_VERSION;
+    j["minor"] = MINOR_VERSION;
+    j["patch"] = PATCH_VERSION;
+    j["human_readable"] = i3_version;
+    j["loaded_config_file_name"] = current_configpath;
 
-    ystr("minor");
-    y(integer, MINOR_VERSION);
+    auto a = nlohmann::json::array();
+    for (auto &file : std::ranges::drop_view{included_files,1}) {
+        a.push_back(file);
+    };
+    j["included_config_file_names"] = a;
 
-    ystr("patch");
-    y(integer, PATCH_VERSION);
+    auto payload = j.dump();
 
-    ystr("human_readable");
-    ystr(i3_version);
-
-    ystr("loaded_config_file_name");
-    ystr(current_configpath);
-
-    ystr("included_config_file_names");
-    y(array_open);
-    for (char* file : *included_files) {
-        if (file == *included_files->begin()) {
-            /* Skip the first file, which is current_configpath. */
-            continue;
-        }
-        ystr(file);
-    }
-    y(array_close);
-    y(map_close);
-
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
-
-    ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_VERSION, payload);
-    y(free);
+    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_VERSION, payload);
 }
 
 /*
@@ -1062,23 +844,14 @@ IPC_HANDLER(get_version) {
  * client.
  *
  */
-IPC_HANDLER(get_bar_config) {
-    yajl_gen gen = yajl_gen_alloc(nullptr);
-
+static void handle_get_bar_config(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     /* If no ID was passed, we return a JSON array with all IDs */
     if (message_size == 0) {
-        y(array_open);
-        for (auto current : *barconfigs) {
-            ystr(current->id);
-        }
-        y(array_close);
+        auto a = nlohmann::json::array();
+        std::ranges::transform(barconfigs, std::back_inserter(a), [](auto &current) { return current->id; });
+        auto payload = a.dump();
 
-        const unsigned char *payload;
-        size_t length;
-        y(get_buf, &payload, &length);
-
-        ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_BAR_CONFIG, payload);
-        y(free);
+        ipc_send_client_message(client, I3_IPC_REPLY_TYPE_BAR_CONFIG, payload);
         return;
     }
 
@@ -1086,84 +859,53 @@ IPC_HANDLER(get_bar_config) {
      * message_size bytes out of the buffer */
     char *bar_id = nullptr;
     sasprintf(&bar_id, "%.*s", message_size, message);
-    LOG("IPC: looking for config for bar ID \"%s\"\n", bar_id);
-    Barconfig *config = nullptr;
-    for (auto current : *barconfigs) {
-        if (strcmp(current->id, bar_id) != 0)
-            continue;
-
-        config = current;
-        break;
-    }
+     LOG(fmt::sprintf("IPC: looking for config for bar ID \"%s\"\n", bar_id));
+    auto config_ptr = std::ranges::find_if(barconfigs, [&bar_id](auto &current) {
+        return (strcmp(current->id, bar_id) == 0);
+    });
     free(bar_id);
 
-    if (!config) {
+    nlohmann::json j;
+
+    if (config_ptr == barconfigs.end()) {
         /* If we did not find a config for the given ID, the reply will contain
          * a null 'id' field. */
-        y(map_open);
-
-        ystr("id");
-        y(null);
-
-        y(map_close);
+        j["id"] = nullptr;
     } else {
-        dump_bar_config(gen, config);
+        j = dump_bar_config((*config_ptr).get());
     }
 
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
+    auto payload = j.dump();
 
-    ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_BAR_CONFIG, payload);
-    y(free);
+    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_BAR_CONFIG, payload);
 }
 
 /*
  * Returns a list of configured binding modes
  *
  */
-IPC_HANDLER(get_binding_modes) {
-    yajl_gen gen = yajl_gen_alloc(nullptr);
+static void handle_get_binding_modes(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
+    auto a = nlohmann::json::array();
+    std::ranges::transform(modes, std::back_inserter(a), [](auto &mode) { return mode->name; });
 
-    y(array_open);
-    for (Mode *mode : *modes) {
-        ystr(mode->name);
-    }
-    y(array_close);
+    auto payload = a.dump();
 
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
-
-    ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_BINDING_MODES, payload);
-    y(free);
+    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_BINDING_MODES, payload);
 }
 
 /*
  * Callback for the YAJL parser (will be called when a string is parsed).
  *
  */
-static int add_subscription(void *extra, const unsigned char *s,
-                            size_t len) {
-    auto *client = (ipc_client*)extra;
+static void add_subscription(ipc_client *client, std::string &s) {
 
-    DLOG("should add subscription to extra %p, sub %.*s\n", client, (int)len, s);
-    int event = client->num_events;
-
-    client->num_events++;
-    client->events = (char**)srealloc(client->events, client->num_events * sizeof(char *));
-    /* We copy the string because it is not null-terminated and strndup()
-     * is missing on some BSD systems */
-    client->events[event] = (char*)scalloc(len + 1, 1);
-    memcpy(client->events[event], s, len);
+    client->events.emplace_back(s.c_str());
 
     DLOG("client is now subscribed to:\n");
-    for (int i = 0; i < client->num_events; i++) {
-        DLOG("event %s\n", client->events[i]);
+    for (auto &event : client->events) {
+        DLOG(fmt::sprintf("event %s\n",  event));
     }
     DLOG("(done)\n");
-
-    return 1;
 }
 
 /*
@@ -1171,187 +913,145 @@ static int add_subscription(void *extra, const unsigned char *s,
  * serialized array in the payload field of the message.
  *
  */
-IPC_HANDLER(subscribe) {
-    yajl_handle p;
-    yajl_status stat;
+static void handle_subscribe(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
+    try {
+        auto j = nlohmann::json::parse(std::string((const char*)message, message_size));
+        if (j.is_array()) {
+            for (auto type : j) {
+                if (type.is_string()) {
+                    auto &s = type.get_ref<nlohmann::json::string_t &>();
+                    add_subscription(client, s);
+                }
+            }
+        } else {
+            throw std::invalid_argument("Invalid JSON structure");
+        }
+    } catch (std::exception &e) {
+        auto err = e.what();
+        ELOG(fmt::sprintf("Parse error: %s\n",  err));
 
-    /* Setup the JSON parser */
-    static yajl_callbacks callbacks = {
-        .yajl_string = add_subscription,
-    };
-
-    p = yalloc(&callbacks, (void *)client);
-    stat = yajl_parse(p, (const unsigned char *)message, message_size);
-    if (stat != yajl_status_ok) {
-        unsigned char *err;
-        err = yajl_get_error(p, true, (const unsigned char *)message,
-                             message_size);
-        ELOG("YAJL parse error: %s\n", err);
-        yajl_free_error(p, err);
-
-        const char *reply = "{\"success\":false}";
-        ipc_send_client_message(client, strlen(reply), I3_IPC_REPLY_TYPE_SUBSCRIBE, (const uint8_t *)reply);
-        yajl_free(p);
+        std::string reply = R"({"success":false})";
+        ipc_send_client_message(client, I3_IPC_REPLY_TYPE_SUBSCRIBE, reply);
         return;
     }
-    yajl_free(p);
-    const char *reply = "{\"success\":true}";
-    ipc_send_client_message(client, strlen(reply), I3_IPC_REPLY_TYPE_SUBSCRIBE, (const uint8_t *)reply);
+
+    std::string reply = R"({"success":true})";
+    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_SUBSCRIBE, reply);
 
     if (client->first_tick_sent) {
         return;
     }
 
-    bool is_tick = false;
-    for (int i = 0; i < client->num_events; i++) {
-        if (strcmp(client->events[i], "tick") == 0) {
-            is_tick = true;
-            break;
-        }
-    }
+    bool is_tick = std::ranges::any_of(client->events, [](auto &event) { return event == "tick"; });
+
     if (!is_tick) {
         return;
     }
 
     client->first_tick_sent = true;
-    const char *payload = "{\"first\":true,\"payload\":\"\"}";
-    ipc_send_client_message(client, strlen(payload), I3_IPC_EVENT_TICK, (const uint8_t *)payload);
+    std::string payload = R"({"first":true,"payload":""})";
+    ipc_send_client_message(client, I3_IPC_EVENT_TICK, payload);
 }
 
 /*
  * Returns the raw last loaded i3 configuration file contents.
  */
-IPC_HANDLER(get_config) {
-    yajl_gen gen = yajl_gen_alloc(nullptr);
+static void handle_get_config(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
+    nlohmann::json j = {
+        { "config", current_config }
+    };
 
-    y(map_open);
+    auto payload = j.dump();
 
-    ystr("config");
-    ystr(current_config);
-
-    y(map_close);
-
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
-
-    ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_CONFIG, payload);
-    y(free);
+    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_CONFIG, payload);
 }
 
 /*
  * Sends the tick event from the message payload to subscribers. Establishes a
  * synchronization point in event-related tests.
  */
-IPC_HANDLER(send_tick) {
-    yajl_gen gen = yajl_gen_alloc(nullptr);
+static void handle_send_tick(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
 
-    y(map_open);
+    nlohmann::json j;
 
-    ystr("first");
-    y(bool, false);
+    j["first"] = false;
+    j["payload"] = std::string((char *)message, message_size);
 
-    ystr("payload");
-    yajl_gen_string(gen, (unsigned char *)message, message_size);
+    auto payload = j.dump();
 
-    y(map_close);
+    ipc_send_event("tick", I3_IPC_EVENT_TICK, payload);
 
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
-
-    ipc_send_event("tick", I3_IPC_EVENT_TICK, (const char *)payload);
-    y(free);
-
-    const char *reply = "{\"success\":true}";
-    ipc_send_client_message(client, strlen(reply), I3_IPC_REPLY_TYPE_TICK, (const uint8_t *)reply);
+    std::string reply = R"({"success":true})";
+    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_TICK, reply);
     DLOG("Sent tick event\n");
 }
 
 struct sync_state {
-    char *last_key;
+    std::string last_key{};
     uint32_t rnd;
     xcb_window_t window;
 };
 
-static int _sync_json_key(void *extra, const unsigned char *val, size_t len) {
-    auto *state = (sync_state*)extra;
-    FREE(state->last_key);
-    state->last_key = (char*)scalloc(len + 1, 1);
-    memcpy(state->last_key, val, len);
-    return 1;
-}
-
-static int _sync_json_int(void *extra, long long val) {
-    auto *state = (sync_state*)extra;
-    if (strcasecmp(state->last_key, "rnd") == 0) {
-        state->rnd = val;
-    } else if (strcasecmp(state->last_key, "window") == 0) {
-        state->window = (xcb_window_t)val;
+static void _sync_json_int(sync_state &state, long long val) {
+    if (state.last_key == "rnd") {
+        state.rnd = val;
+    } else if (state.last_key == "window") {
+        state.window = (xcb_window_t)val;
     }
-    return 1;
 }
 
-IPC_HANDLER(sync) {
-    yajl_handle p;
-    yajl_status stat;
+static void handle_sync(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
+    sync_state state{};
 
-    /* Setup the JSON parser */
-    static yajl_callbacks callbacks = {
-        .yajl_integer = _sync_json_int,
-        .yajl_map_key = _sync_json_key,
+    nlohmann::json::parser_callback_t cb = [&state](int depth, nlohmann::json::parse_event_t event, nlohmann::json & parsed) {
+        if (event == nlohmann::json::parse_event_t::key) {
+            auto key = parsed.get<std::string>();
+            state.last_key = key;
+        } else if (event == nlohmann::json::parse_event_t::value) {
+            if (parsed.is_number_integer()) {
+                auto key = parsed.get<long long>();
+                _sync_json_int(state, key);
+            }
+        }
+
+        return true;
     };
 
-    struct sync_state state{};
-    p = yalloc(&callbacks, (void *)&state);
-    stat = yajl_parse(p, (const unsigned char *)message, message_size);
-    FREE(state.last_key);
-    if (stat != yajl_status_ok) {
-        unsigned char *err;
-        err = yajl_get_error(p, true, (const unsigned char *)message,
-                             message_size);
-        ELOG("YAJL parse error: %s\n", err);
-        yajl_free_error(p, err);
+    try {
+        auto json = nlohmann::json::parse(std::string((const char *) message, message_size), cb, true, true);
+    } catch (std::exception &e) {
+        ELOG(fmt::sprintf("Parse error: %s\n",  e.what()));
 
-        const char *reply = "{\"success\":false}";
-        ipc_send_client_message(client, strlen(reply), I3_IPC_REPLY_TYPE_SYNC, (const uint8_t *)reply);
-        yajl_free(p);
+        std::string reply = "{\"success\":false}";
+        ipc_send_client_message(client, I3_IPC_REPLY_TYPE_SYNC, reply);
         return;
     }
-    yajl_free(p);
 
-    DLOG("received IPC sync request (rnd = %d, window = 0x%08x)\n", state.rnd, state.window);
+    DLOG(fmt::sprintf("received IPC sync request (rnd = %d, window = 0x%08x)\n",  state.rnd, state.window));
     sync_respond(state.window, state.rnd);
-    const char *reply = "{\"success\":true}";
-    ipc_send_client_message(client, strlen(reply), I3_IPC_REPLY_TYPE_SYNC, (const uint8_t *)reply);
+    std::string reply = "{\"success\":true}";
+    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_SYNC, reply);
 }
 
-IPC_HANDLER(get_binding_state) {
-    yajl_gen gen = yajl_gen_alloc(nullptr);
+static void handle_get_binding_state(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
+    nlohmann::json j = {
+        { "name",  current_mode->name}
+    };
 
-    y(map_open);
+    auto payload = j.dump();
 
-    ystr("name");
-    ystr(current_binding_mode);
-
-    y(map_close);
-
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
-
-    ipc_send_client_message(client, length, I3_IPC_REPLY_TYPE_GET_BINDING_STATE, payload);
-    y(free);
+    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_GET_BINDING_STATE, payload);
 }
 
 /* The index of each callback function corresponds to the numeric
  * value of the message type (see include/i3/ipc.h) */
-handler_t handlers[12] = {
+handler_t handlers[13] = {
     handle_run_command,
     handle_get_workspaces,
     handle_subscribe,
     handle_get_outputs,
     handle_tree,
+    nullptr,
     handle_get_bar_config,
     handle_get_version,
     handle_get_binding_modes,
@@ -1395,7 +1095,7 @@ static void ipc_receive_message(EV_P_ struct ev_io *w, int revents) {
     }
 
     if (message_type >= (sizeof(handlers) / sizeof(handler_t)))
-        DLOG("Unhandled message type: %d\n", message_type);
+        DLOG(fmt::sprintf("Unhandled message type: %d\n",  message_type));
     else {
         handler_t h = handlers[message_type];
         h(client, message, 0, message_length, message_type);
@@ -1415,7 +1115,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
     socklen_t so_len = sizeof(peercred);
     if (getsockopt(client->fd, SOL_SOCKET, SO_PEERCRED, &peercred, &so_len) != 0) {
         if (!cmdline) {
-            ELOG("client %p on fd %d timed out, killing\n", client, client->fd);
+            ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n",  (void*)client, client->fd));
         }
 
         free_ipc_client(client, -1);
@@ -1428,7 +1128,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
     free(exepath);
     if (fd == -1) {
         if (!cmdline) {
-            ELOG("client %p on fd %d timed out, killing\n", client, client->fd);
+            ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n",  (void*)client, client->fd));
         }
 
         free_ipc_client(client, -1);
@@ -1439,7 +1139,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
     close(fd);
     if (n < 0) {
         if (!cmdline) {
-            ELOG("client %p on fd %d timed out, killing\n", client, client->fd);
+            ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n",  (void*)client, client->fd));
         }
 
         free_ipc_client(client, -1);
@@ -1453,19 +1153,19 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
     cmdline = buf;
 
     if (cmdline) {
-        ELOG("client %p with pid %d and cmdline '%s' on fd %d timed out, killing\n", client, peercred.pid, cmdline, client->fd);
+        ELOG(fmt::sprintf("client %p with pid %d and cmdline '%s' on fd %d timed out, killing\n",  (void*)client, peercred.pid, cmdline, client->fd));
     }
 
 #endif
     if (!cmdline) {
-        ELOG("client %p on fd %d timed out, killing\n", client, client->fd);
+        ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n",  (void*)client, client->fd));
     }
 
     free_ipc_client(client, -1);
 }
 
 static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents) {
-    DLOG("fd %d writeable\n", w->fd);
+    DLOG(fmt::sprintf("fd %d writeable\n",  w->fd));
     auto *client = (ipc_client *)w->data;
 
     /* If this callback is called then there should be a corresponding active
@@ -1506,23 +1206,27 @@ void ipc_new_client(EV_P_ struct ev_io *w, int revents) {
  * This variant is useful for the inherited IPC connection when restarting.
  *
  */
+
+ipc_client::ipc_client(EV_P_ int fd) {
+    this->fd = fd;
+
+    read_callback = (ev_io*)scalloc(1, sizeof(struct ev_io));
+    read_callback->data = this;
+    ev_io_init(read_callback, ipc_receive_message, fd, EV_READ);
+    ev_io_start(EV_A_ read_callback);
+
+    write_callback = (ev_io*)scalloc(1, sizeof(struct ev_io));
+    write_callback->data = this;
+    ev_io_init(write_callback, ipc_socket_writeable_cb, fd, EV_WRITE);
+}
+
 ipc_client *ipc_new_client_on_fd(EV_P_ int fd) {
     set_nonblock(fd);
 
-    auto *client = (ipc_client*)scalloc(1, sizeof(ipc_client));
-    client->fd = fd;
+    auto *client = new ipc_client(EV_A_ fd);
 
-    client->read_callback = (ev_io*)scalloc(1, sizeof(struct ev_io));
-    client->read_callback->data = client;
-    ev_io_init(client->read_callback, ipc_receive_message, fd, EV_READ);
-    ev_io_start(EV_A_ client->read_callback);
-
-    client->write_callback = (ev_io*)scalloc(1, sizeof(struct ev_io));
-    client->write_callback->data = client;
-    ev_io_init(client->write_callback, ipc_socket_writeable_cb, fd, EV_WRITE);
-
-    DLOG("IPC: new client connected on fd %d\n", fd);
-    TAILQ_INSERT_TAIL(&all_clients, client, clients);
+    DLOG(fmt::sprintf("IPC: new client connected on fd %d\n",  fd));
+    all_clients.push_back(client);
     return client;
 }
 
@@ -1530,32 +1234,23 @@ ipc_client *ipc_new_client_on_fd(EV_P_ int fd) {
  * Generates a json workspace event. Returns a dynamically allocated yajl
  * generator. Free with yajl_gen_free().
  */
-yajl_gen ipc_marshal_workspace_event(const char *change, Con *current, Con *old) {
+nlohmann::json ipc_marshal_workspace_event(const char *change, Con *current, Con *old) {
     setlocale(LC_NUMERIC, "C");
-    yajl_gen gen = yajl_gen_alloc(nullptr);
+    nlohmann::json j;
 
-    y(map_open);
+    j["change"] = change;
 
-    ystr("change");
-    ystr(change);
+    if (current != nullptr) {
+        j["current"] = dump_node(current, false);
+    }
 
-    ystr("current");
-    if (current == nullptr)
-        y(null);
-    else
-        dump_node(gen, current, false);
-
-    ystr("old");
-    if (old == nullptr)
-        y(null);
-    else
-        dump_node(gen, old, false);
-
-    y(map_close);
+    if (old != nullptr) {
+        j["old"] = dump_node(old, false);
+    }
 
     setlocale(LC_NUMERIC, "");
 
-    return gen;
+    return j;
 }
 
 /*
@@ -1564,15 +1259,11 @@ yajl_gen ipc_marshal_workspace_event(const char *change, Con *current, Con *old)
  * previously focused workspace in "old".
  */
 void ipc_send_workspace_event(const char *change, Con *current, Con *old) {
-    yajl_gen gen = ipc_marshal_workspace_event(change, current, old);
+    auto gen = ipc_marshal_workspace_event(change, current, old);
 
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
+    auto payload = gen.dump();
 
-    ipc_send_event("workspace", I3_IPC_EVENT_WORKSPACE, (const char *)payload);
-
-    y(free);
+    ipc_send_event("workspace", I3_IPC_EVENT_WORKSPACE, payload);
 }
 
 /*
@@ -1580,28 +1271,18 @@ void ipc_send_workspace_event(const char *change, Con *current, Con *old) {
  * also the window container, in "container".
  */
 void ipc_send_window_event(const char *property, Con *con) {
-    DLOG("Issue IPC window %s event (con = %p, window = 0x%08x)\n",
-         property, con, (con->window ? con->window->id : XCB_WINDOW_NONE));
+    DLOG(fmt::sprintf("Issue IPC window %s event (con = %p, window = 0x%08x)\n",
+         property, (void*)con, (con->window ? con->window->id : XCB_WINDOW_NONE)));
 
     setlocale(LC_NUMERIC, "C");
-    yajl_gen gen = yajl_gen_alloc(nullptr);
+    nlohmann::json j;
 
-    y(map_open);
+    j["change"] = property;
+    j["container"] = dump_node(con, false);
 
-    ystr("change");
-    ystr(property);
+    auto payload = j.dump();
 
-    ystr("container");
-    dump_node(gen, con, false);
-
-    y(map_close);
-
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
-
-    ipc_send_event("window", I3_IPC_EVENT_WINDOW, (const char *)payload);
-    y(free);
+    ipc_send_event("window", I3_IPC_EVENT_WINDOW, payload);
     setlocale(LC_NUMERIC, "");
 }
 
@@ -1609,18 +1290,14 @@ void ipc_send_window_event(const char *property, Con *con) {
  * For the barconfig update events, we send the serialized barconfig.
  */
 void ipc_send_barconfig_update_event(Barconfig *barconfig) {
-    DLOG("Issue barconfig_update event for id = %s\n", barconfig->id);
+    DLOG(fmt::sprintf("Issue barconfig_update event for id = %s\n",  barconfig->id));
     setlocale(LC_NUMERIC, "C");
-    yajl_gen gen = yajl_gen_alloc(nullptr);
 
-    dump_bar_config(gen, barconfig);
+    auto j = dump_bar_config(barconfig);
 
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
+    auto payload = j.dump();
 
-    ipc_send_event("barconfig_update", I3_IPC_EVENT_BARCONFIG_UPDATE, (const char *)payload);
-    y(free);
+    ipc_send_event("barconfig_update", I3_IPC_EVENT_BARCONFIG_UPDATE, payload);
     setlocale(LC_NUMERIC, "");
 }
 
@@ -1628,29 +1305,18 @@ void ipc_send_barconfig_update_event(Barconfig *barconfig) {
  * For the binding events, we send the serialized binding struct.
  */
 void ipc_send_binding_event(const char *event_type, Binding *bind) {
-    DLOG("Issue IPC binding %s event (sym = %s, code = %d)\n", event_type, bind->symbol, bind->keycode);
+    DLOG(fmt::sprintf("Issue IPC binding %s event (sym = %s, code = %d)\n",  event_type, bind->symbol, bind->keycode));
 
     setlocale(LC_NUMERIC, "C");
 
-    yajl_gen gen = yajl_gen_alloc(nullptr);
+    nlohmann::json j;
 
-    y(map_open);
+    j["change"] = event_type;
+    j["binding"] = dump_binding(bind);
 
-    ystr("change");
-    ystr(event_type);
+    auto payload = j.dump();
 
-    ystr("binding");
-    dump_binding(gen, bind);
-
-    y(map_close);
-
-    const unsigned char *payload;
-    size_t length;
-    y(get_buf, &payload, &length);
-
-    ipc_send_event("binding", I3_IPC_EVENT_BINDING, (const char *)payload);
-
-    y(free);
+    ipc_send_event("binding", I3_IPC_EVENT_BINDING, payload);
     setlocale(LC_NUMERIC, "");
 }
 
@@ -1658,10 +1324,10 @@ void ipc_send_binding_event(const char *event_type, Binding *bind) {
  * Sends a restart reply to the IPC client on the specified fd.
  */
 void ipc_confirm_restart(ipc_client *client) {
-    DLOG("ipc_confirm_restart(fd %d)\n", client->fd);
-    static const char *reply = "[{\"success\":true}]";
+    DLOG(fmt::sprintf("ipc_confirm_restart(fd %d)\n",  client->fd));
+    std::string reply = "[{\"success\":true}]";
     ipc_send_client_message(
-        client, strlen(reply), I3_IPC_REPLY_TYPE_COMMAND,
-        (const uint8_t *)reply);
+        client, I3_IPC_REPLY_TYPE_COMMAND,
+        reply);
     ipc_push_pending(client);
 }

@@ -33,7 +33,7 @@ sub parser_calls {
 
     # The criteria management calls are irrelevant and not what we want to test
     # in the first place.
-    @lines = grep { !(/cmd_criteria_init()/ || /cmd_criteria_match_windows/) } @lines;
+    @lines = grep { !(/cmd::criteria_init()/ || /cmd::criteria_match_windows/) } @lines;
     return join("\n", @lines);
 }
 
@@ -44,7 +44,7 @@ sub parser_calls {
 # The first call has only a single command, the following ones are consolidated
 # for performance.
 is(parser_calls('move workspace 3'),
-   'cmd_move_con_to_workspace_name(3, (null))',
+   'cmd::move_con_to_workspace_name(3, (null))',
    'single number (move workspace 3) ok');
 
 is(parser_calls(
@@ -58,31 +58,31 @@ is(parser_calls(
    'move workspace 3: foobar; ' .
    'move workspace "3: foobar"; ' .
    'move workspace "3: foobar, baz"; '),
-   "cmd_move_con_to_workspace_name(3, (null))\n" .
-   "cmd_move_con_to_workspace_name(3, (null))\n" .
-   "cmd_move_con_to_workspace_name(3, (null))\n" .
-   "cmd_move_con_to_workspace_name(foobar, (null))\n" .
-   "cmd_move_con_to_workspace_name(torrent, (null))\n" .
-   "cmd_move_con_to_output(LVDS1, 1)\n" .
-   "cmd_move_con_to_output(NULL, 1)\n" .
-   "cmd_move_con_to_output(LVDS1, 0)\n" .
-   "cmd_move_con_to_output(DVI1, 0)\n" .
-   "cmd_move_con_to_output(NULL, 0)\n" .
-   "cmd_move_con_to_workspace_name(3: foobar, (null))\n" .
-   "cmd_move_con_to_workspace_name(3: foobar, (null))\n" .
-   "cmd_move_con_to_workspace_name(3: foobar, baz, (null))",
+   "cmd::move_con_to_workspace_name(3, (null))\n" .
+   "cmd::move_con_to_workspace_name(3, (null))\n" .
+   "cmd::move_con_to_workspace_name(3, (null))\n" .
+   "cmd::move_con_to_workspace_name(foobar, (null))\n" .
+   "cmd::move_con_to_workspace_name(torrent, (null))\n" .
+   "cmd::move_con_to_output(LVDS1, 1)\n" .
+   "cmd::move_con_to_output(NULL, 1)\n" .
+   "cmd::move_con_to_output(LVDS1, 0)\n" .
+   "cmd::move_con_to_output(DVI1, 0)\n" .
+   "cmd::move_con_to_output(NULL, 0)\n" .
+   "cmd::move_con_to_workspace_name(3: foobar, (null))\n" .
+   "cmd::move_con_to_workspace_name(3: foobar, (null))\n" .
+   "cmd::move_con_to_workspace_name(3: foobar, baz, (null))",
    'move ok');
 
 is(parser_calls('move workspace 3: foobar, nop foo'),
-   "cmd_move_con_to_workspace_name(3: foobar, (null))\n" .
-   "cmd_nop(foo)",
+   "cmd::move_con_to_workspace_name(3: foobar, (null))\n" .
+   "cmd::nop(foo)",
    'multiple ops (move workspace 3: foobar, nop foo) ok');
 
 is(parser_calls(
    'exec i3-sensible-terminal; ' .
    'exec --no-startup-id i3-sensible-terminal'),
-   "cmd_exec((null), i3-sensible-terminal)\n" .
-   "cmd_exec(--no-startup-id, i3-sensible-terminal)",
+   "cmd::exec((null), i3-sensible-terminal)\n" .
+   "cmd::exec(--no-startup-id, i3-sensible-terminal)",
    'exec ok');
 
 is(parser_calls(
@@ -90,57 +90,29 @@ is(parser_calls(
    'resize shrink left 25 px; ' .
    'resize shrink left 25 px or 33 ppt; ' .
    'resize shrink left 25'),
-   "cmd_resize(shrink, left, 10, 10)\n" .
-   "cmd_resize(shrink, left, 25, 0)\n" .
-   "cmd_resize(shrink, left, 25, 33)\n" .
-   "cmd_resize(shrink, left, 25, 0)",
+   "cmd::resize(shrink, left, 10, 10)\n" .
+   "cmd::resize(shrink, left, 25, 0)\n" .
+   "cmd::resize(shrink, left, 25, 33)\n" .
+   "cmd::resize(shrink, left, 25, 0)",
    'simple resize ok');
 
 is(parser_calls('resize shrink left 25 px or 33 ppt,'),
-   'cmd_resize(shrink, left, 25, 33)',
+   'cmd::resize(shrink, left, 25, 33)',
    'trailing comma resize ok');
 
 is(parser_calls('resize shrink left 25 px or 33 ppt;'),
-   'cmd_resize(shrink, left, 25, 33)',
+   'cmd::resize(shrink, left, 25, 33)',
    'trailing semicolon resize ok');
-
-is(parser_calls('[con_mark=yay] focus'),
-   "cmd_criteria_add(con_mark, yay)\n" .
-   "cmd_focus()",
-   'criteria focus ok');
-
-is(parser_calls("[con_mark=yay con_mark=bar] focus"),
-   "cmd_criteria_add(con_mark, yay)\n" .
-   "cmd_criteria_add(con_mark, bar)\n" .
-   "cmd_focus()",
-   'criteria focus ok');
-
-is(parser_calls("[con_mark=yay\tcon_mark=bar] focus"),
-   "cmd_criteria_add(con_mark, yay)\n" .
-   "cmd_criteria_add(con_mark, bar)\n" .
-   "cmd_focus()",
-   'criteria focus ok');
-
-is(parser_calls("[con_mark=yay\tcon_mark=bar]\tfocus"),
-   "cmd_criteria_add(con_mark, yay)\n" .
-   "cmd_criteria_add(con_mark, bar)\n" .
-   "cmd_focus()",
-   'criteria focus ok');
-
-is(parser_calls('[con_mark="yay"] focus'),
-   "cmd_criteria_add(con_mark, yay)\n" .
-   "cmd_focus()",
-   'quoted criteria focus ok');
 
 # Make sure trailing whitespace is stripped off: While this is not an issue for
 # commands being parsed due to the configuration, people might send IPC
 # commands with leading or trailing newlines.
 is(parser_calls("workspace test\n"),
-   'cmd_workspace_name(test, (null))',
+   'cmd::workspace_name(test, (null))',
    'trailing whitespace stripped off ok');
 
 is(parser_calls("\nworkspace test"),
-   'cmd_workspace_name(test, (null))',
+   'cmd::workspace_name(test, (null))',
    'trailing whitespace stripped off ok');
 
 ################################################################################
@@ -155,7 +127,6 @@ is(parser_calls('unknown_literal'),
        exit
        restart
        reload
-       shmlog
        debuglog
        border
        layout
@@ -172,18 +143,18 @@ is(parser_calls('unknown_literal'),
        rename
        nop
        scratchpad
-       swap
        title_format
        title_window_icon
        mode
        bar
+       nagbar
     )) . "'\n" .
    "ERROR: Your command: unknown_literal\n" .
    "ERROR:               ^^^^^^^^^^^^^^^",
    'error for unknown literal ok');
 
 is(parser_calls('move something to somewhere'),
-   "ERROR: Expected one of these tokens: 'window', 'container', 'to', '--no-auto-back-and-forth', 'workspace', 'output', 'mark', 'scratchpad', 'left', 'right', 'up', 'down', 'position', 'absolute'\n" .
+   "ERROR: Expected one of these tokens: 'window', 'container', 'to', '--no-auto-back-and-forth', 'workspace', 'output', 'scratchpad', 'left', 'right', 'up', 'down', 'position', 'absolute'\n" .
    "ERROR: Your command: move something to somewhere\n" .
    "ERROR:                    ^^^^^^^^^^^^^^^^^^^^^^",
    'error for unknown literal ok');
@@ -193,27 +164,27 @@ is(parser_calls('move something to somewhere'),
 ################################################################################
 
 is(parser_calls('workspace "foo"'),
-   'cmd_workspace_name(foo, (null))',
+   'cmd::workspace_name(foo, (null))',
    'Command with simple double quotes ok');
 
 is(parser_calls('workspace "foo'),
-   'cmd_workspace_name(foo, (null))',
+   'cmd::workspace_name(foo, (null))',
    'Command without ending double quotes ok');
 
 is(parser_calls('workspace "foo \"bar"'),
-   'cmd_workspace_name(foo "bar, (null))',
+   'cmd::workspace_name(foo "bar, (null))',
    'Command with escaped double quotes ok');
 
 is(parser_calls('workspace "foo \\'),
-   'cmd_workspace_name(foo \\, (null))',
+   'cmd::workspace_name(foo \\, (null))',
    'Command with single backslash in the end ok');
 
 is(parser_calls('workspace "foo\\\\bar"'),
-   'cmd_workspace_name(foo\\bar, (null))',
+   'cmd::workspace_name(foo\\bar, (null))',
    'Command with escaped backslashes ok');
 
 is(parser_calls('workspace "foo\\\\\\"bar"'),
-   'cmd_workspace_name(foo\\"bar, (null))',
+   'cmd::workspace_name(foo\\"bar, (null))',
    'Command with escaped double quotes after escaped backslashes ok');
 
 ################################################################################
@@ -228,7 +199,7 @@ is(parser_calls("resize shrink width 10 px or"),
    "error for resize command with incomplete 'or'-construction ok");
 
 is(parser_calls("resize grow left 10 px or 20 ppt"),
-   "cmd_resize(grow, left, 10, 20)",
+   "cmd::resize(grow, left, 10, 20)",
    "resize command with 'or'-construction ok");
 
 done_testing;

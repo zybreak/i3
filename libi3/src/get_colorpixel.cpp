@@ -6,7 +6,7 @@
  *
  */
 #include "libi3.h"
-#include "queue.h"
+#include <deque>
 
 #include <cstdint>
 #include <cstdlib>
@@ -14,11 +14,9 @@
 struct Colorpixel {
     char hex[8];
     uint32_t pixel;
-
-    SLIST_ENTRY(Colorpixel) colorpixels;
 };
 
-SLIST_HEAD(colorpixel_head, Colorpixel) colorpixels;
+std::deque<Colorpixel*> colorpixels{};
 
 /*
  * Returns the colorpixel to use for the given hex color (think of HTML).
@@ -29,7 +27,7 @@ SLIST_HEAD(colorpixel_head, Colorpixel) colorpixels;
  * This has to be done by the caller.
  *
  */
-uint32_t get_colorpixel(const char *hex) {
+uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *hex) {
     char strgroups[3][3] = {
         {hex[1], hex[2], '\0'},
         {hex[3], hex[4], '\0'},
@@ -44,8 +42,7 @@ uint32_t get_colorpixel(const char *hex) {
     }
 
     /* Lookup this colorpixel in the cache */
-    struct Colorpixel *colorpixel;
-    SLIST_FOREACH (colorpixel, &(colorpixels), colorpixels) {
+    for (const auto &colorpixel : colorpixels) {
         if (strcmp(colorpixel->hex, hex) == 0)
             return colorpixel->pixel;
     }
@@ -76,7 +73,7 @@ uint32_t get_colorpixel(const char *hex) {
 
     cache_pixel->pixel = pixel;
 
-    SLIST_INSERT_HEAD(&(colorpixels), cache_pixel, colorpixels);
+    colorpixels.push_front(cache_pixel);
 
     return pixel;
 }

@@ -10,8 +10,8 @@
 #pragma once
 
 #include <config.h>
+#include <set>
 
-#include "data.h"
 #include "xcursor.h"
 
 #define _NET_WM_STATE_REMOVE 0
@@ -49,15 +49,11 @@
                          XCB_EVENT_MASK_FOCUS_CHANGE |                                                \
                          XCB_EVENT_MASK_ENTER_WINDOW)
 
-#include "i3-atoms_rest.xmacro.h"
-#include "i3-atoms_NET_SUPPORTED.xmacro.h"
-
-#define xmacro(atom) extern xcb_atom_t A_##atom;
-I3_NET_SUPPORTED_ATOMS_XMACRO
-I3_REST_ATOMS_XMACRO
-#undef xmacro
+#include "atoms.h"
 
 extern unsigned int xcb_numlock_mask;
+struct Rect;
+class Con;
 
 /**
  * Convenience wrapper around xcb_create_window which takes care of depth,
@@ -135,4 +131,4 @@ void xcb_remove_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_a
  * Grab the specified buttons on a window when managing it.
  *
  */
-void xcb_grab_buttons(xcb_connection_t *conn, xcb_window_t window, int *buttons);
+void xcb_grab_buttons(xcb_window_t window, std::set<int> &buttons);

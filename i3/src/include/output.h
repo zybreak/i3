@@ -10,25 +10,61 @@
 #pragma once
 
 #include <config.h>
+#include "con.h"
+#include "rect.h"
 
+#include <vector>
+#include <string>
+
+#include <xcb/randr.h>
+
+class Con;
 /**
- * Returns the output container below the given output container.
+ * An Output is a physical output on your graphics driver. Outputs which
+ * are currently in use have (output->active == true). Each output has a
+ * position and a mode. An output usually corresponds to one connected
+ * screen (except if you are running multiple screens in clone mode).
  *
  */
-Con *output_get_content(Con *output);
+class Output {
+public:
+    /** Output id, so that we can requery the output directly later */
+    xcb_randr_output_t id{};
 
-/**
- * Returns an 'output' corresponding to one of left/right/down/up or a specific
- * output name.
- *
- */
-Output *get_output_from_string(Output *current_output, const char *output_str);
+    /** Whether the output is currently active (has a CRTC attached with a
+     * valid mode) */
+    bool active{};
 
-/**
- * Retrieves the primary name of an output.
- *
- */
-char *output_primary_name(Output *output);
+    /** Internal flags, necessary for querying RandR screens (happens in
+     * two stages) */
+    bool changed{};
+    bool to_be_disabled{};
+    bool primary{};
+
+    /** List of names for the output.
+     * An output always has at least one name; the first name is
+     * considered the primary one. */
+    std::deque<std::string> names{};
+
+    /** Pointer to the Con which represents this output */
+    Con *con{};
+
+    /** x, y, width, height */
+    Rect rect{};
+
+    /**
+     * Returns an 'output' corresponding to one of left/right/down/up or a specific
+     * output name.
+     *
+     */
+    Output *get_output_from_string(const std::string &output_str);
+
+    /**
+     * Retrieves the primary name of an output.
+     *
+     */
+    std::string output_primary_name() const;
+};
 
 /**
  * Returns the output for the given con.

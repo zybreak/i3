@@ -12,37 +12,38 @@
  */
 #pragma once
 
-#include "queue.h"
 #include "i3.h"
 
 typedef struct Mode Mode;
 typedef struct Config Config;
 typedef struct Barconfig Barconfig;
-extern char *current_configpath;
+typedef struct Barbinding Barbinding;
+extern std::string current_configpath;
 extern char *current_config;
 extern Config config;
-extern std::vector<Mode*> *modes;
-extern std::vector<Barconfig*> *barconfigs;
-extern std::vector<char*> *included_files;
+extern std::vector<std::unique_ptr<Mode>> modes;
+extern std::vector<std::unique_ptr<Barconfig>> barconfigs;
+extern std::vector<std::string> included_files;
+extern struct Mode* current_mode;
+
+struct Binding;
 
 /**
- * Used during the config file lexing/parsing to keep the state of the lexer
- * in order to provide useful error messages in yyerror().
- *
+ * Mouse pointer warping modes.
  */
-struct context {
-    bool has_errors;
-    bool has_warnings;
+enum warping_t {
+    POINTER_WARPING_OUTPUT = 0,
+    POINTER_WARPING_NONE = 1
+};
 
-    int line_number;
-    char *line_copy;
-    const char *filename;
-
-    char *compact_error;
-
-    /* These are the same as in YYLTYPE */
-    int first_column;
-    int last_column;
+/**
+ * Focus wrapping modes.
+ */
+enum focus_wrapping_t {
+    FOCUS_WRAPPING_OFF = 0,
+    FOCUS_WRAPPING_ON = 1,
+    FOCUS_WRAPPING_FORCE = 2,
+    FOCUS_WRAPPING_WORKSPACE = 3
 };
 
 /**
@@ -59,26 +60,19 @@ struct Colortriple {
 };
 
 /**
- * Holds a user-assigned variable for parsing the configuration file. The key
- * is replaced by value in every following line of the file.
- *
- */
-struct Variable {
-    char *key;
-    char *value;
-    char *next_match;
-};
-
-/**
  * The configuration file can contain multiple sets of bindings. Apart from the
  * default set (name == "default"), you can specify other sets and change the
  * currently active set of bindings by using the "mode <name>" command.
  *
  */
 struct Mode {
-    char *name;
-    bool pango_markup;
-    struct bindings_head *bindings;
+    std::string name{};
+    bool pango_markup{};
+    std::vector<std::unique_ptr<Binding>> bindings{};
+
+    Mode(const std::string &s) {
+        name = s;
+    }
 };
 
 enum conf_fowa_t {
@@ -104,9 +98,15 @@ enum conf_pdf_t {
     PDF_IGNORE = 2,
 };
 
+enum hide_edge_borders_mode_t { HEBM_NONE = adjacent_t::ADJ_NONE,
+    HEBM_VERTICAL = adjacent_t::ADJ_LEFT_SCREEN_EDGE | adjacent_t::ADJ_RIGHT_SCREEN_EDGE,
+    HEBM_HORIZONTAL = ADJ_UPPER_SCREEN_EDGE | adjacent_t::ADJ_LOWER_SCREEN_EDGE,
+    HEBM_BOTH = HEBM_VERTICAL | HEBM_HORIZONTAL,
+    HEBM_SMART = (1 << 5) } ;
+
+
 /**
- * Holds part of the configuration (the part which is not already in dedicated
- * structures in include/data.h).
+ * Holds part of the configuration
  *
  */
 struct Config {
@@ -171,12 +171,6 @@ struct Config {
      * to always wrap, which will result in you having to use "focus
      * parent" more often. */
     focus_wrapping_t focus_wrapping;
-
-    /** Don’t use RandR 1.5 for querying outputs. */
-    bool disable_randr15;
-
-    /** Overwrites output detection (for testing), see src/fake_outputs.c */
-    char *fake_outputs;
 
     /** Automatic workspace back and forth switching. If this is set, a
      * switch to the currently active workspace will switch to the
@@ -263,16 +257,14 @@ struct Barconfig {
      * to request a specific configuration. */
     char *id;
 
-    /** Number of outputs in the outputs array */
-    int num_outputs;
     /** Outputs on which this bar should show up on. We use an array for
      * simplicity (since we store just strings). */
-    char **outputs;
+    std::vector<std::string> outputs{};
 
-    /* List of outputs on which the tray is allowed to be shown, in order.
+    /** List of outputs on which the tray is allowed to be shown, in order.
      * The special value "none" disables it (per default, it will be shown) and
      * the special value "primary" enabled it on the primary output. */
-    TAILQ_HEAD(tray_outputs_head, tray_output_t) tray_outputs;
+    std::vector<std::string> tray_outputs{};
 
     /* Padding around the tray icons. */
     int tray_padding;
@@ -291,7 +283,7 @@ struct Barconfig {
     /** Bar modifier (to show bar when in hide mode). */
     uint32_t modifier;
 
-    TAILQ_HEAD(bar_bindings_head, Barbinding) bar_bindings;
+    std::vector<std::unique_ptr<Barbinding>> bar_bindings{};
 
     /** Bar position (bottom by default). */
     enum config_bar_position_t position;
@@ -363,6 +355,8 @@ struct Barconfig {
         char *binding_mode_bg;
         char *binding_mode_text;
     } colors;
+
+    ~Barconfig();
 };
 
 /**
@@ -375,25 +369,17 @@ struct Barbinding {
     int input_code;
 
     /** The command which is to be executed for this button. */
-    char *command;
+    std::string command;
 
     /** If true, the command will be executed after the button is released. */
     bool release;
-
-    TAILQ_ENTRY(Barbinding) bindings;
 };
 
-struct tray_output_t {
-    char *output;
-
-    TAILQ_ENTRY(tray_output_t) tray_outputs;
-};
-
-typedef enum {
+enum class config_load_t {
     C_VALIDATE,
     C_LOAD,
     C_RELOAD,
-} config_load_t;
+};
 
 /**
  * (Re-)loads the configuration file (sets useful defaults before).
@@ -406,11 +392,4 @@ typedef enum {
  * the config for normal use and display errors in the nagbar. C_RELOAD will
  * also clear the previous config.
  */
-bool load_configuration(const char *override_configfile, config_load_t load_type);
-
-/**
- * Ungrabs all keys, to be called before re-grabbing the keys because of a
- * mapping_notify event or a configuration file reload
- *
- */
-void ungrab_all_keys(xcb_connection_t *conn);
+bool load_configuration(const std::string *override_configfile, config_load_t load_type);

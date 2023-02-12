@@ -13,7 +13,7 @@
 
 #include "ipc.h"
 
-#include <yajl/yajl_gen.h>
+struct ipc_client;
 
 /**
  * Holds an intermediate represenation of the result of a call to any command.
@@ -22,7 +22,7 @@
  */
 struct CommandResultIR {
     /* The JSON generator to append a reply to (may be NULL). */
-    yajl_gen json_gen;
+    nlohmann::json *json_gen;
 
     /* The IPC client connection which sent this command (may be NULL, e.g. for
        key bindings). */
@@ -37,8 +37,6 @@ struct CommandResultIR {
     bool needs_tree_render;
 };
 
-typedef struct CommandResult CommandResult;
-
 /**
  * A struct that contains useful information about the result of a command as a
  * whole (e.g. a compound command like "floating enable, border none").
@@ -48,7 +46,7 @@ typedef struct CommandResult CommandResult;
 struct CommandResult {
     bool parse_error;
     /* the error_message is currently only set for parse errors */
-    char *error_message;
+    std::string error_message;
     bool needs_tree_render;
 };
 
@@ -67,9 +65,4 @@ char *parse_string(const char **walk, bool as_word);
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult *parse_command(const char *input, yajl_gen gen, ipc_client *client);
-
-/**
- * Frees a CommandResult
- */
-void command_result_free(CommandResult *result);
+CommandResult parse_command(const std::string &input, nlohmann::json *gen, ipc_client *client);

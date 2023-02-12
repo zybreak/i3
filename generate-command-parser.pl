@@ -133,7 +133,8 @@ close($enumfh);
 open(my $callfh, '>', "GENERATED_${prefix}_call.h");
 my $resultname = uc(substr($prefix, 0, 1)) . substr($prefix, 1) . 'ResultIR';
 say $callfh '#pragma once';
-say $callfh "static void GENERATED_call(Match *current_match, struct stack *stack, const int call_identifier, struct $resultname *result) {";
+say $callfh '#include "criteria_state.h"';
+say $callfh "static void GENERATED_call(struct criteria_state &criteria_state, struct stack &stack, const int call_identifier, struct $resultname &result) {";
 say $callfh '    switch (call_identifier) {';
 my $call_id = 0;
 for my $state (@keys) {
@@ -171,13 +172,13 @@ for my $state (@keys) {
         $fmt = $funcname . $fmt;
 
         say $callfh "         case $call_id:";
-        say $callfh "             result->next_state = $next_state;";
+        say $callfh "             result.next_state = $next_state;";
         say $callfh '#ifndef TEST_PARSER';
         my $real_cmd = $cmd;
         if ($real_cmd =~ /\(\)/) {
-            $real_cmd =~ s/\(/(current_match, result/;
+            $real_cmd =~ s/\(/(criteria_state, result/;
         } else {
-            $real_cmd =~ s/\(/(current_match, result, /;
+            $real_cmd =~ s/\(/(criteria_state, result, /;
         }
         say $callfh "             $real_cmd;";
         say $callfh '#else';
@@ -189,7 +190,7 @@ for my $state (@keys) {
         say $callfh qq|           fprintf(stderr, "$fmt\\n"$cmd);|;
         # The cfg_criteria functions have side-effects which are important for
         # testing. They are implemented as stubs in the test parser code.
-        if ($real_cmd =~ /^cfg_criteria/) {
+        if ($real_cmd =~ /^cfg::criteria/) {
             say $callfh qq|       $real_cmd;|;
         }
         say $callfh '#endif';
@@ -228,8 +229,15 @@ for my $state (@keys) {
             ($call_identifier) = ($next_state =~ /^call ([0-9]+)$/);
             $next_state = '__CALL';
         }
-        my $identifier = $token->{identifier};
-        say $tokfh qq|    { "$token_name", "$identifier", $next_state, { $call_identifier } },|;
+        my $identifier;
+        # Set $identifier to NULL if there is no identifier
+        if ($token->{identifier} eq ""){
+            $identifier = "nullptr"
+        }
+        else{
+            $identifier = qq|"$token->{identifier}"|;
+        }
+        say $tokfh qq|    { "$token_name", $identifier, $next_state, { $call_identifier } },|;
     }
     say $tokfh '};';
 }

@@ -10,21 +10,26 @@
 #pragma once
 
 #include <config.h>
+#include "con.h"
+
+enum position_t {
+    BEFORE,
+    AFTER
+};
+
 
 extern Con *croot;
 /* TODO: i am not sure yet how much access to the focused container should
  * be permitted to source files */
 extern Con *focused;
-TAILQ_HEAD(all_cons_head, Con);
-extern struct all_cons_head all_cons;
-
+extern std::deque<Con*> all_cons;
 /**
  * Initializes the tree by creating the root node, adding all RandR outputs
  * to the tree (that means randr_init() has to be called before) and
  * assigning a workspace to each RandR output.
  *
  */
-void tree_init(xcb_get_geometry_reply_t *geometry);
+void tree_init(const xcb_get_geometry_reply_t *geometry);
 
 /**
  * Opens an empty container in the current container
@@ -85,7 +90,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
  * Loads tree from ~/.i3/_restart.json (used for in-place restarts).
  *
  */
-bool tree_restore(const char *path, xcb_get_geometry_reply_t *geometry);
+bool tree_restore(const std::string_view  &path, const xcb_get_geometry_reply_t *geometry);
 
 /**
  * tree_flatten() removes pairs of redundant split containers, e.g.:

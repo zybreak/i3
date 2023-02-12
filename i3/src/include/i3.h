@@ -12,6 +12,8 @@
 #include <config.h>
 
 #include <sys/time.h>
+#include <queue>
+#include <memory>
 #include <sys/resource.h>
 
 #include <xcb/shape.h>
@@ -26,18 +28,13 @@
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-launcher.h>
 
-#include "queue.h"
-#include "data.h"
+#include "bindings.h"
 #include "xcb.h"
+#include "workspace.h"
 
 /** Git commit identifier, from version.c */
 extern const char *i3_version;
 
-/** The original value of RLIMIT_CORE when i3 was started. We need to restore
- * this before starting any other process, since we set RLIMIT_CORE to
- * RLIM_INFINITY for i3 debugging versions. */
-extern struct rlimit original_rlimit_core;
-extern int conn_screen;
 /**
  * The EWMH support window that is used to indicate that an EWMH-compliant
  * window manager is present. This window is created when i3 starts and
@@ -47,21 +44,10 @@ extern int conn_screen;
  * keyboard focus issues (see #1378).
  */
 extern xcb_window_t ewmh_window;
-/** The last timestamp we got from X11 (timestamps are included in some events
- * and are used for some things, like determining a unique ID in startup
- * notification). */
-extern xcb_timestamp_t last_timestamp;
 extern SnDisplay *sndisplay;
 extern xcb_key_symbols_t *keysyms;
 extern char **start_argv;
 extern int xkb_current_group;
-extern TAILQ_HEAD(bindings_head, Binding) *bindings;
-extern const char *current_binding_mode;
-extern TAILQ_HEAD(autostarts_head, Autostart) autostarts;
-extern TAILQ_HEAD(autostarts_always_head, Autostart) autostarts_always;
-extern TAILQ_HEAD(ws_assignments_head, Workspace_Assignment) ws_assignments;
-extern TAILQ_HEAD(assignments_head, Assignment) assignments;
-extern SLIST_HEAD(stack_wins_head, Stack_Window) stack_wins;
 
 /* Color depth, visual id and colormap to use when creating windows and
  * pixmaps. Will use 32 bit depth and an appropriate visual, if available,
@@ -72,3 +58,17 @@ extern xcb_colormap_t colormap;
 extern bool xkb_supported, shape_supported;
 extern xcb_window_t root;
 extern struct ev_loop *main_loop;
+
+/**
+ * Puts the given socket file descriptor into non-blocking mode or dies if
+ * setting O_NONBLOCK failed. Non-blocking sockets are a good idea for our
+ * IPC model because we should by no means block the window manager.
+ *
+ */
+void set_nonblock(int sockfd);
+
+/**
+ * Reports whether str represents the enabled state (1, yes, true, …).
+ *
+ */
+bool boolstr(const char *str);

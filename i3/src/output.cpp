@@ -10,13 +10,13 @@
 #include <cassert>
 
 #include <cstring>
+#include <ranges>
+#include <algorithm>
 
 #include "libi3.h"
 
-#include "data.h"
 #include "util.h"
 #include "tree.h"
-#include "log.h"
 #include "workspace.h"
 #include "configuration.h"
 #include "randr.h"
@@ -24,37 +24,21 @@
 #include "output.h"
 
 /*
- * Returns the content container below the given output container.
- *
- */
-Con *output_get_content(Con *output) {
-    Con *child;
-
-    TAILQ_FOREACH (child, &(output->nodes_head), nodes) {
-        if (child->type == CT_CON) {
-            return child;
-        }
-    }
-
-    return nullptr;
-}
-
-/*
  * Returns an 'output' corresponding to one of left/right/down/up or a specific
  * output name.
  *
  */
-Output *get_output_from_string(Output *current_output, const char *output_str) {
-    if (strcasecmp(output_str, "current") == 0) {
+Output* Output::get_output_from_string(const std::string &output_str) {
+    if (output_str == "current") {
         return get_output_for_con(focused);
-    } else if (strcasecmp(output_str, "left") == 0) {
-        return get_output_next_wrap(D_LEFT, current_output);
-    } else if (strcasecmp(output_str, "right") == 0) {
-        return get_output_next_wrap(D_RIGHT, current_output);
-    } else if (strcasecmp(output_str, "up") == 0) {
-        return get_output_next_wrap(D_UP, current_output);
-    } else if (strcasecmp(output_str, "down") == 0) {
-        return get_output_next_wrap(D_DOWN, current_output);
+    } else if (output_str == "left") {
+        return get_output_next_wrap(D_LEFT, this);
+    } else if (output_str == "right") {
+        return get_output_next_wrap(D_RIGHT, this);
+    } else if (output_str == "up") {
+        return get_output_next_wrap(D_UP, this);
+    } else if (output_str == "down") {
+        return get_output_next_wrap(D_DOWN, this);
     }
 
     return get_output_by_name(output_str, true);
@@ -64,12 +48,12 @@ Output *get_output_from_string(Output *current_output, const char *output_str) {
  * Retrieves the primary name of an output.
  *
  */
-char *output_primary_name(Output *output) {
-    return *output->names->begin();
+std::string Output::output_primary_name() const {
+    return this->names.front();
 }
 
 Output *get_output_for_con(Con *con) {
-    Con *output_con = con_get_output(con);
+    Con *output_con = con->con_get_output();
     Output *output = get_output_by_name(output_con->name, true);
     assert(output != nullptr);
 
@@ -89,38 +73,28 @@ Output *get_output_for_con(Con *con) {
  *
  */
 void output_push_sticky_windows(Con *old_focus) {
-    Con *output;
-    TAILQ_FOREACH (output, &(croot->focus_head), focused) {
-        Con *workspace, *visible_ws = nullptr;
-        GREP_FIRST(visible_ws, output_get_content(output), workspace_is_visible(child));
+    for (auto &output : croot->focus_head) {
+        auto visible_ws = std::ranges::find_if(output->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
 
         /* We use this loop instead of TAILQ_FOREACH to avoid problems if the
          * sticky window was the last window on that workspace as moving it in
          * this case will close the workspace. */
-        for (workspace = TAILQ_FIRST(&(output_get_content(output)->focus_head));
-             workspace != TAILQ_END(&(output_get_content(output)->focus_head));) {
-            Con *current_ws = workspace;
-            workspace = TAILQ_NEXT(workspace, focused);
-
+        for (auto &current_ws : output->output_get_content()->focus_head) {
             /* Since moving the windows actually removes them from the list of
              * floating windows on this workspace, here too we need to use
              * another loop than TAILQ_FOREACH. */
-            Con *child;
-            for (child = TAILQ_FIRST(&(current_ws->focus_head));
-                 child != TAILQ_END(&(current_ws->focus_head));) {
-                Con *current = child;
-                child = TAILQ_NEXT(child, focused);
-                if (current->type != CT_FLOATING_CON || !con_is_sticky(current)) {
+            for (auto &current : current_ws->focus_head) {
+                if (current->type != CT_FLOATING_CON || !current->con_is_sticky()) {
                     continue;
                 }
 
                 bool ignore_focus = (old_focus == nullptr) || (current != old_focus->parent);
-                con_move_to_workspace(current, visible_ws, true, false, ignore_focus);
+                con_move_to_workspace(current, *visible_ws, true, false, ignore_focus);
                 if (!ignore_focus) {
-                    Con *current_ws = con_get_workspace(focused);
-                    con_activate(con_descend_focused(current));
+                    Con *current_ws = focused->con_get_workspace();
+                    con_descend_focused(current)->con_activate();
                     /* Pushing sticky windows shouldn't change the focused workspace. */
-                    con_activate(con_descend_focused(current_ws));
+                    con_descend_focused(current_ws)->con_activate();
                 }
             }
         }

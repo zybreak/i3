@@ -10,7 +10,8 @@
 #include <err.h>
 #include <glob.h>
 #include <cstdlib>
-#include <cstring>
+#include <string_view>
+#include <ranges>
 
 /*
  * This function resolves ~ in pathnames.
@@ -18,26 +19,25 @@
  * or multiple matches are found, it just returns a copy of path as given.
  *
  */
-char *resolve_tilde(const char *path) {
-    static glob_t globbuf;
-    char *head, *tail, *result;
+std::string resolve_tilde(const std::string_view &path) {
+    static glob_t globbuf{};
+    std::string result;
 
-    tail = (char*)strchr(path, '/');
-    head = sstrndup(path, tail ? (size_t)(tail - path) : strlen(path));
+    auto tail = std::ranges::find(path, '/');
 
-    int res = glob(head, GLOB_TILDE, nullptr, &globbuf);
-    free(head);
+    std::string head{path.begin(), tail};
+
+    int res = glob(head.c_str(), GLOB_TILDE, nullptr, &globbuf);
+
     /* no match, or many wildcard matches are bad */
     if (res == GLOB_NOMATCH || globbuf.gl_pathc != 1)
-        result = sstrdup(path);
+        result = path;
     else if (res != 0) {
         err(EXIT_FAILURE, "glob() failed");
     } else {
-        head = globbuf.gl_pathv[0];
-        result = (char*)scalloc(strlen(head) + (tail ? strlen(tail) : 0) + 1, 1);
-        strcpy(result, head);
-        if (tail) {
-            strcat(result, tail);
+        result = globbuf.gl_pathv[0];
+        if (tail != path.end()) {
+            result += std::string(tail, path.end());
         }
     }
     globfree(&globbuf);

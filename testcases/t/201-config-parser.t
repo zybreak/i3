@@ -36,7 +36,7 @@ sub parser_calls {
 
     # The criteria management calls are irrelevant and not what we want to test
     # in the first place.
-    @lines = grep { !(/cfg_criteria_init/ || /cfg_criteria_pop_state/) } @lines;
+    @lines = grep { !(/cfg::criteria_init/ || /cfg::criteria_pop_state/) } @lines;
     return join("\n", @lines) . "\n";
 }
 
@@ -55,16 +55,16 @@ mode "meh" {
 EOT
 
 my $expected = <<'EOT';
-cfg_enter_mode((null), meh)
-cfg_mode_binding(bindsym, Mod1,Shift, x, (null), (null), (null), (null), resize grow)
-cfg_mode_binding(bindcode, Mod1, 44, (null), (null), (null), (null), resize shrink)
-cfg_mode_binding(bindsym, Mod1, x, --release, (null), (null), (null), exec foo)
-cfg_mode_binding(bindsym, (null), button3, (null), (null), --whole-window, (null), nop)
-cfg_mode_binding(bindsym, (null), button3, --release, (null), --whole-window, (null), nop)
-cfg_mode_binding(bindsym, (null), button3, (null), --border, (null), (null), nop)
-cfg_mode_binding(bindsym, (null), button3, --release, --border, (null), (null), nop)
-cfg_mode_binding(bindsym, (null), button3, (null), (null), (null), --exclude-titlebar, nop)
-cfg_mode_binding(bindsym, (null), button3, (null), --border, --whole-window, --exclude-titlebar, nop)
+cfg::enter_mode((null), meh)
+cfg::mode_binding(bindsym, Mod1,Shift, x, (null), (null), (null), (null), resize grow)
+cfg::mode_binding(bindcode, Mod1, 44, (null), (null), (null), (null), resize shrink)
+cfg::mode_binding(bindsym, Mod1, x, --release, (null), (null), (null), exec foo)
+cfg::mode_binding(bindsym, (null), button3, (null), (null), --whole-window, (null), nop)
+cfg::mode_binding(bindsym, (null), button3, --release, (null), --whole-window, (null), nop)
+cfg::mode_binding(bindsym, (null), button3, (null), --border, (null), (null), nop)
+cfg::mode_binding(bindsym, (null), button3, --release, --border, (null), (null), nop)
+cfg::mode_binding(bindsym, (null), button3, (null), (null), (null), --exclude-titlebar, nop)
+cfg::mode_binding(bindsym, (null), button3, (null), --border, --whole-window, --exclude-titlebar, nop)
 EOT
 
 is(parser_calls($config),
@@ -83,10 +83,10 @@ exec_always --no-startup-id /tmp/bar.sh
 EOT
 
 $expected = <<'EOT';
-cfg_exec(exec, (null), geeqie)
-cfg_exec(exec, --no-startup-id, /tmp/foo.sh)
-cfg_exec(exec_always, (null), firefox)
-cfg_exec(exec_always, --no-startup-id, /tmp/bar.sh)
+cfg::exec(exec, (null), geeqie)
+cfg::exec(exec, --no-startup-id, /tmp/foo.sh)
+cfg::exec(exec_always, (null), firefox)
+cfg::exec(exec_always, --no-startup-id, /tmp/bar.sh)
 EOT
 
 is(parser_calls($config),
@@ -106,17 +106,17 @@ for_window [tiling_from=auto class="==Class=="]nop floating
 EOT
 
 $expected = <<'EOT';
-cfg_for_window(nop empty)
-cfg_criteria_add(class, ^Chrome)
-cfg_for_window(floating enable)
-cfg_criteria_add(class, ^Chrome)
-cfg_for_window(floating enable)
-cfg_criteria_add(floating_from, auto)
-cfg_criteria_add(class, ==Class==)
-cfg_for_window(nop floating)
-cfg_criteria_add(tiling_from, auto)
-cfg_criteria_add(class, ==Class==)
-cfg_for_window(nop floating)
+cfg::for_window(nop empty)
+cfg::criteria_add(class, ^Chrome)
+cfg::for_window(floating enable)
+cfg::criteria_add(class, ^Chrome)
+cfg::for_window(floating enable)
+cfg::criteria_add(floating_from, auto)
+cfg::criteria_add(class, ==Class==)
+cfg::for_window(nop floating)
+cfg::criteria_add(tiling_from, auto)
+cfg::criteria_add(class, ==Class==)
+cfg::for_window(nop floating)
 EOT
 
 is(parser_calls($config),
@@ -158,16 +158,16 @@ assign [class="^Chrome"] → "quoted named workspace"
 EOT
 
 $expected = <<'EOT';
-cfg_criteria_add(class, ^Chrome)
-cfg_assign(4, 0)
-cfg_criteria_add(class, ^Chrome)
-cfg_assign(3, 1)
-cfg_criteria_add(class, ^Chrome)
-cfg_assign(named workspace, 0)
-cfg_criteria_add(class, ^Chrome)
-cfg_assign(quoted named workspace, 0)
-cfg_criteria_add(class, ^Chrome)
-cfg_assign(quoted named workspace, 0)
+cfg::criteria_add(class, ^Chrome)
+cfg::assign(4, 0)
+cfg::criteria_add(class, ^Chrome)
+cfg::assign(3, 1)
+cfg::criteria_add(class, ^Chrome)
+cfg::assign(named workspace, 0)
+cfg::criteria_add(class, ^Chrome)
+cfg::assign(quoted named workspace, 0)
+cfg::criteria_add(class, ^Chrome)
+cfg::assign(quoted named workspace, 0)
 EOT
 
 is(parser_calls($config),
@@ -185,9 +185,9 @@ floating_maximum_size 73 x 10
 EOT
 
 $expected = <<'EOT';
-cfg_floating_minimum_size(80, 55)
-cfg_floating_minimum_size(80, 55)
-cfg_floating_maximum_size(73, 10)
+cfg::floating_minimum_size(80, 55)
+cfg::floating_minimum_size(80, 55)
+cfg::floating_maximum_size(73, 10)
 EOT
 
 is(parser_calls($config),
@@ -205,9 +205,9 @@ popup_during_fullscreen SMArt
 EOT
 
 $expected = <<'EOT';
-cfg_popup_during_fullscreen(ignore)
-cfg_popup_during_fullscreen(leave_fullscreen)
-cfg_popup_during_fullscreen(smart)
+cfg::popup_during_fullscreen(ignore)
+cfg::popup_during_fullscreen(leave_fullscreen)
+cfg::popup_during_fullscreen(smart)
 EOT
 
 is(parser_calls($config),
@@ -225,8 +225,8 @@ floating_modifier mOd1
 EOT
 
 $expected = <<'EOT';
-cfg_floating_modifier(Mod1)
-cfg_floating_modifier(Mod1)
+cfg::floating_modifier(Mod1)
+cfg::floating_modifier(Mod1)
 EOT
 
 is(parser_calls($config),
@@ -244,9 +244,9 @@ default_orientation auto
 EOT
 
 $expected = <<'EOT';
-cfg_default_orientation(horizontal)
-cfg_default_orientation(vertical)
-cfg_default_orientation(auto)
+cfg::default_orientation(horizontal)
+cfg::default_orientation(vertical)
+cfg::default_orientation(auto)
 EOT
 
 is(parser_calls($config),
@@ -265,10 +265,10 @@ workspace_layout tabbed
 EOT
 
 $expected = <<'EOT';
-cfg_workspace_layout(default)
-cfg_workspace_layout(stacked)
-cfg_workspace_layout(stacking)
-cfg_workspace_layout(tabbed)
+cfg::workspace_layout(default)
+cfg::workspace_layout(stacked)
+cfg::workspace_layout(stacking)
+cfg::workspace_layout(tabbed)
 EOT
 
 is(parser_calls($config),
@@ -285,8 +285,8 @@ workspace "3" output     	VGA-1
 EOT
 
 $expected = <<'EOT';
-cfg_workspace(3, DP-1)
-cfg_workspace(3, VGA-1)
+cfg::workspace(3, DP-1)
+cfg::workspace(3, VGA-1)
 EOT
 
 is(parser_calls($config),
@@ -313,18 +313,18 @@ default_floating_border none
 EOT
 
 $expected = <<'EOT';
-cfg_default_border(new_window, 1pixel, -1)
-cfg_default_border(new_window, normal, 2)
-cfg_default_border(new_window, none, -1)
-cfg_default_border(default_border, 1pixel, -1)
-cfg_default_border(default_border, normal, 2)
-cfg_default_border(default_border, none, -1)
-cfg_default_border(new_float, 1pixel, -1)
-cfg_default_border(new_float, normal, 2)
-cfg_default_border(new_float, none, -1)
-cfg_default_border(default_floating_border, 1pixel, -1)
-cfg_default_border(default_floating_border, normal, 2)
-cfg_default_border(default_floating_border, none, -1)
+cfg::default_border(new_window, 1pixel, -1)
+cfg::default_border(new_window, normal, 2)
+cfg::default_border(new_window, none, -1)
+cfg::default_border(default_border, 1pixel, -1)
+cfg::default_border(default_border, normal, 2)
+cfg::default_border(default_border, none, -1)
+cfg::default_border(new_float, 1pixel, -1)
+cfg::default_border(new_float, normal, 2)
+cfg::default_border(new_float, none, -1)
+cfg::default_border(default_floating_border, 1pixel, -1)
+cfg::default_border(default_floating_border, normal, 2)
+cfg::default_border(default_floating_border, none, -1)
 EOT
 
 # TODO: are there no tests for "border pixel 1" etc?
@@ -346,11 +346,11 @@ hide_edge_borders smart
 EOT
 
 $expected = <<'EOT';
-cfg_hide_edge_borders(none)
-cfg_hide_edge_borders(vertical)
-cfg_hide_edge_borders(horizontal)
-cfg_hide_edge_borders(both)
-cfg_hide_edge_borders(smart)
+cfg::hide_edge_borders(none)
+cfg::hide_edge_borders(vertical)
+cfg::hide_edge_borders(horizontal)
+cfg::hide_edge_borders(both)
+cfg::hide_edge_borders(smart)
 EOT
 
 is(parser_calls($config),
@@ -367,8 +367,8 @@ focus_follows_mouse no
 EOT
 
 $expected = <<'EOT';
-cfg_focus_follows_mouse(yes)
-cfg_focus_follows_mouse(no)
+cfg::focus_follows_mouse(yes)
+cfg::focus_follows_mouse(no)
 EOT
 
 is(parser_calls($config),
@@ -385,8 +385,8 @@ mouse_warping none
 EOT
 
 $expected = <<'EOT';
-cfg_mouse_warping(output)
-cfg_mouse_warping(none)
+cfg::mouse_warping(output)
+cfg::mouse_warping(none)
 EOT
 
 is(parser_calls($config),
@@ -398,15 +398,15 @@ is(parser_calls($config),
 ################################################################################
 
 is(parser_calls('force_display_urgency_hint 300'),
-   "cfg_force_display_urgency_hint(300)\n",
+   "cfg::force_display_urgency_hint(300)\n",
    'force_display_urgency_hint ok');
 
 is(parser_calls('force_display_urgency_hint 500 ms'),
-   "cfg_force_display_urgency_hint(500)\n",
+   "cfg::force_display_urgency_hint(500)\n",
    'force_display_urgency_hint ok');
 
 is(parser_calls('force_display_urgency_hint 700ms'),
-   "cfg_force_display_urgency_hint(700)\n",
+   "cfg::force_display_urgency_hint(700)\n",
    'force_display_urgency_hint ok');
 
 $config = <<'EOT';
@@ -417,10 +417,10 @@ force_display_urgency_hint 700
 EOT
 
 $expected = <<'EOT';
-cfg_force_display_urgency_hint(300)
-cfg_force_display_urgency_hint(500)
-cfg_force_display_urgency_hint(700)
-cfg_force_display_urgency_hint(700)
+cfg::force_display_urgency_hint(300)
+cfg::force_display_urgency_hint(500)
+cfg::force_display_urgency_hint(700)
+cfg::force_display_urgency_hint(700)
 EOT
 
 is(parser_calls($config),
@@ -440,13 +440,13 @@ workspace foo output a b c "a b c"
 EOT
 
 $expected = <<'EOT';
-cfg_workspace(3, VGA-1)
-cfg_workspace(4: output, VGA-2)
-cfg_workspace(bleh, LVDS1/I_1)
-cfg_workspace(foo, a)
-cfg_workspace((null), b)
-cfg_workspace((null), c)
-cfg_workspace((null), a b c)
+cfg::workspace(3, VGA-1)
+cfg::workspace(4: output, VGA-2)
+cfg::workspace(bleh, LVDS1/I_1)
+cfg::workspace(foo, a)
+cfg::workspace((null), b)
+cfg::workspace((null), c)
+cfg::workspace((null), a b c)
 EOT
 
 is(parser_calls($config),
@@ -463,8 +463,8 @@ ipc_socket ~/.i3/i3.sock
 EOT
 
 $expected = <<'EOT';
-cfg_ipc_socket(/tmp/i3.sock)
-cfg_ipc_socket(~/.i3/i3.sock)
+cfg::ipc_socket(/tmp/i3.sock)
+cfg::ipc_socket(~/.i3/i3.sock)
 EOT
 
 is(parser_calls($config),
@@ -484,11 +484,11 @@ client.placeholder      #000000 #0c0c0c #ffffff #000000
 EOT
 
 $expected = <<'EOT';
-cfg_color(client.focused, #4c7899, #285577, #ffffff, #2e9ef4, #b34d4c)
-cfg_color(client.focused_inactive, #333333, #5f676a, #ffffff, #484e50, NULL)
-cfg_color(client.unfocused, #333333, #222222, #888888, #292d2e, NULL)
-cfg_color(client.urgent, #2f343a, #900000, #ffffff, #900000, #c00000)
-cfg_color(client.placeholder, #000000, #0c0c0c, #ffffff, #000000, NULL)
+cfg::color(client.focused, #4c7899, #285577, #ffffff, #2e9ef4, #b34d4c)
+cfg::color(client.focused_inactive, #333333, #5f676a, #ffffff, #484e50, NULL)
+cfg::color(client.unfocused, #333333, #222222, #888888, #292d2e, NULL)
+cfg::color(client.urgent, #2f343a, #900000, #ffffff, #900000, #c00000)
+cfg::color(client.placeholder, #000000, #0c0c0c, #ffffff, #000000, NULL)
 EOT
 
 is(parser_calls($config),
@@ -530,15 +530,10 @@ my $expected_all_tokens = "ERROR: CONFIG: Expected one of these tokens: <end>, '
         mouse_warping
         focus_wrapping
         force_focus_wrapping
-        disable_randr15
-        disable-randr15
         workspace_auto_back_and_forth
-        fake_outputs
-        fake-outputs
         force_display_urgency_hint
         focus_on_window_activation
         title_align
-        show_marks
         workspace
         ipc_socket
         ipc-socket
@@ -560,7 +555,7 @@ ERROR: CONFIG: (in file <stdin>)
 ERROR: CONFIG: Line   1: hide_edge_border both
 ERROR: CONFIG:           ^^^^^^^^^^^^^^^^^^^^^
 ERROR: CONFIG: Line   2: client.focused          #4c7899 #285577 #ffffff #2e9ef4
-cfg_color(client.focused, #4c7899, #285577, #ffffff, #2e9ef4, NULL)
+cfg::color(client.focused, #4c7899, #285577, #ffffff, #2e9ef4, NULL)
 EOT
 
 $expected = $expected_all_tokens . $expected_end;
@@ -580,7 +575,7 @@ ERROR: CONFIG: (in file <stdin>)
 ERROR: CONFIG: Line   1: hide_edge_borders FOOBAR
 ERROR: CONFIG:                             ^^^^^^
 ERROR: CONFIG: Line   2: client.focused          #4c7899 #285577 #ffffff #2e9ef4
-cfg_color(client.focused, #4c7899, #285577, #ffffff, #2e9ef4, NULL)
+cfg::color(client.focused, #4c7899, #285577, #ffffff, #2e9ef4, NULL)
 EOT
 
 is(parser_calls($config),
@@ -619,7 +614,7 @@ unknown qux
 EOT
 
 my $expected_head = <<'EOT';
-cfg_font(foobar)
+cfg::font(foobar)
 EOT
 
 my $expected_tail = <<'EOT';
@@ -738,8 +733,8 @@ mode "yo" {
 EOT
 
 $expected = <<'EOT';
-cfg_enter_mode((null), yo)
-cfg_mode_binding(bindsym, (null), x, (null), (null), (null), (null), resize shrink left)
+cfg::enter_mode((null), yo)
+cfg::mode_binding(bindsym, (null), x, (null), (null), (null), (null), resize shrink left)
 ERROR: CONFIG: Expected one of these tokens: <end>, '#', 'set', 'bindsym', 'bindcode', 'bind', '}'
 ERROR: CONFIG: (in file <stdin>)
 ERROR: CONFIG: Line   1: mode "yo" {
@@ -765,8 +760,8 @@ bar {
 EOT
 
 $expected = <<'EOT';
-cfg_bar_start()
-cfg_bar_output(LVDS-1)
+cfg::bar_start()
+cfg::bar_output(LVDS-1)
 ERROR: CONFIG: Expected one of these tokens: <end>, '#', 'set', 'i3bar_command', 'status_command', 'socket_path', 'mode', 'hidden_state', 'id', 'modifier', 'wheel_up_cmd', 'wheel_down_cmd', 'bindsym', 'position', 'output', 'tray_output', 'tray_padding', 'font', 'separator_symbol', 'binding_mode_indicator', 'workspace_buttons', 'workspace_min_width', 'strip_workspace_numbers', 'strip_workspace_name', 'verbose', 'colors', '}'
 ERROR: CONFIG: (in file <stdin>)
 ERROR: CONFIG: Line   1: bar {
@@ -774,7 +769,7 @@ ERROR: CONFIG: Line   2:     output LVDS-1
 ERROR: CONFIG: Line   3:     unknown qux
 ERROR: CONFIG:               ^^^^^^^^^^^
 ERROR: CONFIG: Line   4: }
-cfg_bar_finish()
+cfg::bar_finish()
 EOT
 
 is(parser_calls($config),

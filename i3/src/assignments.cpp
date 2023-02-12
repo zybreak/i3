@@ -8,18 +8,20 @@
  *
  */
 
-#include <cstdint>
-#include <cstdlib>
+#include <fmt/core.h>
 
 #include "libi3.h"
 
-#include "data.h"
 #include "tree.h"
-#include "log.h"
 #include "i3.h"
 #include "match.h"
 #include "assignments.h"
 #include "commands_parser.h"
+#include "global.h"
+
+Assignment::~Assignment() {
+    delete this->match;
+}
 
 /*
  * Checks the list of assignments for the given window and runs all matching
@@ -32,14 +34,14 @@ void run_assignments(i3Window *window) {
     bool needs_tree_render = false;
 
     /* Check if any assignments match */
-    Assignment *current;
-    TAILQ_FOREACH (current, &assignments, assignments) {
-        if (current->type != A_COMMAND || !match_matches_window(&(current->match), window))
+    for (const auto &current : global.assignments) {
+        if (current->type != A_COMMAND || (current->match == nullptr || !match_matches_window(*current->match, window)))
             continue;
 
+
         bool skip = false;
-        for (uint32_t c = 0; c < window->nr_assignments; c++) {
-            if (window->ran_assignments[c] != current)
+        for (const auto &c : window->ran_assignments) {
+            if (c != current.get())
                 continue;
 
             DLOG("This assignment already ran for the given window, not executing it again.\n");
@@ -53,20 +55,16 @@ void run_assignments(i3Window *window) {
         /* Store that we ran this assignment to not execute it again. We have
          * to do this before running the actual command to prevent infinite
          * loops. */
-        window->nr_assignments++;
-        window->ran_assignments = (Assignment**)srealloc(window->ran_assignments, sizeof(Assignment *) * window->nr_assignments);
-        window->ran_assignments[window->nr_assignments - 1] = current;
+        window->ran_assignments.push_back(current.get());
 
-        DLOG("matching assignment, execute command %s\n", current->dest.command);
-        char *full_command;
-        sasprintf(&full_command, "[id=\"%d\"] %s", window->id, current->dest.command);
-        CommandResult *result = parse_command(full_command, nullptr, nullptr);
-        free(full_command);
+        auto command = dynamic_cast<CommandAssignment*>(current.get());
 
-        if (result->needs_tree_render)
+        DLOG(fmt::sprintf("matching assignment, execute command %s\n",  command->command));
+        std::string full_command = fmt::format("[id=\"{}\"] {}", std::to_string(window->id), command->command);
+        CommandResult result = parse_command(full_command, nullptr, nullptr);
+
+        if (result.needs_tree_render)
             needs_tree_render = true;
-
-        command_result_free(result);
     }
 
     /* If any of the commands required re-rendering, we will do that now. */
@@ -78,15 +76,13 @@ void run_assignments(i3Window *window) {
  * Returns the first matching assignment for the given window.
  *
  */
-Assignment *assignment_for(i3Window *window, assignment_type_t type) {
-    Assignment *assignment;
-
-    TAILQ_FOREACH (assignment, &assignments, assignments) {
+Assignment* assignment_for(i3Window *window, assignment_type_t type) {
+    for (const auto &assignment : global.assignments) {
         if ((type != A_ANY && (assignment->type & type) == 0) ||
-            !match_matches_window(&(assignment->match), window))
+                (assignment->match == nullptr || !match_matches_window(*assignment->match, window)))
             continue;
         DLOG("got a matching assignment\n");
-        return assignment;
+        return assignment.get();
     }
 
     return nullptr;

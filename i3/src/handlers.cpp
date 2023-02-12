@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -21,11 +22,9 @@
 
 #include "libi3.h"
 
-#include "data.h"
 #include "util.h"
-#include "ipc.h"
+#include "i3_ipc/include/i3-ipc.h"
 #include "tree.h"
-#include "log.h"
 #include "xcb.h"
 #include "manage.h"
 #include "workspace.h"
@@ -52,6 +51,13 @@
 #include <xcb/randr.h>
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-monitor.h>
+#include <memory>
+#include <mutex>
+#include <algorithm>
+#include <ranges>
+#include <span>
+#include "main.h"
+#include "global.h"
 
 int randr_base = -1;
 int xkb_base = -1;
@@ -61,7 +67,8 @@ int shape_base = -1;
 /* After mapping/unmapping windows, a notify event is generated. However, we don’t want it,
    since it’d trigger an infinite loop of switching between the different windows when
    changing workspaces */
-static SLIST_HEAD(ignore_head, Ignore_Event) ignore_events;
+static std::mutex mtx;
+static std::vector<std::unique_ptr<Ignore_Event>> ignore_events{};
 
 /*
  * Adds the given sequence to the list of events which are ignored.
@@ -72,13 +79,14 @@ static SLIST_HEAD(ignore_head, Ignore_Event) ignore_events;
  *
  */
 void add_ignore_event(const int sequence, const int response_type) {
-    auto *event = (struct Ignore_Event*)smalloc(sizeof(struct Ignore_Event));
+    std::lock_guard<std::mutex> guard(mtx);
+    auto event = std::make_unique<Ignore_Event>();
 
     event->sequence = sequence;
     event->response_type = response_type;
     event->added = time(nullptr);
 
-    SLIST_INSERT_HEAD(&ignore_events, event, ignore_events);
+    ignore_events.insert(ignore_events.begin(), std::move(event));
 }
 
 /*
@@ -86,35 +94,17 @@ void add_ignore_event(const int sequence, const int response_type) {
  *
  */
 bool event_is_ignored(const int sequence, const int response_type) {
-    struct Ignore_Event *event;
+    std::lock_guard<std::mutex> guard(mtx);
+
     time_t now = time(nullptr);
-    for (event = SLIST_FIRST(&ignore_events); event != SLIST_END(&ignore_events);) {
-        if ((now - event->added) > 5) {
-            struct Ignore_Event *save = event;
-            event = SLIST_NEXT(event, ignore_events);
-            SLIST_REMOVE(&ignore_events, save, Ignore_Event, ignore_events);
-            free(save);
-        } else
-            event = SLIST_NEXT(event, ignore_events);
-    }
+    ignore_events.erase(std::remove_if(ignore_events.begin(), ignore_events.end(), [now](const auto &it) { return (now - it->added) > 5; }), ignore_events.end());
 
-    SLIST_FOREACH (event, &ignore_events, ignore_events) {
-        if (event->sequence != sequence)
-            continue;
-
-        if (event->response_type != -1 &&
-            event->response_type != response_type)
-            continue;
-
-        /* instead of removing a sequence number we better wait until it gets
-         * garbage collected. it may generate multiple events (there are multiple
-         * enter_notifies for one configure_request, for example). */
-        //SLIST_REMOVE(&ignore_events, event, Ignore_Event, ignore_events);
-        //free(event);
-        return true;
-    }
-
-    return false;
+    return std::any_of(
+            ignore_events.begin(),
+            ignore_events.end(),
+            [&response_type, &sequence](const auto &event) {
+                return (event->sequence == sequence && (event->response_type == -1 || event->response_type == response_type));
+            });
 }
 
 /*
@@ -142,11 +132,11 @@ static void check_crossing_screen_boundary(uint32_t x, uint32_t y) {
 
     /* Focus the output on which the user moved their cursor */
     Con *old_focused = focused;
-    Con *next = con_descend_focused(output_get_content(output->con));
+    Con *next = con_descend_focused(output->con->output_get_content());
     /* Since we are switching outputs, this *must* be a different workspace, so
      * call workspace_show() */
-    workspace_show(con_get_workspace(next));
-    con_focus(next);
+    workspace_show(next->con_get_workspace());
+    next->con_focus();
 
     /* If the focus changed, we re-render to get updated decorations */
     if (old_focused != focused)
@@ -160,11 +150,11 @@ static void check_crossing_screen_boundary(uint32_t x, uint32_t y) {
 static void handle_enter_notify(xcb_enter_notify_event_t *event) {
     Con *con;
 
-    last_timestamp = event->time;
+    global.last_timestamp = event->time;
 
-    DLOG("enter_notify for %08x, mode = %d, detail %d, serial %d\n",
-         event->event, event->mode, event->detail, event->sequence);
-    DLOG("coordinates %d, %d\n", event->event_x, event->event_y);
+    DLOG(fmt::sprintf("enter_notify for %08x, mode = %d, detail %d, serial %d\n",
+         event->event, event->mode, event->detail, event->sequence));
+    DLOG(fmt::sprintf("coordinates %d, %d\n",  event->event_x, event->event_y));
     if (event->mode != XCB_NOTIFY_MODE_NORMAL) {
         DLOG("This was not a normal notify, ignoring\n");
         return;
@@ -187,7 +177,7 @@ static void handle_enter_notify(xcb_enter_notify_event_t *event) {
      * window. In this case and if they used it to a dock, we need to focus the
      * workspace on the correct output. */
     if (con == nullptr || con->parent->type == CT_DOCKAREA) {
-        DLOG("Getting screen at %d x %d\n", event->root_x, event->root_y);
+        DLOG(fmt::sprintf("Getting screen at %d x %d\n",  event->root_x, event->root_y));
         check_crossing_screen_boundary(event->root_x, event->root_y);
         return;
     }
@@ -195,10 +185,9 @@ static void handle_enter_notify(xcb_enter_notify_event_t *event) {
     /* see if the user entered the window on a certain window decoration */
     layout_t layout = (enter_child ? con->parent->layout : con->layout);
     if (layout == L_DEFAULT) {
-        Con *child;
-        TAILQ_FOREACH_REVERSE (child, &(con->nodes_head), nodes_head, nodes) {
-            if (rect_contains(child->deco_rect, event->event_x, event->event_y)) {
-                LOG("using child %p / %s instead!\n", child, child->name);
+        for (auto &child : con->nodes_head | std::views::reverse) {
+            if (child->deco_rect.rect_contains(event->event_x, event->event_y)) {
+                LOG(fmt::sprintf("using child %p / %s instead!\n",  (void*)child, child->name));
                 con = child;
                 break;
             }
@@ -215,12 +204,12 @@ static void handle_enter_notify(xcb_enter_notify_event_t *event) {
     /* Get the currently focused workspace to check if the focus change also
      * involves changing workspaces. If so, we need to call workspace_show() to
      * correctly update state and send the IPC event. */
-    Con *ws = con_get_workspace(con);
-    if (ws != con_get_workspace(focused))
+    Con *ws = con->con_get_workspace();
+    if (ws != focused->con_get_workspace())
         workspace_show(ws);
 
     focused_id = XCB_NONE;
-    con_focus(con_descend_focused(con));
+    con_descend_focused(con)->con_focus();
     tree_render();
 }
 
@@ -231,7 +220,7 @@ static void handle_enter_notify(xcb_enter_notify_event_t *event) {
  *
  */
 static void handle_motion_notify(xcb_motion_notify_event_t *event) {
-    last_timestamp = event->time;
+    global.last_timestamp = event->time;
 
     /* Skip events where the pointer was over a child window, we are only
      * interested in events on the root window. */
@@ -252,16 +241,15 @@ static void handle_motion_notify(xcb_motion_notify_event_t *event) {
         return;
 
     /* see over which rect the user is */
-    Con *current;
-    TAILQ_FOREACH_REVERSE (current, &(con->nodes_head), nodes_head, nodes) {
-        if (!rect_contains(current->deco_rect, event->event_x, event->event_y))
+    for (auto &current : con->nodes_head | std::views::reverse) {
+        if (!current->deco_rect.rect_contains(event->event_x, event->event_y))
             continue;
 
         /* We found the rect, let’s see if this window is focused */
-        if (TAILQ_FIRST(&(con->focus_head)) == current)
+        if (con::first(con->focus_head) == current)
             return;
 
-        con_focus(current);
+        current->con_focus();
         x_push_changes(croot);
         return;
     }
@@ -282,9 +270,9 @@ static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
 
     xcb_numlock_mask = aio_get_mod_mask_for(XCB_NUM_LOCK, keysyms);
 
-    ungrab_all_keys(conn);
+    ungrab_all_keys(global.conn);
     translate_keysyms();
-    grab_all_keys(conn);
+    grab_all_keys(global.conn);
 }
 
 /*
@@ -292,14 +280,13 @@ static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
  *
  */
 static void handle_map_request(xcb_map_request_event_t *event) {
-    xcb_get_window_attributes_cookie_t cookie;
 
-    cookie = xcb_get_window_attributes_unchecked(conn, event->window);
+    auto attr = global.a->get_window_attributes_unchecked(event->window);
 
-    DLOG("window = 0x%08x, serial is %d.\n", event->window, event->sequence);
+    DLOG(fmt::sprintf("window = 0x%08x, serial is %d.\n",  event->window, event->sequence));
     add_ignore_event(event->sequence, -1);
 
-    manage_window(event->window, cookie, false);
+    manage_window(event->window, attr.get().get(), false);
 }
 
 /*
@@ -313,8 +300,8 @@ static void handle_map_request(xcb_map_request_event_t *event) {
 static void handle_configure_request(xcb_configure_request_event_t *event) {
     Con *con;
 
-    DLOG("window 0x%08x wants to be at %dx%d with %dx%d\n",
-         event->window, event->x, event->y, event->width, event->height);
+    DLOG(fmt::sprintf("window 0x%08x wants to be at %dx%d with %dx%d\n",
+         event->window, event->x, event->y, event->width, event->height));
 
     /* For unmanaged windows, we just execute the configure request. As soon as
      * it gets mapped, we will take over anyways. */
@@ -340,23 +327,23 @@ static void handle_configure_request(xcb_configure_request_event_t *event) {
         COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_SIBLING, sibling);
         COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_STACK_MODE, stack_mode);
 
-        xcb_configure_window(conn, event->window, mask, values);
-        xcb_flush(conn);
+        xcb_configure_window(global.conn, event->window, mask, values);
+        xcb_flush(global.conn);
 
         return;
     }
 
     DLOG("Configure request!\n");
 
-    Con *workspace = con_get_workspace(con);
-    if (workspace && (strcmp(workspace->name, "__i3_scratch") == 0)) {
+    Con *workspace = con->con_get_workspace();
+    if (workspace && (strcmp(workspace->name.c_str(), "__i3_scratch") == 0)) {
         DLOG("This is a scratchpad container, ignoring ConfigureRequest\n");
         fake_absolute_configure_notify(con);
         return;
     }
-    Con *fullscreen = con_get_fullscreen_covering_ws(workspace);
+    Con *fullscreen = workspace ? workspace->con_get_fullscreen_covering_ws() : nullptr;
 
-    if (fullscreen != con && con_is_floating(con) && con_is_leaf(con)) {
+    if (fullscreen != con && con->con_is_floating() && con->con_is_leaf()) {
         /* find the height for the decorations */
         int deco_height = con->deco_rect.height;
         /* we actually need to apply the size/position changes to the *parent*
@@ -371,23 +358,23 @@ static void handle_configure_request(xcb_configure_request_event_t *event) {
 
         if (event->value_mask & XCB_CONFIG_WINDOW_X) {
             newrect.x = event->x + (-1) * bsr.x;
-            DLOG("proposed x = %d, new x is %d\n", event->x, newrect.x);
+            DLOG(fmt::sprintf("proposed x = %d, new x is %d\n",  event->x, newrect.x));
         }
         if (event->value_mask & XCB_CONFIG_WINDOW_Y) {
             newrect.y = event->y + (-1) * bsr.y;
-            DLOG("proposed y = %d, new y is %d\n", event->y, newrect.y);
+            DLOG(fmt::sprintf("proposed y = %d, new y is %d\n",  event->y, newrect.y));
         }
         if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
             newrect.width = event->width + (-1) * bsr.width;
             newrect.width += con->border_width * 2;
-            DLOG("proposed width = %d, new width is %d (x11 border %d)\n",
-                 event->width, newrect.width, con->border_width);
+            DLOG(fmt::sprintf("proposed width = %d, new width is %d (x11 border %d)\n",
+                 event->width, newrect.width, con->border_width));
         }
         if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
             newrect.height = event->height + (-1) * bsr.height;
             newrect.height += con->border_width * 2;
-            DLOG("proposed height = %d, new height is %d (x11 border %d)\n",
-                 event->height, newrect.height, con->border_width);
+            DLOG(fmt::sprintf("proposed height = %d, new height is %d (x11 border %d)\n",
+                 event->height, newrect.height, con->border_width));
         }
 
         DLOG("Container is a floating leaf node, will do that.\n");
@@ -397,9 +384,9 @@ static void handle_configure_request(xcb_configure_request_event_t *event) {
 
     /* Dock windows can be reconfigured in their height and moved to another output. */
     if (con->parent && con->parent->type == CT_DOCKAREA) {
-        DLOG("Reconfiguring dock window (con = %p).\n", con);
+        DLOG(fmt::sprintf("Reconfiguring dock window (con = %p).\n",  (void*)con));
         if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
-            DLOG("Dock client wants to change height to %d, we can do that.\n", event->height);
+            DLOG(fmt::sprintf("Dock client wants to change height to %d, we can do that.\n",  event->height));
 
             con->geometry.height = event->height;
             tree_render();
@@ -409,15 +396,15 @@ static void handle_configure_request(xcb_configure_request_event_t *event) {
             int16_t x = event->value_mask & XCB_CONFIG_WINDOW_X ? event->x : (int16_t)con->geometry.x;
             int16_t y = event->value_mask & XCB_CONFIG_WINDOW_Y ? event->y : (int16_t)con->geometry.y;
 
-            Con *current_output = con_get_output(con);
+            Con *current_output = con->con_get_output();
             Output *target = get_output_containing(x, y);
             if (target != nullptr && current_output != target->con) {
-                DLOG("Dock client is requested to be moved to output %s, moving it there.\n", output_primary_name(target));
+                DLOG(fmt::sprintf("Dock client is requested to be moved to output %s, moving it there.\n",  target->output_primary_name()));
                 Match *match;
                 Con *nc = con_for_window(target->con, con->window, &match);
-                DLOG("Dock client will be moved to container %p.\n", nc);
-                con_detach(con);
-                con_attach(con, nc, false);
+                DLOG(fmt::sprintf("Dock client will be moved to container %p.\n",  (void*)nc));
+                con->con_detach();
+                con->con_attach(nc, false);
 
                 tree_render();
             } else {
@@ -428,7 +415,7 @@ static void handle_configure_request(xcb_configure_request_event_t *event) {
     }
 
     if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
-        DLOG("window 0x%08x wants to be stacked %d\n", event->window, event->stack_mode);
+        DLOG(fmt::sprintf("window 0x%08x wants to be stacked %d\n",  event->window, event->stack_mode));
 
         /* Emacs and IntelliJ Idea “request focus” by stacking their window
          * above all others. */
@@ -437,7 +424,7 @@ static void handle_configure_request(xcb_configure_request_event_t *event) {
             goto out;
         }
 
-        if (fullscreen || !con_is_leaf(con)) {
+        if (fullscreen || !con->con_is_leaf()) {
             DLOG("fullscreen or not a leaf, ignoring ConfigureRequest\n");
             goto out;
         }
@@ -448,16 +435,16 @@ static void handle_configure_request(xcb_configure_request_event_t *event) {
         }
 
         if (config.focus_on_window_activation == FOWA_FOCUS || (config.focus_on_window_activation == FOWA_SMART && workspace_is_visible(workspace))) {
-            DLOG("Focusing con = %p\n", con);
+            DLOG(fmt::sprintf("Focusing con = %p\n",  (void*)con));
             workspace_show(workspace);
-            con_activate_unblock(con);
+            con->con_activate_unblock();
             tree_render();
         } else if (config.focus_on_window_activation == FOWA_URGENT || (config.focus_on_window_activation == FOWA_SMART && !workspace_is_visible(workspace))) {
-            DLOG("Marking con = %p urgent\n", con);
+            DLOG(fmt::sprintf("Marking con = %p urgent\n",  (void*)con));
             con_set_urgency(con, true);
             tree_render();
         } else {
-            DLOG("Ignoring request for con = %p.\n", con);
+            DLOG(fmt::sprintf("Ignoring request for con = %p.\n",  (void*)con));
         }
     }
 
@@ -475,13 +462,13 @@ static void handle_screen_change(xcb_generic_event_t *e) {
 
     /* The geometry of the root window is used for “fullscreen global” and
      * changes when new outputs are added. */
-    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(conn, root);
-    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(conn, cookie, nullptr);
+    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(global.conn, root);
+    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(global.conn, cookie, nullptr);
     if (reply == nullptr) {
         ELOG("Could not get geometry of the root window, exiting\n");
         exit(EXIT_FAILURE);
     }
-    DLOG("root geometry reply: (%d, %d) %d x %d\n", reply->x, reply->y, reply->width, reply->height);
+    DLOG(fmt::sprintf("root geometry reply: (%d, %d) %d x %d\n",  reply->x, reply->y, reply->width, reply->height));
 
     croot->rect.width = reply->width;
     croot->rect.height = reply->height;
@@ -490,7 +477,7 @@ static void handle_screen_change(xcb_generic_event_t *e) {
 
     scratchpad_fix_resolution();
 
-    ipc_send_event("output", I3_IPC_EVENT_OUTPUT, "{\"change\":\"unspecified\"}");
+    ipc_send_event("output", I3_IPC_EVENT_OUTPUT, R"({"change":"unspecified"})");
 }
 
 /*
@@ -499,7 +486,7 @@ static void handle_screen_change(xcb_generic_event_t *e) {
  *
  */
 static void handle_unmap_notify_event(xcb_unmap_notify_event_t *event) {
-    DLOG("UnmapNotify for 0x%08x (received from 0x%08x), serial %d\n", event->window, event->event, event->sequence);
+    DLOG(fmt::sprintf("UnmapNotify for 0x%08x (received from 0x%08x), serial %d\n",  event->window, event->event, event->sequence));
     xcb_get_input_focus_cookie_t cookie;
     Con *con = con_by_window_id(event->window);
     if (con == nullptr) {
@@ -514,24 +501,24 @@ static void handle_unmap_notify_event(xcb_unmap_notify_event_t *event) {
         if (con->ignore_unmap > 0)
             con->ignore_unmap--;
         /* See the end of this function. */
-        cookie = xcb_get_input_focus(conn);
-        DLOG("ignore_unmap = %d for frame of container %p\n", con->ignore_unmap, con);
+        cookie = xcb_get_input_focus(global.conn);
+        DLOG(fmt::sprintf("ignore_unmap = %d for frame of container %p\n",  con->ignore_unmap, (void*)con));
         goto ignore_end;
     }
 
     /* See the end of this function. */
-    cookie = xcb_get_input_focus(conn);
+    cookie = xcb_get_input_focus(global.conn);
 
     if (con->ignore_unmap > 0) {
-        DLOG("ignore_unmap = %d, dec\n", con->ignore_unmap);
+        DLOG(fmt::sprintf("ignore_unmap = %d, dec\n",  con->ignore_unmap));
         con->ignore_unmap--;
         goto ignore_end;
     }
 
     /* Since we close the container, we need to unset _NET_WM_DESKTOP and
      * _NET_WM_STATE according to the spec. */
-    xcb_delete_property(conn, event->window, A__NET_WM_DESKTOP);
-    xcb_delete_property(conn, event->window, A__NET_WM_STATE);
+    xcb_delete_property(global.conn, event->window, A__NET_WM_DESKTOP);
+    xcb_delete_property(global.conn, event->window, A__NET_WM_STATE);
 
     tree_close_internal(con, DONT_KILL_WINDOW, false);
     tree_render();
@@ -557,7 +544,7 @@ ignore_end:
      * into fullscreen and moving the pointer to a different window, without
      * using GetInputFocus, subsequent (legitimate) EnterNotify events arrived
      * with the same sequence and thus were ignored (see ticket #609). */
-    free(xcb_get_input_focus_reply(conn, cookie, nullptr));
+    free(xcb_get_input_focus_reply(global.conn, cookie, nullptr));
 }
 
 /*
@@ -570,7 +557,7 @@ ignore_end:
  *
  */
 static void handle_destroy_notify_event(xcb_destroy_notify_event_t *event) {
-    DLOG("destroy notify for 0x%08x, 0x%08x\n", event->event, event->window);
+    DLOG(fmt::sprintf("destroy notify for 0x%08x, 0x%08x\n",  event->event, event->window));
 
     xcb_unmap_notify_event_t unmap;
     unmap.sequence = event->sequence;
@@ -598,7 +585,7 @@ static bool window_name_changed(i3Window *window, char *old_name) {
 static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
     char *old_name = (con->window->name != nullptr ? sstrdup(i3string_as_utf8(con->window->name)) : nullptr);
 
-    window_update_name(con->window, prop);
+    con->window->window_update_name(prop);
 
     con = remanage_window(con);
 
@@ -620,7 +607,7 @@ static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
 static bool handle_windowname_change_legacy(Con *con, xcb_get_property_reply_t *prop) {
     char *old_name = (con->window->name != nullptr ? sstrdup(i3string_as_utf8(con->window->name)) : nullptr);
 
-    window_update_name_legacy(con->window, prop);
+    con->window->window_update_name_legacy(prop);
 
     con = remanage_window(con);
 
@@ -639,7 +626,7 @@ static bool handle_windowname_change_legacy(Con *con, xcb_get_property_reply_t *
  *
  */
 static bool handle_windowrole_change(Con *con, xcb_get_property_reply_t *prop) {
-    window_update_role(con->window, prop);
+    con->window->window_update_role(prop);
 
     con = remanage_window(con);
 
@@ -651,9 +638,13 @@ static bool handle_windowrole_change(Con *con, xcb_get_property_reply_t *prop) {
  *
  */
 static void handle_expose_event(xcb_expose_event_t *event) {
+    if (event->count != 0) {
+        return;
+    }
+
     Con *parent;
 
-    DLOG("window = %08x\n", event->window);
+    DLOG(fmt::sprintf("window = %08x\n",  event->window));
 
     if ((parent = con_by_frame_id(event->window)) == nullptr) {
         LOG("expose event for unknown window, ignoring\n");
@@ -664,7 +655,7 @@ static void handle_expose_event(xcb_expose_event_t *event) {
      * only tell us that the X server lost (parts of) the window contents. */
     draw_util_copy_surface(&(parent->frame_buffer), &(parent->frame),
                            0, 0, 0, 0, parent->rect.width, parent->rect.height);
-    xcb_flush(conn);
+    xcb_flush(global.conn);
 }
 
 #define _NET_WM_MOVERESIZE_SIZE_TOPLEFT 0
@@ -695,13 +686,13 @@ static void handle_client_message(xcb_client_message_event_t *event) {
     if (sn_xcb_display_process_event(sndisplay, (xcb_generic_event_t *)event))
         return;
 
-    LOG("ClientMessage for window 0x%08x\n", event->window);
+    LOG(fmt::sprintf("ClientMessage for window 0x%08x\n",  event->window));
     if (event->type == A__NET_WM_STATE) {
         if (event->format != 32 ||
             (event->data.data32[1] != A__NET_WM_STATE_FULLSCREEN &&
              event->data.data32[1] != A__NET_WM_STATE_DEMANDS_ATTENTION &&
              event->data.data32[1] != A__NET_WM_STATE_STICKY)) {
-            DLOG("Unknown atom in clientmessage of type %d\n", event->data.data32[1]);
+            DLOG(fmt::sprintf("Unknown atom in clientmessage of type %d\n",  event->data.data32[1]));
             return;
         }
 
@@ -739,7 +730,7 @@ static void handle_client_message(xcb_client_message_event_t *event) {
             else if (event->data.data32[0] == _NET_WM_STATE_TOGGLE)
                 con->sticky = !con->sticky;
 
-            DLOG("New sticky status for con = %p is %i.\n", con, con->sticky);
+            DLOG(fmt::sprintf("New sticky status for con = %p is %i.\n",  (void*)con, con->sticky));
             ewmh_update_sticky(con->window->id, con->sticky);
             output_push_sticky_windows(focused);
             ewmh_update_wm_desktop();
@@ -750,7 +741,7 @@ static void handle_client_message(xcb_client_message_event_t *event) {
         if (event->format != 32)
             return;
 
-        DLOG("_NET_ACTIVE_WINDOW: Window 0x%08x should be activated\n", event->window);
+        DLOG(fmt::sprintf("_NET_ACTIVE_WINDOW: Window 0x%08x should be activated\n",  event->window));
 
         Con *con = con_by_window_id(event->window);
         if (con == nullptr) {
@@ -758,13 +749,13 @@ static void handle_client_message(xcb_client_message_event_t *event) {
             return;
         }
 
-        Con *ws = con_get_workspace(con);
+        Con *ws = con->con_get_workspace();
         if (ws == nullptr) {
             DLOG("Window is not being managed, ignoring _NET_ACTIVE_WINDOW\n");
             return;
         }
 
-        if (con_is_internal(ws) && ws != workspace_get("__i3_scratch")) {
+        if (ws->con_is_internal() && ws != workspace_get("__i3_scratch")) {
             DLOG("Workspace is internal but not scratchpad, ignoring _NET_ACTIVE_WINDOW\n");
             return;
         }
@@ -773,31 +764,31 @@ static void handle_client_message(xcb_client_message_event_t *event) {
         if (event->data.data32[0] == 2) {
             /* Always focus the con if it is from a pager, because this is most
              * likely from some user action */
-            DLOG("This request came from a pager. Focusing con = %p\n", con);
+            DLOG(fmt::sprintf("This request came from a pager. Focusing con = %p\n",  (void*)con));
 
-            if (con_is_internal(ws)) {
+            if (ws->con_is_internal()) {
                 scratchpad_show(con);
             } else {
                 workspace_show(ws);
                 /* Re-set focus, even if unchanged from i3’s perspective. */
                 focused_id = XCB_NONE;
-                con_activate_unblock(con);
+                con->con_activate_unblock();
             }
         } else {
             /* Request is from an application. */
-            if (con_is_internal(ws)) {
-                DLOG("Ignoring request to make con = %p active because it's on an internal workspace.\n", con);
+            if (ws->con_is_internal()) {
+                DLOG(fmt::sprintf("Ignoring request to make con = %p active because it's on an internal workspace.\n",  (void*)con));
                 return;
             }
 
             if (config.focus_on_window_activation == FOWA_FOCUS || (config.focus_on_window_activation == FOWA_SMART && workspace_is_visible(ws))) {
-                DLOG("Focusing con = %p\n", con);
-                con_activate_unblock(con);
+                DLOG(fmt::sprintf("Focusing con = %p\n",  (void*)con));
+                con->con_activate_unblock();
             } else if (config.focus_on_window_activation == FOWA_URGENT || (config.focus_on_window_activation == FOWA_SMART && !workspace_is_visible(ws))) {
-                DLOG("Marking con = %p urgent\n", con);
+                DLOG(fmt::sprintf("Marking con = %p urgent\n",  (void*)con));
                 con_set_urgency(con, true);
             } else
-                DLOG("Ignoring request for con = %p.\n", con);
+                DLOG(fmt::sprintf("Ignoring request for con = %p.\n",  (void*)con));
         }
 
         tree_render();
@@ -818,7 +809,7 @@ static void handle_client_message(xcb_client_message_event_t *event) {
          * says the application must cope with an estimate that is not entirely
          * accurate.
          */
-        DLOG("_NET_REQUEST_FRAME_EXTENTS for window 0x%08x\n", event->window);
+        DLOG(fmt::sprintf("_NET_REQUEST_FRAME_EXTENTS for window 0x%08x\n",  event->window));
 
         /* The reply data: approximate frame size */
         Rect r = {
@@ -828,24 +819,24 @@ static void handle_client_message(xcb_client_message_event_t *event) {
                 (uint32_t)config.default_border_width  /* bottom */
         };
         xcb_change_property(
-            conn,
+            global.conn,
             XCB_PROP_MODE_REPLACE,
             event->window,
             A__NET_FRAME_EXTENTS,
             XCB_ATOM_CARDINAL, 32, 4,
             &r);
-        xcb_flush(conn);
+        xcb_flush(global.conn);
     } else if (event->type == A_WM_CHANGE_STATE) {
         /* http://tronche.com/gui/x/icccm/sec-4.html#s-4.1.4 */
         if (event->data.data32[0] == XCB_ICCCM_WM_STATE_ICONIC) {
             /* For compatiblity reasons, Wine will request iconic state and cannot ensure that the WM has agreed on it;
              * immediately revert to normal to avoid being stuck in a paused state. */
-            DLOG("Client has requested iconic state, rejecting. (window = %d)\n", event->window);
+            DLOG(fmt::sprintf("Client has requested iconic state, rejecting. (window = %d)\n",  event->window));
             long data[] = {XCB_ICCCM_WM_STATE_NORMAL, XCB_NONE};
-            xcb_change_property(conn, XCB_PROP_MODE_REPLACE, event->window,
+            xcb_change_property(global.conn, XCB_PROP_MODE_REPLACE, event->window,
                                 A_WM_STATE, A_WM_STATE, 32, 2, data);
         } else {
-            DLOG("Not handling WM_CHANGE_STATE request. (window = %d, state = %d)\n", event->window, event->data.data32[0]);
+            DLOG(fmt::sprintf("Not handling WM_CHANGE_STATE request. (window = %d, state = %d)\n",  event->window, event->data.data32[0]));
         }
     } else if (event->type == A__NET_CURRENT_DESKTOP) {
         /* This request is used by pagers and bars to change the current
@@ -853,23 +844,23 @@ static void handle_client_message(xcb_client_message_event_t *event) {
          * a request to focus the given workspace. See
          * https://standards.freedesktop.org/wm-spec/latest/ar01s03.html#idm140251368135008
          * */
-        DLOG("Request to change current desktop to index %d\n", event->data.data32[0]);
+        DLOG(fmt::sprintf("Request to change current desktop to index %d\n",  event->data.data32[0]));
         Con *ws = ewmh_get_workspace_by_index(event->data.data32[0]);
         if (ws == nullptr) {
             ELOG("Could not determine workspace for this index, ignoring request.\n");
             return;
         }
 
-        DLOG("Handling request to focus workspace %s\n", ws->name);
+        DLOG(fmt::sprintf("Handling request to focus workspace %s\n",  ws->name));
         workspace_show(ws);
         tree_render();
     } else if (event->type == A__NET_WM_DESKTOP) {
         uint32_t index = event->data.data32[0];
-        DLOG("Request to move window %d to EWMH desktop index %d\n", event->window, index);
+        DLOG(fmt::sprintf("Request to move window %d to EWMH desktop index %d\n",  event->window, index));
 
         Con *con = con_by_window_id(event->window);
         if (con == nullptr) {
-            DLOG("Couldn't find con for window %d, ignoring the request.\n", event->window);
+            DLOG(fmt::sprintf("Couldn't find con for window %d, ignoring the request.\n",  event->window));
             return;
         }
 
@@ -905,15 +896,15 @@ static void handle_client_message(xcb_client_message_event_t *event) {
          */
         Con *con = con_by_window_id(event->window);
         if (con) {
-            DLOG("Handling _NET_CLOSE_WINDOW request (con = %p)\n", con);
+            DLOG(fmt::sprintf("Handling _NET_CLOSE_WINDOW request (con = %p)\n",  (void*)con));
 
             if (event->data.data32[0])
-                last_timestamp = event->data.data32[0];
+                global.last_timestamp = event->data.data32[0];
 
             tree_close_internal(con, KILL_WINDOW, false);
             tree_render();
         } else {
-            DLOG("Couldn't find con for _NET_CLOSE_WINDOW request. (window = %d)\n", event->window);
+            DLOG(fmt::sprintf("Couldn't find con for _NET_CLOSE_WINDOW request. (window = %d)\n",  event->window));
         }
     } else if (event->type == A__NET_WM_MOVERESIZE) {
         /*
@@ -921,11 +912,11 @@ static void handle_client_message(xcb_client_message_event_t *event) {
          * dragged by their GtkHeaderBar
          */
         Con *con = con_by_window_id(event->window);
-        if (!con || !con_is_floating(con)) {
-            DLOG("Couldn't find con for _NET_WM_MOVERESIZE request, or con not floating (window = %d)\n", event->window);
+        if (!con || !con->con_is_floating()) {
+            DLOG(fmt::sprintf("Couldn't find con for _NET_WM_MOVERESIZE request, or con not floating (window = %d)\n",  event->window));
             return;
         }
-        DLOG("Handling _NET_WM_MOVERESIZE request (con = %p)\n", con);
+        DLOG(fmt::sprintf("Handling _NET_WM_MOVERESIZE request (con = %p)\n",  (void*)con));
         uint32_t direction = event->data.data32[2];
         uint32_t x_root = event->data.data32[0];
         uint32_t y_root = event->data.data32[1];
@@ -943,45 +934,43 @@ static void handle_client_message(xcb_client_message_event_t *event) {
                 floating_resize_window(con->parent, false, &fake);
                 break;
             default:
-                DLOG("_NET_WM_MOVERESIZE direction %d not implemented\n", direction);
+                DLOG(fmt::sprintf("_NET_WM_MOVERESIZE direction %d not implemented\n",  direction));
                 break;
         }
     } else if (event->type == A__NET_MOVERESIZE_WINDOW) {
         DLOG("Received _NET_MOVE_RESIZE_WINDOW. Handling by faking a configure request.\n");
 
-        void *_generated_event = scalloc(32, 1);
-        auto *generated_event = (xcb_configure_request_event_t*)_generated_event;
+        xcb_configure_request_event_t generated_event{};
 
-        generated_event->window = event->window;
-        generated_event->response_type = XCB_CONFIGURE_REQUEST;
+        generated_event.window = event->window;
+        generated_event.response_type = XCB_CONFIGURE_REQUEST;
 
-        generated_event->value_mask = 0;
+        generated_event.value_mask = 0;
         if (event->data.data32[0] & _NET_MOVERESIZE_WINDOW_X) {
-            generated_event->value_mask |= XCB_CONFIG_WINDOW_X;
-            generated_event->x = event->data.data32[1];
+            generated_event.value_mask |= XCB_CONFIG_WINDOW_X;
+            generated_event.x = event->data.data32[1];
         }
         if (event->data.data32[0] & _NET_MOVERESIZE_WINDOW_Y) {
-            generated_event->value_mask |= XCB_CONFIG_WINDOW_Y;
-            generated_event->y = event->data.data32[2];
+            generated_event.value_mask |= XCB_CONFIG_WINDOW_Y;
+            generated_event.y = event->data.data32[2];
         }
         if (event->data.data32[0] & _NET_MOVERESIZE_WINDOW_WIDTH) {
-            generated_event->value_mask |= XCB_CONFIG_WINDOW_WIDTH;
-            generated_event->width = event->data.data32[3];
+            generated_event.value_mask |= XCB_CONFIG_WINDOW_WIDTH;
+            generated_event.width = event->data.data32[3];
         }
         if (event->data.data32[0] & _NET_MOVERESIZE_WINDOW_HEIGHT) {
-            generated_event->value_mask |= XCB_CONFIG_WINDOW_HEIGHT;
-            generated_event->height = event->data.data32[4];
+            generated_event.value_mask |= XCB_CONFIG_WINDOW_HEIGHT;
+            generated_event.height = event->data.data32[4];
         }
 
-        handle_configure_request(generated_event);
-        FREE(generated_event);
+        handle_configure_request(&generated_event);
     } else {
-        DLOG("Skipping client message for unhandled type %d\n", event->type);
+        DLOG(fmt::sprintf("Skipping client message for unhandled type %d\n",  event->type));
     }
 }
 
 static bool handle_window_type(Con *con, xcb_get_property_reply_t *reply) {
-    window_update_type(con->window, reply);
+    con->window->window_update_type(reply);
     return true;
 }
 
@@ -993,17 +982,16 @@ static bool handle_window_type(Con *con, xcb_get_property_reply_t *reply) {
  *
  */
 static bool handle_normal_hints(Con *con, xcb_get_property_reply_t *reply) {
-    bool changed = window_update_normal_hints(con->window, reply, nullptr);
+    bool changed = con->window->window_update_normal_hints(reply, nullptr);
 
     if (changed) {
-        Con *floating = con_inside_floating(con);
+        Con *floating = con->con_inside_floating();
         if (floating) {
             floating_check_size(con, false);
             tree_render();
         }
     }
 
-    FREE(reply);
     return true;
 }
 
@@ -1013,7 +1001,7 @@ static bool handle_normal_hints(Con *con, xcb_get_property_reply_t *reply) {
  */
 static bool handle_hints(Con *con, xcb_get_property_reply_t *reply) {
     bool urgency_hint;
-    window_update_hints(con->window, reply, &urgency_hint);
+    con->window->window_update_hints(reply, &urgency_hint);
     con_set_urgency(con, urgency_hint);
     tree_render();
     return true;
@@ -1027,7 +1015,7 @@ static bool handle_hints(Con *con, xcb_get_property_reply_t *reply) {
  *
  */
 static bool handle_transient_for(Con *con, xcb_get_property_reply_t *prop) {
-    window_update_transient_for(con->window, prop);
+    con->window->window_update_transient_for(prop);
     return true;
 }
 
@@ -1037,7 +1025,7 @@ static bool handle_transient_for(Con *con, xcb_get_property_reply_t *prop) {
  *
  */
 static bool handle_clientleader_change(Con *con, xcb_get_property_reply_t *prop) {
-    window_update_leader(con->window, prop);
+    con->window->window_update_leader(prop);
     return true;
 }
 
@@ -1048,11 +1036,11 @@ static bool handle_clientleader_change(Con *con, xcb_get_property_reply_t *prop)
  *
  */
 static void handle_focus_in(xcb_focus_in_event_t *event) {
-    DLOG("focus change in, for window 0x%08x\n", event->event);
+    DLOG(fmt::sprintf("focus change in, for window 0x%08x\n",  event->event));
 
     if (event->event == root) {
         DLOG("Received focus in for root window, refocusing the focused window.\n");
-        con_focus(focused);
+        focused->con_focus();
         focused_id = XCB_NONE;
         x_push_changes(croot);
     }
@@ -1060,7 +1048,7 @@ static void handle_focus_in(xcb_focus_in_event_t *event) {
     Con *con;
     if ((con = con_by_window_id(event->event)) == nullptr || con->window == nullptr)
         return;
-    DLOG("That is con %p / %s\n", con, con->name);
+    DLOG(fmt::sprintf("That is con %p / %s\n",  (void*)con, con->name));
 
     if (event->mode == XCB_NOTIFY_MODE_GRAB ||
         event->mode == XCB_NOTIFY_MODE_UNGRAB) {
@@ -1075,7 +1063,7 @@ static void handle_focus_in(xcb_focus_in_event_t *event) {
 
     /* Floating windows should be refocused to ensure that they are on top of
      * other windows. */
-    if (focused_id == event->event && !con_inside_floating(con)) {
+    if (focused_id == event->event && !con->con_inside_floating()) {
         DLOG("focus matches the currently focused window, not doing anything\n");
         return;
     }
@@ -1088,7 +1076,7 @@ static void handle_focus_in(xcb_focus_in_event_t *event) {
 
     DLOG("focus is different / refocusing floating window: updating decorations\n");
 
-    con_activate_unblock(con);
+    con->con_activate_unblock();
 
     /* We update focused_id because we don’t need to set focus again */
     focused_id = event->event;
@@ -1102,10 +1090,10 @@ static void handle_focus_in(xcb_focus_in_event_t *event) {
  */
 static void handle_configure_notify(xcb_configure_notify_event_t *event) {
     if (event->event != root) {
-        DLOG("ConfigureNotify for non-root window 0x%08x, ignoring\n", event->event);
+        DLOG(fmt::sprintf("ConfigureNotify for non-root window 0x%08x, ignoring\n",  event->event));
         return;
     }
-    DLOG("ConfigureNotify for root window 0x%08x\n", event->event);
+    DLOG(fmt::sprintf("ConfigureNotify for root window 0x%08x\n",  event->event));
 
     randr_query_outputs();
 }
@@ -1115,7 +1103,7 @@ static void handle_configure_notify(xcb_configure_notify_event_t *event) {
  *
  */
 static bool handle_class_change(Con *con, xcb_get_property_reply_t *prop) {
-    window_update_class(con->window, prop);
+    con->window->window_update_class(prop);
     con = remanage_window(con);
     return true;
 }
@@ -1125,10 +1113,11 @@ static bool handle_class_change(Con *con, xcb_get_property_reply_t *prop) {
  *
  */
 static bool handle_machine_change(Con *con, xcb_get_property_reply_t *prop) {
-    window_update_machine(con->window, prop);
+    con->window->window_update_machine(prop);
     con = remanage_window(con);
     return true;
 }
+
 
 /*
  * Handles the _MOTIF_WM_HINTS property of specifing window deocration settings.
@@ -1136,10 +1125,10 @@ static bool handle_machine_change(Con *con, xcb_get_property_reply_t *prop) {
  */
 static bool handle_motif_hints_change(Con *con, xcb_get_property_reply_t *prop) {
     border_style_t motif_border_style;
-    window_update_motif_hints(con->window, prop, &motif_border_style);
+    update_motif_hints(prop, &motif_border_style);
 
     if (motif_border_style != con->border_style && motif_border_style != BS_NORMAL) {
-        DLOG("Update border style of con %p to %d\n", con, motif_border_style);
+        DLOG(fmt::sprintf("Update border style of con %p to %d\n",  (void*)con, motif_border_style));
         con_set_border_style(con, motif_border_style, con->current_border_width);
 
         x_push_changes(croot);
@@ -1153,7 +1142,7 @@ static bool handle_motif_hints_change(Con *con, xcb_get_property_reply_t *prop) 
  *
  */
 static bool handle_strut_partial_change(Con *con, xcb_get_property_reply_t *prop) {
-    window_update_strut_partial(con->window, prop);
+    con->window->window_update_strut_partial(prop);
 
     /* we only handle this change for dock clients */
     if (con->parent == nullptr || con->parent->type != CT_DOCKAREA) {
@@ -1161,29 +1150,29 @@ static bool handle_strut_partial_change(Con *con, xcb_get_property_reply_t *prop
     }
 
     Con *search_at = croot;
-    Con *output = con_get_output(con);
+    Con *output = con->con_get_output();
     if (output != nullptr) {
-        DLOG("Starting search at output %s\n", output->name);
+        DLOG(fmt::sprintf("Starting search at output %s\n",  output->name));
         search_at = output;
     }
 
     /* find out the desired position of this dock window */
     if (con->window->reserved.top > 0 && con->window->reserved.bottom == 0) {
         DLOG("Top dock client\n");
-        con->window->dock = W_DOCK_TOP;
+        con->window->dock = i3Window::W_DOCK_TOP;
     } else if (con->window->reserved.top == 0 && con->window->reserved.bottom > 0) {
         DLOG("Bottom dock client\n");
-        con->window->dock = W_DOCK_BOTTOM;
+        con->window->dock = i3Window::W_DOCK_BOTTOM;
     } else {
         DLOG("Ignoring invalid reserved edges (_NET_WM_STRUT_PARTIAL), using position as fallback:\n");
         if (con->geometry.y < (search_at->rect.height / 2)) {
-            DLOG("geom->y = %d < rect.height / 2 = %d, it is a top dock client\n",
-                 con->geometry.y, (search_at->rect.height / 2));
-            con->window->dock = W_DOCK_TOP;
+            DLOG(fmt::sprintf("geom->y = %d < rect.height / 2 = %d, it is a top dock client\n",
+                 con->geometry.y, (search_at->rect.height / 2)));
+            con->window->dock = i3Window::W_DOCK_TOP;
         } else {
-            DLOG("geom->y = %d >= rect.height / 2 = %d, it is a bottom dock client\n",
-                 con->geometry.y, (search_at->rect.height / 2));
-            con->window->dock = W_DOCK_BOTTOM;
+            DLOG(fmt::sprintf("geom->y = %d >= rect.height / 2 = %d, it is a bottom dock client\n",
+                 con->geometry.y, (search_at->rect.height / 2)));
+            con->window->dock = i3Window::W_DOCK_BOTTOM;
         }
     }
 
@@ -1192,8 +1181,8 @@ static bool handle_strut_partial_change(Con *con, xcb_get_property_reply_t *prop
     assert(dockarea != nullptr);
 
     /* attach the dock to the dock area */
-    con_detach(con);
-    con_attach(con, dockarea, true);
+    con->con_detach();
+    con->con_attach(dockarea, true);
 
     tree_render();
 
@@ -1212,7 +1201,7 @@ static bool handle_strut_partial_change(Con *con, xcb_get_property_reply_t *prop
  *
  */
 static bool handle_i3_floating(Con *con, xcb_get_property_reply_t *prop) {
-    DLOG("floating change for con %p\n", con);
+    DLOG(fmt::sprintf("floating change for con %p\n",  (void*)con));
 
     remanage_window(con);
 
@@ -1220,7 +1209,7 @@ static bool handle_i3_floating(Con *con, xcb_get_property_reply_t *prop) {
 }
 
 static bool handle_windowicon_change(Con *con, xcb_get_property_reply_t *prop) {
-    window_update_icon(con->window, prop);
+    con->window->window_update_icon(prop);
 
     x_push_changes(croot);
 
@@ -1235,24 +1224,15 @@ struct property_handler_t {
     xcb_atom_t atom;
     uint32_t long_len;
     cb_property_handler_t cb;
+
+    property_handler_t(
+            xcb_atom_t _atom,
+            uint32_t _long_len,
+            cb_property_handler_t _cb
+            ) : atom(_atom), long_len(_long_len), cb(_cb) {}
 };
 
-static struct property_handler_t property_handlers[] = {
-    {0, 128, handle_windowname_change},
-    {0, UINT_MAX, handle_hints},
-    {0, 128, handle_windowname_change_legacy},
-    {0, UINT_MAX, handle_normal_hints},
-    {0, UINT_MAX, handle_clientleader_change},
-    {0, UINT_MAX, handle_transient_for},
-    {0, 128, handle_windowrole_change},
-    {0, 128, handle_class_change},
-    {0, UINT_MAX, handle_strut_partial_change},
-    {0, UINT_MAX, handle_window_type},
-    {0, UINT_MAX, handle_i3_floating},
-    {0, 128, handle_machine_change},
-    {0, 5 * sizeof(uint64_t), handle_motif_hints_change},
-    {0, UINT_MAX, handle_windowicon_change}};
-#define NUM_HANDLERS (sizeof(property_handlers) / sizeof(struct property_handler_t))
+static std::vector<property_handler_t> property_handlers{};
 
 /*
  * Sets the appropriate atoms for the property handlers after the atoms were
@@ -1260,61 +1240,58 @@ static struct property_handler_t property_handlers[] = {
  *
  */
 void property_handlers_init() {
-    sn_monitor_context_new(sndisplay, conn_screen, startup_monitor_event, nullptr, nullptr);
+    sn_monitor_context_new(sndisplay, global.conn_screen, startup_monitor_event, nullptr, nullptr);
 
-    property_handlers[0].atom = A__NET_WM_NAME;
-    property_handlers[1].atom = XCB_ATOM_WM_HINTS;
-    property_handlers[2].atom = XCB_ATOM_WM_NAME;
-    property_handlers[3].atom = XCB_ATOM_WM_NORMAL_HINTS;
-    property_handlers[4].atom = A_WM_CLIENT_LEADER;
-    property_handlers[5].atom = XCB_ATOM_WM_TRANSIENT_FOR;
-    property_handlers[6].atom = A_WM_WINDOW_ROLE;
-    property_handlers[7].atom = XCB_ATOM_WM_CLASS;
-    property_handlers[8].atom = A__NET_WM_STRUT_PARTIAL;
-    property_handlers[9].atom = A__NET_WM_WINDOW_TYPE;
-    property_handlers[10].atom = A_I3_FLOATING_WINDOW;
-    property_handlers[11].atom = XCB_ATOM_WM_CLIENT_MACHINE;
-    property_handlers[12].atom = A__MOTIF_WM_HINTS;
-    property_handlers[13].atom = A__NET_WM_ICON;
+    property_handlers.emplace_back(A__NET_WM_NAME, 128, handle_windowname_change);
+    property_handlers.emplace_back(XCB_ATOM_WM_HINTS, UINT_MAX, handle_hints);
+    property_handlers.emplace_back(XCB_ATOM_WM_NAME, 128, handle_windowname_change_legacy);
+    property_handlers.emplace_back(XCB_ATOM_WM_NORMAL_HINTS, UINT_MAX, handle_normal_hints);
+    property_handlers.emplace_back(A_WM_CLIENT_LEADER, UINT_MAX, handle_clientleader_change);
+    property_handlers.emplace_back(XCB_ATOM_WM_TRANSIENT_FOR, UINT_MAX, handle_transient_for);
+    property_handlers.emplace_back(A_WM_WINDOW_ROLE, 128, handle_windowrole_change);
+    property_handlers.emplace_back(XCB_ATOM_WM_CLASS, 128, handle_class_change);
+    property_handlers.emplace_back(A__NET_WM_STRUT_PARTIAL, UINT_MAX, handle_strut_partial_change);
+    property_handlers.emplace_back(A__NET_WM_WINDOW_TYPE, UINT_MAX, handle_window_type);
+    property_handlers.emplace_back(A_I3_FLOATING_WINDOW, UINT_MAX, handle_i3_floating);
+    property_handlers.emplace_back(XCB_ATOM_WM_CLIENT_MACHINE, 128, handle_machine_change);
+    property_handlers.emplace_back(A__MOTIF_WM_HINTS, 5 * sizeof(uint64_t), handle_motif_hints_change);
+    property_handlers.emplace_back(A__NET_WM_ICON, UINT_MAX, handle_windowicon_change);
 }
 
-static void property_notify(uint8_t state, xcb_window_t window, xcb_atom_t atom) {
-    struct property_handler_t *handler = nullptr;
-    xcb_get_property_reply_t *propr = nullptr;
-    xcb_generic_error_t *err = nullptr;
+static void property_notify(xcb_property_notify_event_t *event) {
     Con *con;
 
-    for (size_t c = 0; c < NUM_HANDLERS; c++) {
-        if (property_handlers[c].atom != atom)
-            continue;
+    global.last_timestamp = event->time;
 
-        handler = &property_handlers[c];
-        break;
-    }
+    uint8_t state = event->state;
+    xcb_window_t window = event->window;
+    xcb_atom_t atom = event->atom;
 
-    if (handler == nullptr) {
-        //DLOG("Unhandled property notify for atom %d (0x%08x)\n", atom, atom);
+    auto it = std::ranges::find_if(property_handlers, [&atom](auto &property_handler){ return property_handler.atom == atom; });
+
+    if (it == property_handlers.end()) {
+        // LOG(fmt::sprintf("Unhandled property notify for atom %d (0x%08x)\n",  atom, atom));
         return;
     }
 
+    auto &handler = *it;
+
     if ((con = con_by_window_id(window)) == nullptr || con->window == nullptr) {
-        DLOG("Received property for atom %d for unknown client\n", atom);
+        DLOG(fmt::sprintf("Received property for atom %d for unknown client\n",  atom));
         return;
     }
 
     if (state != XCB_PROPERTY_DELETE) {
-        xcb_get_property_cookie_t cookie = xcb_get_property(conn, 0, window, atom, XCB_GET_PROPERTY_TYPE_ANY, 0, handler->long_len);
-        propr = xcb_get_property_reply(conn, cookie, &err);
-        if (err != nullptr) {
-            DLOG("got error %d when getting property of atom %d\n", err->error_code, atom);
-            FREE(err);
-            return;
-        }
-    }
+        try {
+            auto propr = global.a->get_property(0, window, atom, XCB_GET_PROPERTY_TYPE_ANY, 0, handler.long_len);
 
-    /* the handler will free() the reply unless it returns false */
-    if (!handler->cb(con, propr))
-        FREE(propr);
+            handler.cb(con, propr.get().get());
+        } catch (std::exception &e) {
+            DLOG(fmt::sprintf("got error %s when getting property of atom %d\n",  e.what(), atom));
+        }
+    } else {
+        handler.cb(con, nullptr);
+    }
 }
 
 /*
@@ -1324,7 +1301,7 @@ static void property_notify(uint8_t state, xcb_window_t window, xcb_atom_t atom)
  */
 void handle_event(int type, xcb_generic_event_t *event) {
     if (type != XCB_MOTION_NOTIFY)
-        DLOG("event type %d, xkb_base %d\n", type, xkb_base);
+        DLOG(fmt::sprintf("event type %d, xkb_base %d\n",  type, xkb_base));
 
     if (randr_base > -1 &&
         type == randr_base + XCB_RANDR_SCREEN_CHANGE_NOTIFY) {
@@ -1337,34 +1314,36 @@ void handle_event(int type, xcb_generic_event_t *event) {
 
         auto *state = (xcb_xkb_state_notify_event_t *)event;
         if (state->xkbType == XCB_XKB_NEW_KEYBOARD_NOTIFY) {
-            DLOG("xkb new keyboard notify, sequence %d, time %d\n", state->sequence, state->time);
+            DLOG(fmt::sprintf("xkb new keyboard notify, sequence %d, time %d\n",  state->sequence, state->time));
             xcb_key_symbols_free(keysyms);
-            keysyms = xcb_key_symbols_alloc(conn);
-            if (((xcb_xkb_new_keyboard_notify_event_t *)event)->changed & XCB_XKB_NKN_DETAIL_KEYCODES)
-                (void)load_keymap();
-            ungrab_all_keys(conn);
+            keysyms = xcb_key_symbols_alloc(global.conn);
+            if (((xcb_xkb_new_keyboard_notify_event_t *)event)->changed & XCB_XKB_NKN_DETAIL_KEYCODES) {
+                load_keymap();
+            }
+            ungrab_all_keys(global.conn);
             translate_keysyms();
-            grab_all_keys(conn);
+            grab_all_keys(global.conn);
         } else if (state->xkbType == XCB_XKB_MAP_NOTIFY) {
             if (event_is_ignored(event->sequence, type)) {
-                DLOG("Ignoring map notify event for sequence %d.\n", state->sequence);
+                DLOG(fmt::sprintf("Ignoring map notify event for sequence %d.\n",  state->sequence));
             } else {
-                DLOG("xkb map notify, sequence %d, time %d\n", state->sequence, state->time);
+                DLOG(fmt::sprintf("xkb map notify, sequence %d, time %d\n",  state->sequence, state->time));
                 add_ignore_event(event->sequence, type);
                 xcb_key_symbols_free(keysyms);
-                keysyms = xcb_key_symbols_alloc(conn);
-                ungrab_all_keys(conn);
+                keysyms = xcb_key_symbols_alloc(global.conn);
+                ungrab_all_keys(global.conn);
                 translate_keysyms();
-                grab_all_keys(conn);
-                (void)load_keymap();
+                grab_all_keys(global.conn);
+                load_keymap();
             }
         } else if (state->xkbType == XCB_XKB_STATE_NOTIFY) {
-            DLOG("xkb state group = %d\n", state->group);
-            if (xkb_current_group == state->group)
+            DLOG(fmt::sprintf("xkb state group = %d\n",  state->group));
+            if (xkb_current_group == state->group) {
                 return;
+            }
             xkb_current_group = state->group;
-            ungrab_all_keys(conn);
-            grab_all_keys(conn);
+            ungrab_all_keys(global.conn);
+            grab_all_keys(global.conn);
         }
 
         return;
@@ -1373,13 +1352,13 @@ void handle_event(int type, xcb_generic_event_t *event) {
     if (shape_supported && type == shape_base + XCB_SHAPE_NOTIFY) {
         auto *shape = (xcb_shape_notify_event_t *)event;
 
-        DLOG("shape_notify_event for window 0x%08x, shape_kind = %d, shaped = %d\n",
-             shape->affected_window, shape->shape_kind, shape->shaped);
+        DLOG(fmt::sprintf("shape_notify_event for window 0x%08x, shape_kind = %d, shaped = %d\n",
+             shape->affected_window, shape->shape_kind, shape->shaped));
 
         Con *con = con_by_window_id(shape->affected_window);
         if (con == nullptr) {
-            LOG("Not a managed window 0x%08x, ignoring shape_notify_event\n",
-                shape->affected_window);
+            LOG(fmt::sprintf("Not a managed window 0x%08x, ignoring shape_notify_event\n",
+                shape->affected_window));
             return;
         }
 
@@ -1415,10 +1394,7 @@ void handle_event(int type, xcb_generic_event_t *event) {
             break;
 
         case XCB_EXPOSE:
-            if (((xcb_expose_event_t *)event)->count == 0) {
-                handle_expose_event((xcb_expose_event_t *)event);
-            }
-
+            handle_expose_event((xcb_expose_event_t *)event);
             break;
 
         case XCB_MOTION_NOTIFY:
@@ -1452,9 +1428,7 @@ void handle_event(int type, xcb_generic_event_t *event) {
             break;
 
         case XCB_PROPERTY_NOTIFY: {
-            auto *e = (xcb_property_notify_event_t *)event;
-            last_timestamp = e->time;
-            property_notify(e->state, e->window, e->atom);
+            property_notify((xcb_property_notify_event_t *)event);
             break;
         }
 
@@ -1463,7 +1437,7 @@ void handle_event(int type, xcb_generic_event_t *event) {
             break;
 
         default:
-            //DLOG("Unhandled event of type %d\n", type);
+            // LOG(fmt::sprintf("Unhandled event of type %d\n",  type));
             break;
     }
 }

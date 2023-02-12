@@ -36,12 +36,12 @@ typedef void (*callback_t)(Con *, Rect *, uint32_t, uint32_t,
  * carried out (e.g. because the window has been unmapped).
  *
  */
-typedef enum {
+enum drag_result_t {
     DRAGGING = 0,
     DRAG_SUCCESS,
     DRAG_REVERT,
     DRAG_ABORT
-} drag_result_t;
+};
 
 /**
  * This function grabs your pointer and keyboard and lets you drag stuff around

@@ -10,15 +10,14 @@
 #include <cassert>
 
 #include <cstdint>
+#include <ranges>
 
 #include <xcb/xcb.h>
 
 #include "libi3.h"
 
-#include "data.h"
 #include "util.h"
 #include "tree.h"
-#include "log.h"
 #include "workspace.h"
 #include "i3.h"
 #include "click.h"
@@ -29,10 +28,13 @@
 #include "output.h"
 #include "commands_parser.h"
 #include "bindings.h"
+#include "global.h"
 
-typedef enum { CLICK_BORDER = 0,
-               CLICK_DECORATION = 1,
-               CLICK_INSIDE = 2 } click_destination_t;
+enum click_destination_t {
+    CLICK_BORDER = 0,
+    CLICK_DECORATION = 1,
+    CLICK_INSIDE = 2
+};
 
 /*
  * Finds the correct pair of first/second cons between the resize will take
@@ -41,7 +43,7 @@ typedef enum { CLICK_BORDER = 0,
  *
  */
 static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press_event_t *event, bool use_threshold) {
-    DLOG("border = %d, con = %p\n", border, con);
+    DLOG(fmt::sprintf("border = %d, con = %p\n",  border, (void*)con));
     Con *second = nullptr;
     Con *first = con;
     direction_t search_direction;
@@ -66,7 +68,7 @@ static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press
         return false;
     }
     if (first->fullscreen_mode != second->fullscreen_mode) {
-        DLOG("Avoiding resize between containers with different fullscreen modes, %d != %d\n", first->fullscreen_mode, second->fullscreen_mode);
+        DLOG(fmt::sprintf("Avoiding resize between containers with different fullscreen modes, %d != %d\n",  first->fullscreen_mode, second->fullscreen_mode));
         return false;
     }
 
@@ -101,13 +103,13 @@ static bool floating_mod_on_tiled_client(Con *con, xcb_button_press_event_t *eve
     /* The client is in tiling layout. We can still initiate a resize with the
      * right mouse button, by chosing the border which is the most near one to
      * the position of the mouse pointer */
-    int to_right = con->rect.width - event->event_x,
+    uint32_t to_right = con->rect.width - event->event_x,
         to_left = event->event_x,
         to_top = event->event_y,
         to_bottom = con->rect.height - event->event_y;
 
-    DLOG("click was %d px to the right, %d px to the left, %d px to top, %d px to bottom\n",
-         to_right, to_left, to_top, to_bottom);
+    DLOG(fmt::sprintf("click was %d px to the right, %d px to the left, %d px to top, %d px to bottom\n",
+         to_right, to_left, to_top, to_bottom));
 
     if (to_right < to_left &&
         to_right < to_top &&
@@ -139,9 +141,9 @@ static bool floating_mod_on_tiled_client(Con *con, xcb_button_press_event_t *eve
 static bool tiling_resize(Con *con, xcb_button_press_event_t *event, const click_destination_t dest, bool use_threshold) {
     /* check if this was a click on the window border (and on which one) */
     Rect bsr = con_border_style_rect(con);
-    DLOG("BORDER x = %d, y = %d for con %p, window 0x%08x\n",
-         event->event_x, event->event_y, con, event->event);
-    DLOG("checks for right >= %d\n", con->window_rect.x + con->window_rect.width);
+    DLOG(fmt::sprintf("BORDER x = %d, y = %d for con %p, window 0x%08x\n",
+         event->event_x, event->event_y, (void*)con, event->event));
+    DLOG(fmt::sprintf("checks for right >= %d\n",  con->window_rect.x + con->window_rect.width));
     if (dest == CLICK_DECORATION) {
         return tiling_resize_for_border(con, BORDER_TOP, event, use_threshold);
     }
@@ -165,10 +167,10 @@ static bool tiling_resize(Con *con, xcb_button_press_event_t *event, const click
  * functions for resizing/dragging.
  *
  */
-static void route_click(Con *con, xcb_button_press_event_t *event, const bool mod_pressed, const click_destination_t dest) {
-    DLOG("--> click properties: mod = %d, destination = %d\n", mod_pressed, dest);
-    DLOG("--> OUTCOME = %p\n", con);
-    DLOG("type = %d, name = %s\n", con->type, con->name);
+static void route_click(xcb_connection_t *conn, Con *con, xcb_button_press_event_t *event, const bool mod_pressed, const click_destination_t dest) {
+    DLOG(fmt::sprintf("--> click properties: mod = %d, destination = %d\n",  mod_pressed, dest));
+    DLOG(fmt::sprintf("--> OUTCOME = %p\n",  (void*)con));
+    DLOG(fmt::sprintf("type = %d, name = %s\n",  con->type, con->name));
 
     /* don’t handle dockarea cons, they must not be focused */
     if (con->parent->type == CT_DOCKAREA) {
@@ -184,13 +186,12 @@ static void route_click(Con *con, xcb_button_press_event_t *event, const bool mo
     if (bind && ((dest == CLICK_DECORATION && !bind->exclude_titlebar) ||
                  (dest == CLICK_INSIDE && bind->whole_window) ||
                  (dest == CLICK_BORDER && bind->border))) {
-        CommandResult *result = run_binding(bind, con);
+        run_binding(bind, con);
 
         /* ASYNC_POINTER eats the event */
         xcb_allow_events(conn, XCB_ALLOW_ASYNC_POINTER, event->time);
         xcb_flush(conn);
 
-        command_result_free(result);
         return;
     }
 
@@ -205,11 +206,11 @@ static void route_click(Con *con, xcb_button_press_event_t *event, const bool mo
     /* Any click in a workspace should focus that workspace. If the
      * workspace is on another output we need to do a workspace_show in
      * order for i3bar (and others) to notice the change in workspace. */
-    Con *ws = con_get_workspace(con);
-    Con *focused_workspace = con_get_workspace(focused);
+    Con *ws = con->con_get_workspace();
+    Con *focused_workspace = focused->con_get_workspace();
 
     if (!ws) {
-        ws = TAILQ_FIRST(&(output_get_content(con_get_output(con))->focus_head));
+        ws = con::first(con->con_get_output()->output_get_content()->focus_head);
         if (!ws) {
             xcb_allow_events(conn, XCB_ALLOW_REPLAY_POINTER, event->time);
             xcb_flush(conn);
@@ -222,7 +223,7 @@ static void route_click(Con *con, xcb_button_press_event_t *event, const bool mo
         workspace_show(ws);
 
     /* get the floating con */
-    Con *floatingcon = con_inside_floating(con);
+    Con *floatingcon = con->con_inside_floating();
     const bool proportional = (event->state & XCB_KEY_BUT_MASK_SHIFT) == XCB_KEY_BUT_MASK_SHIFT;
     const bool in_stacked = (con->parent->layout == L_STACKED || con->parent->layout == L_TABBED);
     const bool was_focused = focused == con;
@@ -239,11 +240,12 @@ static void route_click(Con *con, xcb_button_press_event_t *event, const bool mo
         DLOG("Scrolling on a window decoration\n");
         /* Use the focused child of the tabbed / stacked container, not the
          * container the user scrolled on. */
-        Con *current = TAILQ_FIRST(&(con->parent->focus_head));
+        Con *current = con::first(con->parent->focus_head);
         const position_t direction =
             (event->detail == XCB_BUTTON_SCROLL_UP || event->detail == XCB_BUTTON_SCROLL_LEFT) ? BEFORE : AFTER;
         Con *next = get_tree_next_sibling(current, direction);
-        con_activate(con_descend_focused(next ? next : current));
+        auto p = con_descend_focused(next ? next : current);
+        p->con_activate();
 
         xcb_allow_events(conn, XCB_ALLOW_REPLAY_POINTER, event->time);
         xcb_flush(conn);
@@ -258,17 +260,17 @@ static void route_click(Con *con, xcb_button_press_event_t *event, const bool mo
          * on a tab, switch to the tab. If the tab contents were already
          * focused, focus the tab container itself. If the tab container was
          * already focused, cycle back to focusing the tab contents. */
-        if (was_focused || !con_has_parent(focused, con)) {
-            while (!TAILQ_EMPTY(&(con_to_focus->focus_head))) {
-                con_to_focus = TAILQ_FIRST(&(con_to_focus->focus_head));
+        if (was_focused || !focused->con_has_parent(con)) {
+            while (!con_to_focus->focus_head.empty()) {
+                con_to_focus = con::first(con_to_focus->focus_head);
             }
         }
     }
-    con_activate(con_to_focus);
+    con_to_focus->con_activate();
 
     /* 3: For floating containers, we also want to raise them on click.
      * We will skip handling events on floating cons in fullscreen mode */
-    Con *fs = con_get_fullscreen_covering_ws(ws);
+    Con *fs = ws->con_get_fullscreen_covering_ws();
     if (floatingcon != nullptr && fs != con) {
         /* 4: floating_modifier plus left mouse button drags */
         if (mod_pressed && is_left_click) {
@@ -349,18 +351,18 @@ done:
  */
 void handle_button_press(xcb_button_press_event_t *event) {
     Con *con;
-    DLOG("Button %d (state %d) %s on window 0x%08x (child 0x%08x) at (%d, %d) (root %d, %d)\n",
+    DLOG(fmt::sprintf("Button %d (state %d) %s on window 0x%08x (child 0x%08x) at (%d, %d) (root %d, %d)\n",
          event->detail, event->state, (event->response_type == XCB_BUTTON_PRESS ? "press" : "release"),
          event->event, event->child, event->event_x, event->event_y, event->root_x,
-         event->root_y);
+         event->root_y));
 
-    last_timestamp = event->time;
+    global.last_timestamp = event->time;
 
     const uint32_t mod = (config.floating_modifier & 0xFFFF);
     const bool mod_pressed = (mod != 0 && (event->state & mod) == mod);
-    DLOG("floating_mod = %d, detail = %d\n", mod_pressed, event->detail);
+    DLOG(fmt::sprintf("floating_mod = %d, detail = %d\n",  mod_pressed, event->detail));
     if ((con = con_by_window_id(event->event))) {
-        route_click(con, event, mod_pressed, CLICK_INSIDE);
+        route_click(global.conn, con, event, mod_pressed, CLICK_INSIDE);
         return;
     }
 
@@ -371,8 +373,7 @@ void handle_button_press(xcb_button_press_event_t *event) {
         if (event->event == root) {
             Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event);
             if (bind != nullptr && bind->whole_window) {
-                CommandResult *result = run_binding(bind, nullptr);
-                command_result_free(result);
+                run_binding(bind, nullptr);
             }
         }
 
@@ -380,13 +381,14 @@ void handle_button_press(xcb_button_press_event_t *event) {
          * click coordinates and focus the output's active workspace. */
         if (event->event == root && event->response_type == XCB_BUTTON_PRESS) {
             Con *output, *ws;
-            TAILQ_FOREACH (output, &(croot->nodes_head), nodes) {
-                if (con_is_internal(output) ||
-                    !rect_contains(output->rect, event->event_x, event->event_y))
+            for (auto &c : croot->nodes_head) {
+                output = c;
+                if (output->con_is_internal() ||
+                    !output->rect.rect_contains(event->event_x, event->event_y))
                     continue;
 
-                ws = TAILQ_FIRST(&(output_get_content(output)->focus_head));
-                if (ws != con_get_workspace(focused)) {
+                ws = con::first(output->output_get_content()->focus_head);
+                if (ws != focused->con_get_workspace()) {
                     workspace_show(ws);
                     tree_render();
                 }
@@ -396,26 +398,25 @@ void handle_button_press(xcb_button_press_event_t *event) {
         }
 
         ELOG("Clicked into unknown window?!\n");
-        xcb_allow_events(conn, XCB_ALLOW_REPLAY_POINTER, event->time);
-        xcb_flush(conn);
+        xcb_allow_events(global.conn, XCB_ALLOW_REPLAY_POINTER, event->time);
+        xcb_flush(global.conn);
         return;
     }
 
     /* Check if the click was on the decoration of a child */
-    Con *child;
-    TAILQ_FOREACH_REVERSE (child, &(con->nodes_head), nodes_head, nodes) {
-        if (!rect_contains(child->deco_rect, event->event_x, event->event_y))
+    for (auto &child : con->nodes_head | std::views::reverse) {
+        if (!child->deco_rect.rect_contains(event->event_x, event->event_y))
             continue;
 
-        route_click(child, event, mod_pressed, CLICK_DECORATION);
+        route_click(global.conn, child, event, mod_pressed, CLICK_DECORATION);
         return;
     }
 
     if (event->child != XCB_NONE) {
         DLOG("event->child not XCB_NONE, so this is an event which originated from a click into the application, but the application did not handle it.\n");
-        route_click(con, event, mod_pressed, CLICK_INSIDE);
+        route_click(global.conn, con, event, mod_pressed, CLICK_INSIDE);
         return;
     }
 
-    route_click(con, event, mod_pressed, CLICK_BORDER);
+    route_click(global.conn, con, event, mod_pressed, CLICK_BORDER);
 }

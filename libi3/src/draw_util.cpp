@@ -12,6 +12,7 @@
 #include <cstring>
 
 #include <xcb/xcb.h>
+#include <algorithm>
 
 /* The default visual_type to use if none is specified when creating the surface. Must be defined globally. */
 extern xcb_visualtype_t *visual_type;
@@ -22,7 +23,7 @@ static void draw_util_set_source_color(surface_t *surface, color_t color);
 #define RETURN_UNLESS_SURFACE_INITIALIZED(surface)                               \
     do {                                                                         \
         if ((surface)->id == XCB_NONE) {                                         \
-            ELOG("Surface %p is not initialized, skipping drawing.\n", surface); \
+            ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n",  (void*)surface)); \
             return;                                                              \
         }                                                                        \
     } while (0)
@@ -45,7 +46,7 @@ void draw_util_surface_init(xcb_connection_t *conn, surface_t *surface, xcb_draw
 
     xcb_generic_error_t *error = xcb_request_check(conn, gc_cookie);
     if (error != nullptr) {
-        ELOG("Could not create graphical context. Error code: %d. Please report this bug.\n", error->error_code);
+        ELOG(fmt::sprintf("Could not create graphical context. Error code: %d. Please report this bug.\n",  error->error_code));
     }
 
     surface->surface = cairo_xcb_surface_create(conn, surface->id, visual, width, height);
@@ -83,10 +84,10 @@ void draw_util_surface_set_size(surface_t *surface, int width, int height) {
  * Note that the input must begin with a hash sign, e.g., "#3fbc59".
  *
  */
-color_t draw_util_hex_to_color(const char *color) {
+color_t draw_util_hex_to_color(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *color) {
     if (strlen(color) < 6 || color[0] != '#') {
-        ELOG("Could not parse color: %s\n", color);
-        return draw_util_hex_to_color("#A9A9A9");
+        ELOG(fmt::sprintf("Could not parse color: %s\n",  color));
+        return draw_util_hex_to_color(conn, root_screen, "#A9A9A9");
     }
 
     char alpha[2];
@@ -108,7 +109,7 @@ color_t draw_util_hex_to_color(const char *color) {
         .green = strtol(groups[1], nullptr, 16) / 255.0,
         .blue = strtol(groups[2], nullptr, 16) / 255.0,
         .alpha = strtol(groups[3], nullptr, 16) / 255.0,
-        .colorpixel = get_colorpixel(color)};
+        .colorpixel = get_colorpixel(conn, root_screen, color)};
 }
 
 /*
@@ -127,41 +128,17 @@ static void draw_util_set_source_color(surface_t *surface, color_t color) {
  * drawing are used. This will be the case when using XCB to draw text.
  *
  */
-void draw_util_text(i3String *text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width) {
+void draw_util_text(xcb_connection_t *conn, i3String *text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width) {
     RETURN_UNLESS_SURFACE_INITIALIZED(surface);
 
     /* Flush any changes before we draw the text as this might use XCB directly. */
     CAIRO_SURFACE_FLUSH(surface->surface);
 
-    set_font_colors(surface->gc, fg_color, bg_color);
-    draw_text(text, surface->id, surface->gc, surface->surface, x, y, max_width);
+    set_font_colors(conn, surface->gc, fg_color, bg_color);
+    draw_text(conn, text, surface->id, surface->gc, surface->surface, x, y, max_width);
 
     /* Notify cairo that we (possibly) used another way to draw on the surface. */
     cairo_surface_mark_dirty(surface->surface);
-}
-
-/**
- * Draw the given image using libi3.
- * This function is a convenience wrapper and takes care of flushing the
- * surface as well as restoring the cairo state.
- *
- */
-void draw_util_image(cairo_surface_t *image, surface_t *surface, int x, int y, int width, int height) {
-    RETURN_UNLESS_SURFACE_INITIALIZED(surface);
-
-    cairo_save(surface->cr);
-
-    cairo_translate(surface->cr, x, y);
-
-    const int src_width = cairo_image_surface_get_width(image);
-    const int src_height = cairo_image_surface_get_height(image);
-    double scale = MIN((double)width / src_width, (double)height / src_height);
-    cairo_scale(surface->cr, scale, scale);
-
-    cairo_set_source_surface(surface->cr, image, 0, 0);
-    cairo_paint(surface->cr);
-
-    cairo_restore(surface->cr);
 }
 
 /*

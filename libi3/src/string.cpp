@@ -15,78 +15,35 @@
 #include <cstdlib>
 #include <cstring>
 
-struct _i3String {
-    char *utf8;
-    xcb_char2b_t *ucs2;
-    size_t num_glyphs;
-    size_t num_bytes;
-    bool pango_markup;
-};
-
 /*
  * Build an i3String from an UTF-8 encoded string.
  * Returns the newly-allocated i3String.
  *
  */
-i3String *i3string_from_utf8(const char *from_utf8) {
-    return i3string_from_utf8_with_length(from_utf8, -1);
+i3String *i3string_from_utf8(const std::string &from_utf8) {
+    return new i3String{from_utf8};
 }
 
-/*
- * Build an i3String from an UTF-8 encoded string in Pango markup.
- *
- */
-i3String *i3string_from_markup(const char *from_markup) {
-    i3String *str = i3string_from_utf8(from_markup);
-
-    /* Set the markup flag */
-    str->pango_markup = true;
-
-    return str;
-}
-
-/*
- * Build an i3String from an UTF-8 encoded string with fixed length.
- * To be used when no proper NULL-termination is available.
- * Returns the newly-allocated i3String.
- *
- */
-i3String *i3string_from_utf8_with_length(const char *from_utf8, ssize_t num_bytes) {
-    auto *str = (i3String*)scalloc(1, sizeof(i3String));
-
+i3String::i3String(const std::string &str) {
     /* g_utf8_make_valid NULL-terminates the string. */
-    str->utf8 = g_utf8_make_valid(from_utf8, num_bytes);
+    this->utf8 = g_utf8_make_valid(str.c_str(), str.length());
 
     /* num_bytes < 0 means NULL-terminated string, need to calculate length */
-    str->num_bytes = num_bytes < 0 ? strlen(str->utf8) : (size_t)num_bytes;
-
-    return str;
-}
-
-/*
- * Build an i3String from an UTF-8 encoded string in Pango markup with fixed
- * length.
- *
- */
-i3String *i3string_from_markup_with_length(const char *from_markup, size_t num_bytes) {
-    i3String *str = i3string_from_utf8_with_length(from_markup, num_bytes);
-
-    /* set the markup flag */
-    str->pango_markup = true;
-
-    return str;
+    this->num_bytes = strlen(this->utf8);
 }
 
 /*
  * Free an i3String.
  *
  */
-void i3string_free(i3String *str) {
-    if (str == nullptr)
-        return;
-    free(str->utf8);
-    free(str->ucs2);
-    free(str);
+i3String::~i3String() {
+    if (this->utf8) {
+        free(this->utf8);
+    }
+
+    if (this->ucs2) {
+        free(this->ucs2);
+    }
 }
 
 static void i3string_ensure_utf8(i3String *str) {

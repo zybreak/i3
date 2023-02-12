@@ -14,13 +14,13 @@
 #include <xcb/xcb.h>
 
 #include "libi3.h"
+#include "global.h"
 
-#include "log.h"
 #include "xcb.h"
 #include "sync.h"
 
 void sync_respond(xcb_window_t window, uint32_t rnd) {
-    DLOG("[i3 sync protocol] Sending random value %d back to X11 window 0x%08x\n", rnd, window);
+    DLOG(fmt::sprintf("[i3 sync protocol] Sending random value %d back to X11 window 0x%08x\n",  rnd, window));
 
     void *reply = scalloc(32, 1);
     auto *ev = (xcb_client_message_event_t*)reply;
@@ -32,7 +32,7 @@ void sync_respond(xcb_window_t window, uint32_t rnd) {
     ev->data.data32[0] = window;
     ev->data.data32[1] = rnd;
 
-    xcb_send_event(conn, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)ev);
-    xcb_flush(conn);
+    xcb_send_event(global.conn, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)ev);
+    xcb_flush(global.conn);
     free(reply);
 }

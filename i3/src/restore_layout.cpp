@@ -10,6 +10,7 @@
  *
  */
 #include <err.h>
+#include <ev.h>
 
 #include <cstdint>
 #include <cstdlib>
@@ -18,11 +19,10 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
+#include "global.h"
 
 #include "libi3.h"
 
-#include "data.h"
-#include "log.h"
 #include "xcb.h"
 #include "i3.h"
 #include "configuration.h"
@@ -35,25 +35,22 @@
 #include <sanitizer/lsan_interface.h>
 #endif
 
-#define TEXT_PADDING logical_px(2)
+#define TEXT_PADDING logical_px(global.root_screen, 2)
 
 typedef struct placeholder_state {
     /** The X11 placeholder window. */
-    xcb_window_t window;
+    xcb_window_t window{};
     /** The container to which this placeholder window belongs. */
-    Con *con;
+    Con *con{};
 
     /** Current size of the placeholder window (to detect size changes). */
     Rect rect;
 
     /** The drawable surface */
-    surface_t surface;
-
-    TAILQ_ENTRY(placeholder_state) state;
+    surface_t surface{};
 } placeholder_state;
 
-static TAILQ_HEAD(state_head, placeholder_state) state_head =
-    TAILQ_HEAD_INITIALIZER(state_head);
+static std::deque<std::unique_ptr<placeholder_state>> states{};
 
 static xcb_connection_t *restore_conn;
 
@@ -78,8 +75,8 @@ static void restore_xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
     while ((event = xcb_poll_for_event(restore_conn)) != nullptr) {
         if (event->response_type == 0) {
             auto *error = (xcb_generic_error_t *)event;
-            DLOG("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
-                 error->sequence, error->error_code);
+            DLOG(fmt::sprintf("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
+                 error->sequence, error->error_code));
             free(event);
             continue;
         }
@@ -109,12 +106,7 @@ void restore_connect() {
         ev_io_stop(main_loop, xcb_watcher);
         ev_prepare_stop(main_loop, xcb_prepare);
 
-        placeholder_state *state;
-        while (!TAILQ_EMPTY(&state_head)) {
-            state = TAILQ_FIRST(&state_head);
-            TAILQ_REMOVE(&state_head, state, state);
-            free(state);
-        }
+        states.clear();
 
         /* xcb_disconnect leaks memory in libxcb versions earlier than 1.11,
          * but it’s the right function to call. See
@@ -156,9 +148,8 @@ static void update_placeholder_contents(placeholder_state *state) {
     // TODO: make i3font functions per-connection, at least these two for now…?
     xcb_aux_sync(restore_conn);
 
-    Match *swallows;
     int n = 0;
-    TAILQ_FOREACH (swallows, &(state->con->swallow_head), matches) {
+    for (auto &swallows : state->con->swallow) {
         char *serialized = nullptr;
 
 #define APPEND_REGEX(re_name)                                                                                                                        \
@@ -180,32 +171,32 @@ static void update_placeholder_contents(placeholder_state *state) {
         }
 
         sasprintf(&serialized, "%s]", serialized);
-        DLOG("con %p (placeholder 0x%08x) line %d: %s\n", state->con, state->window, n, serialized);
+        DLOG(fmt::sprintf("con %p (placeholder 0x%08x) line %d: %s\n",  (void*)state->con, state->window, n, serialized));
 
         i3String *str = i3string_from_utf8(serialized);
-        draw_util_text(str, &(state->surface), foreground, background,
+        draw_util_text(global.conn, str, &(state->surface), foreground, background,
                        TEXT_PADDING,
                        (n * (config.font.height + TEXT_PADDING)) + TEXT_PADDING,
                        state->rect.width - 2 * TEXT_PADDING);
-        i3string_free(str);
+        delete str;
         n++;
         free(serialized);
     }
 
     // TODO: render the watch symbol in a bigger font
     i3String *line = i3string_from_utf8("⌚");
-    int text_width = predict_text_width(line);
+    int text_width = predict_text_width(global.conn, global.root_screen, line);
     int x = (state->rect.width / 2) - (text_width / 2);
     int y = (state->rect.height / 2) - (config.font.height / 2);
-    draw_util_text(line, &(state->surface), foreground, background, x, y, text_width);
-    i3string_free(line);
+    draw_util_text(global.conn, line, &(state->surface), foreground, background, x, y, text_width);
+    delete line;
     xcb_aux_sync(restore_conn);
 }
 
 static void open_placeholder_window(Con *con) {
-    if (con_is_leaf(con) &&
+    if (con->con_is_leaf() &&
         (con->window == nullptr || con->window->id == XCB_NONE) &&
-        !TAILQ_EMPTY(&(con->swallow_head)) &&
+        !con->swallow.empty() &&
         con->type == CT_CON) {
 
         uint32_t values[]{
@@ -230,34 +221,32 @@ static void open_placeholder_window(Con *con) {
         /* Set the same name as was stored in the layout file. While perhaps
          * slightly confusing in the first instant, this brings additional
          * clarity to which placeholder is waiting for which actual window. */
-        if (con->name != nullptr)
+        if (!con->name.empty())
             xcb_change_property(restore_conn, XCB_PROP_MODE_REPLACE, placeholder,
-                                A__NET_WM_NAME, A_UTF8_STRING, 8, strlen(con->name), con->name);
-        DLOG("Created placeholder window 0x%08x for leaf container %p / %s\n",
-             placeholder, con, con->name);
+                                A__NET_WM_NAME, A_UTF8_STRING, 8, con->name.length(), con->name.c_str());
+        DLOG(fmt::sprintf("Created placeholder window 0x%08x for leaf container %p / %s\n",
+             placeholder, (void*)con, con->name));
 
-        auto *state = (placeholder_state*)scalloc(1, sizeof(placeholder_state));
+        auto state = std::make_unique<placeholder_state>();
         state->window = placeholder;
         state->con = con;
         state->rect = con->rect;
 
-        draw_util_surface_init(restore_conn, &(state->surface), placeholder, get_visualtype(root_screen), state->rect.width, state->rect.height);
-        update_placeholder_contents(state);
-        TAILQ_INSERT_TAIL(&state_head, state, state);
+        draw_util_surface_init(restore_conn, &(state->surface), placeholder, get_visualtype(global.root_screen), state->rect.width, state->rect.height);
+        update_placeholder_contents(state.get());
+        states.push_back(std::move(state));
 
         /* create temporary id swallow to match the placeholder */
-        auto *temp_id = (Match*)smalloc(sizeof(Match));
-        match_init(temp_id);
+        auto temp_id = std::make_unique<Match>();
         temp_id->dock = M_DONTCHECK;
         temp_id->id = placeholder;
-        TAILQ_INSERT_HEAD(&(con->swallow_head), temp_id, matches);
+        con->swallow.push_front(std::move(temp_id));
     }
 
-    Con *child;
-    TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+    for (auto &child : con->nodes_head) {
         open_placeholder_window(child);
     }
-    TAILQ_FOREACH (child, &(con->floating_head), floating_windows) {
+    for (auto &child : con->floating_windows) {
         open_placeholder_window(child);
     }
 }
@@ -270,11 +259,10 @@ static void open_placeholder_window(Con *con) {
  *
  */
 void restore_open_placeholder_windows(Con *parent) {
-    Con *child;
-    TAILQ_FOREACH (child, &(parent->nodes_head), nodes) {
+    for (auto &child : parent->nodes_head) {
         open_placeholder_window(child);
     }
-    TAILQ_FOREACH (child, &(parent->floating_head), floating_windows) {
+    for (auto &child : parent->floating_windows) {
         open_placeholder_window(child);
     }
 
@@ -289,37 +277,35 @@ void restore_open_placeholder_windows(Con *parent) {
  *
  */
 bool restore_kill_placeholder(xcb_window_t placeholder) {
-    placeholder_state *state;
-    TAILQ_FOREACH (state, &state_head, state) {
+    for (auto state_ptr = states.begin(); state_ptr != states.end(); ++state_ptr) {
+        auto &state = *state_ptr;
         if (state->window != placeholder)
             continue;
 
         xcb_destroy_window(restore_conn, state->window);
         draw_util_surface_free(restore_conn, &(state->surface));
-        TAILQ_REMOVE(&state_head, state, state);
-        free(state);
-        DLOG("placeholder window 0x%08x destroyed.\n", placeholder);
+        state_ptr = states.erase(state_ptr);
+        DLOG(fmt::sprintf("placeholder window 0x%08x destroyed.\n",  placeholder));
         return true;
     }
 
-    DLOG("0x%08x is not a placeholder window, ignoring.\n", placeholder);
+    DLOG(fmt::sprintf("0x%08x is not a placeholder window, ignoring.\n",  placeholder));
     return false;
 }
 
 static void expose_event(xcb_expose_event_t *event) {
-    placeholder_state *state;
-    TAILQ_FOREACH (state, &state_head, state) {
+    for (auto &state : states) {
         if (state->window != event->window)
             continue;
 
-        DLOG("refreshing window 0x%08x contents (con %p)\n", state->window, state->con);
+        DLOG(fmt::sprintf("refreshing window 0x%08x contents (con %p)\n",  state->window, (void*)state->con));
 
-        update_placeholder_contents(state);
+        update_placeholder_contents(state.get());
 
         return;
     }
 
-    ELOG("Received ExposeEvent for unknown window 0x%08x\n", event->window);
+    ELOG(fmt::sprintf("Received ExposeEvent for unknown window 0x%08x\n",  event->window));
 }
 
 /*
@@ -329,25 +315,24 @@ static void expose_event(xcb_expose_event_t *event) {
  *
  */
 static void configure_notify(xcb_configure_notify_event_t *event) {
-    placeholder_state *state;
-    TAILQ_FOREACH (state, &state_head, state) {
+    for (auto &state : states) {
         if (state->window != event->window)
             continue;
 
-        DLOG("ConfigureNotify: window 0x%08x has now width=%d, height=%d (con %p)\n",
-             state->window, event->width, event->height, state->con);
+        DLOG(fmt::sprintf("ConfigureNotify: window 0x%08x has now width=%d, height=%d (con %p)\n",
+             state->window, event->width, event->height, (void*)state->con));
 
         state->rect.width = event->width;
         state->rect.height = event->height;
 
         draw_util_surface_set_size(&(state->surface), state->rect.width, state->rect.height);
 
-        update_placeholder_contents(state);
+        update_placeholder_contents(state.get());
 
         return;
     }
 
-    ELOG("Received ConfigureNotify for unknown window 0x%08x\n", event->window);
+    ELOG(fmt::sprintf("Received ConfigureNotify for unknown window 0x%08x\n",  event->window));
 }
 
 static void restore_handle_event(int type, xcb_generic_event_t *event) {
@@ -362,7 +347,7 @@ static void restore_handle_event(int type, xcb_generic_event_t *event) {
             configure_notify((xcb_configure_notify_event_t *)event);
             break;
         default:
-            DLOG("Received unhandled X11 event of type %d\n", type);
+            DLOG(fmt::sprintf("Received unhandled X11 event of type %d\n",  type));
             break;
     }
 }

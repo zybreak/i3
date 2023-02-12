@@ -12,16 +12,16 @@
 #include <cstdlib>
 
 #include <xcb/xcb.h>
+#include <main.h>
 
 #include "libi3.h"
-#include "data.h"
 #include "util.h"
-#include "log.h"
 #include "xcb.h"
 #include "i3.h"
 #include "configuration.h"
 #include "handlers.h"
 #include "xcursor.h"
+#include "global.h"
 
 unsigned int xcb_numlock_mask;
 
@@ -55,7 +55,7 @@ xcb_window_t create_window(xcb_connection_t *conn, Rect dims,
 
     xcb_generic_error_t *error = xcb_request_check(conn, gc_cookie);
     if (error != nullptr) {
-        ELOG("Could not create window. Error code: %d.\n", error->error_code);
+        ELOG(fmt::sprintf("Could not create window. Error code: %d.\n",  error->error_code));
     }
 
     /* Set the cursor */
@@ -75,18 +75,31 @@ xcb_window_t create_window(xcb_connection_t *conn, Rect dims,
  *
  */
 void fake_absolute_configure_notify(Con *con) {
-    xcb_rectangle_t absolute;
     if (con->window == nullptr)
         return;
 
-    absolute.x = con->rect.x + con->window_rect.x;
-    absolute.y = con->rect.y + con->window_rect.y;
-    absolute.width = con->window_rect.width;
-    absolute.height = con->window_rect.height;
+    /* Every X11 event is 32 bytes long. Therefore, XCB will copy 32 bytes.
+     * In order to properly initialize these bytes, we allocate 32 bytes even
+     * though we only need less for an xcb_configure_notify_event_t */
+    xcb_configure_notify_event_t generatedEvent{};
 
-    DLOG("fake rect = (%d, %d, %d, %d)\n", absolute.x, absolute.y, absolute.width, absolute.height);
+    generatedEvent.event = con->window->id;
+    generatedEvent.window = con->window->id;
+    generatedEvent.response_type = XCB_CONFIGURE_NOTIFY;
 
-    fake_configure_notify(conn, absolute, con->window->id, con->border_width);
+    generatedEvent.x = static_cast<int16_t>(con->rect.x + con->window_rect.x);
+    generatedEvent.y = static_cast<int16_t>(con->rect.y + con->window_rect.y);
+    generatedEvent.width = static_cast<uint16_t>(con->window_rect.width);
+    generatedEvent.height = static_cast<uint16_t>(con->window_rect.height);
+
+    generatedEvent.border_width = con->border_width;
+    generatedEvent.above_sibling = XCB_NONE;
+    generatedEvent.override_redirect = false;
+
+    DLOG(fmt::sprintf("fake rect = (%d, %d, %d, %d)\n", generatedEvent.x, generatedEvent.y, generatedEvent.width, generatedEvent.height));
+
+    xcb_send_event(global.conn, false, con->window->id, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *) &generatedEvent);
+    xcb_flush(global.conn);
 }
 
 /*
@@ -108,7 +121,7 @@ void send_take_focus(xcb_window_t window, xcb_timestamp_t timestamp) {
     ev->data.data32[1] = timestamp;
 
     DLOG("Sending WM_TAKE_FOCUS to the client\n");
-    xcb_send_event(conn, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)ev);
+    xcb_send_event(global.conn, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)ev);
     free(event);
 }
 
@@ -138,7 +151,7 @@ xcb_atom_t xcb_get_preferred_window_type(xcb_get_property_reply_t *reply) {
 
     xcb_atom_t *atoms;
     if ((atoms = (xcb_atom_t*)xcb_get_property_value(reply)) == nullptr)
-    return XCB_NONE;
+        return XCB_NONE;
 
     for (int i = 0; i < xcb_get_property_value_length(reply) / (reply->format / 8); i++) {
         if (atoms[i] == A__NET_WM_WINDOW_TYPE_NORMAL ||
@@ -184,7 +197,7 @@ bool xcb_reply_contains_atom(xcb_get_property_reply_t *prop, xcb_atom_t atom) {
 uint16_t get_visual_depth(xcb_visualid_t visual_id) {
     xcb_depth_iterator_t depth_iter;
 
-    depth_iter = xcb_screen_allowed_depths_iterator(root_screen);
+    depth_iter = xcb_screen_allowed_depths_iterator(global.root_screen);
     for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
         xcb_visualtype_iterator_t visual_iter;
 
@@ -205,7 +218,7 @@ uint16_t get_visual_depth(xcb_visualid_t visual_id) {
 xcb_visualtype_t *get_visualtype_by_id(xcb_visualid_t visual_id) {
     xcb_depth_iterator_t depth_iter;
 
-    depth_iter = xcb_screen_allowed_depths_iterator(root_screen);
+    depth_iter = xcb_screen_allowed_depths_iterator(global.root_screen);
     for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
         xcb_visualtype_iterator_t visual_iter;
 
@@ -226,7 +239,7 @@ xcb_visualtype_t *get_visualtype_by_id(xcb_visualid_t visual_id) {
 xcb_visualid_t get_visualid_by_depth(uint16_t depth) {
     xcb_depth_iterator_t depth_iter;
 
-    depth_iter = xcb_screen_allowed_depths_iterator(root_screen);
+    depth_iter = xcb_screen_allowed_depths_iterator(global.root_screen);
     for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
         if (depth_iter.data->depth != depth)
             continue;
@@ -295,12 +308,9 @@ release_grab:
  * Grab the specified buttons on a window when managing it.
  *
  */
-void xcb_grab_buttons(xcb_connection_t *conn, xcb_window_t window, int *buttons) {
-    int i = 0;
-    while (buttons[i] > 0) {
-        xcb_grab_button(conn, false, window, XCB_EVENT_MASK_BUTTON_PRESS, XCB_GRAB_MODE_SYNC,
-                        XCB_GRAB_MODE_ASYNC, root, XCB_NONE, buttons[i], XCB_BUTTON_MASK_ANY);
-
-        i++;
+void xcb_grab_buttons(xcb_window_t window, std::set<int> &buttons) {
+    for (int i : buttons) {
+        global.a->grab_button(false, window, XCB_EVENT_MASK_BUTTON_PRESS, XCB_GRAB_MODE_SYNC,
+                        XCB_GRAB_MODE_ASYNC, root, XCB_NONE, i, XCB_BUTTON_MASK_ANY);
     }
 }

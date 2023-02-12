@@ -14,10 +14,12 @@
 #include "tree.h"
 
 /** On which border was the dragging initiated? */
-typedef enum { BORDER_LEFT = (1 << 0),
-               BORDER_RIGHT = (1 << 1),
-               BORDER_TOP = (1 << 2),
-               BORDER_BOTTOM = (1 << 3) } border_t;
+enum border_t {
+    BORDER_LEFT = (1 << 0),
+    BORDER_RIGHT = (1 << 1),
+    BORDER_TOP = (1 << 2),
+    BORDER_BOTTOM = (1 << 3)
+};
 
 /**
  * Enables floating mode for the given container by detaching it from its

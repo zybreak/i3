@@ -15,10 +15,8 @@
 
 #include "libi3.h"
 
-#include "data.h"
 #include "util.h"
 #include "tree.h"
-#include "log.h"
 #include "xcb.h"
 #include "x.h"
 #include "drag.h"
@@ -26,6 +24,7 @@
 #include "con.h"
 #include "xcursor.h"
 #include "resize.h"
+#include "global.h"
 
 /*
  * This is an ugly data structure which we need because there is no standard
@@ -45,19 +44,19 @@ struct callback_params {
 DRAGGING_CB(resize_callback) {
     const struct callback_params *params = (struct callback_params*)extra;
     Con *output = params->output;
-    DLOG("new x = %d, y = %d\n", new_x, new_y);
+    DLOG(fmt::sprintf("new x = %d, y = %d\n",  new_x, new_y));
 
     if (!*params->threshold_exceeded) {
-        xcb_map_window(conn, params->helpwin);
+        xcb_map_window(global.conn, params->helpwin);
         /* Warp pointer in the same way as resize_graphical_handler() would do
          * if threshold wasn't enabled, but also take into account travelled
          * distance. */
         if (params->orientation == HORIZ) {
-            xcb_warp_pointer(conn, XCB_NONE, event->root, 0, 0, 0, 0,
+            xcb_warp_pointer(global.conn, XCB_NONE, event->root, 0, 0, 0, 0,
                              *params->new_position + new_x - event->root_x,
                              new_y);
         } else {
-            xcb_warp_pointer(conn, XCB_NONE, event->root, 0, 0, 0, 0,
+            xcb_warp_pointer(global.conn, XCB_NONE, event->root, 0, 0, 0, 0,
                              new_x,
                              *params->new_position + new_y - event->root_y);
         }
@@ -72,21 +71,21 @@ DRAGGING_CB(resize_callback) {
             return;
 
         *(params->new_position) = new_x;
-        xcb_configure_window(conn, params->helpwin, XCB_CONFIG_WINDOW_X, params->new_position);
+        xcb_configure_window(global.conn, params->helpwin, XCB_CONFIG_WINDOW_X, params->new_position);
     } else {
         if (new_y > (output->rect.y + output->rect.height - 25) ||
             new_y < (output->rect.y + 25))
             return;
 
         *(params->new_position) = new_y;
-        xcb_configure_window(conn, params->helpwin, XCB_CONFIG_WINDOW_Y, params->new_position);
+        xcb_configure_window(global.conn, params->helpwin, XCB_CONFIG_WINDOW_Y, params->new_position);
     }
 
-    xcb_flush(conn);
+    xcb_flush(global.conn);
 }
 
 bool resize_find_tiling_participants(Con **current, Con **other, direction_t direction, bool both_sides) {
-    DLOG("Find two participants for resizing container=%p in direction=%i\n", other, direction);
+    DLOG(fmt::sprintf("Find two participants for resizing container=%p in direction=%i\n",  (void*)other, direction));
     Con *first = *current;
     Con *second = nullptr;
     if (first == nullptr) {
@@ -111,14 +110,14 @@ bool resize_find_tiling_participants(Con **current, Con **other, direction_t dir
 
         /* get the counterpart for this resizement */
         if (dir_backwards) {
-            second = TAILQ_PREV(first, nodes_head, nodes);
+            second = con::previous(first, first->parent->nodes_head);
             if (second == nullptr && both_sides == true) {
-                second = TAILQ_NEXT(first, nodes);
+                second = con::next(first, first->parent->nodes_head);
             }
         } else {
-            second = TAILQ_NEXT(first, nodes);
+            second = con::next(first, first->parent->nodes_head);
             if (second == nullptr && both_sides == true) {
-                second = TAILQ_PREV(first, nodes_head, nodes);
+                second = con::previous(first, first->parent->nodes_head);
             }
         }
 
@@ -128,7 +127,7 @@ bool resize_find_tiling_participants(Con **current, Con **other, direction_t dir
         }
     }
 
-    DLOG("Found participants: first=%p and second=%p.\n", first, second);
+    DLOG(fmt::sprintf("Found participants: first=%p and second=%p.\n",  (void*)first, (void*)second));
     *current = first;
     *other = second;
     if (first == nullptr || second == nullptr) {
@@ -182,18 +181,18 @@ bool resize_neighboring_cons(Con *first, Con *second, int px, int ppt) {
 
     first->percent = new_first_percent;
     second->percent = new_second_percent;
-    con_fix_percent(parent);
+    parent->con_fix_percent();
     return true;
 }
 
 void resize_graphical_handler(Con *first, Con *second, orientation_t orientation,
                               const xcb_button_press_event_t *event,
                               bool use_threshold) {
-    Con *output = con_get_output(first);
-    DLOG("x = %d, width = %d\n", output->rect.x, output->rect.width);
+    Con *output = first->con_get_output();
+    DLOG(fmt::sprintf("x = %d, width = %d\n",  output->rect.x, output->rect.width));
 
     x_mask_event_mask(~XCB_EVENT_MASK_ENTER_WINDOW);
-    xcb_flush(conn);
+    xcb_flush(global.conn);
 
     uint32_t mask = 0;
     uint32_t values[2];
@@ -203,7 +202,7 @@ void resize_graphical_handler(Con *first, Con *second, orientation_t orientation
 
     /* Open a new window, the resizebar. Grab the pointer and move the window
      * around as the user moves the pointer. */
-    xcb_window_t grabwin = create_window(conn, output->rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
+    xcb_window_t grabwin = create_window(global.conn, output->rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
                                          XCB_WINDOW_CLASS_INPUT_ONLY, XCURSOR_CURSOR_POINTER, true, mask, values);
 
     /* Keep track of the coordinate orthogonal to motion so we can determine the
@@ -212,16 +211,16 @@ void resize_graphical_handler(Con *first, Con *second, orientation_t orientation
 
     /* Configure the resizebar and snap the pointer. The resizebar runs along
      * the rect of the second con and follows the motion of the pointer. */
-    Rect helprect;
+    Rect helprect{};
     helprect.x = second->rect.x;
     helprect.y = second->rect.y;
     if (orientation == HORIZ) {
-        helprect.width = logical_px(2);
+        helprect.width = logical_px(global.root_screen, 2);
         helprect.height = second->rect.height;
         initial_position = second->rect.x;
     } else {
         helprect.width = second->rect.width;
-        helprect.height = logical_px(2);
+        helprect.height = logical_px(global.root_screen, 2);
         initial_position = second->rect.y;
     }
 
@@ -231,23 +230,23 @@ void resize_graphical_handler(Con *first, Con *second, orientation_t orientation
     mask |= XCB_CW_OVERRIDE_REDIRECT;
     values[1] = 1;
 
-    xcb_window_t helpwin = create_window(conn, helprect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
+    xcb_window_t helpwin = create_window(global.conn, helprect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
                                          XCB_WINDOW_CLASS_INPUT_OUTPUT, (orientation == HORIZ ? XCURSOR_CURSOR_RESIZE_HORIZONTAL : XCURSOR_CURSOR_RESIZE_VERTICAL), false, mask, values);
 
     if (!use_threshold) {
-        xcb_map_window(conn, helpwin);
+        xcb_map_window(global.conn, helpwin);
         if (orientation == HORIZ) {
-            xcb_warp_pointer(conn, XCB_NONE, event->root, 0, 0, 0, 0,
+            xcb_warp_pointer(global.conn, XCB_NONE, event->root, 0, 0, 0, 0,
                              second->rect.x, event->root_y);
         } else {
-            xcb_warp_pointer(conn, XCB_NONE, event->root, 0, 0, 0, 0,
+            xcb_warp_pointer(global.conn, XCB_NONE, event->root, 0, 0, 0, 0,
                              event->root_x, second->rect.y);
         }
     }
 
-    xcb_circulate_window(conn, XCB_CIRCULATE_RAISE_LOWEST, helpwin);
+    xcb_circulate_window(global.conn, XCB_CIRCULATE_RAISE_LOWEST, helpwin);
 
-    xcb_flush(conn);
+    xcb_flush(global.conn);
 
     /* `new_position' will be updated by the `resize_callback'. */
     new_position = initial_position;
@@ -263,9 +262,9 @@ void resize_graphical_handler(Con *first, Con *second, orientation_t orientation
     /* `drag_pointer' blocks until the drag is completed. */
     drag_result_t drag_result = drag_pointer(nullptr, event, grabwin, 0, use_threshold, resize_callback, &params);
 
-    xcb_destroy_window(conn, helpwin);
-    xcb_destroy_window(conn, grabwin);
-    xcb_flush(conn);
+    xcb_destroy_window(global.conn, helpwin);
+    xcb_destroy_window(global.conn, grabwin);
+    xcb_flush(global.conn);
 
     /* User cancelled the drag so no action should be taken. */
     if (drag_result == DRAG_REVERT) {
@@ -273,7 +272,7 @@ void resize_graphical_handler(Con *first, Con *second, orientation_t orientation
     }
 
     int pixels = (new_position - initial_position);
-    DLOG("Done, pixels = %d\n", pixels);
+    DLOG(fmt::sprintf("Done, pixels = %d\n",  pixels));
 
     /* No change; no action needed. */
     if (pixels == 0) {
@@ -284,6 +283,6 @@ void resize_graphical_handler(Con *first, Con *second, orientation_t orientation
     assert(first->percent > 0.0);
     assert(second->percent > 0.0);
     const bool result = resize_neighboring_cons(first, second, pixels, 0);
-    DLOG("Graphical resize %s: first->percent = %f, second->percent = %f.\n",
-         result ? "successful" : "failed", first->percent, second->percent);
+    DLOG(fmt::sprintf("Graphical resize %s: first->percent = %f, second->percent = %f.\n",
+         result ? "successful" : "failed", first->percent, second->percent));
 }

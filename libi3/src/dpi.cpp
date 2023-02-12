@@ -12,10 +12,58 @@
 
 #include <xcb/xcb_xrm.h>
 
-static long dpi;
+static double dpi;
 
-static long init_dpi_fallback() {
+static double init_dpi_fallback(xcb_screen_t *root_screen) {
     return (double)root_screen->height_in_pixels * 25.4 / (double)root_screen->height_in_millimeters;
+}
+
+struct database_free
+{
+    void operator()(xcb_xrm_database_t* database) {
+        xcb_xrm_database_free(database);
+    }
+};
+
+struct ptr_free
+{
+    void operator()(void* p) {
+        free(p);
+    }
+};
+
+static double _init_dpi(xcb_connection_t *conn) {
+    if (conn == nullptr) {
+        return 0;
+    }
+
+    std::unique_ptr<xcb_xrm_database_t, database_free> database{xcb_xrm_database_from_default(conn)};
+    if (database == nullptr) {
+        ELOG("Failed to open the resource database.\n");
+
+        return 0;
+    }
+
+    char *p = nullptr;
+    xcb_xrm_resource_get_string(database.get(), "Xft.dpi", nullptr, &p);
+    if (p == nullptr) {
+        DLOG("Resource Xft.dpi not specified, skipping.\n");
+
+        return 0;
+    }
+    std::unique_ptr<char, ptr_free> resource{p};
+
+    char *endptr;
+    double in_dpi = strtod(resource.get(), &endptr);
+    if (in_dpi == HUGE_VAL || dpi < 0 || *endptr != '\0' || endptr == resource.get()) {
+         ELOG(fmt::sprintf("Xft.dpi = %s is an invalid number and couldn't be parsed.\n",  *resource));
+        return 0;
+    }
+    double _dpi = std::round(in_dpi);
+
+     DLOG(fmt::sprintf("Found Xft.dpi = %f.\n",  _dpi));
+
+    return _dpi;
 }
 
 /*
@@ -23,96 +71,13 @@ static long init_dpi_fallback() {
  * This will use the 'Xft.dpi' X resource if available and fall back to
  * guessing the correct value otherwise.
  */
-void init_dpi(void) {
-    xcb_xrm_database_t *database = nullptr;
-    char *resource = nullptr;
-
-    if (conn == nullptr) {
-        //goto init_dpi_end;
-        free(resource);
-
-        if (database != nullptr) {
-            xcb_xrm_database_free(database);
-        }
-
-        if (dpi == 0) {
-            DLOG("Using fallback for calculating DPI.\n");
-            dpi = init_dpi_fallback();
-            DLOG("Using dpi = %ld\n", dpi);
-        }
-        return;
-    }
-
-    database = xcb_xrm_database_from_default(conn);
-    if (database == nullptr) {
-        ELOG("Failed to open the resource database.\n");
-        //goto init_dpi_end;
-        free(resource);
-
-        if (database != nullptr) {
-            xcb_xrm_database_free(database);
-        }
-
-        if (dpi == 0) {
-            DLOG("Using fallback for calculating DPI.\n");
-            dpi = init_dpi_fallback();
-            DLOG("Using dpi = %ld\n", dpi);
-        }
-        return;
-    }
-
-    xcb_xrm_resource_get_string(database, "Xft.dpi", nullptr, &resource);
-    if (resource == nullptr) {
-        DLOG("Resource Xft.dpi not specified, skipping.\n");
-        //goto init_dpi_end;
-        free(resource);
-
-        if (database != nullptr) {
-            xcb_xrm_database_free(database);
-        }
-
-        if (dpi == 0) {
-            DLOG("Using fallback for calculating DPI.\n");
-            dpi = init_dpi_fallback();
-            DLOG("Using dpi = %ld\n", dpi);
-        }
-        return;
-    }
-
-    char *endptr;
-    double in_dpi = strtod(resource, &endptr);
-    if (in_dpi == HUGE_VAL || dpi < 0 || *endptr != '\0' || endptr == resource) {
-        ELOG("Xft.dpi = %s is an invalid number and couldn't be parsed.\n", resource);
-        dpi = 0;
-        //goto init_dpi_end;
-        free(resource);
-
-        if (database != nullptr) {
-            xcb_xrm_database_free(database);
-        }
-
-        if (dpi == 0) {
-            DLOG("Using fallback for calculating DPI.\n");
-            dpi = init_dpi_fallback();
-            DLOG("Using dpi = %ld\n", dpi);
-        }
-        return;
-    }
-    dpi = lround(in_dpi);
-
-    DLOG("Found Xft.dpi = %ld.\n", dpi);
-
-//init_dpi_end:
-    free(resource);
-
-    if (database != nullptr) {
-        xcb_xrm_database_free(database);
-    }
+void init_dpi(xcb_connection_t *conn, xcb_screen_t *root_screen) {
+    dpi = _init_dpi(conn);
 
     if (dpi == 0) {
         DLOG("Using fallback for calculating DPI.\n");
-        dpi = init_dpi_fallback();
-        DLOG("Using dpi = %ld\n", dpi);
+        dpi = init_dpi_fallback(root_screen);
+         DLOG(fmt::sprintf("Using dpi = %f\n",  dpi));
     }
 }
 
@@ -120,7 +85,7 @@ void init_dpi(void) {
  * This function returns the value of the DPI setting.
  *
  */
-long get_dpi_value(void) {
+double get_dpi_value() {
     return dpi;
 }
 
@@ -130,7 +95,7 @@ long get_dpi_value(void) {
  * screen, e.g. 5 pixels on a 227 DPI MacBook Pro 13" Retina screen.
  *
  */
-int logical_px(const int logical) {
+long logical_px(xcb_screen_t *root_screen, const long logical) {
     if (root_screen == nullptr) {
         /* Dpi info may not be available when parsing a config without an X
          * server, such as for config file validation. */

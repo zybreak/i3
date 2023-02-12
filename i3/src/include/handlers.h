@@ -18,6 +18,12 @@ extern int randr_base;
 extern int xkb_base;
 extern int shape_base;
 
+struct Ignore_Event {
+    int sequence;
+    int response_type;
+    time_t added;
+};
+
 /**
  * Adds the given sequence to the list of events which are ignored.
  * If this ignore should only affect a specific response_type, pass

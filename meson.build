@@ -9,7 +9,7 @@ project(
   version: '4.19.1',
   default_options: [
     'cpp_std=c++20',
-    'warning_level=1',  # enable all warnings (-Wall)
+    #'warning_level=1',  # enable all warnings (-Wall)
   ],
   meson_version: '>=0.53.0',
 )
@@ -41,18 +41,12 @@ if get_option('b_sanitize').split(',').contains('address')
   cdata.set('I3_ASAN_ENABLED', 1)
 endif
 
-cdata.set('HAVE_STRNDUP', cpp.has_function('strndup'))
-cdata.set('HAVE_MKDIRP', cpp.has_function('mkdirp'))
-
 configure_file(
   output: 'config.h',
   configuration: cdata,
 )
 
 config_h_dir = include_directories('.')
-
-# Required for e.g. struct ucred to be defined as per unix(7).
-#add_project_arguments('-D_GNU_SOURCE', language: 'c')
 
 # https://mesonbuild.com/howtox.html#add-math-library-lm-portably
 m_dep = cpp.find_library('m', required: false)
@@ -71,20 +65,18 @@ xcb_util_wm_dep = dependency('xcb-icccm', method: 'pkg-config')
 xcb_util_xrm_dep = dependency('xcb-xrm', method: 'pkg-config')
 xkbcommon_dep = dependency('xkbcommon', method: 'pkg-config')
 xkbcommon_x11_dep = dependency('xkbcommon-x11', method: 'pkg-config')
-yajl_dep = dependency('yajl', method: 'pkg-config')
 libpcre_dep = dependency('libpcre', version: '>=8.10', method: 'pkg-config')
 cairo_dep = dependency('cairo', version: '>=1.14.4', method: 'pkg-config')
 pangocairo_dep = dependency('pangocairo', method: 'pkg-config')
-glib_dep = dependency('glib-2.0', method: 'pkg-config')
+glib_dep = dependency('glib-2.0', version: '>=2.52.0', method: 'pkg-config')
 gobject_dep = dependency('gobject-2.0', method: 'pkg-config')
+fmt_dep = dependency('fmt', method: 'pkg-config')
+nlohmann_json_dep = dependency('nlohmann_json', method: 'pkg-config')
 
 ev_dep = cpp.find_library('ev')
 
-# src/log.c uses threading primitives for synchronization
-thread_dep = dependency('threads')
-
 common_deps = [
-  thread_dep,
+  fmt_dep,
   m_dep,
   iconv_dep,
   rt_dep,
@@ -100,13 +92,13 @@ common_deps = [
   xcb_util_xrm_dep,
   xkbcommon_dep,
   xkbcommon_x11_dep,
-  yajl_dep,
   libpcre_dep,
   cairo_dep,
   pangocairo_dep,
   glib_dep,
   gobject_dep,
   ev_dep,
+  nlohmann_json_dep,
 ]
 
 # Verify the perl interpreter is present for running parser_gen,
@@ -137,14 +129,14 @@ config_parser = custom_target(
 )
 
 subdir('libi3')
+subdir('lib/i3_ipc')
 subdir('i3')
-subdir('i3bar')
-subdir('i3-config-wizard')
-subdir('i3-nagbar')
+subdir('i3-msg')
 subdir('utils')
 subdir('docs')
 subdir('man')
-#subdir('testcases')
+subdir('AnyEvent-I3')
+subdir('testcases')
 
 install_subdir(
   'etc',

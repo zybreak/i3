@@ -40,9 +40,7 @@ state INITIAL:
   'mouse_warping'                          -> MOUSE_WARPING
   'focus_wrapping'                         -> FOCUS_WRAPPING
   'force_focus_wrapping'                   -> FORCE_FOCUS_WRAPPING
-  'disable_randr15', 'disable-randr15'     -> DISABLE_RANDR15
   'workspace_auto_back_and_forth'          -> WORKSPACE_BACK_AND_FORTH
-  'fake_outputs', 'fake-outputs'           -> FAKE_OUTPUTS
   'force_display_urgency_hint'             -> FORCE_DISPLAY_URGENCY_HINT
   'focus_on_window_activation'             -> FOCUS_ON_WINDOW_ACTIVATION
   'title_align'                            -> TITLE_ALIGN
@@ -65,7 +63,7 @@ state IGNORE_LINE:
 # include <pattern>
 state INCLUDE:
   pattern = string
-      -> call cfg_include($pattern)
+      -> call cfg::include($pattern)
 
 # floating_minimum_size <width> x <height>
 state FLOATING_MINIMUM_SIZE_WIDTH:
@@ -78,7 +76,7 @@ state FLOATING_MINIMUM_SIZE_X:
 
 state FLOATING_MINIMUM_SIZE_HEIGHT:
   height = number
-      -> call cfg_floating_minimum_size(&width, &height)
+      -> call cfg::floating_minimum_size(&width, &height)
 
 # floating_maximum_size <width> x <height>
 state FLOATING_MAXIMUM_SIZE_WIDTH:
@@ -91,7 +89,7 @@ state FLOATING_MAXIMUM_SIZE_X:
 
 state FLOATING_MAXIMUM_SIZE_HEIGHT:
   height = number
-      -> call cfg_floating_maximum_size(&width, &height)
+      -> call cfg::floating_maximum_size(&width, &height)
 
 # floating_modifier <modifier>
 state FLOATING_MODIFIER:
@@ -100,17 +98,17 @@ state FLOATING_MODIFIER:
   '+'
       ->
   end
-      -> call cfg_floating_modifier($modifiers)
+      -> call cfg::floating_modifier($modifiers)
 
 # default_orientation <horizontal|vertical|auto>
 state DEFAULT_ORIENTATION:
   orientation = 'horizontal', 'vertical', 'auto'
-      -> call cfg_default_orientation($orientation)
+      -> call cfg::default_orientation($orientation)
 
 # workspace_layout <default|stacking|tabbed>
 state WORKSPACE_LAYOUT:
   layout = 'default', 'stacking', 'stacked', 'tabbed'
-      -> call cfg_workspace_layout($layout)
+      -> call cfg::workspace_layout($layout)
 
 # <default_border|new_window> <normal|1pixel|none>
 # <default_floating_border|new_float> <normal|1pixel|none>
@@ -118,11 +116,11 @@ state DEFAULT_BORDER:
   border = 'normal', 'pixel'
       -> DEFAULT_BORDER_PIXELS
   border = '1pixel', 'none'
-      -> call cfg_default_border($windowtype, $border, -1)
+      -> call cfg::default_border($windowtype, $border, -1)
 
 state DEFAULT_BORDER_PIXELS:
   end
-      -> call cfg_default_border($windowtype, $border, 2)
+      -> call cfg::default_border($windowtype, $border, 2)
   width = number
       -> DEFAULT_BORDER_PIXELS_PX
 
@@ -130,29 +128,29 @@ state DEFAULT_BORDER_PIXELS_PX:
   'px'
       ->
   end
-      -> call cfg_default_border($windowtype, $border, &width)
+      -> call cfg::default_border($windowtype, $border, &width)
 
 # hide_edge_borders <none|vertical|horizontal|both|smart>
 # also hide_edge_borders <bool> for compatibility
 state HIDE_EDGE_BORDERS:
   hide_borders = 'none', 'vertical', 'horizontal', 'both', 'smart'
-      -> call cfg_hide_edge_borders($hide_borders)
+      -> call cfg::hide_edge_borders($hide_borders)
   hide_borders = '1', 'yes', 'true', 'on', 'enable', 'active'
-      -> call cfg_hide_edge_borders($hide_borders)
+      -> call cfg::hide_edge_borders($hide_borders)
 
 # for_window <criteria> command
 state FOR_WINDOW:
   '['
-      -> call cfg_criteria_init(FOR_WINDOW_COMMAND); CRITERIA
+      -> call cfg::criteria_init(FOR_WINDOW_COMMAND); CRITERIA
 
 state FOR_WINDOW_COMMAND:
   command = string
-      -> call cfg_for_window($command)
+      -> call cfg::for_window($command)
 
 # assign <criteria> [→] [workspace | output] <name>
 state ASSIGN:
   '['
-      -> call cfg_criteria_init(ASSIGN_WORKSPACE); CRITERIA
+      -> call cfg::criteria_init(ASSIGN_WORKSPACE); CRITERIA
 
 state ASSIGN_WORKSPACE:
   '→'
@@ -164,24 +162,24 @@ state ASSIGN_WORKSPACE:
   'number'
       -> ASSIGN_WORKSPACE_NUMBER
   workspace = string
-      -> call cfg_assign($workspace, 0)
+      -> call cfg::assign($workspace, 0)
 
 state ASSIGN_OUTPUT:
   output = string
-      -> call cfg_assign_output($output)
+      -> call cfg::assign_output($output)
 
 state ASSIGN_WORKSPACE_NUMBER:
   number = string
-      -> call cfg_assign($number, 1)
+      -> call cfg::assign($number, 1)
 
 # no_focus <criteria>
 state NO_FOCUS:
   '['
-      -> call cfg_criteria_init(NO_FOCUS_END); CRITERIA
+      -> call cfg::criteria_init(NO_FOCUS_END); CRITERIA
 
 state NO_FOCUS_END:
   end
-      -> call cfg_no_focus()
+      -> call cfg::no_focus()
 
 # Criteria: Used by for_window and assign.
 state CRITERIA:
@@ -198,9 +196,9 @@ state CRITERIA:
   ctype = 'floating_from' -> CRITERION_FROM
   ctype = 'tiling_from'   -> CRITERION_FROM
   ctype = 'tiling', 'floating', 'all'
-      -> call cfg_criteria_add($ctype, NULL); CRITERIA
+      -> call cfg::criteria_add($ctype, NULL); CRITERIA
   ']'
-      -> call cfg_criteria_pop_state()
+      -> call cfg::criteria_pop_state()
 
 state CRITERION:
   '=' -> CRITERION_STR
@@ -211,7 +209,7 @@ state CRITERION_FROM:
 state CRITERION_FROM_STR_START:
   '"' -> CRITERION_FROM_STR
   kind = 'auto', 'user'
-    -> call cfg_criteria_add($ctype, $kind); CRITERIA
+    -> call cfg::criteria_add($ctype, $kind); CRITERIA
 
 state CRITERION_FROM_STR:
   kind = 'auto', 'user'
@@ -219,47 +217,37 @@ state CRITERION_FROM_STR:
 
 state CRITERION_FROM_STR_END:
   '"'
-    -> call cfg_criteria_add($ctype, $kind); CRITERIA
+    -> call cfg::criteria_add($ctype, $kind); CRITERIA
 
 state CRITERION_STR:
   cvalue = word
-      -> call cfg_criteria_add($ctype, $cvalue); CRITERIA
+      -> call cfg::criteria_add($ctype, $cvalue); CRITERIA
 
 # focus_follows_mouse bool
 state FOCUS_FOLLOWS_MOUSE:
   value = word
-      -> call cfg_focus_follows_mouse($value)
+      -> call cfg::focus_follows_mouse($value)
 
 # mouse_warping warping_t
 state MOUSE_WARPING:
   value = 'none', 'output'
-      -> call cfg_mouse_warping($value)
+      -> call cfg::mouse_warping($value)
 
 # focus_wrapping
 state FOCUS_WRAPPING:
   value = '1', 'yes', 'true', 'on', 'enable', 'active', '0', 'no', 'false', 'off', 'disable', 'inactive', 'force', 'workspace'
-      -> call cfg_focus_wrapping($value)
+      -> call cfg::focus_wrapping($value)
 
 # force_focus_wrapping
 state FORCE_FOCUS_WRAPPING:
   value = word
-      -> call cfg_force_focus_wrapping($value)
-
-# disable_randr15
-state DISABLE_RANDR15:
-  value = word
-      -> call cfg_disable_randr15($value)
+      -> call cfg::force_focus_wrapping($value)
 
 # workspace_back_and_forth
 state WORKSPACE_BACK_AND_FORTH:
   value = word
-      -> call cfg_workspace_back_and_forth($value)
+      -> call cfg::workspace_back_and_forth($value)
 
-
-# fake_outputs (for testcases)
-state FAKE_OUTPUTS:
-  outputs = string
-      -> call cfg_fake_outputs($outputs)
 
 # force_display_urgency_hint <timeout> ms
 state FORCE_DISPLAY_URGENCY_HINT:
@@ -269,18 +257,18 @@ state FORCE_DISPLAY_URGENCY_HINT:
 # title_align [left|center|right]
 state TITLE_ALIGN:
   alignment = 'left', 'center', 'right'
-      -> call cfg_title_align($alignment)
+      -> call cfg::title_align($alignment)
 
 state FORCE_DISPLAY_URGENCY_HINT_MS:
   'ms'
       ->
   end
-      -> call cfg_force_display_urgency_hint(&duration_ms)
+      -> call cfg::force_display_urgency_hint(&duration_ms)
 
 # focus_on_window_activation <smart|urgent|focus|none>
 state FOCUS_ON_WINDOW_ACTIVATION:
   mode = word
-      -> call cfg_focus_on_window_activation($mode)
+      -> call cfg::focus_on_window_activation($mode)
 
 # workspace <workspace> output <output>
 state WORKSPACE:
@@ -293,34 +281,34 @@ state WORKSPACE_OUTPUT:
 
 state WORKSPACE_OUTPUT_WORD:
   output = word
-      -> call cfg_workspace($workspace, $output); WORKSPACE_OUTPUT_WORD
+      -> call cfg::workspace($workspace, $output); WORKSPACE_OUTPUT_WORD
   end
       -> INITIAL
 
 # ipc-socket <path>
 state IPC_SOCKET:
   path = string
-      -> call cfg_ipc_socket($path)
+      -> call cfg::ipc_socket($path)
 
 # ipc_kill_timeout
 state IPC_KILL_TIMEOUT:
   timeout = number
-      -> call cfg_ipc_kill_timeout(&timeout)
+      -> call cfg::ipc_kill_timeout(&timeout)
 
 # restart_state <path> (for testcases)
 state RESTART_STATE:
   path = string
-      -> call cfg_restart_state($path)
+      -> call cfg::restart_state($path)
 
 # popup_during_fullscreen
 state POPUP_DURING_FULLSCREEN:
   value = 'ignore', 'leave_fullscreen', 'smart'
-      -> call cfg_popup_during_fullscreen($value)
+      -> call cfg::popup_during_fullscreen($value)
 
 # client.background <hexcolor>
 state COLOR_SINGLE:
   color = word
-      -> call cfg_color_single($colorclass, $color)
+      -> call cfg::color_single($colorclass, $color)
 
 # colorclass border background text indicator
 state COLOR_BORDER:
@@ -339,25 +327,25 @@ state COLOR_INDICATOR:
   indicator = word
       -> COLOR_CHILD_BORDER
   end
-      -> call cfg_color($colorclass, $border, $background, $text, NULL, NULL)
+      -> call cfg::color($colorclass, $border, $background, $text, NULL, NULL)
 
 state COLOR_CHILD_BORDER:
   child_border = word
-      -> call cfg_color($colorclass, $border, $background, $text, $indicator, $child_border)
+      -> call cfg::color($colorclass, $border, $background, $text, $indicator, $child_border)
   end
-      -> call cfg_color($colorclass, $border, $background, $text, $indicator, NULL)
+      -> call cfg::color($colorclass, $border, $background, $text, $indicator, NULL)
 
 # <exec|exec_always> [--no-startup-id] command
 state EXEC:
   no_startup_id = '--no-startup-id'
       ->
   command = string
-      -> call cfg_exec($exectype, $no_startup_id, $command)
+      -> call cfg::exec($exectype, $no_startup_id, $command)
 
 # font font
 state FONT:
   font = string
-      -> call cfg_font($font)
+      -> call cfg::font($font)
 
 # bindsym/bindcode
 state BINDING:
@@ -386,9 +374,9 @@ state BINDCOMMAND:
   exclude_titlebar = '--exclude-titlebar'
       ->
   command = string
-      -> call cfg_binding($bindtype, $modifiers, $key, $release, $border, $whole_window, $exclude_titlebar, $command)
+      -> call cfg::binding($bindtype, $modifiers, $key, $release, $border, $whole_window, $exclude_titlebar, $command)
   end
-      -> call cfg_binding($bindtype, $modifiers, $key, $release, $border, $whole_window, $exclude_titlebar, $command)
+      -> call cfg::binding($bindtype, $modifiers, $key, $release, $border, $whole_window, $exclude_titlebar, $command)
 
 ################################################################################
 # Mode configuration
@@ -398,7 +386,7 @@ state MODENAME:
   pango_markup = '--pango_markup'
       ->
   modename = word
-      -> call cfg_enter_mode($pango_markup, $modename); MODEBRACE
+      -> call cfg::enter_mode($pango_markup, $modename); MODEBRACE
 
 state MODEBRACE:
   end
@@ -447,7 +435,7 @@ state MODE_BINDCOMMAND:
   exclude_titlebar = '--exclude-titlebar'
       ->
   command = string
-      -> call cfg_mode_binding($bindtype, $modifiers, $key, $release, $border, $whole_window, $exclude_titlebar, $command); MODE
+      -> call cfg::mode_binding($bindtype, $modifiers, $key, $release, $border, $whole_window, $exclude_titlebar, $command); MODE
 
 ################################################################################
 # Bar configuration (i3bar)
@@ -457,7 +445,7 @@ state BARBRACE:
   end
       ->
   '{'
-      -> call cfg_bar_start(); BAR
+      -> call cfg::bar_start(); BAR
 
 state BAR:
   end ->
@@ -488,7 +476,7 @@ state BAR:
   'verbose'                -> BAR_VERBOSE
   'colors'                 -> BAR_COLORS_BRACE
   '}'
-      -> call cfg_bar_finish(); INITIAL
+      -> call cfg::bar_finish(); INITIAL
 
 # We ignore comments and 'set' lines (variables).
 state BAR_IGNORE_LINE:
@@ -497,45 +485,45 @@ state BAR_IGNORE_LINE:
 
 state BAR_BAR_COMMAND:
   command = string
-      -> call cfg_bar_i3bar_command($command); BAR
+      -> call cfg::bar_i3bar_command($command); BAR
 
 state BAR_STATUS_COMMAND:
   command = string
-      -> call cfg_bar_status_command($command); BAR
+      -> call cfg::bar_status_command($command); BAR
 
 state BAR_SOCKET_PATH:
   path = string
-      -> call cfg_bar_socket_path($path); BAR
+      -> call cfg::bar_socket_path($path); BAR
 
 state BAR_MODE:
   mode = 'dock', 'hide', 'invisible'
-      -> call cfg_bar_mode($mode); BAR
+      -> call cfg::bar_mode($mode); BAR
 
 state BAR_HIDDEN_STATE:
   hidden_state = 'hide', 'show'
-      -> call cfg_bar_hidden_state($hidden_state); BAR
+      -> call cfg::bar_hidden_state($hidden_state); BAR
 
 state BAR_ID:
   bar_id = word
-      -> call cfg_bar_id($bar_id); BAR
+      -> call cfg::bar_id($bar_id); BAR
 
 state BAR_MODIFIER:
   'off', 'none'
-      -> call cfg_bar_modifier(NULL); BAR
+      -> call cfg::bar_modifier(NULL); BAR
   modifiers = 'Mod1', 'Mod2', 'Mod3', 'Mod4', 'Mod5', 'Shift', 'Control', 'Ctrl'
       ->
   '+'
       ->
   end
-      -> call cfg_bar_modifier($modifiers); BAR
+      -> call cfg::bar_modifier($modifiers); BAR
 
 state BAR_WHEEL_UP_CMD:
   command = string
-      -> call cfg_bar_wheel_up_cmd($command); BAR
+      -> call cfg::bar_wheel_up_cmd($command); BAR
 
 state BAR_WHEEL_DOWN_CMD:
   command = string
-      -> call cfg_bar_wheel_down_cmd($command); BAR
+      -> call cfg::bar_wheel_down_cmd($command); BAR
 
 state BAR_BINDSYM:
   release = '--release'
@@ -547,19 +535,19 @@ state BAR_BINDSYM_COMMAND:
   release = '--release'
       ->
   command = string
-      -> call cfg_bar_bindsym($button, $release, $command); BAR
+      -> call cfg::bar_bindsym($button, $release, $command); BAR
 
 state BAR_POSITION:
   position = 'top', 'bottom'
-      -> call cfg_bar_position($position); BAR
+      -> call cfg::bar_position($position); BAR
 
 state BAR_OUTPUT:
   output = string
-      -> call cfg_bar_output($output); BAR
+      -> call cfg::bar_output($output); BAR
 
 state BAR_TRAY_OUTPUT:
   output = word
-      -> call cfg_bar_tray_output($output); BAR
+      -> call cfg::bar_tray_output($output); BAR
 
 state BAR_TRAY_PADDING:
   padding_px = number
@@ -569,23 +557,23 @@ state BAR_TRAY_PADDING_PX:
   'px'
       ->
   end
-      -> call cfg_bar_tray_padding(&padding_px); BAR
+      -> call cfg::bar_tray_padding(&padding_px); BAR
 
 state BAR_FONT:
   font = string
-      -> call cfg_bar_font($font); BAR
+      -> call cfg::bar_font($font); BAR
 
 state BAR_SEPARATOR_SYMBOL:
   separator = string
-      -> call cfg_bar_separator_symbol($separator); BAR
+      -> call cfg::bar_separator_symbol($separator); BAR
 
 state BAR_BINDING_MODE_INDICATOR:
   value = word
-      -> call cfg_bar_binding_mode_indicator($value); BAR
+      -> call cfg::bar_binding_mode_indicator($value); BAR
 
 state BAR_WORKSPACE_BUTTONS:
   value = word
-      -> call cfg_bar_workspace_buttons($value); BAR
+      -> call cfg::bar_workspace_buttons($value); BAR
 
 state BAR_WORKSPACE_MIN_WIDTH:
   width = number
@@ -595,19 +583,19 @@ state BAR_WORKSPACE_MIN_WIDTH_PX:
   'px'
       ->
   end
-      -> call cfg_bar_workspace_min_width(&width); BAR
+      -> call cfg::bar_workspace_min_width(&width); BAR
 
 state BAR_STRIP_WORKSPACE_NUMBERS:
   value = word
-      -> call cfg_bar_strip_workspace_numbers($value); BAR
+      -> call cfg::bar_strip_workspace_numbers($value); BAR
 
 state BAR_STRIP_WORKSPACE_NAME:
   value = word
-      -> call cfg_bar_strip_workspace_name($value); BAR
+      -> call cfg::bar_strip_workspace_name($value); BAR
 
 state BAR_VERBOSE:
   value = word
-      -> call cfg_bar_verbose($value); BAR
+      -> call cfg::bar_verbose($value); BAR
 
 state BAR_COLORS_BRACE:
   end
@@ -633,7 +621,7 @@ state BAR_COLORS_IGNORE_LINE:
 
 state BAR_COLORS_SINGLE:
   color = word
-      -> call cfg_bar_color_single($colorclass, $color); BAR_COLORS
+      -> call cfg::bar_color_single($colorclass, $color); BAR_COLORS
 
 state BAR_COLORS_BORDER:
   border = word
@@ -645,6 +633,6 @@ state BAR_COLORS_BACKGROUND:
 
 state BAR_COLORS_TEXT:
   end
-      -> call cfg_bar_color($colorclass, $border, $background, NULL); BAR_COLORS
+      -> call cfg::bar_color($colorclass, $border, $background, NULL); BAR_COLORS
   text = word
-      -> call cfg_bar_color($colorclass, $border, $background, $text); BAR_COLORS
+      -> call cfg::bar_color($colorclass, $border, $background, $text); BAR_COLORS

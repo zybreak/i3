@@ -10,29 +10,28 @@
 #pragma once
 
 #include <config.h>
+#include <pcre.h>
 
 /**
- * Creates a new 'regex' struct containing the given pattern and a PCRE
- * compiled regular expression. Also, calls pcre_study because this regex will
- * most likely be used often (like for every new window and on every relevant
- * property change of existing windows).
+ * Regular expression wrapper. It contains the pattern itself as a string (like
+ * ^foo[0-9]$) as well as a pointer to the compiled PCRE expression and the
+ * pcre_extra data returned by pcre_study().
  *
- * Returns NULL if the pattern could not be compiled into a regular expression
- * (and ELOGs an appropriate error message).
+ * This makes it easier to have a useful logfile, including the matching or
+ * non-matching pattern.
  *
  */
-struct regex *regex_new(const char *pattern);
+class Regex {
+    pcre *regex{nullptr};
+    pcre_extra *extra{nullptr};
+public:
+    bool valid{false};
+    char *pattern{nullptr};
 
-/**
- * Frees the given regular expression. It must not be used afterwards!
- *
- */
-void regex_free(struct regex *regex);
+    explicit Regex(const char *pattern);
+    Regex(const Regex &other);
+    Regex(Regex &&other) noexcept;
+    ~Regex();
+    bool regex_matches(const char *input);
+};
 
-/**
- * Checks if the given regular expression matches the given input and returns
- * true if it does. In either case, it logs the outcome using LOG(), so it will
- * be visible without debug logging.
- *
- */
-bool regex_matches(struct regex *regex, const char *input);

@@ -67,8 +67,8 @@ endif
 
 executable(
   'test.inject_randr15',
-  'inject_randr1.5.c',
-  include_directories: [ '../include', '../libi3/include', config_h_dir ],
+  'inject_randr1.5.cpp',
+  include_directories: [ '../libi3/include', config_h_dir ],
   dependencies: common_deps,
   link_with: libi3,
 )
@@ -76,11 +76,15 @@ executable(
 executable(
   'test.commands_parser',
   [
+    'commands_parser.cpp',
     '../i3/src/commands_parser.cpp',
+    '../i3/src/parser_stack.cpp',
+    '../i3/src/global.cpp',
+    'mock.cpp',
     command_parser,
   ],
-  include_directories: [ '../include', '../i3/src/include', '../i3/include', '../libi3/include', config_h_dir ],
-  c_args: '-DTEST_PARSER',
+  include_directories: [ '../lib', '../i3/src/include', '../libi3/include', '../lib/i3_ipc/include', config_h_dir ],
+  cpp_args: '-DTEST_PARSER',
   dependencies: common_deps,
   link_with: libi3,
 )
@@ -88,11 +92,15 @@ executable(
 executable(
   'test.config_parser',
   [
+    'config_parser.cpp',
     '../i3/src/config_parser.cpp',
+    '../i3/src/parser_stack.cpp',
+    '../i3/src/global.cpp',
+    'mock.cpp',
     config_parser,
   ],
-  include_directories: [ '../include', '../i3/src/include', '../i3/include', '../libi3/include', config_h_dir ],
-  c_args: '-DTEST_PARSER',
+  include_directories: [ '../lib', '../i3/src/include', '../libi3/include', '../lib/i3_ipc/include', config_h_dir ],
+  cpp_args: '-DTEST_PARSER',
   dependencies: common_deps,
   link_with: libi3,
 )
@@ -102,6 +110,7 @@ test(
   perl,
   args: [complete_run],
   depends: [
+    anyevent_i3,
     i3test_pm,
   ],
   timeout: 120,  # Default of 30 seconds can cause timeouts on slower machines

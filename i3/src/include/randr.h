@@ -13,23 +13,22 @@
 
 #include <config.h>
 
-#include "data.h"
 #include <xcb/randr.h>
 #include <vector>
 
-extern std::vector<Output*> outputs;
+extern std::deque<Output*> outputs;
 
-typedef enum {
+enum output_close_far_t {
     CLOSEST_OUTPUT = 0,
     FARTHEST_OUTPUT = 1
-} output_close_far_t;
+};
 
 /**
  * We have just established a connection to the X server and need the initial
  * XRandR information to setup workspaces for each screen.
  *
  */
-void randr_init(int *event_base, const bool disable_randr15);
+void randr_init(int *event_base);
 
 /**
  * Initializes a CT_OUTPUT Con (searches existing ones from inplace restart
@@ -60,7 +59,7 @@ void init_ws_for_output(Output *output);
  * (Re-)queries the outputs via RandR and stores them in the list of outputs.
  *
  */
-void randr_query_outputs(void);
+void randr_query_outputs();
 
 /**
  * Disables the output and moves its content.
@@ -72,14 +71,14 @@ void randr_disable_output(Output *output);
  * Returns the first output which is active.
  *
  */
-Output *get_first_output(void);
+Output *get_first_output();
 
 /**
  * Returns the output with the given name or NULL.
  * If require_active is true, only active outputs are considered.
  *
  */
-Output *get_output_by_name(const char *name, const bool require_active);
+Output *get_output_by_name(const std::string &name, bool require_active);
 
 /**
  * Returns the active (!) output which contains the coordinates x, y or NULL

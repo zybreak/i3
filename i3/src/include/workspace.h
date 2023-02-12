@@ -12,7 +12,7 @@
 
 #include <config.h>
 
-#include "data.h"
+#include "output.h"
 #include "tree.h"
 #include "randr.h"
 
@@ -23,6 +23,16 @@
  * than 4294967279 workspaces open at a time. */
 #define NET_WM_DESKTOP_NONE 0xFFFFFFF0
 #define NET_WM_DESKTOP_ALL 0xFFFFFFFF
+
+/**
+ * Stores which workspace (by name or number) goes to which output.
+ *
+ */
+struct Workspace_Assignment {
+    std::string name;
+    std::string output;
+};
+
 
 /**
  * Stores a copy of the name of the last used workspace for the workspace
@@ -36,7 +46,7 @@ extern char *previous_workspace_name;
  * not exist.
  *
  */
-Con *get_existing_workspace_by_name(const char *name);
+Con *get_existing_workspace_by_name(const std::string &name);
 
 /**
  * Returns the workspace with the given number or NULL if such a workspace does
@@ -63,7 +73,7 @@ Con *get_assigned_output(const char *name, long parsed_num);
  * workspace assignment is the same as the given output.
  *
  */
-bool output_triggers_assignment(Output *output, struct Workspace_Assignment *assignment);
+bool output_triggers_assignment(Output *output, const Workspace_Assignment *assignment);
 
 /**
  * Returns a pointer to the workspace with the given number (starting at 0),
@@ -71,7 +81,7 @@ bool output_triggers_assignment(Output *output, struct Workspace_Assignment *ass
  * memory and initializing the data structures correctly).
  *
  */
-Con *workspace_get(const char *num);
+Con *workspace_get(const std::string &num);
 
 /**
  * Extracts workspace names from keybindings (e.g. “web” from “bindsym $mod+1

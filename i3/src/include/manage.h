@@ -11,8 +11,6 @@
 
 #include <config.h>
 
-#include "data.h"
-
 /**
  * Go through all existing windows (if the window manager is restarted) and
  * manage them
@@ -35,7 +33,7 @@ void restore_geometry();
  *
  */
 void manage_window(xcb_window_t window,
-                   xcb_get_window_attributes_cookie_t cookie,
+                   xcb_get_window_attributes_reply_t *attr,
                    bool needs_to_be_mapped);
 
 /**
@@ -44,3 +42,5 @@ void manage_window(xcb_window_t window,
  *
  */
 Con *remanage_window(Con *con);
+
+void update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_border_style);

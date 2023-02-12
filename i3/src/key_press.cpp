@@ -13,12 +13,11 @@
 
 #include "libi3.h"
 
-#include "data.h"
-#include "log.h"
 #include "i3.h"
 #include "key_press.h"
 #include "commands_parser.h"
 #include "bindings.h"
+#include "global.h"
 
 /*
  * There was a KeyPress or KeyRelease (both events have the same fields). We
@@ -29,9 +28,9 @@
 void handle_key_press(xcb_key_press_event_t *event) {
     const bool key_release = (event->response_type == XCB_KEY_RELEASE);
 
-    last_timestamp = event->time;
+    global.last_timestamp = event->time;
 
-    DLOG("%s %d, state raw = 0x%x\n", (key_release ? "KeyRelease" : "KeyPress"), event->detail, event->state);
+    DLOG(fmt::sprintf("%s %d, state raw = 0x%x\n",  (key_release ? "KeyRelease" : "KeyPress"), event->detail, event->state));
 
     Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event);
 
@@ -39,6 +38,5 @@ void handle_key_press(xcb_key_press_event_t *event) {
     if (bind == nullptr)
         return;
 
-    CommandResult *result = run_binding(bind, nullptr);
-    command_result_free(result);
+    run_binding(bind, nullptr);
 }

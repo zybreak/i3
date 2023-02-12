@@ -14,56 +14,16 @@
 
 #include <err.h>
 
-#include "data.h"
+#include "tree.h"
+#include "con.h"
 
-#define die(...) errx(EXIT_FAILURE, __VA_ARGS__);
-#define exit_if_null(pointer, ...) \
-    {                              \
-        if (pointer == NULL)       \
-            die(__VA_ARGS__);      \
-    }
 #define STARTS_WITH(string, needle) (strncasecmp((string), (needle), strlen((needle))) == 0)
-#define CIRCLEQ_NEXT_OR_NULL(head, elm, field) (CIRCLEQ_NEXT(elm, field) != CIRCLEQ_END(head) ? CIRCLEQ_NEXT(elm, field) : NULL)
-#define CIRCLEQ_PREV_OR_NULL(head, elm, field) (CIRCLEQ_PREV(elm, field) != CIRCLEQ_END(head) ? CIRCLEQ_PREV(elm, field) : NULL)
-
-#define NODES_FOREACH(head)                                                    \
-    for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) \
-        TAILQ_FOREACH (child, &((head)->nodes_head), nodes)
-
-#define NODES_FOREACH_REVERSE(head)                                            \
-    for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) \
-        TAILQ_FOREACH_REVERSE (child, &((head)->nodes_head), nodes_head, nodes)
-
-/* greps the ->nodes of the given head and returns the first node that matches the given condition */
-#define GREP_FIRST(dest, head, condition) \
-    NODES_FOREACH (head) {                \
-        if (!(condition))                 \
-            continue;                     \
-                                          \
-        (dest) = child;                   \
-        break;                            \
-    }
 
 #define FREE(pointer)   \
     do {                \
         free(pointer);  \
         pointer = NULL; \
     } while (0)
-
-#define SWAP(first, second, type) \
-    do {                          \
-        type tmp_SWAP = first;    \
-        first = second;           \
-        second = tmp_SWAP;        \
-    } while (0)
-
-int min(int a, int b);
-int max(int a, int b);
-bool rect_contains(Rect rect, uint32_t x, uint32_t y);
-Rect rect_add(Rect a, Rect b);
-Rect rect_sub(Rect a, Rect b);
-bool rect_equals(Rect a, Rect b);
-Rect rect_sanitize_dimensions(Rect rect);
 
 /**
  * Returns true if the name consists of only digits.
@@ -84,7 +44,7 @@ bool layout_from_name(const char *layout_str, layout_t *out);
  * interpreted as a "named workspace".
  *
  */
-int ws_name_to_number(const char *name);
+int ws_name_to_number(const std::string &name);
 
 /**
  * Updates *destination with new_value and returns true if it was changed or false
@@ -111,12 +71,6 @@ bool update_if_necessary(uint32_t *destination, const uint32_t new_value);
 void exec_i3_utility(char *name, char *argv[]);
 
 /**
- * Checks if the given path exists by calling stat().
- *
- */
-bool path_exists(const char *path);
-
-/**
  * Restart i3 in-place
  * appends -a to argument list to disable autostart
  *
@@ -128,26 +82,7 @@ void i3_restart(bool forget_layout);
  * If the string has to be escaped, the input string will be free'd.
  *
  */
-char *pango_escape_markup(char *input);
-
-/**
- * Starts an i3-nagbar instance with the given parameters. Takes care of
- * handling SIGCHLD and killing i3-nagbar when i3 exits.
- *
- * The resulting PID will be stored in *nagbar_pid and can be used with
- * kill_nagbar() to kill the bar later on.
- *
- */
-void start_nagbar(pid_t *nagbar_pid, const char *argv[]);
-
-/**
- * Kills the i3-nagbar process, if nagbar_pid != -1.
- *
- * If wait_for_it is set (restarting i3), this function will waitpid(),
- * otherwise, ev is assumed to handle it (reloading).
- *
- */
-void kill_nagbar(pid_t nagbar_pid, bool wait_for_it);
+std::string pango_escape_markup(std::string input);
 
 /**
  * Converts a string into a long using strtol().
@@ -162,7 +97,7 @@ bool parse_long(const char *str, long *out, int base);
  * size, or NULL if -1 is returned.
  *
  */
-ssize_t slurp(const char *path, char **buf);
+std::string slurp(const std::string &path);
 
 /**
  * Convert a direction to its corresponding orientation.
@@ -181,3 +116,28 @@ position_t position_from_direction(direction_t direction);
  *
  */
 direction_t direction_from_orientation_position(orientation_t orientation, position_t position);
+
+/**
+ * Like writeall, but instead of retrying upon EAGAIN (returned when a write
+ * would block), the function stops and returns the total number of bytes
+ * written so far.
+ *
+ */
+ssize_t writeall_nonblock(int fd, const void *buf, size_t count);
+
+/**
+ * All-in-one function which returns the modifier mask (XCB_MOD_MASK_*) for the
+ * given keysymbol, for example for XCB_NUM_LOCK (usually configured to mod2).
+ *
+ * This function initiates one round-trip. Use get_mod_mask_for() directly if
+ * you already have the modifier mapping and key symbols.
+ *
+ */
+uint32_t aio_get_mod_mask_for(uint32_t keysym, xcb_key_symbols_t *symbols);
+
+/**
+ * Returns true if this version of i3 is a debug build (anything which is not a
+ * release version), based on the git version number.
+ *
+ */
+bool is_debug_build() __attribute__((const));

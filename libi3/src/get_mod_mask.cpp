@@ -14,30 +14,6 @@
 #include <xcb/xcb_keysyms.h>
 
 /*
- * All-in-one function which returns the modifier mask (XCB_MOD_MASK_*) for the
- * given keysymbol, for example for XCB_NUM_LOCK (usually configured to mod2).
- *
- * This function initiates one round-trip. Use get_mod_mask_for() directly if
- * you already have the modifier mapping and key symbols.
- *
- */
-uint32_t aio_get_mod_mask_for(uint32_t keysym, xcb_key_symbols_t *symbols) {
-    xcb_get_modifier_mapping_cookie_t cookie;
-    xcb_get_modifier_mapping_reply_t *modmap_r;
-
-    xcb_flush(conn);
-
-    /* Get the current modifier mapping (this is blocking!) */
-    cookie = xcb_get_modifier_mapping(conn);
-    if (!(modmap_r = xcb_get_modifier_mapping_reply(conn, cookie, nullptr)))
-        return 0;
-
-    uint32_t result = get_mod_mask_for(keysym, symbols, modmap_r);
-    free(modmap_r);
-    return result;
-}
-
-/*
  * Returns the modifier mask (XCB_MOD_MASK_*) for the given keysymbol, for
  * example for XCB_NUM_LOCK (usually configured to mod2).
  *

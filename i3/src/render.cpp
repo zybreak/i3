@@ -16,9 +16,7 @@
 
 #include "libi3.h"
 
-#include "data.h"
 #include "util.h"
-#include "log.h"
 #include "x.h"
 #include "configuration.h"
 #include "con.h"
@@ -26,9 +24,10 @@
 #include "output.h"
 
 #include <cmath>
+#include <ranges>
 
 /* Forward declarations */
-static int *precalculate_sizes(Con *con, render_params *p);
+static std::vector<int> precalculate_sizes(Con *con, render_params *p);
 static void render_root(Con *con, Con *fullscreen);
 static void render_output(Con *con);
 static void render_con_split(Con *con, Con *child, render_params *p, int i);
@@ -56,13 +55,14 @@ int render_deco_height() {
  */
 void render_con(Con *con) {
     render_params params = {
-        .x = (int)con->rect.x,
-        .y = (int)con->rect.y,
-            .rect = con->rect,
-        .children = con_num_children(con)};
+        .x = con->rect.x,
+        .y = con->rect.y,
+        .rect = con->rect,
+        .children = con->con_num_children()
+    };
 
-    DLOG("Rendering node %p / %s / layout %d / children %d\n", con, con->name,
-         con->layout, params.children);
+    DLOG(fmt::sprintf("Rendering node %p / %s / layout %d / children %d\n",  (void*)con, con->name,
+         con->layout, params.children));
 
     int i = 0;
     con->mapped = true;
@@ -74,14 +74,14 @@ void render_con(Con *con) {
         Rect *inset = &(con->window_rect);
         *inset = (Rect){0, 0, con->rect.width, con->rect.height};
         if (con->fullscreen_mode == CF_NONE) {
-            *inset = rect_add(*inset, con_border_style_rect(con));
+            *inset += con_border_style_rect(con);
         }
 
         /* Obey x11 border */
         inset->width -= (2 * con->border_width);
         inset->height -= (2 * con->border_width);
 
-        *inset = rect_sanitize_dimensions(*inset);
+        inset->rect_sanitize_dimensions();
 
         /* NB: We used to respect resize increment size hints for tiling
          * windows up until commit 0db93d9 here. However, since all terminal
@@ -89,13 +89,13 @@ void render_con(Con *con) {
          * can (by providing their fake-transparency or background color), this
          * code was removed. See also https://bugs.i3wm.org/540 */
 
-        DLOG("child will be at %dx%d with size %dx%d\n", inset->x, inset->y, inset->width, inset->height);
+        DLOG(fmt::sprintf("child will be at %dx%d with size %dx%d\n",  inset->x, inset->y, inset->width, inset->height));
     }
 
     /* Check for fullscreen nodes */
     Con *fullscreen = nullptr;
     if (con->type != CT_OUTPUT) {
-        fullscreen = con_get_fullscreen_con(con, (con->type == CT_ROOT ? CF_GLOBAL : CF_OUTPUT));
+        fullscreen = con->con_get_fullscreen_con((con->type == CT_ROOT ? CF_GLOBAL : CF_OUTPUT));
     }
     if (fullscreen) {
         fullscreen->rect = params.rect;
@@ -120,14 +120,13 @@ void render_con(Con *con) {
 
     if (con->layout == L_OUTPUT) {
         /* Skip i3-internal outputs */
-        if (con_is_internal(con))
-            goto free_params;
+        if (con->con_is_internal())
+            return;
         render_output(con);
     } else if (con->type == CT_ROOT) {
         render_root(con, fullscreen);
     } else {
-        Con *child;
-        TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+        for (auto &child : con->nodes_head) {
             assert(params.children > 0);
 
             if (con->layout == L_SPLITH || con->layout == L_SPLITV) {
@@ -140,10 +139,10 @@ void render_con(Con *con) {
                 render_con_dockarea(con, child, &params);
             }
 
-            child->rect = rect_sanitize_dimensions(child->rect);
+            child->rect.rect_sanitize_dimensions();
 
-            DLOG("child at (%d, %d) with (%d x %d)\n",
-                 child->rect.x, child->rect.y, child->rect.width, child->rect.height);
+            DLOG(fmt::sprintf("child at (%d, %d) with (%d x %d)\n",
+                 child->rect.x, child->rect.y, child->rect.width, child->rect.height));
             x_raise_con(child);
             render_con(child);
             i++;
@@ -151,10 +150,11 @@ void render_con(Con *con) {
 
         /* in a stacking or tabbed container, we ensure the focused client is raised */
         if (con->layout == L_STACKED || con->layout == L_TABBED) {
-            TAILQ_FOREACH_REVERSE (child, &(con->focus_head), focus_head, focused) {
-                x_raise_con(child);
+            for (auto &it : con->focus_head | std::views::reverse) {
+                x_raise_con(it);
             }
-            if ((child = TAILQ_FIRST(&(con->focus_head)))) {
+            Con *child = con::first(con->focus_head);
+            if (child != nullptr) {
                 /* By rendering the stacked container again, we handle the case
                  * that we have a non-leaf-container inside the stack. In that
                  * case, the children of the non-leaf-container need to be
@@ -170,23 +170,20 @@ void render_con(Con *con) {
                 x_raise_con(con);
         }
     }
-
-free_params:
-    FREE(params.sizes);
 }
 
-static int *precalculate_sizes(Con *con, render_params *p) {
+static std::vector<int> precalculate_sizes(Con *con, render_params *p) {
     if ((con->layout != L_SPLITH && con->layout != L_SPLITV) || p->children <= 0) {
-        return nullptr;
+        return {};
     }
 
-    int *sizes = (int*)smalloc(p->children * sizeof(int));
-    assert(!TAILQ_EMPTY(&con->nodes_head));
+    std::vector<int> sizes(p->children);
 
-    Con *child;
+    assert(!con->nodes_head.empty());
+
     int i = 0, assigned = 0;
     int total = con_rect_size_in_orientation(con);
-    TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+    for (auto &child : con->nodes_head) {
         double percentage = child->percent > 0.0 ? child->percent : 1.0 / p->children;
         assigned += sizes[i++] = lround(percentage * total);
     }
@@ -205,9 +202,8 @@ static int *precalculate_sizes(Con *con, render_params *p) {
 }
 
 static void render_root(Con *con, Con *fullscreen) {
-    Con *output;
     if (!fullscreen) {
-        TAILQ_FOREACH (output, &(con->nodes_head), nodes) {
+        for (auto &output : con->nodes_head) {
             render_con(output);
         }
     }
@@ -217,19 +213,21 @@ static void render_root(Con *con, Con *fullscreen) {
      * all times. This is important when the user places floating
      * windows/containers so that they overlap on another output. */
     DLOG("Rendering floating windows:\n");
-    TAILQ_FOREACH (output, &(con->nodes_head), nodes) {
-        if (con_is_internal(output))
+    for (auto &output : con->nodes_head) {
+        if (output->con_is_internal())
             continue;
         /* Get the active workspace of that output */
-        Con *content = output_get_content(output);
-        if (!content || TAILQ_EMPTY(&(content->focus_head))) {
+        Con *content = output->output_get_content();
+        if (!content || content->focus_head.empty()) {
             DLOG("Skipping this output because it is currently being destroyed.\n");
             continue;
         }
-        Con *workspace = TAILQ_FIRST(&(content->focus_head));
-        Con *fullscreen = con_get_fullscreen_covering_ws(workspace);
-        Con *child;
-        TAILQ_FOREACH (child, &(workspace->floating_head), floating_windows) {
+        Con *workspace = con::first(content->focus_head);
+        if (workspace == nullptr) {
+            continue;
+        }
+        Con *fullscreen = workspace->con_get_fullscreen_covering_ws();
+        for (auto &child : workspace->floating_windows) {
             if (fullscreen != nullptr) {
                 /* Don’t render floating windows when there is a fullscreen
                  * window on that workspace. Necessary to make floating
@@ -246,8 +244,8 @@ static void render_root(Con *con, Con *fullscreen) {
                 while (transient_con != nullptr &&
                        transient_con->window != nullptr &&
                        transient_con->window->transient_for != XCB_NONE) {
-                    DLOG("transient_con = 0x%08x, transient_con->window->transient_for = 0x%08x, fullscreen_id = 0x%08x\n",
-                         transient_con->window->id, transient_con->window->transient_for, fullscreen->window->id);
+                    DLOG(fmt::sprintf("transient_con = 0x%08x, transient_con->window->transient_for = 0x%08x, fullscreen_id = 0x%08x\n",
+                         transient_con->window->id, transient_con->window->transient_for, fullscreen->window->id));
                     if (transient_con->window->transient_for == fullscreen->window->id) {
                         is_transient_for = true;
                         break;
@@ -266,13 +264,13 @@ static void render_root(Con *con, Con *fullscreen) {
                 if (!is_transient_for)
                     continue;
                 else {
-                    DLOG("Rendering floating child even though in fullscreen mode: "
+                     DLOG(fmt::sprintf("Rendering floating child even though in fullscreen mode: "
                          "floating->transient_for (0x%08x) --> fullscreen->id (0x%08x)\n",
-                         floating_child->window->transient_for, fullscreen->window->id);
+                         floating_child->window->transient_for, fullscreen->window->id));
                 }
             }
-            DLOG("floating child at (%d,%d) with %d x %d\n",
-                 child->rect.x, child->rect.y, child->rect.width, child->rect.height);
+            DLOG(fmt::sprintf("floating child at (%d,%d) with %d x %d\n",
+                 child->rect.x, child->rect.y, child->rect.width, child->rect.height));
             x_raise_con(child);
             render_con(child);
         }
@@ -285,8 +283,6 @@ static void render_root(Con *con, Con *fullscreen) {
  *
  */
 static void render_output(Con *con) {
-    Con *child, *dockchild;
-
     int x = con->rect.x;
     int y = con->rect.y;
     int height = con->rect.height;
@@ -294,7 +290,7 @@ static void render_output(Con *con) {
     /* Find the content container and ensure that there is exactly one. Also
      * check for any non-CT_DOCKAREA clients. */
     Con *content = nullptr;
-    TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+    for (auto &child : con->nodes_head) {
         if (child->type == CT_CON) {
             if (content != nullptr) {
                 DLOG("More than one CT_CON on output container\n");
@@ -302,7 +298,7 @@ static void render_output(Con *con) {
             }
             content = child;
         } else if (child->type != CT_DOCKAREA) {
-            DLOG("Child %p of type %d is inside the OUTPUT con\n", child, child->type);
+            DLOG(fmt::sprintf("Child %p of type %d is inside the OUTPUT con\n",  (void*)child, child->type));
             assert(false);
         }
     }
@@ -315,12 +311,12 @@ static void render_output(Con *con) {
     /* We need to find out if there is a fullscreen con on the current workspace
      * and take the short-cut to render it directly (the user does not want to
      * see the dockareas in that case) */
-    Con *ws = con_get_fullscreen_con(content, CF_OUTPUT);
+    Con *ws = content->con_get_fullscreen_con(CF_OUTPUT);
     if (!ws) {
         DLOG("Skipping this output because it is currently being destroyed.\n");
         return;
     }
-    Con *fullscreen = con_get_fullscreen_con(ws, CF_OUTPUT);
+    Con *fullscreen = ws->con_get_fullscreen_con(CF_OUTPUT);
     if (fullscreen) {
         fullscreen->rect = con->rect;
         x_raise_con(fullscreen);
@@ -330,12 +326,12 @@ static void render_output(Con *con) {
 
     /* First pass: determine the height of all CT_DOCKAREAs (the sum of their
      * children) and figure out how many pixels we have left for the rest */
-    TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+    for (auto &child : con->nodes_head) {
         if (child->type != CT_DOCKAREA)
             continue;
 
         child->rect.height = 0;
-        TAILQ_FOREACH (dockchild, &(child->nodes_head), nodes) {
+        for (auto &dockchild : child->nodes_head) {
             child->rect.height += dockchild->geometry.height;
         }
 
@@ -343,7 +339,7 @@ static void render_output(Con *con) {
     }
 
     /* Second pass: Set the widths/heights */
-    TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+    for (auto &child : con->nodes_head) {
         if (child->type == CT_CON) {
             child->rect.x = x;
             child->rect.y = y;
@@ -362,8 +358,8 @@ static void render_output(Con *con) {
 
         y += child->rect.height;
 
-        DLOG("child at (%d, %d) with (%d x %d)\n",
-             child->rect.x, child->rect.y, child->rect.width, child->rect.height);
+        DLOG(fmt::sprintf("child at (%d, %d) with (%d x %d)\n",
+             child->rect.x, child->rect.y, child->rect.width, child->rect.height));
         x_raise_con(child);
         render_con(child);
     }
@@ -387,7 +383,7 @@ static void render_con_split(Con *con, Con *child, render_params *p, int i) {
     }
 
     /* first we have the decoration, if this is a leaf node */
-    if (con_is_leaf(child)) {
+    if (child->con_is_leaf()) {
         if (child->border_style == BS_NORMAL) {
             /* TODO: make a function for relative coords? */
             child->deco_rect.x = child->rect.x - con->rect.x;
@@ -434,7 +430,7 @@ static void render_con_tabbed(Con *con, Con *child, render_params *p, int i) {
     child->rect.width = p->rect.width;
     child->rect.height = p->rect.height;
 
-    child->deco_rect.width = floor((float)child->rect.width / p->children);
+    child->deco_rect.width = floor((double)child->rect.width / p->children);
     child->deco_rect.x = p->x - con->rect.x + i * child->deco_rect.width;
     child->deco_rect.y = p->y - con->rect.y;
 

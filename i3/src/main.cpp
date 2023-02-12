@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <clocale>
 #include <csignal>
+#include <queue>
 
 #include <err.h>
 #include <xcb/xcb.h>
@@ -22,11 +23,9 @@
 
 #include "libi3.h"
 
-#include "data.h"
 #include "util.h"
-#include "ipc.h"
+#include "i3_ipc/include/i3-ipc.h"
 #include "tree.h"
-#include "log.h"
 #include "xcb.h"
 #include "manage.h"
 #include "i3.h"
@@ -43,32 +42,34 @@
 #include "scratchpad.h"
 #include "bindings.h"
 #include "config_parser.h"
-#include "fake_outputs.h"
-#include "display_version.h"
 #include "restore_layout.h"
+#include "nagbar.h"
 
 #include <ev.h>
 #include <fcntl.h>
-#include <getopt.h>
 #include <libgen.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <xcb/bigreq.h>
 #include <string>
+#include <program_arguments.h>
+#include <autostarts.h>
+#include <fmt/core.h>
+#include <filesystem>
+#include <xpp/xpp.hpp>
+#include <xpp/proto/randr.hpp>
+#include <xpp/proto/xkb.hpp>
+#include <xpp/proto/shape.hpp>
+#include <xpp/proto/bigreq.hpp>
+#include "main.h"
+#include "global.h"
 
 #ifdef I3_ASAN_ENABLED
 #include <sanitizer/lsan_interface.h>
 #endif
 
-#include "i3-atoms_NET_SUPPORTED.xmacro.h"
-#include "i3-atoms_rest.xmacro.h"
-
-/* The original value of RLIMIT_CORE when i3 was started. We need to restore
- * this before starting any other process, since we set RLIMIT_CORE to
- * RLIM_INFINITY for i3 debugging versions. */
-struct rlimit original_rlimit_core;
+#include "atoms.h"
 
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;
@@ -79,19 +80,9 @@ static struct ev_prepare *xcb_prepare;
 
 char **start_argv;
 
-xcb_connection_t *conn;
-/* The screen (0 when you are using DISPLAY=:0) of the connection 'conn' */
-int conn_screen;
-
 /* Display handle for libstartup-notification */
 SnDisplay *sndisplay;
 
-/* The last timestamp we got from X11 (timestamps are included in some events
- * and are used for some things, like determining a unique ID in startup
- * notification). */
-xcb_timestamp_t last_timestamp = XCB_CURRENT_TIME;
-
-xcb_screen_t *root_screen;
 xcb_window_t root;
 
 /* Color depth, visual id and colormap to use when creating windows and
@@ -105,32 +96,11 @@ struct ev_loop *main_loop;
 
 xcb_key_symbols_t *keysyms;
 
-/* The list of key bindings */
-struct bindings_head *bindings;
-const char *current_binding_mode = nullptr;
-
-/* The list of exec-lines */
-struct autostarts_head autostarts = TAILQ_HEAD_INITIALIZER(autostarts);
-
-/* The list of exec_always lines */
-struct autostarts_always_head autostarts_always = TAILQ_HEAD_INITIALIZER(autostarts_always);
-
-/* The list of assignments */
-struct assignments_head assignments = TAILQ_HEAD_INITIALIZER(assignments);
-
-/* The list of workspace assignments (which workspace should end up on which
- * output) */
-struct ws_assignments_head ws_assignments = TAILQ_HEAD_INITIALIZER(ws_assignments);
-
 /* We hope that those are supported and set them to true */
 bool xkb_supported = true;
 bool shape_supported = true;
 
-/* Define all atoms as global variables */
-#define xmacro(atom) xcb_atom_t A_##atom;
-I3_NET_SUPPORTED_ATOMS_XMACRO
-I3_REST_ATOMS_XMACRO
-#undef xmacro
+bool is_background_set(xcb_connection_t *conn, xcb_screen_t *screen);
 
 /*
  * This callback is only a dummy, see xcb_prepare_cb.
@@ -152,14 +122,14 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
        sleeps. */
     xcb_generic_event_t *event;
 
-    while ((event = xcb_poll_for_event(conn)) != nullptr) {
+    while ((event = xcb_poll_for_event(global.conn)) != nullptr) {
         if (event->response_type == 0) {
             if (event_is_ignored(event->sequence, 0))
-                DLOG("Expected X11 Error received for sequence %x\n", event->sequence);
+                DLOG(fmt::sprintf("Expected X11 Error received for sequence %x\n",  event->sequence));
             else {
                 auto *error = (xcb_generic_error_t *)event;
-                DLOG("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
-                     error->sequence, error->error_code);
+                DLOG(fmt::sprintf("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
+                     error->sequence, error->error_code));
             }
             free(event);
             continue;
@@ -174,7 +144,7 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
     }
 
     /* Flush all queued events to X11. */
-    xcb_flush(conn);
+    xcb_flush(global.conn);
 }
 
 /*
@@ -184,7 +154,7 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
  *
  */
 void main_set_x11_cb(bool enable) {
-    DLOG("Setting main X11 callback to enabled=%d\n", enable);
+    DLOG(fmt::sprintf("Setting main X11 callback to enabled=%d\n",  enable));
     if (enable) {
         ev_prepare_start(main_loop, xcb_prepare);
         /* Trigger the watcher explicitly to handle all remaining X11 events.
@@ -200,13 +170,17 @@ void main_set_x11_cb(bool enable) {
  *
  */
 static void i3_exit() {
+    if (!global.run_atexit) {
+        return;
+    }
+
     ipc_shutdown(SHUTDOWN_REASON_EXIT, -1);
     unlink(config.ipc_socket_path);
-    xcb_disconnect(conn);
+    xcb_disconnect(global.conn);
 
     /* If a nagbar is active, kill it */
-    kill_nagbar(config_error_nagbar_pid, false);
-    kill_nagbar(command_error_nagbar_pid, false);
+    kill_nagbar(global.config_error_nagbar_pid, false);
+    kill_nagbar(global.command_error_nagbar_pid, false);
 
 /* We need ev >= 4 for the following code. Since it is not *that* important (it
  * only makes sure that there are no i3-nagbar instances left behind) we still
@@ -218,16 +192,6 @@ static void i3_exit() {
 #ifdef I3_ASAN_ENABLED
     __lsan_do_leak_check();
 #endif
-}
-
-/*
- * (One-shot) Handler for all signals with default action "Core", see signal(7)
- *
- * Unlinks the SHM log and re-raises the signal.
- *
- */
-static void handle_core_signal(int sig, siginfo_t *info, void *data) {
-    raise(sig);
 }
 
 /*
@@ -248,7 +212,6 @@ static void handle_term_signal(struct ev_loop *loop, ev_signal *signal, int reve
  */
 static void setup_term_handlers() {
     static struct ev_signal signal_watchers[6];
-    size_t num_watchers = sizeof(signal_watchers) / sizeof(signal_watchers[0]);
 
     /* We have to rely on libev functionality here and should not use
      * sigaction handlers because we need to invoke the exit handlers
@@ -262,8 +225,8 @@ static void setup_term_handlers() {
     ev_signal_init(&signal_watchers[3], handle_term_signal, SIGTERM);
     ev_signal_init(&signal_watchers[4], handle_term_signal, SIGUSR1);
     ev_signal_init(&signal_watchers[5], handle_term_signal, SIGUSR1);
-    for (size_t i = 0; i < num_watchers; i++) {
-        ev_signal_start(main_loop, &signal_watchers[i]);
+    for (auto &signal_watcher : signal_watchers) {
+        ev_signal_start(main_loop, &signal_watcher);
         /* The signal handlers should not block ev_run from returning
          * and so none of the signal handlers should hold a reference to
          * the main loop. */
@@ -279,48 +242,47 @@ static void setup_term_handlers() {
  * to.
  *
  */
-static int create_socket(const char *filename, char **out_socketpath) {
-    char *resolved = resolve_tilde(filename);
-    DLOG("Creating UNIX socket at %s\n", resolved);
-    char *copy = sstrdup(resolved);
-    const char *dir = dirname(copy);
-    if (!path_exists(dir)) {
-        mkdirp(dir, DEFAULT_DIR_MODE);
+static std::pair<std::string, int> create_socket(const char *filename) {
+    auto resolved = resolve_tilde(filename);
+    DLOG(fmt::sprintf("Creating UNIX socket at %s\n",  resolved));
+    const std::filesystem::path p(resolved);
+    const std::filesystem::path &parent = p.parent_path();
+
+    if (!std::filesystem::exists(parent)) {
+        try {
+            std::filesystem::create_directories(parent);
+        } catch (std::exception &e) {
+            ELOG(fmt::sprintf("mkdir(%s) failed: %s\n",  parent.string(), e.what()));
+        }
     }
-    free(copy);
 
     /* Unlink the unix domain socket before */
-    unlink(resolved);
+    std::filesystem::remove(resolved);
 
     int sockfd = socket(AF_LOCAL, SOCK_STREAM, 0);
     if (sockfd < 0) {
         perror("socket()");
-        free(resolved);
-        return -1;
+        throw std::exception();
     }
 
     (void)fcntl(sockfd, F_SETFD, FD_CLOEXEC);
 
     struct sockaddr_un addr{};
     addr.sun_family = AF_LOCAL;
-    strncpy(addr.sun_path, resolved, sizeof(addr.sun_path) - 1);
-    if (bind(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0) {
+    strncpy(addr.sun_path, resolved.c_str(), sizeof(addr.sun_path) - 1);
+    if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
         perror("bind()");
-        free(resolved);
-        return -1;
+        throw std::exception();
     }
 
     set_nonblock(sockfd);
 
     if (listen(sockfd, 5) < 0) {
         perror("listen()");
-        free(resolved);
-        return -1;
+        throw std::exception();
     }
 
-    free(*out_socketpath);
-    *out_socketpath = resolved;
-    return sockfd;
+    return std::make_pair(resolved, sockfd);
 }
 
 static int parse_restart_fd() {
@@ -331,139 +293,10 @@ static int parse_restart_fd() {
 
     long int fd = -1;
     if (!parse_long(restart_fd, &fd, 10)) {
-        ELOG("Malformed _I3_RESTART_FD \"%s\"\n", restart_fd);
+         ELOG(fmt::sprintf("Malformed _I3_RESTART_FD \"%s\"\n", restart_fd));
         return -1;
     }
     return (int)fd;
-}
-
-// program arguments
-static char *override_configpath = nullptr;
-static bool autostart = true;
-static char *layout_path = nullptr;
-static bool delete_layout_path = false;
-static bool disable_randr15 = false;
-static char *fake_outputs = nullptr;
-static bool disable_signalhandler = false;
-static bool only_check_config = false;
-
-static void parse_args(int argc, char *argv[]) {
-    static struct option long_options[] = {
-            {"no-autostart", no_argument, nullptr, 'a'},
-            {"config", required_argument, nullptr, 'c'},
-            {"version", no_argument, nullptr, 'v'},
-            {"moreversion", no_argument, nullptr, 'm'},
-            {"more-version", no_argument, nullptr, 'm'},
-            {"more_version", no_argument, nullptr, 'm'},
-            {"help", no_argument, nullptr, 'h'},
-            {"layout", required_argument, nullptr, 'L'},
-            {"restart", required_argument, nullptr, 0},
-            {"disable-randr15", no_argument, nullptr, 0},
-            {"disable_randr15", no_argument, nullptr, 0},
-            {"disable-signalhandler", no_argument, nullptr, 0},
-            {"get-socketpath", no_argument, nullptr, 0},
-            {"get_socketpath", no_argument, nullptr, 0},
-            {"fake_outputs", required_argument, nullptr, 0},
-            {"fake-outputs", required_argument, nullptr, 0},
-            {nullptr, 0, nullptr, 0}};
-    int option_index = 0, opt;
-
-    start_argv = argv;
-
-    while ((opt = getopt_long(argc, argv, "c:CvmaL:hld:V", long_options, &option_index)) != -1) {
-        switch (opt) {
-            case 'a':
-                LOG("Autostart disabled using -a\n");
-                autostart = false;
-                break;
-            case 'L':
-                FREE(layout_path);
-                layout_path = sstrdup(optarg);
-                delete_layout_path = false;
-                break;
-            case 'c':
-                FREE(override_configpath);
-                override_configpath = sstrdup(optarg);
-                break;
-            case 'C':
-                LOG("Checking configuration file only (-C)\n");
-                only_check_config = true;
-                break;
-            case 'v':
-                printf("i3 version %s © 2009 Michael Stapelberg and contributors\n", i3_version);
-                exit(EXIT_SUCCESS);
-                break;
-            case 'm':
-                printf("Binary i3 version:  %s © 2009 Michael Stapelberg and contributors\n", i3_version);
-                display_running_version();
-                exit(EXIT_SUCCESS);
-                break;
-            case 'V':
-                set_verbosity(true);
-                break;
-            case 'd':
-                LOG("Enabling debug logging\n");
-                set_debug_logging(true);
-                break;
-            case 0:
-                if (strcmp(long_options[option_index].name, "disable-randr15") == 0 ||
-                    strcmp(long_options[option_index].name, "disable_randr15") == 0) {
-                    disable_randr15 = true;
-                    break;
-                } else if (strcmp(long_options[option_index].name, "disable-signalhandler") == 0) {
-                    disable_signalhandler = true;
-                    break;
-                } else if (strcmp(long_options[option_index].name, "get-socketpath") == 0 ||
-                           strcmp(long_options[option_index].name, "get_socketpath") == 0) {
-                    char *socket_path = root_atom_contents("I3_SOCKET_PATH", nullptr, 0);
-                    if (socket_path) {
-                        printf("%s\n", socket_path);
-                        /* With -O2 (i.e. the buildtype=debugoptimized meson
-                         * option, which we set by default), gcc 9.2.1 optimizes
-                         * away socket_path at this point, resulting in a Leak
-                         * Sanitizer report. An explicit free helps: */
-                        free(socket_path);
-                        exit(EXIT_SUCCESS);
-                    }
-
-                    exit(EXIT_FAILURE);
-                } else if (strcmp(long_options[option_index].name, "restart") == 0) {
-                    FREE(layout_path);
-                    layout_path = sstrdup(optarg);
-                    delete_layout_path = true;
-                    break;
-                } else if (strcmp(long_options[option_index].name, "fake-outputs") == 0 ||
-                           strcmp(long_options[option_index].name, "fake_outputs") == 0) {
-                    LOG("Initializing fake outputs: %s\n", optarg);
-                    fake_outputs = sstrdup(optarg);
-                    break;
-                }
-                /* fall-through */
-            default:
-                fprintf(stderr, "Usage: %s [-c configfile] [-d all] [-a] [-v] [-V] [-C]\n", argv[0]);
-                fprintf(stderr, "\n");
-                fprintf(stderr, "\t-a          disable autostart ('exec' lines in config)\n");
-                fprintf(stderr, "\t-c <file>   use the provided configfile instead\n");
-                fprintf(stderr, "\t-C          validate configuration file and exit\n");
-                fprintf(stderr, "\t-d all      enable debug output\n");
-                fprintf(stderr, "\t-L <file>   path to the serialized layout during restarts\n");
-                fprintf(stderr, "\t-v          display version and exit\n");
-                fprintf(stderr, "\t-V          enable verbose mode\n");
-                fprintf(stderr, "\n");
-                fprintf(stderr, "\t--get-socketpath\n"
-                                "\tRetrieve the i3 IPC socket path from X11, print it, then exit.\n");
-                fprintf(stderr, "\n");
-                fprintf(stderr, "If you pass plain text arguments, i3 will interpret them as a command\n"
-                                "to send to a currently running i3 (like old i3-msg). This allows you to\n"
-                                "use nice and logical commands, such as:\n"
-                                "\n"
-                                "\ti3 border none\n"
-                                "\ti3 floating toggle\n"
-                                "\ti3 kill window\n"
-                                "\n");
-                exit(opt == 'h' ? EXIT_SUCCESS : EXIT_FAILURE);
-        }
-    }
 }
 
 void handle_extra_args(int argc, char *argv[])  {
@@ -478,7 +311,7 @@ void handle_extra_args(int argc, char *argv[])  {
         payload.append(argv[optind]).append(" ");
         optind++;
     }
-    DLOG("Command is: %s (%zd bytes)\n", payload.c_str(), strlen(payload.c_str()));
+    DLOG(fmt::sprintf("Command is: %s (%zd bytes)\n",  payload, payload.length()));
     char *socket_path = root_atom_contents("I3_SOCKET_PATH", nullptr, 0);
     if (!socket_path) {
         ELOG("Could not get i3 IPC socket path\n");
@@ -521,175 +354,78 @@ void enable_coredumps() {
     setrlimit(RLIMIT_CORE, &limit);
 }
 
-int main(int argc, char *argv[]) {
-    /* Keep a symbol pointing to the I3_VERSION string constant so that we have
-     * it in gdb backtraces. */
-    static const char *_i3_version __attribute__((used)) = I3_VERSION;
-
-
-    setlocale(LC_ALL, "");
-
-    /* Get the RLIMIT_CORE limit at startup time to restore this before
-     * starting processes. */
-    getrlimit(RLIMIT_CORE, &original_rlimit_core);
-
-    /* Disable output buffering to make redirects in .xsession actually useful for debugging */
-    if (!isatty(fileno(stdout)))
-        setbuf(stdout, nullptr);
-
-    srand(time(nullptr));
-
-    /* Init logging *before* initializing debug_build to guarantee early
-     * (file) logging. */
-    init_logging();
-
-    parse_args(argc, argv);
-
-    if (only_check_config) {
-        exit(load_configuration(override_configpath, C_VALIDATE) ? EXIT_SUCCESS : EXIT_FAILURE);
+void do_tree_init(const program_arguments &args, const xcb_get_geometry_reply_t *greply) {
+    bool needs_tree_init = true;
+    if (!args.layout_path.empty()) {
+         LOG(fmt::sprintf("Trying to restore the layout from \"%s\".\n", args.layout_path));
+        needs_tree_init = !tree_restore(args.layout_path, greply);
+        if (args.delete_layout_path) {
+            unlink(args.layout_path.c_str());
+            std::string copy = args.layout_path;
+            const char *dir = dirname(copy.data());
+            /* possibly fails with ENOTEMPTY if there are files (or
+             * sockets) left. */
+            rmdir(dir);
+        }
     }
+    if (needs_tree_init)
+        tree_init(greply);
+}
 
-    /* If the user passes more arguments, we act like old i3-msg would: Just send
-     * the arguments as an IPC message to i3. This allows for nice semantic
-     * commands such as 'i3 border none'. */
-    if (optind < argc) {
-        handle_extra_args(argc, argv);
-        return 0;
-    }
+static void set_screenshot_as_wallpaper(xcb_connection_t *conn, xcb_screen_t *screen) {
+    uint16_t width = screen->width_in_pixels;
+    uint16_t height = screen->height_in_pixels;
+    xcb_pixmap_t pixmap = xcb_generate_id(conn);
+    xcb_gcontext_t gc = xcb_generate_id(conn);
 
-    /* Enable logging to handle the case when the user did not specify --shmlog-size */
-    init_logging();
+    xcb_create_pixmap(conn, screen->root_depth, pixmap, screen->root, width, height);
 
-    /* Try to enable core dumps by default when running a debug build */
-    if (is_debug_build()) {
-        enable_coredumps();
-    }
+    uint32_t list[]{XCB_GX_COPY, (uint32_t)~0, XCB_FILL_STYLE_SOLID, XCB_SUBWINDOW_MODE_INCLUDE_INFERIORS};
+    xcb_create_gc(conn, gc, screen->root,
+            XCB_GC_FUNCTION | XCB_GC_PLANE_MASK | XCB_GC_FILL_STYLE | XCB_GC_SUBWINDOW_MODE,
+            list);
 
-    LOG("i3 %s starting\n", i3_version);
+    xcb_copy_area(conn, screen->root, pixmap, gc, 0, 0, 0, 0, width, height);
+    uint32_t value_list[]{pixmap};
+    xcb_change_window_attributes(conn, screen->root, XCB_CW_BACK_PIXMAP, value_list);
+    xcb_free_gc(conn, gc);
+    xcb_free_pixmap(conn, pixmap);
+    xcb_flush(conn);
+}
 
-    conn = xcb_connect(nullptr, &conn_screen);
-    if (xcb_connection_has_error(conn))
-        errx(EXIT_FAILURE, "Cannot open display");
-
-    sndisplay = sn_xcb_display_new(conn, nullptr, nullptr);
-
-    /* Initialize the libev event loop. This needs to be done before loading
-     * the config file because the parser will install an ev_child watcher
-     * for the nagbar when config errors are found. */
-    main_loop = EV_DEFAULT;
-    if (main_loop == nullptr)
-        die("Could not initialize libev. Bad LIBEV_FLAGS?\n");
-
-    root_screen = xcb_aux_get_screen(conn, conn_screen);
-    root = root_screen->root;
-
-    /* Prefetch X11 extensions that we are interested in. */
-    xcb_prefetch_extension_data(conn, &xcb_xkb_id);
-    xcb_prefetch_extension_data(conn, &xcb_shape_id);
-    /* BIG-REQUESTS is used by libxcb internally. */
-    xcb_prefetch_extension_data(conn, &xcb_big_requests_id);
-    xcb_prefetch_extension_data(conn, &xcb_randr_id);
-
-    /* Place requests for the atoms we need as soon as possible */
-#define xmacro(atom) \
-    xcb_intern_atom_cookie_t atom##_cookie = xcb_intern_atom(conn, 0, strlen(#atom), #atom);
-    I3_NET_SUPPORTED_ATOMS_XMACRO
-    I3_REST_ATOMS_XMACRO
-#undef xmacro
-
-    root_depth = root_screen->root_depth;
-    colormap = root_screen->default_colormap;
-    visual_type = xcb_aux_find_visual_by_attrs(root_screen, -1, 32);
+static xcb_visualtype_t* get_visualtype_for_root() {
+    auto visual_type = xcb_aux_find_visual_by_attrs(global.root_screen, -1, 32);
     if (visual_type != nullptr) {
-        root_depth = xcb_aux_get_depth_of_visual(root_screen, visual_type->visual_id);
-        colormap = xcb_generate_id(conn);
+        root_depth = xcb_aux_get_depth_of_visual(global.root_screen, visual_type->visual_id);
+        colormap = global.a->generate_id();
 
-        xcb_void_cookie_t cm_cookie = xcb_create_colormap_checked(conn,
-                                                                  XCB_COLORMAP_ALLOC_NONE,
-                                                                  colormap,
-                                                                  root,
-                                                                  visual_type->visual_id);
+        try {
+            xpp::x::create_colormap_checked(*global.a,
+                    XCB_COLORMAP_ALLOC_NONE,
+                    colormap,
+                    root,
+                    visual_type->visual_id);
 
-        xcb_generic_error_t *error = xcb_request_check(conn, cm_cookie);
-        if (error != nullptr) {
-            ELOG("Could not create colormap. Error code: %d\n", error->error_code);
+        } catch (std::exception &e) {
+            ELOG(fmt::sprintf("Could not create colormap. Error: %s\n",  e.what()));
             exit(EXIT_FAILURE);
         }
     } else {
-        visual_type = get_visualtype(root_screen);
+        visual_type = get_visualtype(global.root_screen);
     }
 
-    xcb_prefetch_maximum_request_length(conn);
+    return visual_type;
+}
 
-    init_dpi();
-
-    DLOG("root_depth = %d, visual_id = 0x%08x.\n", root_depth, visual_type->visual_id);
-    DLOG("root_screen->height_in_pixels = %d, root_screen->height_in_millimeters = %d\n",
-         root_screen->height_in_pixels, root_screen->height_in_millimeters);
-    DLOG("One logical pixel corresponds to %d physical pixels on this display.\n", logical_px(1));
-
-    xcb_get_geometry_cookie_t gcookie = xcb_get_geometry(conn, root);
-    xcb_query_pointer_cookie_t pointercookie = xcb_query_pointer(conn, root);
-
-    /* Setup NetWM atoms */
-#define xmacro(name)                                                                       \
-    do {                                                                                   \
-        xcb_intern_atom_reply_t *reply = xcb_intern_atom_reply(conn, name##_cookie, NULL); \
-        if (!reply) {                                                                      \
-            ELOG("Could not get atom " #name "\n");                                        \
-            exit(-1);                                                                      \
-        }                                                                                  \
-        A_##name = reply->atom;                                                            \
-        free(reply);                                                                       \
-    } while (0);
-    I3_NET_SUPPORTED_ATOMS_XMACRO
-    I3_REST_ATOMS_XMACRO
-#undef xmacro
-
-    load_configuration(override_configpath, C_LOAD);
-
-    if (config.ipc_socket_path == nullptr) {
-        /* Fall back to a file name in /tmp/ based on the PID */
-        if ((config.ipc_socket_path = getenv("I3SOCK")) == nullptr)
-            config.ipc_socket_path = get_process_filename("ipc-socket");
-        else
-            config.ipc_socket_path = sstrdup(config.ipc_socket_path);
-    }
-
-    xcb_void_cookie_t cookie;
-    uint32_t valueList[]{ROOT_EVENT_MASK};
-    cookie = xcb_change_window_attributes_checked(conn, root, XCB_CW_EVENT_MASK, valueList);
-    xcb_generic_error_t *error = xcb_request_check(conn, cookie);
-    if (error != nullptr) {
-        ELOG("Another window manager seems to be running (X error %d)\n", error->error_code);
-#ifdef I3_ASAN_ENABLED
-        __lsan_do_leak_check();
-#endif
-        return 1;
-    }
-
-    xcb_get_geometry_reply_t *greply = xcb_get_geometry_reply(conn, gcookie, nullptr);
-    if (greply == nullptr) {
-        ELOG("Could not get geometry of the root window, exiting\n");
-        return 1;
-    }
-    DLOG("root geometry reply: (%d, %d) %d x %d\n", greply->x, greply->y, greply->width, greply->height);
-
-    xcursor_load_cursors();
-
-    /* Set a cursor for the root window (otherwise the root window will show no
-       cursor until the first client is launched). */
-    xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
-
-    const xcb_query_extension_reply_t *extreply;
-    extreply = xcb_get_extension_data(conn, &xcb_xkb_id);
-    xkb_supported = extreply->present;
-    if (!extreply->present) {
+static void init_xkb() {
+    auto xkb_ext = global.a->extension<xpp::xkb::extension>();
+    xkb_supported = xkb_ext->present;
+    if (!xkb_supported) {
         DLOG("xkb is not present on this server\n");
     } else {
         DLOG("initializing xcb-xkb\n");
-        xcb_xkb_use_extension(conn, XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
-        xcb_xkb_select_events(conn,
+        global.a->xkb().use_extension(XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
+        global.a->xkb().select_events(
                               XCB_XKB_ID_USE_CORE_KBD,
                               XCB_XKB_EVENT_TYPE_STATE_NOTIFY | XCB_XKB_EVENT_TYPE_MAP_NOTIFY | XCB_XKB_EVENT_TYPE_NEW_KEYBOARD_NOTIFY,
                               0,
@@ -711,110 +447,45 @@ int main(int argc, char *argv[]) {
         const uint32_t mask = XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE |
                               XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED |
                               XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT;
-        xcb_xkb_per_client_flags_reply_t *pcf_reply;
         /* The last three parameters are unset because they are only relevant
          * when using a feature called “automatic reset of boolean controls”:
          * https://www.x.org/releases/X11R7.7/doc/kbproto/xkbproto.html#Automatic_Reset_of_Boolean_Controls
          * */
-        pcf_reply = xcb_xkb_per_client_flags_reply(
-            conn,
-            xcb_xkb_per_client_flags(
-                conn,
-                XCB_XKB_ID_USE_CORE_KBD,
-                mask,
-                mask,
-                0 /* uint32_t ctrlsToChange */,
-                0 /* uint32_t autoCtrls */,
-                0 /* uint32_t autoCtrlsValues */),
-            nullptr);
+        auto pcf_reply = xpp::xkb::per_client_flags(*global.a, XCB_XKB_ID_USE_CORE_KBD, mask, mask, 0, 0, 0);
 
-#define PCF_REPLY_ERROR(_value)                                    \
-    do {                                                           \
-        if (pcf_reply == NULL || !(pcf_reply->value & (_value))) { \
-            ELOG("Could not set " #_value "\n");                   \
-        }                                                          \
-    } while (0)
+        if (pcf_reply.get() == nullptr || !(pcf_reply->value & (XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE))) {
+            ELOG("Could not set " "XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE" "\n");
+        }
+        if (pcf_reply.get() == nullptr || !(pcf_reply->value & (XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED))) {
+            ELOG("Could not set " "XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED" "\n");
+        }
+        if (pcf_reply.get() == nullptr || !(pcf_reply->value & (XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT))) {
+            ELOG("Could not set " "XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT" "\n");
+        }
 
-        PCF_REPLY_ERROR(XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE);
-        PCF_REPLY_ERROR(XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED);
-        PCF_REPLY_ERROR(XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT);
-
-        free(pcf_reply);
-        xkb_base = extreply->first_event;
+        xkb_base = xkb_ext->first_event;
     }
+}
 
-    /* Check for Shape extension. We want to handle input shapes which is
-     * introduced in 1.1. */
-    extreply = xcb_get_extension_data(conn, &xcb_shape_id);
-    if (extreply->present) {
-        shape_base = extreply->first_event;
-        xcb_shape_query_version_cookie_t cookie = xcb_shape_query_version(conn);
-        xcb_shape_query_version_reply_t *version =
-            xcb_shape_query_version_reply(conn, cookie, nullptr);
+static void init_shape() {
+    auto shape_ext = global.a->extension<xpp::shape::extension>();
+    if (shape_ext->present) {
+        shape_base = shape_ext->first_event;
+        auto version = global.a->shape().query_version();
         shape_supported = version && version->minor_version >= 1;
-        free(version);
     } else {
         shape_supported = false;
     }
     if (!shape_supported) {
         DLOG("shape 1.1 is not present on this server\n");
     }
+}
 
-    restore_connect();
-
-    property_handlers_init();
-
-    ewmh_setup_hints();
-
-    keysyms = xcb_key_symbols_alloc(conn);
-
-    xcb_numlock_mask = aio_get_mod_mask_for(XCB_NUM_LOCK, keysyms);
-
-    if (!load_keymap())
-        die("Could not load keymap\n");
-
-    translate_keysyms();
-    grab_all_keys(conn);
-
-    bool needs_tree_init = true;
-    if (layout_path != nullptr) {
-        LOG("Trying to restore the layout from \"%s\".\n", layout_path);
-        needs_tree_init = !tree_restore(layout_path, greply);
-        if (delete_layout_path) {
-            unlink(layout_path);
-            const char *dir = dirname(layout_path);
-            /* possibly fails with ENOTEMPTY if there are files (or
-             * sockets) left. */
-            rmdir(dir);
-        }
-    }
-    if (needs_tree_init)
-        tree_init(greply);
-
-    free(greply);
-
-    /* Setup fake outputs for testing */
-    if (fake_outputs == nullptr && config.fake_outputs != nullptr)
-        fake_outputs = config.fake_outputs;
-
-    if (fake_outputs != nullptr) {
-        fake_outputs_init(fake_outputs);
-        FREE(fake_outputs);
-        config.fake_outputs = nullptr;
-    } else {
-        DLOG("Checking for XRandR...\n");
-        randr_init(&randr_base, disable_randr15 || config.disable_randr15);
-    }
-
-    /* We need to force disabling outputs which have been loaded from the
-     * layout file but are no longer active. This can happen if the output has
-     * been disabled in the short time between writing the restart layout file
-     * and restarting i3. See #2326. */
-    if (layout_path != nullptr && randr_base > -1) {
-        Con *con;
-        TAILQ_FOREACH (con, &(croot->nodes_head), nodes) {
+static void force_disable_output(const program_arguments &args) {
+    if (!args.layout_path.empty() && randr_base > -1) {
+        for (auto &con : croot->nodes_head) {
             for (Output *output : outputs) {
-                if (output->active || strcmp(con->name, output_primary_name(output)) != 0)
+                if (output->active || strcmp(con->name.c_str(), output->output_primary_name().c_str()) != 0)
                     continue;
 
                 /* This will correctly correlate the output with its content
@@ -830,82 +501,67 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-    FREE(layout_path);
+}
 
-    scratchpad_fix_resolution();
+static Output *get_focused_output() {
+    Output *output;
 
-    xcb_query_pointer_reply_t *pointerreply;
-    Output *output = nullptr;
-    if (!(pointerreply = xcb_query_pointer_reply(conn, pointercookie, nullptr))) {
+    auto pointerreply = xpp::x::query_pointer(*global.a, root);
+    if (pointerreply.get() == nullptr) {
         ELOG("Could not query pointer position, using first screen\n");
     } else {
-        DLOG("Pointer at %d, %d\n", pointerreply->root_x, pointerreply->root_y);
+        DLOG(fmt::sprintf("Pointer at %d, %d\n",  pointerreply->root_x, pointerreply->root_y));
         output = get_output_containing(pointerreply->root_x, pointerreply->root_y);
         if (!output) {
-            ELOG("ERROR: No screen at (%d, %d), starting on the first screen\n",
-                 pointerreply->root_x, pointerreply->root_y);
+            ELOG(fmt::sprintf("ERROR: No screen at (%d, %d), starting on the first screen\n",
+                 pointerreply->root_x, pointerreply->root_y));
         }
     }
     if (!output) {
         output = get_first_output();
     }
-    con_activate(con_descend_focused(output_get_content(output->con)));
-    free(pointerreply);
+    return output;
+}
 
-    tree_render();
+/* Create the UNIX domain socket for IPC */
+static void init_ipc() {
+    int ipc_socket;
 
-    /* Create the UNIX domain socket for IPC */
-    int ipc_socket = create_socket(config.ipc_socket_path, &current_socketpath);
+    std::tie(current_socketpath, ipc_socket) = create_socket(config.ipc_socket_path);
     if (ipc_socket == -1) {
         ELOG("Could not create the IPC socket, IPC disabled\n");
     } else {
-        ev_io ipc_io{};
-        ev_io_init(&ipc_io, ipc_new_client, ipc_socket, EV_READ);
-        ev_io_start(main_loop, &ipc_io);
+        auto *ipc_io = new ev_io();
+        ev_io_init(ipc_io, ipc_new_client, ipc_socket, EV_READ);
+        ev_io_start(main_loop, ipc_io);
     }
+}
 
-    {
-        const int restart_fd = parse_restart_fd();
-        if (restart_fd != -1) {
-            DLOG("serving restart fd %d", restart_fd);
-            ipc_client *client = ipc_new_client_on_fd(main_loop, restart_fd);
-            ipc_confirm_restart(client);
-            unsetenv("_I3_RESTART_FD");
-        }
+static void confirm_restart() {
+    const int restart_fd = parse_restart_fd();
+    if (restart_fd != -1) {
+        DLOG(fmt::sprintf("serving restart fd %d",  restart_fd));
+        ipc_client *client = ipc_new_client_on_fd(main_loop, restart_fd);
+        ipc_confirm_restart(client);
+        unsetenv("_I3_RESTART_FD");
     }
+}
 
-    /* Set up i3 specific atoms like I3_SOCKET_PATH and I3_CONFIG_PATH */
-    x_set_i3_atoms();
-    ewmh_update_workarea();
-
-    /* Set the ewmh desktop properties. */
-    ewmh_update_desktop_properties();
-
-    ev_io xcb_watcher{};
-    xcb_prepare = new ev_prepare;
-
-    ev_io_init(&xcb_watcher, xcb_got_event, xcb_get_file_descriptor(conn), EV_READ);
-    ev_io_start(main_loop, &xcb_watcher);
-
-    ev_prepare_init(xcb_prepare, xcb_prepare_cb);
-    ev_prepare_start(main_loop, xcb_prepare);
-
-    xcb_flush(conn);
-
-    /* What follows is a fugly consequence of X11 protocol race conditions like
-     * the following: In an i3 in-place restart, i3 will reparent all windows
-     * to the root window, then exec() itself. In the new process, it calls
-     * manage_existing_windows. However, in case any application sent a
-     * generated UnmapNotify message to the WM (as GIMP does), this message
-     * will be handled by i3 *after* managing the window, thus i3 thinks the
-     * window just closed itself. In reality, the message was sent in the time
-     * period where i3 wasn’t running yet.
-     *
-     * To prevent this, we grab the server (disables processing of any other
-     * connections), then discard all pending events (since we didn’t do
-     * anything, there cannot be any meaningful responses), then ungrab the
-     * server. */
-    xcb_grab_server(conn);
+/* What follows is a fugly consequence of X11 protocol race conditions like
+ * the following: In an i3 in-place restart, i3 will reparent all windows
+ * to the root window, then exec() itself. In the new process, it calls
+ * manage_existing_windows. However, in case any application sent a
+ * generated UnmapNotify message to the WM (as GIMP does), this message
+ * will be handled by i3 *after* managing the window, thus i3 thinks the
+ * window just closed itself. In reality, the message was sent in the time
+ * period where i3 wasn’t running yet.
+ *
+ * To prevent this, we grab the server (disables processing of any other
+ * connections), then discard all pending events (since we didn’t do
+ * anything, there cannot be any meaningful responses), then ungrab the
+ * server. */
+static void ignore_restart_events(xcb_connection_t *conn) {
+    global.a->grab_server();
     {
         xcb_aux_sync(conn);
         xcb_generic_event_t *event;
@@ -928,26 +584,216 @@ int main(int argc, char *argv[]) {
         }
         manage_existing_windows(root);
     }
-    xcb_ungrab_server(conn);
+    global.a->ungrab_server();
+}
 
-    if (autostart) {
-        /* When the root's window background is set to NONE, that might mean
-         * that old content stays visible when a window is closed. That has
-         * unpleasant effect of "my terminal (does not seem to) close!".
-         *
-         * There does not seem to be an easy way to query for this problem, so
-         * we test for it: Open & close a window and check if the background is
-         * redrawn or the window contents stay visible.
-         */
-        LOG("This is not an in-place restart, checking if a wallpaper is set.\n");
+static void fix_empty_background(xcb_connection_t *conn) {
+    /* When the root's window background is set to NONE, that might mean
+     * that old content stays visible when a window is closed. That has
+     * unpleasant effect of "my terminal (does not seem to) close!".
+     *
+     * There does not seem to be an easy way to query for this problem, so
+     * we test for it: Open & close a window and check if the background is
+     * redrawn or the window contents stay visible.
+     */
+    LOG("This is not an in-place restart, checking if a wallpaper is set.\n");
 
-        xcb_screen_t *root = xcb_aux_get_screen(conn, conn_screen);
-        if (is_background_set(conn, root)) {
-            LOG("A wallpaper is set, so no screenshot is necessary.\n");
-        } else {
-            LOG("No wallpaper set, copying root window contents to a pixmap\n");
-            set_screenshot_as_wallpaper(conn, root);
-        }
+    xcb_screen_t *s = xcb_aux_get_screen(conn, global.conn_screen);
+    if (is_background_set(conn, s)) {
+        LOG("A wallpaper is set, so no screenshot is necessary.\n");
+    } else {
+        LOG("No wallpaper set, copying root window contents to a pixmap\n");
+        set_screenshot_as_wallpaper(conn, s);
+    }
+}
+
+/* Start i3bar processes for all configured bars */
+static void start_i3bar() {
+    for (auto &barconfig : barconfigs) {
+        std::string command = fmt::format("{} {} --bar_id={} --socket=\"{}\"",
+                  barconfig->i3bar_command ? barconfig->i3bar_command : "exec i3bar",
+                  barconfig->verbose ? "-V" : "",
+                  barconfig->id, current_socketpath);
+        LOG(fmt::sprintf("Starting bar process: %s\n",  command));
+        start_application(command, true);
+    }
+}
+
+int main(int argc, char *argv[]) {
+    /* Keep a symbol pointing to the I3_VERSION string constant so that we have
+     * it in gdb backtraces. */
+    static const char *_i3_version __attribute__((used)) = I3_VERSION;
+
+
+    setlocale(LC_ALL, "");
+
+    /* Get the RLIMIT_CORE limit at startup time to restore this before
+     * starting processes. */
+    getrlimit(RLIMIT_CORE, &global.original_rlimit_core);
+
+    /* Disable output buffering to make redirects in .xsession actually useful for debugging */
+    if (!isatty(fileno(stdout)))
+        setbuf(stdout, nullptr);
+
+    srand(time(nullptr));
+
+    auto args = parse_args(argc, argv);
+
+    if (args.only_check_config) {
+        exit(load_configuration(&args.override_configpath, config_load_t::C_VALIDATE) ? EXIT_SUCCESS : EXIT_FAILURE);
+    }
+
+    /* If the user passes more arguments, we act like old i3-msg would: Just send
+     * the arguments as an IPC message to i3. This allows for nice semantic
+     * commands such as 'i3 border none'. */
+    if (optind < argc) {
+        handle_extra_args(argc, argv);
+        return 0;
+    }
+
+    /* Try to enable core dumps by default when running a debug build */
+    if (is_debug_build()) {
+        enable_coredumps();
+    }
+
+    LOG(fmt::sprintf("i3 %s starting\n",  i3_version));
+
+    /* Prefetch X11 extensions that we are interested in. */
+    global.a = new x_connection();
+    if (global.a->connection_has_error())
+        errx(EXIT_FAILURE, "Cannot open display");
+
+    global.conn_screen = global.a->default_screen();
+    auto conn = *global.a;
+    global.conn = conn;
+
+    sndisplay = sn_xcb_display_new(conn, nullptr, nullptr);
+
+    /* Initialize the libev event loop. This needs to be done before loading
+     * the config file because the parser will install an ev_child watcher
+     * for the nagbar when config errors are found. */
+    main_loop = EV_DEFAULT;
+    if (main_loop == nullptr)
+        errx(EXIT_FAILURE, "Could not initialize libev. Bad LIBEV_FLAGS?\n");;
+
+    global.root_screen = global.a->screen_of_display(global.a->default_screen());
+    root = global.a->root();
+
+    /* Place requests for the atoms we need as soon as possible */
+    setup_atoms();
+
+    root_depth = global.root_screen->root_depth;
+    colormap = global.root_screen->default_colormap;
+    visual_type = get_visualtype_for_root();
+
+    global.a->prefetch_maximum_request_length();
+
+    init_dpi(*global.a, global.root_screen);
+
+    DLOG(fmt::sprintf("root_depth = %d, visual_id = 0x%08x.\n",  root_depth, visual_type->visual_id));
+    DLOG(fmt::sprintf("root_screen->height_in_pixels = %d, root_screen->height_in_millimeters = %d\n",
+         global.root_screen->height_in_pixels, global.root_screen->height_in_millimeters));
+    DLOG(fmt::sprintf("One logical pixel corresponds to %ld physical pixels on this display.\n",  logical_px(global.root_screen, 1)));
+
+    load_configuration(&args.override_configpath, config_load_t::C_LOAD);
+
+    if (config.ipc_socket_path == nullptr) {
+        /* Fall back to a file name in /tmp/ based on the PID */
+        if ((config.ipc_socket_path = getenv("I3SOCK")) == nullptr)
+            config.ipc_socket_path = get_process_filename("ipc-socket");
+        else
+            config.ipc_socket_path = sstrdup(config.ipc_socket_path);
+    }
+
+    try {
+        uint32_t valueList[]{ROOT_EVENT_MASK};
+        global.a->change_window_attributes_checked(root, XCB_CW_EVENT_MASK, valueList);
+    } catch (std::exception &e) {
+        ELOG(fmt::sprintf("Another window manager seems to be running (X error %s)\n",  e.what()));
+        exit(EXIT_FAILURE);
+    }
+
+    auto greply = global.a->get_geometry(root).get();
+    if (greply == nullptr) {
+        ELOG("Could not get geometry of the root window, exiting\n");
+        return 1;
+    }
+    DLOG(fmt::sprintf("root geometry reply: (%d, %d) %d x %d\n",  greply->x, greply->y, greply->width, greply->height));
+
+    xcursor_load_cursors();
+
+    /* Set a cursor for the root window (otherwise the root window will show no
+       cursor until the first client is launched). */
+    xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
+
+    init_xkb();
+
+    /* Check for Shape extension. We want to handle input shapes which is
+     * introduced in 1.1. */
+    init_shape();
+
+    restore_connect();
+
+    property_handlers_init();
+
+    ewmh_setup_hints();
+
+    keysyms = xcb_key_symbols_alloc(*global.a);
+
+    xcb_numlock_mask = aio_get_mod_mask_for(XCB_NUM_LOCK, keysyms);
+
+    if (!load_keymap())
+        errx(EXIT_FAILURE, "Could not load keymap\n");;
+
+    translate_keysyms();
+    grab_all_keys(*global.a);
+
+    do_tree_init(args, greply.get());
+
+    DLOG("Checking for XRandR...\n");
+    randr_init(&randr_base);
+
+    /* We need to force disabling outputs which have been loaded from the
+     * layout file but are no longer active. This can happen if the output has
+     * been disabled in the short time between writing the restart layout file
+     * and restarting i3. See #2326. */
+    force_disable_output(args);
+
+    scratchpad_fix_resolution();
+
+    Output *output = get_focused_output();
+    con_descend_focused(output->con->output_get_content())->con_activate();
+
+    tree_render();
+
+    /* Create the UNIX domain socket for IPC */
+    init_ipc();
+
+    confirm_restart();
+
+    /* Set up i3 specific atoms like I3_SOCKET_PATH and I3_CONFIG_PATH */
+    x_set_i3_atoms();
+    ewmh_update_workarea();
+
+    /* Set the ewmh desktop properties. */
+    ewmh_update_desktop_properties();
+
+    auto *xcb_watcher = new ev_io();
+    xcb_prepare = new ev_prepare;
+
+    ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(*global.a), EV_READ);
+    ev_io_start(main_loop, xcb_watcher);
+
+    ev_prepare_init(xcb_prepare, xcb_prepare_cb);
+    ev_prepare_start(main_loop, xcb_prepare);
+
+    global.a->flush();
+
+    ignore_restart_events(*global.a);
+
+    if (args.autostart) {
+        fix_empty_background(*global.a);
+
     }
 
 #if defined(__OpenBSD__)
@@ -955,22 +801,8 @@ int main(int argc, char *argv[]) {
         err(EXIT_FAILURE, "pledge");
 #endif
 
-    if (!disable_signalhandler)
+    if (!args.disable_signalhandler) {
         setup_signal_handler();
-    else {
-        struct sigaction action{};
-
-        action.sa_sigaction = handle_core_signal;
-        action.sa_flags = SA_NODEFER | SA_RESETHAND | SA_SIGINFO;
-        sigemptyset(&action.sa_mask);
-
-        /* Catch all signals with default action "Core", see signal(7) */
-        if (sigaction(SIGQUIT, &action, nullptr) == -1 ||
-            sigaction(SIGILL, &action, nullptr) == -1 ||
-            sigaction(SIGABRT, &action, nullptr) == -1 ||
-            sigaction(SIGFPE, &action, nullptr) == -1 ||
-            sigaction(SIGSEGV, &action, nullptr) == -1)
-            ELOG("Could not setup signal handler.\n");
     }
 
     setup_term_handlers();
@@ -979,42 +811,15 @@ int main(int argc, char *argv[]) {
     signal(SIGPIPE, SIG_IGN);
 
     /* Autostarting exec-lines */
-    if (autostart) {
-        while (!TAILQ_EMPTY(&autostarts)) {
-            struct Autostart *exec = TAILQ_FIRST(&autostarts);
-
-            LOG("auto-starting %s\n", exec->command);
-            start_application(exec->command, exec->no_startup_id);
-
-            FREE(exec->command);
-            TAILQ_REMOVE(&autostarts, exec, autostarts);
-            FREE(exec);
-        }
+    if (args.autostart) {
+        autostart();
     }
 
     /* Autostarting exec_always-lines */
-    while (!TAILQ_EMPTY(&autostarts_always)) {
-        struct Autostart *exec_always = TAILQ_FIRST(&autostarts_always);
-
-        LOG("auto-starting (always!) %s\n", exec_always->command);
-        start_application(exec_always->command, exec_always->no_startup_id);
-
-        FREE(exec_always->command);
-        TAILQ_REMOVE(&autostarts_always, exec_always, autostarts_always);
-        FREE(exec_always);
-    }
+    autostart_always();
 
     /* Start i3bar processes for all configured bars */
-    for (auto barconfig : *barconfigs) {
-        char *command = nullptr;
-        sasprintf(&command, "%s %s --bar_id=%s --socket=\"%s\"",
-                  barconfig->i3bar_command ? barconfig->i3bar_command : "exec i3bar",
-                  barconfig->verbose ? "-V" : "",
-                  barconfig->id, current_socketpath);
-        LOG("Starting bar process: %s\n", command);
-        start_application(command, true);
-        free(command);
-    }
+    start_i3bar();
 
     /* Make sure to destroy the event loop to invoke the cleanup callbacks
      * when calling exit() */

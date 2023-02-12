@@ -11,15 +11,14 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <ev.h>
 
 #include <xcb/xcb.h>
 
 #include "libi3.h"
 
-#include "data.h"
 #include "util.h"
 #include "tree.h"
-#include "log.h"
 #include "i3.h"
 #include "drag.h"
 #include "configuration.h"
@@ -27,6 +26,7 @@
 #include "con.h"
 #include "xcursor.h"
 #include "main.h"
+#include "global.h"
 
 /* Custom data structure used to track dragging-related events. */
 struct drag_x11_cb {
@@ -69,11 +69,11 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
     xcb_motion_notify_event_t *last_motion_notify = nullptr;
     xcb_generic_event_t *event;
 
-    while ((event = xcb_poll_for_event(conn)) != nullptr) {
+    while ((event = xcb_poll_for_event(global.conn)) != nullptr) {
         if (event->response_type == 0) {
             auto *error = (xcb_generic_error_t *)event;
-            DLOG("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
-                 error->sequence, error->error_code);
+            DLOG(fmt::sprintf("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
+                 error->sequence, error->error_code));
             free(event);
             continue;
         }
@@ -97,9 +97,9 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
                 Con *con = con_by_window_id(unmap_event->window);
 
                 if (con != nullptr) {
-                    DLOG("UnmapNotify for window 0x%08x (container %p)\n", unmap_event->window, con);
+                    DLOG(fmt::sprintf("UnmapNotify for window 0x%08x (container %p)\n",  unmap_event->window, (void*)con));
 
-                    if (con_get_workspace(con) == con_get_workspace(focused)) {
+                    if (con->con_get_workspace() == focused->con_get_workspace()) {
                         DLOG("UnmapNotify for a managed window on the current workspace, aborting\n");
                         dragloop->result = DRAG_ABORT;
                     }
@@ -145,7 +145,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
                            dragloop->event->root_x, dragloop->event->root_y)) {
         if (dragloop->xcursor != XCB_NONE) {
             xcb_change_active_pointer_grab(
-                conn,
+                global.conn,
                 dragloop->xcursor,
                 XCB_CURRENT_TIME,
                 XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION);
@@ -156,7 +156,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
     /* Ensure that we are either dragging the resize handle (con is NULL) or that the
      * container still exists. The latter might not be true, e.g., if the window closed
      * for any reason while the user was dragging it. */
-    if (dragloop->threshold_exceeded && (!dragloop->con || con_exists(dragloop->con))) {
+    if (dragloop->threshold_exceeded && (!dragloop->con || dragloop->con->exists())) {
         dragloop->callback(
             dragloop->con,
             &(dragloop->old_rect),
@@ -167,7 +167,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
     }
     FREE(last_motion_notify);
 
-    xcb_flush(conn);
+    xcb_flush(global.conn);
     return dragloop->result != DRAGGING;
 }
 
@@ -201,7 +201,7 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
     xcb_grab_pointer_reply_t *reply;
     xcb_generic_error_t *error;
 
-    cookie = xcb_grab_pointer(conn,
+    cookie = xcb_grab_pointer(global.conn,
                               false,                                                         /* get all pointer events specified by the following mask */
                               root,                                                          /* grab the root window */
                               XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION, /* which events to let through */
@@ -211,8 +211,8 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
                               use_threshold ? XCB_NONE : xcursor,                            /* possibly display a special cursor */
                               XCB_CURRENT_TIME);
 
-    if ((reply = xcb_grab_pointer_reply(conn, cookie, &error)) == nullptr) {
-        ELOG("Could not grab pointer (error_code = %d)\n", error->error_code);
+    if ((reply = xcb_grab_pointer_reply(global.conn, cookie, &error)) == nullptr) {
+        ELOG(fmt::sprintf("Could not grab pointer (error_code = %d)\n",  error->error_code));
         free(error);
         return DRAG_ABORT;
     }
@@ -223,7 +223,7 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
     xcb_grab_keyboard_cookie_t keyb_cookie;
     xcb_grab_keyboard_reply_t *keyb_reply;
 
-    keyb_cookie = xcb_grab_keyboard(conn,
+    keyb_cookie = xcb_grab_keyboard(global.conn,
                                     false, /* get all keyboard events */
                                     root,  /* grab the root window */
                                     XCB_CURRENT_TIME,
@@ -231,10 +231,10 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
                                     XCB_GRAB_MODE_ASYNC  /* keyboard mode */
     );
 
-    if ((keyb_reply = xcb_grab_keyboard_reply(conn, keyb_cookie, &error)) == nullptr) {
-        ELOG("Could not grab keyboard (error_code = %d)\n", error->error_code);
+    if ((keyb_reply = xcb_grab_keyboard_reply(global.conn, keyb_cookie, &error)) == nullptr) {
+        ELOG(fmt::sprintf("Could not grab keyboard (error_code = %d)\n",  error->error_code));
         free(error);
-        xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
+        xcb_ungrab_pointer(global.conn, XCB_CURRENT_TIME);
         return DRAG_ABORT;
     }
 
@@ -263,9 +263,9 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
     ev_prepare_stop(main_loop, prepare);
     main_set_x11_cb(true);
 
-    xcb_ungrab_keyboard(conn, XCB_CURRENT_TIME);
-    xcb_ungrab_pointer(conn, XCB_CURRENT_TIME);
-    xcb_flush(conn);
+    xcb_ungrab_keyboard(global.conn, XCB_CURRENT_TIME);
+    xcb_ungrab_pointer(global.conn, XCB_CURRENT_TIME);
+    xcb_flush(global.conn);
 
     return loop.result;
 }

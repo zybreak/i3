@@ -13,16 +13,17 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <algorithm>
+#include <ranges>
 
 #include "libi3.h"
 
 #include <xcb/xcb.h>
+#include <vector>
 
-#include "data.h"
 #include "util.h"
-#include "ipc.h"
+#include "i3_ipc/include/i3-ipc.h"
 #include "tree.h"
-#include "log.h"
 #include "xcb.h"
 #include "workspace.h"
 #include "i3.h"
@@ -35,8 +36,21 @@
 #include "output.h"
 #include "ewmh.h"
 #include "startup.h"
+#include "global.h"
 
-static void con_on_remove_child(Con *con);
+/*
+ * Returns the content container below the given output container.
+ *
+ */
+Con* Con::output_get_content() {
+    for (auto &child : this->nodes_head) {
+        if (child->type == CT_CON) {
+            return child;
+        }
+    }
+
+    return nullptr;
+}
 
 /*
  * force parent split containers to be redrawn
@@ -46,8 +60,9 @@ void con_force_split_parents_redraw(Con *con) {
     Con *parent = con;
 
     while (parent != nullptr && parent->type != CT_WORKSPACE && parent->type != CT_DOCKAREA) {
-        if (!con_is_leaf(parent)) {
-            FREE(parent->deco_render_params);
+        if (!parent->con_is_leaf()) {
+            delete parent->deco_render_params;
+            parent->deco_render_params = nullptr;
         }
 
         parent = parent->parent;
@@ -59,91 +74,112 @@ void con_force_split_parents_redraw(Con *con) {
  * This function only initializes the data structures.
  *
  */
-Con *con_new_skeleton(Con *parent, i3Window *window) {
-    Con *new_con = new Con();
-    new_con->on_remove_child = con_on_remove_child;
-    TAILQ_INSERT_TAIL(&all_cons, new_con, all_cons);
-    new_con->type = CT_CON;
-    new_con->window = window;
-    new_con->border_style = config.default_border;
-    new_con->current_border_width = -1;
-    new_con->window_icon_padding = -1;
+Con::Con(Con *parent, i3Window *window, bool skeleton) {
+    this->fullscreen_mode = CF_NONE;
+    this->layout = L_DEFAULT;
+    this->last_split_layout = L_DEFAULT;
+    this->workspace_layout = L_DEFAULT;
+    this->floating = FLOATING_AUTO_OFF;
+    this->scratchpad_state = SCRATCHPAD_NONE;
+
+    this->type = CT_CON;
+    this->window = window;
+    this->border_style = config.default_border;
+    this->current_border_width = -1;
+    this->window_icon_padding = -1;
     if (window) {
-        new_con->depth = window->depth;
+        this->depth = window->depth;
     } else {
-        new_con->depth = root_depth;
+        this->depth = root_depth;
     }
+
+    ::all_cons.push_back(this);
+
     DLOG("opening window\n");
 
-    TAILQ_INIT(&(new_con->floating_head));
-    TAILQ_INIT(&(new_con->nodes_head));
-    TAILQ_INIT(&(new_con->focus_head));
-    TAILQ_INIT(&(new_con->swallow_head));
-
     if (parent != nullptr)
-        con_attach(new_con, parent, false);
+        this->con_attach(parent, false);
 
-    return new_con;
-}
-
-/* A wrapper for con_new_skeleton, to retain the old con_new behaviour
- *
- */
-Con *con_new(Con *parent, i3Window *window) {
-    Con *new_con = con_new_skeleton(parent, window);
-    x_con_init(new_con);
-    return new_con;
+    if (!skeleton) {
+        x_con_init(this);
+    }
 }
 
 /*
  * Frees the specified container.
  *
  */
-void con_free(Con *con) {
-    free(con->name);
-    FREE(con->deco_render_params);
-    TAILQ_REMOVE(&all_cons, con, all_cons);
-    while (!TAILQ_EMPTY(&(con->swallow_head))) {
-        Match *match = TAILQ_FIRST(&(con->swallow_head));
-        TAILQ_REMOVE(&(con->swallow_head), match, matches);
-        match_free(match);
-        free(match);
+Con::~Con() {
+
+    delete this->deco_render_params;
+    auto it = std::ranges::find(::all_cons, this);
+
+    if (it != ::all_cons.end()) {
+        ::all_cons.erase(it);
     }
-    DLOG("con %p freed\n", con);
-    free(con);
+
+    this->swallow.clear();
+
+    DLOG(fmt::sprintf("con %p freed\n",  (void*)this));
 }
 
-static void _con_attach(Con *con, Con *parent, Con *previous, bool ignore_focus) {
-    con->parent = parent;
-    Con *loop;
+/*
+ * Like strcasecmp but considers the case where either string is NULL.
+ *
+ */
+static int strcasecmp_nullable(const char *a, const char *b) {
+    if (a == b) {
+        return 0;
+    }
+    if (a == nullptr) {
+        return -1;
+    }
+    if (b == nullptr) {
+        return 1;
+    }
+    return strcasecmp(a, b);
+}
+
+/*
+ * Attaches the given container to the given parent. This happens when moving
+ * a container or when inserting a new container at a specific place in the
+ * tree.
+ *
+ * ignore_focus is to just insert the Con at the end (useful when creating a
+ * new split container *around* some containers, that is, detaching and
+ * attaching them in order without wanting to mess with the focus in between).
+ *
+ */
+void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
+    this->parent = parent;
     Con *current = previous;
-    struct nodes_head *nodes_head = &(parent->nodes_head);
-    struct focus_head *focus_head = &(parent->focus_head);
+    auto &nodes_head = parent->nodes_head;
+    auto &focus_head = parent->focus_head;
 
     /* Workspaces are handled differently: they need to be inserted at the
      * right position. */
-    if (con->type == CT_WORKSPACE) {
-        DLOG("it's a workspace. num = %d\n", con->num);
-        if (con->num == -1 || TAILQ_EMPTY(nodes_head)) {
-            TAILQ_INSERT_TAIL(nodes_head, con, nodes);
+    if (this->type == CT_WORKSPACE) {
+        DLOG(fmt::sprintf("it's a workspace. num = %d\n",  this->num));
+        if (this->num == -1 || nodes_head.empty()) {
+            nodes_head.push_back(this);
         } else {
-            current = TAILQ_FIRST(nodes_head);
-            if (con->num < current->num) {
+            current = con::first(nodes_head);
+            if (this->num < current->num) {
                 /* we need to insert the container at the beginning */
-                TAILQ_INSERT_HEAD(nodes_head, con, nodes);
+                nodes_head.push_front(this);
             } else {
-                while (current->num != -1 && con->num > current->num) {
-                    current = TAILQ_NEXT(current, nodes);
-                    if (current == TAILQ_END(nodes_head)) {
+                while (current && current->num != -1 && this->num > current->num) {
+                    current = con::next(current, nodes_head);
+                    if (current == con::last(nodes_head)) {
                         current = nullptr;
                         break;
                     }
                 }
                 /* we need to insert con after current, if current is not NULL */
                 if (current)
-                    TAILQ_INSERT_BEFORE(current, con, nodes);
+                    current->insert_before(this);
                 else
-                    TAILQ_INSERT_TAIL(nodes_head, con, nodes);
+                    nodes_head.push_back(this);
             }
         }
         goto add_to_focus_head;
@@ -155,10 +191,10 @@ static void _con_attach(Con *con, Con *parent, Con *previous, bool ignore_focus)
          * effect, bars without a custom bar id will be sorted according to
          * their declaration order in the config file. See #3491. */
         current = nullptr;
-        TAILQ_FOREACH (loop, nodes_head, nodes) {
-            int result = strcasecmp_nullable(con->window->class_class, loop->window->class_class);
+        for (auto &loop : nodes_head) {
+            int result = strcasecmp_nullable(this->window->class_class, loop->window->class_class);
             if (result == 0) {
-                result = strcasecmp_nullable(con->window->class_instance, loop->window->class_instance);
+                result = strcasecmp_nullable(this->window->class_instance, loop->window->class_instance);
             }
             if (result < 0) {
                 current = loop;
@@ -166,20 +202,20 @@ static void _con_attach(Con *con, Con *parent, Con *previous, bool ignore_focus)
             }
         }
         if (current) {
-            TAILQ_INSERT_BEFORE(loop, con, nodes);
+            current->insert_before(this);
         } else {
-            TAILQ_INSERT_TAIL(nodes_head, con, nodes);
+            nodes_head.push_back(this);
         }
         goto add_to_focus_head;
     }
 
-    if (con->type == CT_FLOATING_CON) {
+    if (this->type == CT_FLOATING_CON) {
         DLOG("Inserting into floating containers\n");
-        TAILQ_INSERT_TAIL(&(parent->floating_head), con, floating_windows);
+        parent->floating_windows.push_back(this);
     } else {
         if (!ignore_focus) {
             /* Get the first tiling container in focus stack */
-            TAILQ_FOREACH (loop, &(parent->focus_head), focused) {
+            for (auto &loop : parent->focus_head) {
                 if (loop->type == CT_FLOATING_CON)
                     continue;
                 current = loop;
@@ -194,16 +230,16 @@ static void _con_attach(Con *con, Con *parent, Con *previous, bool ignore_focus)
          * workspace or a new split container with the configured
          * workspace_layout).
          */
-        if (con->window != nullptr &&
+        if (this->window != nullptr &&
             parent->type == CT_WORKSPACE &&
             parent->workspace_layout != L_DEFAULT) {
             DLOG("Parent is a workspace. Applying default layout...\n");
             Con *target = workspace_attach_to(parent);
 
             /* Attach the original con to this new split con instead */
-            nodes_head = &(target->nodes_head);
-            focus_head = &(target->focus_head);
-            con->parent = target;
+            nodes_head = target->nodes_head;
+            focus_head = target->focus_head;
+            this->parent = target;
             current = nullptr;
 
             DLOG("done\n");
@@ -212,46 +248,84 @@ static void _con_attach(Con *con, Con *parent, Con *previous, bool ignore_focus)
         /* Insert the container after the tiling container, if found.
          * When adding to a CT_OUTPUT, just append one after another. */
         if (current != nullptr && parent->type != CT_OUTPUT) {
-            DLOG("Inserting con = %p after con %p\n", con, current);
-            TAILQ_INSERT_AFTER(nodes_head, current, con, nodes);
+            DLOG(fmt::sprintf("Inserting con = %p after con %p\n",  (void*)this, (void*)current));
+            current->insert_after(this);
         } else
-            TAILQ_INSERT_TAIL(nodes_head, con, nodes);
+            nodes_head.push_back(this);
     }
 
-add_to_focus_head:
+    add_to_focus_head:
     /* We insert to the TAIL because con_focus() will correct this.
      * This way, we have the option to insert Cons without having
      * to focus them. */
-    TAILQ_INSERT_TAIL(focus_head, con, focused);
-    con_force_split_parents_redraw(con);
+    focus_head.push_back(this);
+    con_force_split_parents_redraw(this);
 }
 
-/*
- * Attaches the given container to the given parent. This happens when moving
- * a container or when inserting a new container at a specific place in the
- * tree.
- *
- * ignore_focus is to just insert the Con at the end (useful when creating a
- * new split container *around* some containers, that is, detaching and
- * attaching them in order without wanting to mess with the focus in between).
- *
- */
-void con_attach(Con *con, Con *parent, bool ignore_focus) {
-    _con_attach(con, parent, nullptr, ignore_focus);
+namespace con {
+    Con *first(std::deque<Con*> &queue) {
+        if (queue.empty()) {
+            return nullptr;
+        }
+
+        return queue.front();
+    }
+
+    Con *next(Con *con, std::deque<Con*> &queue) {
+        auto c_itr = std::ranges::find(queue, con);
+        if (c_itr == queue.end()) {
+            return nullptr;
+        }
+
+        return (std::next(c_itr) == queue.end()) ? nullptr : *(++c_itr);
+    }
+
+    Con *previous(Con *con, std::deque<Con*> &queue) {
+        auto c_itr = std::ranges::find(queue, con);
+        if (c_itr == queue.end()) {
+            return nullptr;
+        }
+
+        return (c_itr == queue.begin()) ? nullptr : *(--c_itr);
+    }
+
+    Con *last(std::deque<Con*> &queue) {
+        if (queue.empty()) {
+            return nullptr;
+        }
+
+        return queue.back();
+    }
+}
+
+void Con::insert_before(Con *con) {
+    auto c_itr = std::ranges::find(this->parent->nodes_head, this);
+
+    if (c_itr != this->parent->nodes_head.end()) {
+        this->parent->nodes_head.insert(c_itr, con);
+    }
+}
+
+void Con::insert_after(Con *con) {
+    auto c_itr = std::ranges::find(this->parent->nodes_head, this);
+
+    if (c_itr != this->parent->nodes_head.end()) {
+        this->parent->nodes_head.insert(std::next(c_itr), con);
+    }
 }
 
 /*
  * Detaches the given container from its current parent
  *
  */
-void con_detach(Con *con) {
-    con_force_split_parents_redraw(con);
-    if (con->type == CT_FLOATING_CON) {
-        TAILQ_REMOVE(&(con->parent->floating_head), con, floating_windows);
-        TAILQ_REMOVE(&(con->parent->focus_head), con, focused);
+void Con::con_detach() {
+    con_force_split_parents_redraw(this);
+    if (this->type == CT_FLOATING_CON) {
+        std::erase(this->parent->floating_windows, this);
+        std::erase(this->parent->focus_head, this);
     } else {
-        TAILQ_REMOVE(&(con->parent->nodes_head), con, nodes);
-        TAILQ_REMOVE(&(con->parent->focus_head), con, focused);
+        std::erase(this->parent->nodes_head, this);
+        std::erase(this->parent->focus_head, this);
     }
 }
 
@@ -260,28 +334,27 @@ void con_detach(Con *con) {
  * run of x_push_changes().
  *
  */
-void con_focus(Con *con) {
-    assert(con != nullptr);
-    DLOG("con_focus = %p\n", con);
+void Con::con_focus() {
+    DLOG(fmt::sprintf("con_focus = %p\n",  (void*)this));
 
     /* 1: set focused-pointer to the new con */
     /* 2: exchange the position of the container in focus stack of the parent all the way up */
-    TAILQ_REMOVE(&(con->parent->focus_head), con, focused);
-    TAILQ_INSERT_HEAD(&(con->parent->focus_head), con, focused);
-    if (con->parent->parent != nullptr)
-        con_focus(con->parent);
+    std::erase(this->parent->focus_head, this);
+    this->parent->focus_head.push_front(this);
+    if (this->parent->parent != nullptr)
+        this->parent->con_focus();
 
-    focused = con;
+    ::focused = this;
     /* We can't blindly reset non-leaf containers since they might have
      * other urgent children. Therefore we only reset leafs and propagate
      * the changes upwards via con_update_parents_urgency() which does proper
      * checks before resetting the urgency.
      */
-    if (con->urgent && con_is_leaf(con)) {
-        con_set_urgency(con, false);
-        con_update_parents_urgency(con);
-        workspace_update_urgent_flag(con_get_workspace(con));
-        ipc_send_window_event("urgent", con);
+    if (this->urgent && this->con_is_leaf()) {
+        con_set_urgency(this, false);
+        con_update_parents_urgency(this);
+        workspace_update_urgent_flag(this->con_get_workspace());
+        ipc_send_window_event("urgent", this);
     }
 }
 
@@ -291,7 +364,7 @@ void con_focus(Con *con) {
  *
  */
 static void con_raise(Con *con) {
-    Con *floating = con_inside_floating(con);
+    Con *floating = con->con_inside_floating();
     if (floating) {
         floating_raise_con(floating);
     }
@@ -301,9 +374,9 @@ static void con_raise(Con *con) {
  * Sets input focus to the given container and raises it to the top.
  *
  */
-void con_activate(Con *con) {
-    con_focus(con);
-    con_raise(con);
+void Con::con_activate() {
+    this->con_focus();
+    con_raise(this);
 }
 
 /*
@@ -311,16 +384,16 @@ void con_activate(Con *con) {
  * restrictions and properly warps the pointer if needed.
  *
  */
-void con_activate_unblock(Con *con) {
-    Con *ws = con_get_workspace(con);
-    Con *previous_focus = focused;
-    Con *fullscreen_on_ws = con_get_fullscreen_covering_ws(ws);
+void Con::con_activate_unblock() {
+    Con *ws = this->con_get_workspace();
+    Con *previous_focus = ::focused;
+    Con *fullscreen_on_ws = (ws) ? ws->con_get_fullscreen_covering_ws() : nullptr;
 
-    if (fullscreen_on_ws && fullscreen_on_ws != con && !con_has_parent(con, fullscreen_on_ws)) {
+    if (fullscreen_on_ws && fullscreen_on_ws != this && !this->con_has_parent(fullscreen_on_ws)) {
         con_disable_fullscreen(fullscreen_on_ws);
     }
 
-    con_activate(con);
+    this->con_activate();
 
     /* If the container is not on the current workspace, workspace_show() will
      * switch to a different workspace and (if enabled) trigger a mouse pointer
@@ -333,11 +406,11 @@ void con_activate_unblock(Con *con) {
      *
      * So we focus 'con' to make it the currently focused window of the target
      * workspace, then revert focus. */
-    if (ws != con_get_workspace(previous_focus)) {
-        con_activate(previous_focus);
+    if (ws != previous_focus->con_get_workspace()) {
+        previous_focus->con_activate();
         /* Now switch to the workspace, then focus */
         workspace_show(ws);
-        con_activate(con);
+        this->con_activate();
     }
 }
 
@@ -345,65 +418,62 @@ void con_activate_unblock(Con *con) {
  * Closes the given container.
  *
  */
-void con_close(Con *con, kill_window_t kill_window) {
-    assert(con != nullptr);
-    DLOG("Closing con = %p.\n", con);
+void Con::con_close(kill_window_t kill_window) {
+    assert(this != nullptr);
+    DLOG(fmt::sprintf("Closing con = %p.\n",  (void*)this));
 
     /* We never close output or root containers. */
-    if (con->type == CT_OUTPUT || con->type == CT_ROOT) {
-        DLOG("con = %p is of type %d, not closing anything.\n", con, con->type);
+    if (this->type == CT_OUTPUT || this->type == CT_ROOT) {
+        DLOG(fmt::sprintf("con = %p is of type %d, not closing anything.\n",  (void*)this, this->type));
         return;
     }
 
-    if (con->type == CT_WORKSPACE) {
-        DLOG("con = %p is a workspace, closing all children instead.\n", con);
-        Con *child, *nextchild;
-        for (child = TAILQ_FIRST(&(con->focus_head)); child;) {
-            nextchild = TAILQ_NEXT(child, focused);
-            DLOG("killing child = %p.\n", child);
+    if (this->type == CT_WORKSPACE) {
+        DLOG(fmt::sprintf("con = %p is a workspace, closing all children instead.\n",  (void*)this));
+        for (auto &child : this->focus_head) {
+            DLOG(fmt::sprintf("killing child = %p.\n",  (void*)child));
             tree_close_internal(child, kill_window, false);
-            child = nextchild;
         }
 
         return;
     }
 
-    tree_close_internal(con, kill_window, false);
+    tree_close_internal(this, kill_window, false);
 }
 
 /*
  * Returns true when this node is a leaf node (has no children)
  *
  */
-bool con_is_leaf(Con *con) {
-    return TAILQ_EMPTY(&(con->nodes_head));
+bool Con::con_is_leaf() const {
+    return this->nodes_head.empty();
 }
 
 /*
  * Returns true when this con is a leaf node with a managed X11 window (e.g.,
  * excluding dock containers)
  */
-bool con_has_managed_window(Con *con) {
-    return (con != nullptr && con->window != nullptr && con->window->id != XCB_WINDOW_NONE && con_get_workspace(con) != nullptr);
+bool Con::con_has_managed_window() {
+    return (this->window != nullptr && this->window->id != XCB_WINDOW_NONE && this->con_get_workspace() != nullptr);
 }
 
 /*
  * Returns true if this node has regular or floating children.
  *
  */
-bool con_has_children(Con *con) {
-    return (!con_is_leaf(con) || !TAILQ_EMPTY(&(con->floating_head)));
+bool Con::con_has_children() {
+    return (!this->con_is_leaf() || !this->floating_windows.empty());
 }
 
 /*
  * Returns true if a container should be considered split.
  *
  */
-bool con_is_split(Con *con) {
-    if (con_is_leaf(con))
+bool Con::con_is_split() {
+    if (this->con_is_leaf())
         return false;
 
-    switch (con->layout) {
+    switch (this->layout) {
         case L_DOCKAREA:
         case L_OUTPUT:
             return false;
@@ -418,15 +488,15 @@ bool con_is_split(Con *con) {
  * a tabbed / stacked parent of which they are not the currently focused child.
  *
  */
-bool con_is_hidden(Con *con) {
-    Con *current = con;
+bool Con::con_is_hidden() {
+    Con *current = this;
 
     /* ascend to the workspace level and memorize the highest-up container
      * which is stacked or tabbed. */
     while (current != nullptr && current->type != CT_WORKSPACE) {
         Con *parent = current->parent;
         if (parent != nullptr && (parent->layout == L_TABBED || parent->layout == L_STACKED)) {
-            if (TAILQ_FIRST(&(parent->focus_head)) != current)
+            if (con::first(parent->focus_head) != current)
                 return true;
         }
 
@@ -440,13 +510,12 @@ bool con_is_hidden(Con *con) {
  * Returns whether the container or any of its children is sticky.
  *
  */
-bool con_is_sticky(Con *con) {
-    if (con->sticky)
+bool Con::con_is_sticky() {
+    if (this->sticky)
         return true;
 
-    Con *child;
-    TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
-        if (con_is_sticky(child))
+    for (auto &child : this->nodes_head) {
+        if (child->con_is_sticky())
             return true;
     }
 
@@ -458,18 +527,18 @@ bool con_is_sticky(Con *con) {
  * it might already have swallowed enough and cannot hold any more).
  *
  */
-bool con_accepts_window(Con *con) {
+bool Con::con_accepts_window() {
     /* 1: workspaces never accept direct windows */
-    if (con->type == CT_WORKSPACE)
+    if (this->type == CT_WORKSPACE)
         return false;
 
-    if (con_is_split(con)) {
-        DLOG("container %p does not accept windows, it is a split container.\n", con);
+    if (this->con_is_split()) {
+        DLOG(fmt::sprintf("container %p does not accept windows, it is a split container.\n",  (void*)this));
         return false;
     }
 
     /* TODO: if this is a swallowing container, we need to check its max_clients */
-    return (con->window == nullptr);
+    return (this->window == nullptr);
 }
 
 /*
@@ -477,8 +546,8 @@ bool con_accepts_window(Con *con) {
  * node is on.
  *
  */
-Con *con_get_output(Con *con) {
-    Con *result = con;
+Con* Con::con_get_output() {
+    Con *result = this;
     while (result != nullptr && result->type != CT_OUTPUT)
         result = result->parent;
     /* We must be able to get an output because focus can never be set higher
@@ -491,8 +560,8 @@ Con *con_get_output(Con *con) {
  * Gets the workspace container this node is on.
  *
  */
-Con *con_get_workspace(Con *con) {
-    Con *result = con;
+Con* Con::con_get_workspace() {
+    Con *result = this;
     while (result != nullptr && result->type != CT_WORKSPACE)
         result = result->parent;
     return result;
@@ -503,9 +572,9 @@ Con *con_get_workspace(Con *con) {
  * 'orientation'. Aborts when it comes across a floating_con.
  *
  */
-Con *con_parent_with_orientation(Con *con, orientation_t orientation) {
-    DLOG("Searching for parent of Con %p with orientation %d\n", con, orientation);
-    Con *parent = con->parent;
+Con* Con::con_parent_with_orientation(orientation_t orientation) {
+    DLOG(fmt::sprintf("Searching for parent of Con %p with orientation %d\n",  (void*)this, orientation));
+    Con *parent = this->parent;
     if (parent->type == CT_FLOATING_CON)
         return nullptr;
     while (con_orientation(parent) != orientation) {
@@ -520,61 +589,34 @@ Con *con_parent_with_orientation(Con *con, orientation_t orientation) {
         if (parent == nullptr)
             break;
     }
-    DLOG("Result: %p\n", parent);
+    DLOG(fmt::sprintf("Result: %p\n",  (void*)parent));
     return parent;
 }
-
-/*
- * helper data structure for the breadth-first-search in
- * con_get_fullscreen_con()
- *
- */
-struct bfs_entry {
-    Con *con;
-
-    TAILQ_ENTRY(bfs_entry) entries;
-};
 
 /*
  * Returns the first fullscreen node below this node.
  *
  */
-Con *con_get_fullscreen_con(Con *con, fullscreen_mode_t fullscreen_mode) {
-    Con *current, *child;
+Con* Con::con_get_fullscreen_con(fullscreen_mode_t fullscreen_mode) {
+    std::deque<Con*> bfs{};
+    bfs.push_back(this);
 
-    /* TODO: is breadth-first-search really appropriate? (check as soon as
-     * fullscreen levels and fullscreen for containers is implemented) */
-    TAILQ_HEAD(bfs_head, bfs_entry) bfs_head = TAILQ_HEAD_INITIALIZER(bfs_head);
-    auto *entry = new bfs_entry();
-    entry->con = con;
-    TAILQ_INSERT_TAIL(&bfs_head, entry, entries);
-
-    while (!TAILQ_EMPTY(&bfs_head)) {
-        entry = TAILQ_FIRST(&bfs_head);
-        current = entry->con;
-        if (current != con && current->fullscreen_mode == fullscreen_mode) {
+    while (!bfs.empty()) {
+        auto &current = bfs.front();
+        if (current != this && current->fullscreen_mode == fullscreen_mode) {
             /* empty the queue */
-            while (!TAILQ_EMPTY(&bfs_head)) {
-                entry = TAILQ_FIRST(&bfs_head);
-                TAILQ_REMOVE(&bfs_head, entry, entries);
-                free(entry);
-            }
+            bfs.clear();
             return current;
         }
 
-        TAILQ_REMOVE(&bfs_head, entry, entries);
-        free(entry);
+        bfs.pop_front();
 
-        TAILQ_FOREACH (child, &(current->nodes_head), nodes) {
-            entry = new bfs_entry();
-            entry->con = child;
-            TAILQ_INSERT_TAIL(&bfs_head, entry, entries);
+        for (auto &child : current->nodes_head) {
+            bfs.push_back(child);
         }
 
-        TAILQ_FOREACH (child, &(current->floating_head), floating_windows) {
-            entry = new bfs_entry();
-            entry->con = child;
-            TAILQ_INSERT_TAIL(&bfs_head, entry, entries);
+        for (auto &child : current->floating_windows) {
+            bfs.push_back(child);
         }
     }
 
@@ -587,13 +629,10 @@ Con *con_get_fullscreen_con(Con *con, fullscreen_mode_t fullscreen_mode) {
  * fullscreen container in the workspace.
  *
  */
-Con *con_get_fullscreen_covering_ws(Con *ws) {
-    if (!ws) {
-        return nullptr;
-    }
-    Con *fs = con_get_fullscreen_con(croot, CF_GLOBAL);
+Con* Con::con_get_fullscreen_covering_ws() {
+    Con *fs = croot->con_get_fullscreen_con(CF_GLOBAL);
     if (!fs) {
-        return con_get_fullscreen_con(ws, CF_OUTPUT);
+        return this->con_get_fullscreen_con(CF_OUTPUT);
     }
     return fs;
 }
@@ -602,31 +641,30 @@ Con *con_get_fullscreen_covering_ws(Con *ws) {
  * Returns true if the container is internal, such as __i3_scratch
  *
  */
-bool con_is_internal(Con *con) {
-    return (con->name[0] == '_' && con->name[1] == '_');
+bool Con::con_is_internal() const {
+    return (this->name[0] == '_' && this->name[1] == '_');
 }
 
 /*
  * Returns true if the node is floating.
  *
  */
-bool con_is_floating(Con *con) {
-    assert(con != nullptr);
-    return (con->floating >= FLOATING_AUTO_ON);
+bool Con::con_is_floating() const {
+    return (this->floating >= FLOATING_AUTO_ON);
 }
 
 /*
  * Returns true if the container is a docked container.
  *
  */
-bool con_is_docked(Con *con) {
-    if (con->parent == nullptr)
+bool Con::con_is_docked() const {
+    if (this->parent == nullptr)
         return false;
 
-    if (con->parent->type == CT_DOCKAREA)
+    if (this->parent->type == CT_DOCKAREA)
         return true;
 
-    return con_is_docked(con->parent);
+    return this->parent->con_is_docked();
 }
 
 /*
@@ -634,38 +672,37 @@ bool con_is_docked(Con *con) {
  * container. It returns the FLOATING_CON container.
  *
  */
-Con *con_inside_floating(Con *con) {
-    assert(con != nullptr);
-    if (con->type == CT_FLOATING_CON)
-        return con;
+Con* Con::con_inside_floating() {
+    if (this->type == CT_FLOATING_CON)
+        return this;
 
-    if (con->floating >= FLOATING_AUTO_ON)
-        return con->parent;
+    if (this->floating >= FLOATING_AUTO_ON)
+        return this->parent;
 
-    if (con->type == CT_WORKSPACE || con->type == CT_OUTPUT)
+    if (this->type == CT_WORKSPACE || this->type == CT_OUTPUT)
         return nullptr;
 
-    return con_inside_floating(con->parent);
+    return this->parent->con_inside_floating();
 }
 
 /*
  * Checks if the given container is inside a focused container.
  *
  */
-bool con_inside_focused(Con *con) {
-    if (con == focused)
+bool Con::con_inside_focused() {
+    if (this == ::focused)
         return true;
-    if (!con->parent)
+    if (!this->parent)
         return false;
-    return con_inside_focused(con->parent);
+    return this->parent->con_inside_focused();
 }
 
 /*
  * Checks if the container has the given parent as an actual parent.
  *
  */
-bool con_has_parent(Con *con, Con *parent) {
-    Con *current = con->parent;
+bool Con::con_has_parent(Con *parent) const {
+    Con *current = this->parent;
     if (current == nullptr) {
         return false;
     }
@@ -674,7 +711,7 @@ bool con_has_parent(Con *con, Con *parent) {
         return true;
     }
 
-    return con_has_parent(current, parent);
+    return current != nullptr && current->con_has_parent(parent);
 }
 
 /*
@@ -683,8 +720,7 @@ bool con_has_parent(Con *con, Con *parent) {
  *
  */
 Con *con_by_window_id(xcb_window_t window) {
-    Con *con;
-    TAILQ_FOREACH (con, &all_cons, all_cons) {
+    for (const auto &con : all_cons) {
         if (con->window != nullptr && con->window->id == window) {
             return con;
         }
@@ -693,28 +729,12 @@ Con *con_by_window_id(xcb_window_t window) {
 }
 
 /*
- * Returns the container with the given container ID or NULL if no such
- * container exists.
- *
- */
-Con *con_by_con_id(long target) {
-    Con *con;
-    TAILQ_FOREACH (con, &all_cons, all_cons) {
-        if (con == (Con *)target) {
-            return con;
-        }
-    }
-
-    return nullptr;
-}
-
-/*
  * Returns true if the given container (still) exists.
  * This can be used, e.g., to make sure a container hasn't been closed in the meantime.
  *
  */
-bool con_exists(Con *con) {
-    return con_by_con_id((long)con) != nullptr;
+bool Con::exists() {
+    return std::ranges::find(all_cons, this) != all_cons.end();
 }
 
 /*
@@ -723,8 +743,7 @@ bool con_exists(Con *con) {
  *
  */
 Con *con_by_frame_id(xcb_window_t frame) {
-    Con *con;
-    TAILQ_FOREACH (con, &all_cons, all_cons) {
+    for (const auto &con : all_cons) {
         if (con->frame.id == frame) {
             return con;
         }
@@ -738,17 +757,15 @@ Con *con_by_frame_id(xcb_window_t frame) {
  *
  */
 Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
-    Con *child;
-    Match *match;
-    //DLOG("searching con for window %p starting at con %p\n", window, con);
-    //DLOG("class == %s\n", window->class_class);
+    // LOG(fmt::sprintf("searching con for window %p starting at con %p\n",  window, con));
+    // LOG(fmt::sprintf("class == %s\n",  window->class_class));
 
-    TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
-        TAILQ_FOREACH (match, &(child->swallow_head), matches) {
-            if (!match_matches_window(match, window))
+    for (auto &child : con->nodes_head) {
+        for (auto &match : child->swallow) {
+            if (!match_matches_window(*match, window))
                 continue;
             if (store_match != nullptr)
-                *store_match = match;
+                *store_match = match.get();
             return child;
         }
         Con *result = con_for_window(child, window, store_match);
@@ -756,12 +773,12 @@ Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
             return result;
     }
 
-    TAILQ_FOREACH (child, &(con->floating_head), floating_windows) {
-        TAILQ_FOREACH (match, &(child->swallow_head), matches) {
-            if (!match_matches_window(match, window))
+    for (auto &child : con->floating_windows) {
+        for (auto &match : child->swallow) {
+            if (!match_matches_window(*match, window))
                 continue;
             if (store_match != nullptr)
-                *store_match = match;
+                *store_match = match.get();
             return child;
         }
         Con *result = con_for_window(child, window, store_match);
@@ -772,30 +789,15 @@ Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
     return nullptr;
 }
 
-static int num_focus_heads(Con *con) {
-    int focus_heads = 0;
-
-    Con *current;
-    TAILQ_FOREACH (current, &(con->focus_head), focused) {
-        focus_heads++;
-    }
-
-    return focus_heads;
-}
-
 /*
  * Iterate over the container's focus stack and return an array with the
  * containers inside it, ordered from higher focus order to lowest.
  *
  */
-Con **get_focus_order(Con *con) {
-    const int focus_heads = num_focus_heads(con);
-    Con **focus_order = (Con**)smalloc(focus_heads * sizeof(Con *));
-    Con *current;
-    int idx = 0;
-    TAILQ_FOREACH (current, &(con->focus_head), focused) {
-        assert(idx < focus_heads);
-        focus_order[idx++] = current;
+std::vector<Con*> Con::get_focus_order() {
+    std::vector<Con*> focus_order;
+    for (auto &current : focus_head) {
+        focus_order.push_back(current);
     }
 
     return focus_order;
@@ -808,23 +810,18 @@ Con **get_focus_order(Con *con) {
  * in the new focus stack if container is not a workspace.
  *
  */
-void set_focus_order(Con *con, Con **focus_order) {
-    int focus_heads = 0;
-    while (!TAILQ_EMPTY(&(con->focus_head))) {
-        Con *current = TAILQ_FIRST(&(con->focus_head));
-
-        TAILQ_REMOVE(&(con->focus_head), current, focused);
-        focus_heads++;
-    }
+void Con::set_focus_order(std::vector<Con*> focus_order) {
+    auto focus_heads = this->focus_head.size();
+    this->focus_head.clear();
 
     for (int idx = 0; idx < focus_heads; idx++) {
         /* Useful when encapsulating a workspace. */
-        if (con->type != CT_WORKSPACE && con_inside_floating(focus_order[idx])) {
+        if (this->type != CT_WORKSPACE && focus_order[idx]->con_inside_floating()) {
             focus_heads++;
             continue;
         }
 
-        TAILQ_INSERT_TAIL(&(con->focus_head), focus_order[idx], focused);
+        this->focus_head.push_back(focus_order[idx]);
     }
 }
 
@@ -832,15 +829,8 @@ void set_focus_order(Con *con, Con **focus_order) {
  * Returns the number of children of this container.
  *
  */
-int con_num_children(Con *con) {
-    Con *child;
-    int children = 0;
-
-    TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
-        children++;
-    }
-
-    return children;
+unsigned long Con::con_num_children() const {
+    return this->nodes_head.size();
 }
 
 /*
@@ -848,19 +838,15 @@ int con_num_children(Con *con) {
  * For example, if the container contains a hsplit which has two children,
  * this will return 2 instead of 1.
  */
-int con_num_visible_children(Con *con) {
-    if (con == nullptr)
-        return 0;
-
+int Con::con_num_visible_children() {
     int children = 0;
-    Con *current = nullptr;
-    TAILQ_FOREACH (current, &(con->nodes_head), nodes) {
+    for (auto &current : this->nodes_head) {
         /* Visible leaf nodes are a child. */
-        if (!con_is_hidden(current) && con_is_leaf(current))
+        if (!current->con_is_hidden() && current->con_is_leaf())
             children++;
         /* All other containers need to be recursed. */
         else
-            children += con_num_visible_children(current);
+            children += current->con_num_visible_children();
     }
 
     return children;
@@ -870,21 +856,17 @@ int con_num_visible_children(Con *con) {
  * Count the number of windows (i.e., leaf containers).
  *
  */
-int con_num_windows(Con *con) {
-    if (con == nullptr)
-        return 0;
-
-    if (con_has_managed_window(con))
+int Con::con_num_windows() {
+    if (this->con_has_managed_window())
         return 1;
 
     int num = 0;
-    Con *current = nullptr;
-    TAILQ_FOREACH (current, &(con->nodes_head), nodes) {
-        num += con_num_windows(current);
+    for (auto &current : this->nodes_head) {
+        num += current->con_num_windows();
     }
 
-    TAILQ_FOREACH (current, &(con->floating_head), floating_windows) {
-        num += con_num_windows(current);
+    for (auto &current : this->floating_windows) {
+        num += current->con_num_windows();
     }
 
     return num;
@@ -896,15 +878,14 @@ int con_num_windows(Con *con) {
  * container.
  *
  */
-void con_fix_percent(Con *con) {
-    Con *child;
-    int children = con_num_children(con);
+void Con::con_fix_percent() {
+    auto children = this->con_num_children();
 
     // calculate how much we have distributed and how many containers
     // with a percentage set we have
     double total = 0.0;
     int children_with_percent = 0;
-    TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+    for (auto &child : this->nodes_head) {
         if (child->percent > 0.0) {
             total += child->percent;
             ++children_with_percent;
@@ -914,7 +895,7 @@ void con_fix_percent(Con *con) {
     // if there were children without a percentage set, set to a value that
     // will make those children proportional to all others
     if (children_with_percent != children) {
-        TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+        for (auto &child : this->nodes_head) {
             if (child->percent <= 0.0) {
                 if (children_with_percent == 0) {
                     total += (child->percent = 1.0);
@@ -928,11 +909,11 @@ void con_fix_percent(Con *con) {
     // if we got a zero, just distribute the space equally, otherwise
     // distribute according to the proportions we got
     if (total == 0.0) {
-        TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+        for (auto &child : this->nodes_head) {
             child->percent = 1.0 / children;
         }
     } else if (total != 1.0) {
-        TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+        for (auto &child : this->nodes_head) {
             child->percent /= total;
         }
     }
@@ -950,7 +931,7 @@ void con_toggle_fullscreen(Con *con, int fullscreen_mode) {
         return;
     }
 
-    DLOG("toggling fullscreen for %p / %s\n", con, con->name);
+    DLOG(fmt::sprintf("toggling fullscreen for %p / %s\n",  (void*)con, con->name));
 
     if (con->fullscreen_mode == CF_NONE)
         con_enable_fullscreen(con, (fullscreen_mode_t)fullscreen_mode);
@@ -964,10 +945,10 @@ void con_toggle_fullscreen(Con *con, int fullscreen_mode) {
  * container’s window, if any.
  *
  */
-static void con_set_fullscreen_mode(Con *con, fullscreen_mode_t fullscreen_mode) {
+static void con_set_fullscreen_mode(xcb_connection_t *conn, Con *con, fullscreen_mode_t fullscreen_mode) {
     con->fullscreen_mode = fullscreen_mode;
 
-    DLOG("mode now: %d\n", con->fullscreen_mode);
+    DLOG(fmt::sprintf("mode now: %d\n",  con->fullscreen_mode));
 
     /* Send an ipc window "fullscreen_mode" event */
     ipc_send_window_event("fullscreen_mode", con);
@@ -979,10 +960,10 @@ static void con_set_fullscreen_mode(Con *con, fullscreen_mode_t fullscreen_mode)
         return;
 
     if (con->fullscreen_mode != CF_NONE) {
-        DLOG("Setting _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n", con, con->window->id);
+        DLOG(fmt::sprintf("Setting _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n",  (void*)con, con->window->id));
         xcb_add_property_atom(conn, con->window->id, A__NET_WM_STATE, A__NET_WM_STATE_FULLSCREEN);
     } else {
-        DLOG("Removing _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n", con, con->window->id);
+        DLOG(fmt::sprintf("Removing _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n",  (void*)con, con->window->id));
         xcb_remove_property_atom(conn, con->window->id, A__NET_WM_STATE, A__NET_WM_STATE_FULLSCREEN);
     }
 }
@@ -1007,36 +988,36 @@ void con_enable_fullscreen(Con *con, fullscreen_mode_t fullscreen_mode) {
     assert(fullscreen_mode == CF_GLOBAL || fullscreen_mode == CF_OUTPUT);
 
     if (fullscreen_mode == CF_GLOBAL)
-        DLOG("enabling global fullscreen for %p / %s\n", con, con->name);
+        DLOG(fmt::sprintf("enabling global fullscreen for %p / %s\n",  (void*)con, con->name));
     else
-        DLOG("enabling fullscreen for %p / %s\n", con, con->name);
+        DLOG(fmt::sprintf("enabling fullscreen for %p / %s\n",  (void*)con, con->name));
 
     if (con->fullscreen_mode == fullscreen_mode) {
-        DLOG("fullscreen already enabled for %p / %s\n", con, con->name);
+        DLOG(fmt::sprintf("fullscreen already enabled for %p / %s\n",  (void*)con, con->name));
         return;
     }
 
-    Con *con_ws = con_get_workspace(con);
+    Con *con_ws = con->con_get_workspace();
 
     /* Disable any fullscreen container that would conflict the new one. */
-    Con *fullscreen = con_get_fullscreen_con(croot, CF_GLOBAL);
+    Con *fullscreen = croot->con_get_fullscreen_con(CF_GLOBAL);
     if (fullscreen == nullptr)
-        fullscreen = con_get_fullscreen_con(con_ws, CF_OUTPUT);
+        fullscreen = con_ws->con_get_fullscreen_con(CF_OUTPUT);
     if (fullscreen != nullptr)
         con_disable_fullscreen(fullscreen);
 
     /* Set focus to new fullscreen container. Unless in global fullscreen mode
      * and on another workspace restore focus afterwards.
      * Switch to the container’s workspace if mode is global. */
-    Con *cur_ws = con_get_workspace(focused);
+    Con *cur_ws = focused->con_get_workspace();
     Con *old_focused = focused;
     if (fullscreen_mode == CF_GLOBAL && cur_ws != con_ws)
         workspace_show(con_ws);
-    con_activate(con);
+    con->con_activate();
     if (fullscreen_mode != CF_GLOBAL && cur_ws != con_ws)
-        con_activate(old_focused);
+        old_focused->con_activate();
 
-    con_set_fullscreen_mode(con, fullscreen_mode);
+    con_set_fullscreen_mode(global.conn, con, fullscreen_mode);
 }
 
 /*
@@ -1050,43 +1031,43 @@ void con_disable_fullscreen(Con *con) {
         return;
     }
 
-    DLOG("disabling fullscreen for %p / %s\n", con, con->name);
+    DLOG(fmt::sprintf("disabling fullscreen for %p / %s\n",  (void*)con, con->name));
 
     if (con->fullscreen_mode == CF_NONE) {
-        DLOG("fullscreen already disabled for %p / %s\n", con, con->name);
+        DLOG(fmt::sprintf("fullscreen already disabled for %p / %s\n",  (void*)con, con->name));
         return;
     }
 
-    con_set_fullscreen_mode(con, CF_NONE);
+    con_set_fullscreen_mode(global.conn, con, CF_NONE);
 }
 
 static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fix_coordinates, bool dont_warp, bool ignore_focus, bool fix_percentage) {
     Con *orig_target = target;
 
     /* Prevent moving if this would violate the fullscreen focus restrictions. */
-    Con *target_ws = con_get_workspace(target);
+    Con *target_ws = target->con_get_workspace();
     if (!ignore_focus && !con_fullscreen_permits_focusing(target_ws)) {
         LOG("Cannot move out of a fullscreen container.\n");
         return false;
     }
 
-    if (con_is_floating(con)) {
+    if (con->con_is_floating()) {
         DLOG("Container is floating, using parent instead.\n");
         con = con->parent;
     }
 
-    Con *source_ws = con_get_workspace(con);
+    Con *source_ws = con->con_get_workspace();
 
     if (con->type == CT_WORKSPACE) {
         /* Re-parent all of the old workspace's floating windows. */
         Con *child;
-        while (!TAILQ_EMPTY(&(source_ws->floating_head))) {
-            child = TAILQ_FIRST(&(source_ws->floating_head));
+        while (!source_ws->floating_windows.empty()) {
+            child = source_ws->floating_windows.front();
             con_move_to_workspace(child, target_ws, true, true, false);
         }
 
         /* If there are no non-floating children, ignore the workspace. */
-        if (con_is_leaf(con))
+        if (con->con_is_leaf())
             return false;
 
         con = workspace_encapsulate(con);
@@ -1101,24 +1082,24 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
 
     /* Save the current workspace. So we can call workspace_show() by the end
      * of this function. */
-    Con *current_ws = con_get_workspace(focused);
+    Con *current_ws = focused->con_get_workspace();
 
-    Con *source_output = con_get_output(con),
-        *dest_output = con_get_output(target_ws);
+    Con *source_output = con->con_get_output(),
+        *dest_output = target_ws->con_get_output();
 
     /* 1: save the container which is going to be focused after the current
      * container is moved away */
     Con *focus_next = nullptr;
     if (!ignore_focus && source_ws == current_ws && target_ws != source_ws) {
         focus_next = con_descend_focused(source_ws);
-        if (focus_next == con || con_has_parent(focus_next, con)) {
+        if (focus_next == con || focus_next->con_has_parent(con)) {
             focus_next = con_next_focused(con);
         }
     }
 
     /* 2: we go up one level, but only when target is a normal container */
     if (target->type != CT_WORKSPACE) {
-        DLOG("target originally = %p / %s / type %d\n", target, target->name, target->type);
+        DLOG(fmt::sprintf("target originally = %p / %s / type %d\n",  (void*)target, target->name, target->type));
         target = target->parent;
     }
 
@@ -1132,8 +1113,8 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
     }
 
     if (con->type == CT_FLOATING_CON) {
-        Con *ws = con_get_workspace(target);
-        DLOG("This is a floating window, using workspace %p / %s\n", ws, ws->name);
+        Con *ws = target->con_get_workspace();
+        DLOG(fmt::sprintf("This is a floating window, using workspace %p / %s\n",  (void*)ws, ws->name));
         target = ws;
     }
 
@@ -1143,7 +1124,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
         if (fix_coordinates && con->type == CT_FLOATING_CON) {
             floating_fix_coordinates(con, &(source_output->rect), &(dest_output->rect));
         } else
-            DLOG("Not fixing coordinates, fix_coordinates flag = %d\n", fix_coordinates);
+            DLOG(fmt::sprintf("Not fixing coordinates, fix_coordinates flag = %d\n",  fix_coordinates));
     }
 
     /* If moving a fullscreen container and the destination already has a
@@ -1153,26 +1134,26 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
      * 2. con is the parent of a fullscreen container, can be triggered by
      * moving the parent with command criteria.
      */
-    Con *fullscreen = con_get_fullscreen_con(target_ws, CF_OUTPUT);
+    Con *fullscreen = target_ws->con_get_fullscreen_con(CF_OUTPUT);
     const bool con_has_fullscreen = con->fullscreen_mode != CF_NONE ||
-                                    con_get_fullscreen_con(con, CF_GLOBAL) ||
-                                    con_get_fullscreen_con(con, CF_OUTPUT);
+                                    con->con_get_fullscreen_con(CF_GLOBAL) ||
+                                    con->con_get_fullscreen_con(CF_OUTPUT);
     if (con_has_fullscreen && fullscreen != nullptr) {
         con_toggle_fullscreen(fullscreen, CF_OUTPUT);
         fullscreen = nullptr;
     }
 
-    DLOG("Re-attaching container to %p / %s\n", target, target->name);
+    DLOG(fmt::sprintf("Re-attaching container to %p / %s\n",  (void*)target, target->name));
     /* 4: re-attach the con to the parent of this focused container */
     Con *parent = con->parent;
-    con_detach(con);
-    _con_attach(con, target, behind_focused ? nullptr : orig_target, !behind_focused);
+    con->con_detach();
+    con->con_attach(target, !behind_focused, behind_focused ? nullptr : orig_target);
 
     /* 5: fix the percentages */
     if (fix_percentage) {
-        con_fix_percent(parent);
+        parent->con_fix_percent();
         con->percent = 0.0;
-        con_fix_percent(target);
+        target->con_fix_percent();
     }
 
     /* 6: focus the con on the target workspace, but only within that
@@ -1181,20 +1162,20 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
      * We don’t focus the con for i3 pseudo workspaces like __i3_scratch and
      * we don’t focus when there is a fullscreen con on that workspace. We
      * also don't do it if the caller requested to ignore focus. */
-    if (!ignore_focus && !con_is_internal(target_ws) && !fullscreen) {
+    if (!ignore_focus && !target_ws->con_is_internal() && !fullscreen) {
         /* We need to save the focused workspace on the output in case the
          * new workspace is hidden and it's necessary to immediately switch
          * back to the originally-focused workspace. */
-        Con *old_focus_ws = TAILQ_FIRST(&(output_get_content(dest_output)->focus_head));
+        Con *old_focus_ws = con::first(dest_output->output_get_content()->focus_head);
         Con *old_focus = focused;
-        con_activate(con_descend_focused(con));
+        con_descend_focused(con)->con_activate();
 
         if (old_focus_ws == current_ws && old_focus->type != CT_WORKSPACE) {
             /* Restore focus to the currently focused container. */
-            con_activate(old_focus);
-        } else if (con_get_workspace(focused) != old_focus_ws) {
+            old_focus->con_activate();
+        } else if (focused->con_get_workspace() != old_focus_ws) {
             /* Restore focus if the output's focused workspace has changed. */
-            con_focus(con_descend_focused(old_focus_ws));
+            con_descend_focused(old_focus_ws)->con_focus();
         }
     }
 
@@ -1211,13 +1192,12 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
     /* Set focus only if con was on current workspace before moving.
      * Otherwise we would give focus to some window on different workspace. */
     if (focus_next)
-        con_activate(con_descend_focused(focus_next));
+        con_descend_focused(focus_next)->con_activate();
 
     /* 8. If anything within the container is associated with a startup sequence,
      * delete it so child windows won't be created on the old workspace. */
-    if (!con_is_leaf(con)) {
-        Con *child;
-        TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
+    if (!con->con_is_leaf()) {
+        for (auto &child : con->nodes_head) {
             if (!child->window)
                 continue;
             startup_sequence_delete_by_window(child->window);
@@ -1235,9 +1215,10 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
     }
 
     /* Ensure the container will be redrawn. */
-    FREE(con->deco_render_params);
+    delete con->deco_render_params;
+    con->deco_render_params = nullptr;
 
-    parent->on_remove_child(parent);
+    parent->on_remove_child();
 
     ipc_send_window_event("move", con);
     ewmh_update_wm_desktop();
@@ -1267,7 +1248,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
 void con_move_to_workspace(Con *con, Con *workspace, bool fix_coordinates, bool dont_warp, bool ignore_focus) {
     assert(workspace->type == CT_WORKSPACE);
 
-    Con *source_ws = con_get_workspace(con);
+    Con *source_ws = con->con_get_workspace();
     if (workspace == source_ws) {
         DLOG("Not moving, already there\n");
         return;
@@ -1283,11 +1264,10 @@ void con_move_to_workspace(Con *con, Con *workspace, bool fix_coordinates, bool 
  *
  */
 void con_move_to_output(Con *con, Output *output, bool fix_coordinates) {
-    Con *ws = nullptr;
-    GREP_FIRST(ws, output_get_content(output->con), workspace_is_visible(child));
-    assert(ws != nullptr);
-    DLOG("Moving con %p to output %s\n", con, output_primary_name(output));
-    con_move_to_workspace(con, ws, fix_coordinates, false, false);
+    auto ws = std::ranges::find_if(output->con->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
+    assert(ws != output->con->output_get_content()->nodes_head.end());
+    DLOG(fmt::sprintf("Moving con %p to output %s\n",  (void*)con, output->output_primary_name()));
+    con_move_to_workspace(con, *ws, fix_coordinates, false, false);
 }
 
 /*
@@ -1297,11 +1277,11 @@ void con_move_to_output(Con *con, Output *output, bool fix_coordinates) {
  * such as left, right, up, down.
  *
  */
-bool con_move_to_output_name(Con *con, const char *name, bool fix_coordinates) {
+bool con_move_to_output_name(Con *con, const std::string &name, bool fix_coordinates) {
     Output *current_output = get_output_for_con(con);
-    Output *output = get_output_from_string(current_output, name);
+    Output *output = current_output->get_output_from_string(name);
     if (output == nullptr) {
-        ELOG("Could not find output \"%s\"\n", name);
+         ELOG(fmt::sprintf("Could not find output \"%s\"\n", name));
         return false;
     }
 
@@ -1333,7 +1313,7 @@ orientation_t con_orientation(Con *con) {
 
         case L_DOCKAREA:
         case L_OUTPUT:
-            ELOG("con_orientation() called on dockarea/output (%d) container %p\n", con->layout, con);
+            ELOG(fmt::sprintf("con_orientation() called on dockarea/output (%d) container %p\n",  con->layout, (void*)con));
             assert(false);
     }
     /* should not be reached */
@@ -1350,29 +1330,29 @@ Con *con_next_focused(Con *con) {
     /* dock clients cannot be focused, so we focus the workspace instead */
     if (con->parent->type == CT_DOCKAREA) {
         DLOG("selecting workspace for dock client\n");
-        return con_descend_focused(output_get_content(con->parent->parent));
+        return con_descend_focused(con->parent->parent->output_get_content());
     }
-    if (con_is_floating(con)) {
+    if (con->con_is_floating()) {
         con = con->parent;
     }
 
     /* if 'con' is not the first entry in the focus stack, use the first one as
      * it’s currently focused already */
-    Con *next = TAILQ_FIRST(&(con->parent->focus_head));
+    Con *next = con::first(con->parent->focus_head);
     if (next != con) {
-        DLOG("Using first entry %p\n", next);
+        DLOG(fmt::sprintf("Using first entry %p\n",  (void*)next));
     } else {
         /* try to focus the next container on the same level as this one or fall
          * back to its parent */
-        if (!(next = TAILQ_NEXT(con, focused))) {
+        if (!(next = con::next(con, con->parent->focus_head))) {
             next = con->parent;
         }
     }
 
     /* now go down the focus stack as far as
      * possible, excluding the current container */
-    while (!TAILQ_EMPTY(&(next->focus_head)) && TAILQ_FIRST(&(next->focus_head)) != con) {
-        next = TAILQ_FIRST(&(next->focus_head));
+    while (!next->focus_head.empty() && con::first(next->focus_head) != con) {
+        next = con::first(next->focus_head);
     }
 
     if (con->type == CT_FLOATING_CON && next != con->parent) {
@@ -1390,8 +1370,8 @@ Con *con_next_focused(Con *con) {
  */
 Con *con_descend_focused(Con *con) {
     Con *next = con;
-    while (next != focused && !TAILQ_EMPTY(&(next->focus_head)))
-        next = TAILQ_FIRST(&(next->focus_head));
+    while (next != focused && !next->focus_head.empty())
+        next = con::first(next->focus_head);
     return next;
 }
 
@@ -1406,12 +1386,11 @@ Con *con_descend_focused(Con *con) {
 Con *con_descend_tiling_focused(Con *con) {
     Con *next = con;
     Con *before;
-    Con *child;
     if (next == focused)
         return next;
     do {
         before = next;
-        TAILQ_FOREACH (child, &(next->focus_head), focused) {
+        for (auto &child : next->focus_head) {
             if (child->type == CT_FLOATING_CON)
                 continue;
 
@@ -1431,22 +1410,21 @@ Con *con_descend_tiling_focused(Con *con) {
  */
 Con *con_descend_direction(Con *con, direction_t direction) {
     Con *most = nullptr;
-    Con *current;
     int orientation = con_orientation(con);
-    DLOG("con_descend_direction(%p, orientation %d, direction %d)\n", con, orientation, direction);
+    DLOG(fmt::sprintf("con_descend_direction(%p, orientation %d, direction %d)\n",  (void*)con, orientation, direction));
     if (direction == D_LEFT || direction == D_RIGHT) {
         if (orientation == HORIZ) {
             /* If the direction is horizontal, we can use either the first
              * (D_RIGHT) or the last con (D_LEFT) */
             if (direction == D_RIGHT)
-                most = TAILQ_FIRST(&(con->nodes_head));
+                most = con::first(con->nodes_head);
             else
-                most = TAILQ_LAST(&(con->nodes_head), nodes_head);
+                most = con::last(con->nodes_head);
         } else if (orientation == VERT) {
             /* Wrong orientation. We use the last focused con. Within that con,
              * we recurse to chose the left/right con or at least the last
              * focused one. */
-            TAILQ_FOREACH (current, &(con->focus_head), focused) {
+            for (auto &current : con->focus_head) {
                 if (current->type != CT_FLOATING_CON) {
                     most = current;
                     break;
@@ -1464,14 +1442,14 @@ Con *con_descend_direction(Con *con, direction_t direction) {
             /* If the direction is vertical, we can use either the first
              * (D_DOWN) or the last con (D_UP) */
             if (direction == D_UP)
-                most = TAILQ_LAST(&(con->nodes_head), nodes_head);
+                most = con::last(con->nodes_head);
             else
-                most = TAILQ_FIRST(&(con->nodes_head));
+                most = con::first(con->nodes_head);
         } else if (orientation == HORIZ) {
             /* Wrong orientation. We use the last focused con. Within that con,
              * we recurse to chose the top/bottom con or at least the last
              * focused one. */
-            TAILQ_FOREACH (current, &(con->focus_head), focused) {
+            for (auto &current : con->focus_head) {
                 if (current->type != CT_FLOATING_CON) {
                     most = current;
                     break;
@@ -1496,24 +1474,24 @@ Con *con_descend_direction(Con *con, direction_t direction) {
  *
  */
 Rect con_border_style_rect(Con *con) {
-    if (config.hide_edge_borders == HEBM_SMART && con_num_visible_children(con_get_workspace(con)) <= 1) {
-        if (!con_is_floating(con)) {
+    if (config.hide_edge_borders == HEBM_SMART && con->con_get_workspace()->con_num_visible_children() <= 1) {
+        if (!con->con_is_floating()) {
             return (Rect){0, 0, 0, 0};
         }
     }
 
     adjacent_t borders_to_hide = ADJ_NONE;
     int border_width = con->current_border_width;
-    DLOG("The border width for con is set to: %d\n", con->current_border_width);
+    DLOG(fmt::sprintf("The border width for con is set to: %d\n",  con->current_border_width));
     Rect result;
     if (con->current_border_width < 0) {
-        if (con_is_floating(con)) {
+        if (con->con_is_floating()) {
             border_width = config.default_floating_border_width;
         } else {
             border_width = config.default_border_width;
         }
     }
-    DLOG("Effective border width is set to: %d\n", border_width);
+    DLOG(fmt::sprintf("Effective border width is set to: %d\n",  border_width));
     /* Shortcut to avoid calling con_adjacent_borders() on dock containers. */
     int border_style = con_border_style(con);
     if (border_style == BS_NONE)
@@ -1550,10 +1528,10 @@ adjacent_t con_adjacent_borders(Con *con) {
     adjacent_t result = ADJ_NONE;
     /* Floating windows are never adjacent to any other window, so
        don’t hide their border(s). This prevents bug #998. */
-    if (con_is_floating(con))
+    if (con->con_is_floating())
         return result;
 
-    Con *workspace = con_get_workspace(con);
+    Con *workspace = con->con_get_workspace();
     if (con->rect.x == workspace->rect.x)
         result = (adjacent_t)(result | ADJ_LEFT_SCREEN_EDGE);
     if (con->rect.x + con->rect.width == workspace->rect.x + workspace->rect.width)
@@ -1582,10 +1560,10 @@ int con_border_style(Con *con) {
     }
 
     if (con->parent->layout == L_STACKED)
-        return (con_num_children(con->parent) == 1 ? con->border_style : BS_NORMAL);
+        return (con->parent->con_num_children() == 1 ? con->border_style : BS_NORMAL);
 
     if (con->parent->layout == L_TABBED && con->border_style != BS_NORMAL)
-        return (con_num_children(con->parent) == 1 ? con->border_style : BS_NORMAL);
+        return (con->parent->con_num_children() == 1 ? con->border_style : BS_NORMAL);
 
     if (con->parent->type == CT_DOCKAREA)
         return BS_NONE;
@@ -1600,7 +1578,7 @@ int con_border_style(Con *con) {
  */
 void con_set_border_style(Con *con, int border_style, int border_width) {
     /* Handle the simple case: non-floating containerns */
-    if (!con_is_floating(con)) {
+    if (!con->con_is_floating()) {
         con->border_style = (border_style_t)border_style;
         con->current_border_width = border_width;
         return;
@@ -1617,8 +1595,8 @@ void con_set_border_style(Con *con, int border_style, int border_width) {
     Rect bsr = con_border_style_rect(con);
     int deco_height = (con->border_style == BS_NORMAL ? render_deco_height() : 0);
 
-    con->rect = rect_add(con->rect, bsr);
-    parent->rect = rect_add(parent->rect, bsr);
+    con->rect += bsr;
+    parent->rect += bsr;
     parent->rect.y += deco_height;
     parent->rect.height -= deco_height;
 
@@ -1628,8 +1606,8 @@ void con_set_border_style(Con *con, int border_style, int border_width) {
     bsr = con_border_style_rect(con);
     deco_height = (con->border_style == BS_NORMAL ? render_deco_height() : 0);
 
-    con->rect = rect_sub(con->rect, bsr);
-    parent->rect = rect_sub(parent->rect, bsr);
+    con->rect -= bsr;
+    parent->rect -= bsr;
     parent->rect.y -= deco_height;
     parent->rect.height += deco_height;
 }
@@ -1641,8 +1619,8 @@ void con_set_border_style(Con *con, int border_style, int border_width) {
  *
  */
 void con_set_layout(Con *con, layout_t layout) {
-    DLOG("con_set_layout(%p, %d), con->type = %d\n",
-         con, layout, con->type);
+    DLOG(fmt::sprintf("con_set_layout(%p, %d), con->type = %d\n",
+         (void*)con, layout, con->type));
 
     /* Users can focus workspaces, but not any higher in the hierarchy.
      * Focus on the workspace is a special case, since in every other case, the
@@ -1661,16 +1639,16 @@ void con_set_layout(Con *con, layout_t layout) {
      * intuitive operations (like level-up and then opening a new window), we
      * need to create a new split container. */
     if (con->type == CT_WORKSPACE) {
-        if (con_num_children(con) == 0) {
+        if (con->con_num_children() == 0) {
             layout_t ws_layout = (layout == L_STACKED || layout == L_TABBED) ? layout : L_DEFAULT;
-            DLOG("Setting workspace_layout to %d\n", ws_layout);
+            DLOG(fmt::sprintf("Setting workspace_layout to %d\n",  ws_layout));
             con->workspace_layout = ws_layout;
-            DLOG("Setting layout to %d\n", layout);
+            DLOG(fmt::sprintf("Setting layout to %d\n",  layout));
             con->layout = layout;
         } else if (layout == L_STACKED || layout == L_TABBED || layout == L_SPLITV || layout == L_SPLITH) {
             DLOG("Creating new split container\n");
             /* 1: create a new split container */
-            Con *new_con = con_new(nullptr, nullptr);
+            Con *new_con = new Con();
             new_con->parent = con;
 
             /* 2: Set the requested layout on the split container and mark it as
@@ -1679,22 +1657,21 @@ void con_set_layout(Con *con, layout_t layout) {
             new_con->last_split_layout = con->last_split_layout;
 
             /* 3: move the existing cons of this workspace below the new con */
-            Con **focus_order = get_focus_order(con);
+            auto focus_order = con->get_focus_order();
 
             DLOG("Moving cons\n");
             Con *child;
-            while (!TAILQ_EMPTY(&(con->nodes_head))) {
-                child = TAILQ_FIRST(&(con->nodes_head));
-                con_detach(child);
-                con_attach(child, new_con, true);
+            while (!con->nodes_head.empty()) {
+                child = con::first(con->nodes_head);
+                child->con_detach();
+                child->con_attach(new_con, true);
             }
 
-            set_focus_order(new_con, focus_order);
-            free(focus_order);
+            new_con->set_focus_order(focus_order);
 
             /* 4: attach the new split container to the workspace */
             DLOG("Attaching new split to ws\n");
-            con_attach(new_con, con, false);
+            new_con->con_attach(con, false);
 
             tree_flatten(croot);
             con_force_split_parents_redraw(con);
@@ -1732,7 +1709,7 @@ void con_toggle_layout(Con *con, const char *toggle_mode) {
      * user means "change the layout of the parent split container". */
     if (con->type != CT_WORKSPACE)
         parent = con->parent;
-    DLOG("con_toggle_layout(%p, %s), parent = %p\n", con, toggle_mode, parent);
+    DLOG(fmt::sprintf("con_toggle_layout(%p, %s), parent = %p\n",  (void*)con, toggle_mode, (void*)parent));
 
     const char delim[] = " ";
 
@@ -1761,7 +1738,7 @@ void con_toggle_layout(Con *con, const char *toggle_mode) {
             } else {
                 bool success = layout_from_name(cur_tok, &layout);
                 if (!success || layout == L_DEFAULT) {
-                    ELOG("The token '%s' was not recognized and has been skipped.\n", cur_tok);
+                    ELOG(fmt::sprintf("The token '%s' was not recognized and has been skipped.\n",  cur_tok));
                     continue;
                 }
             }
@@ -1818,46 +1795,42 @@ void con_toggle_layout(Con *con, const char *toggle_mode) {
  * is exactly one child.
  *
  */
-static void con_on_remove_child(Con *con) {
+void Con::on_remove_child() {
     DLOG("on_remove_child\n");
 
     /* Every container 'above' (in the hierarchy) the workspace content should
      * not be closed when the last child was removed */
-    if (con->type == CT_OUTPUT ||
-        con->type == CT_ROOT ||
-        con->type == CT_DOCKAREA ||
-        (con->parent != nullptr && con->parent->type == CT_OUTPUT)) {
-        DLOG("not handling, type = %d, name = %s\n", con->type, con->name);
+    if (this->type == CT_OUTPUT ||
+        this->type == CT_ROOT ||
+        this->type == CT_DOCKAREA ||
+        (this->parent != nullptr && this->parent->type == CT_OUTPUT)) {
+        DLOG(fmt::sprintf("not handling, type = %d, name = %s\n",  this->type, this->name));
         return;
     }
 
     /* For workspaces, close them only if they're not visible anymore */
-    if (con->type == CT_WORKSPACE) {
-        if (TAILQ_EMPTY(&(con->focus_head)) && !workspace_is_visible(con)) {
-            LOG("Closing old workspace (%p / %s), it is empty\n", con, con->name);
-            yajl_gen gen = ipc_marshal_workspace_event("empty", con, nullptr);
-            tree_close_internal(con, DONT_KILL_WINDOW, false);
+    if (this->type == CT_WORKSPACE) {
+        if (this->focus_head.empty() && !workspace_is_visible(this)) {
+            LOG(fmt::sprintf("Closing old workspace (%p / %s), it is empty\n",  (void*)this, this->name));
+            auto gen = ipc_marshal_workspace_event("empty", this, nullptr);
+            tree_close_internal(this, DONT_KILL_WINDOW, false);
 
-            const unsigned char *payload;
-            size_t length;
-            yajl_gen_get_buf(gen, &payload, &length);
-            ipc_send_event("workspace", I3_IPC_EVENT_WORKSPACE, (const char *)payload);
-
-            yajl_gen_free(gen);
+            auto payload = gen.dump();
+            ipc_send_event("workspace", I3_IPC_EVENT_WORKSPACE, payload);
         }
         return;
     }
 
-    con_force_split_parents_redraw(con);
-    con->urgent = con_has_urgent_child(con);
-    con_update_parents_urgency(con);
+    con_force_split_parents_redraw(this);
+    this->urgent = con_has_urgent_child(this);
+    con_update_parents_urgency(this);
 
     /* TODO: check if this container would swallow any other client and
      * don’t close it automatically. */
-    int children = con_num_children(con);
+    auto children = this->con_num_children();
     if (children == 0) {
         DLOG("Container empty, closing\n");
-        tree_close_internal(con, DONT_KILL_WINDOW, false);
+        tree_close_internal(this, DONT_KILL_WINDOW, false);
         return;
     }
 }
@@ -1909,13 +1882,13 @@ bool con_fullscreen_permits_focusing(Con *con) {
     /* If fullscreen is per-output, the focus being in a different workspace is
      * sufficient to guarantee that change won't leave fullscreen in bad shape. */
     if (fs->fullscreen_mode == CF_OUTPUT &&
-        con_get_workspace(con) != con_get_workspace(fs)) {
+            con->con_get_workspace() != fs->con_get_workspace()) {
         return true;
     }
 
     /* Allow it only if the container to be focused is contained within the
      * current fullscreen container. */
-    return con_has_parent(con, fs);
+    return con->con_has_parent(fs);
 }
 
 /*
@@ -1924,19 +1897,12 @@ bool con_fullscreen_permits_focusing(Con *con) {
  *
  */
 bool con_has_urgent_child(Con *con) {
-    Con *child;
-
-    if (con_is_leaf(con))
+    if (con->con_is_leaf())
         return con->urgent;
 
     /* We are not interested in floating windows since they can only be
      * attached to a workspace → nodes_head instead of focus_head */
-    TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
-        if (con_has_urgent_child(child))
-            return true;
-    }
-
-    return false;
+    return std::ranges::any_of(con->nodes_head, [](Con *child) { return con_has_urgent_child(child); });
 }
 
 /*
@@ -2000,11 +1966,11 @@ void con_set_urgency(Con *con, bool urgent) {
     Con *ws;
     /* Set the urgency flag on the workspace, if a workspace could be found
      * (for dock clients, that is not the case). */
-    if ((ws = con_get_workspace(con)) != nullptr)
+    if ((ws = con->con_get_workspace()) != nullptr)
         workspace_update_urgent_flag(ws);
 
     if (con->urgent != old_urgent) {
-        LOG("Urgency flag changed to %d\n", con->urgent);
+        LOG(fmt::sprintf("Urgency flag changed to %d\n",  con->urgent));
         ipc_send_window_event("urgent", con);
     }
 }
@@ -2013,7 +1979,7 @@ void con_set_urgency(Con *con, bool urgent) {
  * Create a string representing the subtree under con.
  *
  */
-char *con_get_tree_representation(Con *con) {
+std::string con_get_tree_representation(Con *con) {
     /* this code works as follows:
      *  1) create a string with the layout type (D/V/H/T/S) and an opening bracket
      *  2) append the tree representation of the children to the string
@@ -2024,7 +1990,7 @@ char *con_get_tree_representation(Con *con) {
      */
 
     /* end of recursion */
-    if (con_is_leaf(con)) {
+    if (con->con_is_leaf()) {
         if (!con->window)
             return sstrdup("nowin");
 
@@ -2034,42 +2000,33 @@ char *con_get_tree_representation(Con *con) {
         return sstrdup(con->window->class_instance);
     }
 
-    char *buf;
+    std::string buf{};
     /* 1) add the Layout type to buf */
     if (con->layout == L_DEFAULT)
-        buf = sstrdup("D[");
+        buf.push_back('D');
     else if (con->layout == L_SPLITV)
-        buf = sstrdup("V[");
+        buf.push_back('V');
     else if (con->layout == L_SPLITH)
-        buf = sstrdup("H[");
+        buf.push_back('H');
     else if (con->layout == L_TABBED)
-        buf = sstrdup("T[");
+        buf.push_back('T');
     else if (con->layout == L_STACKED)
-        buf = sstrdup("S[");
+        buf.push_back('S');
     else {
         ELOG("BUG: Code not updated to account for new layout type\n");
         assert(false);
     }
+    buf.push_back('[');
 
     /* 2) append representation of children */
-    Con *child;
-    TAILQ_FOREACH (child, &(con->nodes_head), nodes) {
-        char *child_txt = con_get_tree_representation(child);
-
-        char *tmp_buf;
-        sasprintf(&tmp_buf, "%s%s%s", buf,
-                  (TAILQ_FIRST(&(con->nodes_head)) == child ? "" : " "), child_txt);
-        free(buf);
-        buf = tmp_buf;
-        free(child_txt);
+    for (auto &child : con->nodes_head) {
+        buf.append((con::first(con->nodes_head) == child ? "" : " "));
+        buf.append(con_get_tree_representation(child));
     }
 
     /* 3) close the brackets */
-    char *complete_buf;
-    sasprintf(&complete_buf, "%s]", buf);
-    free(buf);
-
-    return complete_buf;
+    buf.push_back(']');
+    return buf;
 }
 
 /*
@@ -2077,7 +2034,7 @@ char *con_get_tree_representation(Con *con) {
  *
  */
 i3String *con_parse_title_format(Con *con) {
-    assert(con->title_format != nullptr);
+    assert(!con->title_format.empty());
 
     i3Window *win = con->window;
 
@@ -2085,161 +2042,35 @@ i3String *con_parse_title_format(Con *con) {
      * is used by the current font. */
     const bool pango_markup = font_is_pango();
 
-    char *title;
-    char *window_class;
-    char *instance;
-    char *machine;
+    std::string title;
+    std::string window_class;
+    std::string instance;
+    std::string machine;
     if (win == nullptr) {
         title = pango_escape_markup(con_get_tree_representation(con));
-        window_class = sstrdup("i3-frame");
-        instance = sstrdup("i3-frame");
-        machine = sstrdup("");
+        window_class = "i3-frame";
+        instance = "i3-frame";
+        machine = "";
     } else {
-        title = pango_escape_markup(sstrdup((win->name == nullptr) ? "" : i3string_as_utf8(win->name)));
-        window_class = pango_escape_markup(sstrdup((win->class_class == nullptr) ? "" : win->class_class));
-        instance = pango_escape_markup(sstrdup((win->class_instance == nullptr) ? "" : win->class_instance));
-        machine = pango_escape_markup(sstrdup((win->machine == nullptr) ? "" : win->machine));
+        title = pango_escape_markup((win->name == nullptr) ? "" : i3string_as_utf8(win->name));
+        window_class = pango_escape_markup((win->class_class == nullptr) ? "" : win->class_class);
+        instance = pango_escape_markup((win->class_instance == nullptr) ? "" : win->class_instance);
+        machine = pango_escape_markup((win->machine == nullptr) ? "" : win->machine);
     }
 
     placeholder_t placeholders[] = {
-        {.name = "%title", .value = title},
-        {.name = "%class", .value = window_class},
-        {.name = "%instance", .value = instance},
-        {.name = "%machine", .value = machine},
+        {.name = "%title", .value = title.c_str()},
+        {.name = "%class", .value = window_class.c_str()},
+        {.name = "%instance", .value = instance.c_str()},
+        {.name = "%machine", .value = machine.c_str()},
     };
     const size_t num = sizeof(placeholders) / sizeof(placeholder_t);
 
-    char *formatted_str = format_placeholders(con->title_format, &placeholders[0], num);
+    std::string formatted_str = format_placeholders(con->title_format, &placeholders[0], num);
     i3String *formatted = i3string_from_utf8(formatted_str);
     i3string_set_markup(formatted, pango_markup);
 
-    free(formatted_str);
-    free(title);
-    free(window_class);
-    free(instance);
-
     return formatted;
-}
-
-/*
- * Swaps the two containers.
- *
- */
-bool con_swap(Con *first, Con *second) {
-    assert(first != nullptr);
-    assert(second != nullptr);
-    DLOG("Swapping containers %p / %p\n", first, second);
-
-    if (first->type != CT_CON) {
-        ELOG("Only regular containers can be swapped, but found con = %p with type = %d.\n", first, first->type);
-        return false;
-    }
-
-    if (second->type != CT_CON) {
-        ELOG("Only regular containers can be swapped, but found con = %p with type = %d.\n", second, second->type);
-        return false;
-    }
-
-    if (first == second) {
-        DLOG("Swapping container %p with itself, nothing to do.\n", first);
-        return false;
-    }
-
-    if (con_has_parent(first, second) || con_has_parent(second, first)) {
-        ELOG("Cannot swap containers %p and %p because they are in a parent-child relationship.\n", first, second);
-        return false;
-    }
-
-    Con *ws1 = con_get_workspace(first);
-    Con *ws2 = con_get_workspace(second);
-    Con *restore_focus = nullptr;
-    if (ws1 == ws2 && ws1 == con_get_workspace(focused)) {
-        /* Preserve focus in the current workspace. */
-        restore_focus = focused;
-    } else if (first == focused || con_has_parent(focused, first)) {
-        restore_focus = second;
-    } else if (second == focused || con_has_parent(focused, second)) {
-        restore_focus = first;
-    }
-
-#define SWAP_CONS_IN_TREE(headname, field)                            \
-    do {                                                              \
-        struct headname *head1 = &(first->parent->headname);          \
-        struct headname *head2 = &(second->parent->headname);         \
-        Con *first_prev = TAILQ_PREV(first, headname, field);         \
-        Con *second_prev = TAILQ_PREV(second, headname, field);       \
-        if (second_prev == first) {                                   \
-            TAILQ_SWAP(first, second, head1, field);                  \
-        } else if (first_prev == second) {                            \
-            TAILQ_SWAP(second, first, head1, field);                  \
-        } else {                                                      \
-            TAILQ_REMOVE(head1, first, field);                        \
-            TAILQ_REMOVE(head2, second, field);                       \
-            if (second_prev == NULL) {                                \
-                TAILQ_INSERT_HEAD(head2, first, field);               \
-            } else {                                                  \
-                TAILQ_INSERT_AFTER(head2, second_prev, first, field); \
-            }                                                         \
-            if (first_prev == NULL) {                                 \
-                TAILQ_INSERT_HEAD(head1, second, field);              \
-            } else {                                                  \
-                TAILQ_INSERT_AFTER(head1, first_prev, second, field); \
-            }                                                         \
-        }                                                             \
-    } while (0)
-
-    SWAP_CONS_IN_TREE(nodes_head, nodes);
-    SWAP_CONS_IN_TREE(focus_head, focused);
-    SWAP(first->parent, second->parent, Con *);
-
-    /* Floating nodes are children of CT_FLOATING_CONs, they are listed in
-     * nodes_head and focus_head like all other containers. Thus, we don't need
-     * to do anything special other than swapping the floating status and the
-     * relevant rects. */
-    int tmp_SWAP = first->floating;
-    first->floating = second->floating;
-    second->floating = (con_floating_t)tmp_SWAP;
-    SWAP(first->rect, second->rect, Rect);
-    SWAP(first->window_rect, second->window_rect, Rect);
-
-    /* We need to copy each other's percentages to ensure that the geometry
-     * doesn't change during the swap. */
-    SWAP(first->percent, second->percent, double);
-
-    if (restore_focus) {
-        con_focus(restore_focus);
-    }
-
-    /* Update new parents' & workspaces' urgency. */
-    con_set_urgency(first, first->urgent);
-    con_set_urgency(second, second->urgent);
-
-    /* Exchange fullscreen modes, can't use SWAP because we need to call the
-     * correct functions. */
-    fullscreen_mode_t second_fullscreen_mode = second->fullscreen_mode;
-    if (first->fullscreen_mode == CF_NONE) {
-        con_disable_fullscreen(second);
-    } else {
-        con_enable_fullscreen(second, first->fullscreen_mode);
-    }
-    if (second_fullscreen_mode == CF_NONE) {
-        con_disable_fullscreen(first);
-    } else {
-        con_enable_fullscreen(first, second_fullscreen_mode);
-    }
-
-    /* We don't actually need this since percentages-wise we haven't changed
-     * anything, but we'll better be safe than sorry and just make sure as we'd
-     * otherwise crash i3. */
-    con_fix_percent(first->parent);
-    con_fix_percent(second->parent);
-
-    FREE(first->deco_render_params);
-    FREE(second->deco_render_params);
-    con_force_split_parents_redraw(first);
-    con_force_split_parents_redraw(second);
-
-    return true;
 }
 
 /*
@@ -2261,10 +2092,9 @@ void con_merge_into(Con *old, Con *new_con) {
     new_con->window = old->window;
     old->window = nullptr;
 
-    if (old->title_format) {
-        FREE(new_con->title_format);
+    if (!old->title_format.empty()) {
         new_con->title_format = old->title_format;
-        old->title_format = nullptr;
+        old->title_format.clear();
     }
 
     if (old->sticky_group) {

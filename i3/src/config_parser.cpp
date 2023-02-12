@@ -26,6 +26,7 @@
 #include <cassert>
 #include <cerrno>
 #include <climits>
+#include <sstream>
 
 #include <cstdint>
 #include <cstdio>
@@ -36,26 +37,20 @@
 
 #include "libi3.h"
 
-#include "data.h"
+#include "parser_stack.h"
 #include "util.h"
-#include "log.h"
 #include "i3.h"
 #include "configuration.h"
 #include "bindings.h"
 #include "config_directives.h"
 #include "config_parser.h"
+#include "nagbar.h"
 
 #include <fcntl.h>
 #include <unistd.h>
 #include <libgen.h>
 
 #include <xcb/xcb_xrm.h>
-
-xcb_xrm_database_t *database = nullptr;
-
-#ifndef TEST_PARSER
-pid_t config_error_nagbar_pid = -1;
-#endif
 
 /*******************************************************************************
  * The data structures used for parsing. Essentially the current state and a
@@ -67,7 +62,7 @@ pid_t config_error_nagbar_pid = -1;
 
 #include "GENERATED_config_enums.h"
 
-typedef struct token {
+struct cmdp_token {
     const char *name;
     const char *identifier;
     /* This might be __CALL */
@@ -75,98 +70,14 @@ typedef struct token {
     union {
         uint16_t call_identifier;
     } extra;
-} cmdp_token;
+};
 
-typedef struct tokenptr {
+struct cmdp_token_ptr {
     cmdp_token *array;
     int n;
-} cmdp_token_ptr;
+};
 
 #include "GENERATED_config_tokens.h"
-
-/*
- * Pushes a string (identified by 'identifier') on the stack. We simply use a
- * single array, since the number of entries we have to store is very small.
- *
- */
-static void push_string(struct stack *ctx, const char *identifier, const char *str) {
-    for (int c = 0; c < 10; c++) {
-        if (ctx->stack[c].identifier != nullptr &&
-            strcmp(ctx->stack[c].identifier, identifier) != 0)
-            continue;
-        if (ctx->stack[c].identifier == nullptr) {
-            /* Found a free slot, let’s store it here. */
-            ctx->stack[c].identifier = identifier;
-            ctx->stack[c].val.str = sstrdup(str);
-            ctx->stack[c].type = stack_entry::STACK_STR;
-        } else {
-            /* Append the value. */
-            char *prev = ctx->stack[c].val.str;
-            sasprintf(&(ctx->stack[c].val.str), "%s,%s", prev, str);
-            free(prev);
-        }
-        return;
-    }
-
-    /* When we arrive here, the stack is full. This should not happen and
-     * means there’s either a bug in this parser or the specification
-     * contains a command with more than 10 identified tokens. */
-    fprintf(stderr, "BUG: config_parser stack full. This means either a bug "
-                    "in the code, or a new command which contains more than "
-                    "10 identified tokens.\n");
-    exit(EXIT_FAILURE);
-}
-
-static void push_long(struct stack *ctx, const char *identifier, long num) {
-    for (int c = 0; c < 10; c++) {
-        if (ctx->stack[c].identifier != nullptr) {
-            continue;
-        }
-        /* Found a free slot, let’s store it here. */
-        ctx->stack[c].identifier = identifier;
-        ctx->stack[c].val.num = num;
-        ctx->stack[c].type = stack_entry::STACK_LONG;
-        return;
-    }
-
-    /* When we arrive here, the stack is full. This should not happen and
-     * means there’s either a bug in this parser or the specification
-     * contains a command with more than 10 identified tokens. */
-    fprintf(stderr, "BUG: config_parser stack full. This means either a bug "
-                    "in the code, or a new command which contains more than "
-                    "10 identified tokens.\n");
-    exit(EXIT_FAILURE);
-}
-
-static const char *get_string(struct stack *ctx, const char *identifier) {
-    for (int c = 0; c < 10; c++) {
-        if (ctx->stack[c].identifier == nullptr)
-            break;
-        if (strcmp(identifier, ctx->stack[c].identifier) == 0)
-            return ctx->stack[c].val.str;
-    }
-    return nullptr;
-}
-
-static long get_long(struct stack *ctx, const char *identifier) {
-    for (int c = 0; c < 10; c++) {
-        if (ctx->stack[c].identifier == nullptr)
-            break;
-        if (strcmp(identifier, ctx->stack[c].identifier) == 0)
-            return ctx->stack[c].val.num;
-    }
-    return 0;
-}
-
-static void clear_stack(struct stack *ctx) {
-    for (int c = 0; c < 10; c++) {
-        if (ctx->stack[c].type == stack_entry::STACK_STR)
-            free(ctx->stack[c].val.str);
-        ctx->stack[c].identifier = nullptr;
-        ctx->stack[c].val.str = nullptr;
-        ctx->stack[c].val.num = 0;
-    }
-}
 
 /*******************************************************************************
  * The parser itself.
@@ -174,7 +85,7 @@ static void clear_stack(struct stack *ctx) {
 
 #include "GENERATED_config_call.h"
 
-static void next_state(const cmdp_token *token, struct parser_ctx *ctx) {
+static void next_state(const cmdp_token *token, struct parser_ctx &ctx) {
     cmdp_state _next_state = token->next_state;
 
     //printf("token = name %s identifier %s\n", token->name, token->identifier);
@@ -183,31 +94,31 @@ static void next_state(const cmdp_token *token, struct parser_ctx *ctx) {
         struct ConfigResultIR subcommand_output = {
             .ctx = ctx,
         };
-        GENERATED_call(&(ctx->current_match), ctx->stack, token->extra.call_identifier, &subcommand_output);
+        GENERATED_call(ctx.criteria_state, ctx.stack, token->extra.call_identifier, subcommand_output);
         if (subcommand_output.has_errors) {
-            ctx->has_errors = true;
+            ctx.has_errors = true;
         }
         _next_state = (cmdp_state)subcommand_output.next_state;
-        clear_stack(ctx->stack);
+        clear_stack(ctx.stack);
     }
 
-    ctx->state = _next_state;
-    if (ctx->state == INITIAL) {
-        clear_stack(ctx->stack);
+    ctx.state = _next_state;
+    if (ctx.state == INITIAL) {
+        clear_stack(ctx.stack);
     }
 
     /* See if we are jumping back to a state in which we were in previously
      * (statelist contains INITIAL) and just move statelist_idx accordingly. */
-    for (int i = 0; i < ctx->statelist_idx; i++) {
-        if ((cmdp_state)(ctx->statelist[i]) != _next_state) {
+    for (int i = 0; i < ctx.statelist_idx; i++) {
+        if ((cmdp_state)(ctx.statelist[i]) != _next_state) {
             continue;
         }
-        ctx->statelist_idx = i + 1;
+        ctx.statelist_idx = i + 1;
         return;
     }
 
     /* Otherwise, the state is new and we add it to the list */
-    ctx->statelist[ctx->statelist_idx++] = _next_state;
+    ctx.statelist[ctx.statelist_idx++] = _next_state;
 }
 
 /*
@@ -215,8 +126,8 @@ static void next_state(const cmdp_token *token, struct parser_ctx *ctx) {
  * \n) or the start of the input, if this is the first line.
  *
  */
-static const char *start_of_line(const char *walk, const char *beginning) {
-    while (walk >= beginning && *walk != '\n' && *walk != '\r') {
+static const char *start_of_line(const char *walk, const std::string &beginning) {
+    while (walk >= beginning.c_str() && *walk != '\n' && *walk != '\r') {
         walk--;
     }
 
@@ -237,46 +148,266 @@ static char *single_line(const char *start) {
     return result;
 }
 
-static void parse_config(struct parser_ctx *ctx, const char *input, struct context *context) {
-    /* Dump the entire config file into the debug log. We cannot just use
-     * DLOG("%s", input); because one log message must not exceed 4 KiB. */
-    const char *dumpwalk = input;
-    int linecnt = 1;
-    while (*dumpwalk != '\0') {
-        char *next_nl = (char*)strchr(dumpwalk, '\n');
-        if (next_nl != nullptr) {
-            DLOG("CONFIG(line %3d): %.*s\n", linecnt, (int)(next_nl - dumpwalk), dumpwalk);
-            dumpwalk = next_nl + 1;
+static std::string get_possible_tokens(const cmdp_token_ptr *ptr) {
+    std::string possible_tokens{};
+    for (int c = 0; c < ptr->n; c++) {
+        auto token = &(ptr->array[c]);
+        if (token->name[0] == '\'') {
+            /* A literal is copied to the error message enclosed with
+             * single quotes. */
+            possible_tokens.append(fmt::format("'{}'", token->name + 1));
         } else {
-            DLOG("CONFIG(line %3d): %s\n", linecnt, dumpwalk);
+            /* Skip error tokens in error messages, they are used
+             * internally only and might confuse users. */
+            if (strcmp(token->name, "error") == 0)
+                continue;
+            /* Any other token is copied to the error message enclosed
+             * with angle brackets. */
+            possible_tokens.append(fmt::format("<{}>", token->name));
+        }
+        if (c < (ptr->n - 1)) {
+            possible_tokens.append(", ");
+        }
+    }
+
+    return possible_tokens;
+}
+
+/* Figure out how much memory we will need to fill in the names of
+ * all tokens afterwards. */
+static void unhandled_token(const std::string &input, const char *filename, int linecnt, const size_t len, const cmdp_token_ptr *ptr, parser_ctx &ctx, bool &has_errors, const char **walk) {
+    /* Build up a decent error message. We include the problem, the
+     * full input, and underline the position where the parser
+     * currently is. */
+    std::string possible_tokens = get_possible_tokens(ptr);
+    /* Go back to the beginning of the line */
+    const char *error_line = start_of_line(*walk, input);
+
+    /* Contains the same amount of characters as 'input' has, but with
+     * the unparseable part highlighted using ^ characters. */
+    char *position = (char*)scalloc(strlen(error_line) + 1, 1);
+    const char *copywalk;
+    for (copywalk = error_line;
+         *copywalk != '\n' && *copywalk != '\r' && *copywalk != '\0';
+         copywalk++)
+        position[(copywalk - error_line)] = (copywalk >= *walk ? '^' : (*copywalk == '\t' ? '\t' : ' '));
+    position[(copywalk - error_line)] = '\0';
+
+    ELOG(fmt::sprintf("CONFIG: Expected one of these tokens: %s\n", possible_tokens));
+    ELOG(fmt::sprintf("CONFIG: (in file %s)\n", filename));
+    char *error_copy = single_line(error_line);
+
+    /* Print context lines *before* the error, if any. */
+    if (linecnt > 1) {
+        const char *context_p1_start = start_of_line(error_line - 2, input);
+        char *context_p1_line = single_line(context_p1_start);
+        if (linecnt > 2) {
+            const char *context_p2_start = start_of_line(context_p1_start - 2, input);
+            char *context_p2_line = single_line(context_p2_start);
+            ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 2, context_p2_line));
+            free(context_p2_line);
+        }
+        ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 1, context_p1_line));
+        free(context_p1_line);
+    }
+    ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt, error_copy));
+    ELOG(fmt::sprintf("CONFIG:           %s\n",  position));
+    free(error_copy);
+    /* Print context lines *after* the error, if any. */
+    for (int i = 0; i < 2; i++) {
+        char *error_line_end = (char*)strchr(error_line, '\n');
+        if (error_line_end != nullptr && *(error_line_end + 1) != '\0') {
+            error_line = error_line_end + 1;
+            error_copy = single_line(error_line);
+            ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt + i + 1, error_copy));
+            free(error_copy);
+        }
+    }
+
+    has_errors = true;
+
+    /* Skip the rest of this line, but continue parsing. */
+    while ((size_t)(*walk - input.c_str()) <= len && **walk != '\n')
+        (*walk)++;
+
+    free(position);
+    clear_stack(ctx.stack);
+
+    /* To figure out in which state to go (e.g. MODE or INITIAL),
+     * we find the nearest state which contains an <error> token
+     * and follow that one. */
+    bool error_token_found = false;
+    for (int i = ctx.statelist_idx - 1; (i >= 0) && !error_token_found; i--) {
+        cmdp_token_ptr *errptr = &(tokens[ctx.statelist[i]]);
+        for (int j = 0; j < errptr->n; j++) {
+            if (strcmp(errptr->array[j].name, "error") != 0)
+                continue;
+            next_state(&(errptr->array[j]), ctx);
+            error_token_found = true;
             break;
         }
         linecnt++;
     }
-    ctx->state = INITIAL;
-    for (int i = 0; i < 10; i++) {
-        ctx->statelist[i] = INITIAL;
+
+    assert(error_token_found);
+}
+
+/* Dump the entire config file into the debug log. We cannot just use
+ * DLOG(fmt::sprintf("%s",  input)); because one log message must not exceed 4 KiB. */
+static void log_config(const std::string &input) {
+    std::istringstream iss(input);
+
+    int linecnt = 1;
+    for (std::string line; std::getline(iss, line); linecnt++) {
+        DLOG(fmt::sprintf("CONFIG(line %3d): %s\n",  linecnt, line));
     }
-    ctx->statelist_idx = 1;
+}
 
-    const char *walk = input;
-    const size_t len = strlen(input);
-    int c;
-    const cmdp_token *token;
-    bool token_handled;
-    linecnt = 1;
+static bool handle_literal(const char **walk, const cmdp_token *token, parser_ctx &ctx) {
+    if (strncasecmp(*walk, token->name + 1, strlen(token->name) - 1) == 0) {
+        if (token->identifier != nullptr) {
+            push_string_append(ctx.stack, token->identifier, token->name + 1);
+        }
+        *walk += strlen(token->name) - 1;
+        next_state(token, ctx);
+        return true;
+    }
 
-// TODO: make this testable
-#ifndef TEST_PARSER
+    return false;
+}
+
+static bool handle_number(const char **walk, const cmdp_token *token, parser_ctx &ctx) {
+    char *end = nullptr;
+    errno = 0;
+    long int num = strtol(*walk, &end, 10);
+    if ((errno == ERANGE && (num == LONG_MIN || num == LONG_MAX)) ||
+        (errno != 0 && num == 0))
+        return false;
+
+    /* No valid numbers found */
+    if (end == *walk)
+        return false;
+
+    if (token->identifier != nullptr) {
+        push_long(ctx.stack, token->identifier, num);
+    }
+
+    /* Set walk to the first non-number character */
+    *walk = end;
+    next_state(token, ctx);
+    return true;
+}
+
+static bool handle_word(const char **walk, const cmdp_token *token, parser_ctx &ctx) {
+    const char *beginning = *walk;
+    /* Handle quoted strings (or words). */
+    if (**walk == '"') {
+        beginning++;
+        (*walk)++;
+        while (**walk != '\0' && (**walk != '"' || *(*walk - 1) == '\\'))
+            (*walk)++;
+    } else {
+        if (token->name[0] == 's') {
+            while (**walk != '\0' && **walk != '\r' && **walk != '\n')
+                (*walk)++;
+        } else {
+            /* For a word, the delimiters are white space (' ' or
+                         * '\t'), closing square bracket (]), comma (,) and
+                         * semicolon (;). */
+            while (**walk != ' ' && **walk != '\t' &&
+                   **walk != ']' && **walk != ',' &&
+                   **walk != ';' && **walk != '\r' &&
+                   **walk != '\n' && **walk != '\0')
+                (*walk)++;
+        }
+    }
+    if (*walk != beginning) {
+        char *str = (char*)scalloc(*walk - beginning + 1, 1);
+        /* We copy manually to handle escaping of characters. */
+        int inpos, outpos;
+        for (inpos = 0, outpos = 0;
+             inpos < (*walk - beginning);
+             inpos++, outpos++) {
+            /* We only handle escaped double quotes to not break
+                         * backwards compatibility with people using \w in
+                         * regular expressions etc. */
+            if (beginning[inpos] == '\\' && beginning[inpos + 1] == '"')
+                inpos++;
+            str[outpos] = beginning[inpos];
+        }
+        if (token->identifier) {
+            push_string_append(ctx.stack, token->identifier, str);
+        }
+        free(str);
+        /* If we are at the end of a quoted string, skip the ending
+                     * double quote. */
+        if (**walk == '"')
+            (*walk)++;
+        next_state(token, ctx);
+        return true;
+    }
+
+    return false;
+}
+
+static bool handle_line(const char **walk, const cmdp_token *token, parser_ctx &ctx) {
+    while (**walk != '\0' && **walk != '\n' && **walk != '\r')
+        (*walk)++;
+    next_state(token, ctx);
+    (*walk)++;
+    return true;
+}
+
+static bool handle_end(const char **walk, const cmdp_token *token, parser_ctx &ctx, ConfigResultIR &subcommand_output, int *linecnt) {
+    //printf("checking for end: *%s*\n", walk);
+    if (**walk == '\0' || **walk == '\n' || **walk == '\r') {
+        next_state(token, ctx);
+        /* To make sure we start with an appropriate matching
+                     * datastructure for commands which do *not* specify any
+                     * criteria, we re-initialize the criteria system after
+                     * every command. */
+        cfg::criteria_init(ctx.criteria_state, subcommand_output, INITIAL);
+        (*linecnt)++;
+        (*walk)++;
+
+        return true;
+    }
+
+    return false;
+}
+
+static void reset_statelist(parser_ctx &ctx) {
+    ctx.state = INITIAL;
+    for (int & i : ctx.statelist) {
+        i = INITIAL;
+    }
+    ctx.statelist_idx = 1;
+}
+
+Variable::~Variable() {
+    FREE(key);
+    FREE(value);
+}
+
+bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *filename) {
+    bool has_errors = false;
+    const char *walk = input.c_str();
+    const size_t len = input.size();
+    int linecnt = 1;
+
+    log_config(input);
+
+    reset_statelist(ctx);
+
     struct ConfigResultIR subcommand_output = {
         .ctx = ctx,
     };
-    cfg_criteria_init(&(ctx->current_match), &subcommand_output, INITIAL);
-#endif
+
+    cfg::criteria_init(ctx.criteria_state, subcommand_output, INITIAL);
 
     /* The "<=" operator is intentional: We also handle the terminating 0-byte
      * explicitly by looking for an 'end' token. */
-    while ((size_t)(walk - input) <= len) {
+    while ((size_t)(walk - input.c_str()) <= len) {
         /* Skip whitespace before every token, newlines are relevant since they
          * separate configuration directives. */
         while ((*walk == ' ' || *walk == '\t') && *walk != '\0')
@@ -284,452 +415,159 @@ static void parse_config(struct parser_ctx *ctx, const char *input, struct conte
 
         //printf("remaining input: %s\n", walk);
 
-        cmdp_token_ptr *ptr = &(tokens[ctx->state]);
-        token_handled = false;
-        for (c = 0; c < ptr->n; c++) {
-            token = &(ptr->array[c]);
+        cmdp_token_ptr *ptr = &(tokens[ctx.state]);
+        bool token_handled = false;
+        for (int c = 0; c < ptr->n && !token_handled; c++) {
+            auto token = &(ptr->array[c]);
 
             /* A literal. */
             if (token->name[0] == '\'') {
-                if (strncasecmp(walk, token->name + 1, strlen(token->name) - 1) == 0) {
-                    if (token->identifier != nullptr) {
-                        push_string(ctx->stack, token->identifier, token->name + 1);
-                    }
-                    walk += strlen(token->name) - 1;
-                    next_state(token, ctx);
-                    token_handled = true;
-                    break;
-                }
-                continue;
-            }
-
-            if (strcmp(token->name, "number") == 0) {
+                token_handled = handle_literal(&walk, token, ctx);
+            } else if (strcmp(token->name, "number") == 0) {
                 /* Handle numbers. We only accept decimal numbers for now. */
-                char *end = nullptr;
-                errno = 0;
-                long int num = strtol(walk, &end, 10);
-                if ((errno == ERANGE && (num == LONG_MIN || num == LONG_MAX)) ||
-                    (errno != 0 && num == 0))
-                    continue;
-
-                /* No valid numbers found */
-                if (end == walk)
-                    continue;
-
-                if (token->identifier != nullptr) {
-                    push_long(ctx->stack, token->identifier, num);
-                }
-
-                /* Set walk to the first non-number character */
-                walk = end;
-                next_state(token, ctx);
-                token_handled = true;
-                break;
-            }
-
-            if (strcmp(token->name, "string") == 0 ||
-                strcmp(token->name, "word") == 0) {
-                const char *beginning = walk;
-                /* Handle quoted strings (or words). */
-                if (*walk == '"') {
-                    beginning++;
-                    walk++;
-                    while (*walk != '\0' && (*walk != '"' || *(walk - 1) == '\\'))
-                        walk++;
-                } else {
-                    if (token->name[0] == 's') {
-                        while (*walk != '\0' && *walk != '\r' && *walk != '\n')
-                            walk++;
-                    } else {
-                        /* For a word, the delimiters are white space (' ' or
-                         * '\t'), closing square bracket (]), comma (,) and
-                         * semicolon (;). */
-                        while (*walk != ' ' && *walk != '\t' &&
-                               *walk != ']' && *walk != ',' &&
-                               *walk != ';' && *walk != '\r' &&
-                               *walk != '\n' && *walk != '\0')
-                            walk++;
-                    }
-                }
-                if (walk != beginning) {
-                    char *str = (char*)scalloc(walk - beginning + 1, 1);
-                    /* We copy manually to handle escaping of characters. */
-                    int inpos, outpos;
-                    for (inpos = 0, outpos = 0;
-                         inpos < (walk - beginning);
-                         inpos++, outpos++) {
-                        /* We only handle escaped double quotes to not break
-                         * backwards compatibility with people using \w in
-                         * regular expressions etc. */
-                        if (beginning[inpos] == '\\' && beginning[inpos + 1] == '"')
-                            inpos++;
-                        str[outpos] = beginning[inpos];
-                    }
-                    if (token->identifier) {
-                        push_string(ctx->stack, token->identifier, str);
-                    }
-                    free(str);
-                    /* If we are at the end of a quoted string, skip the ending
-                     * double quote. */
-                    if (*walk == '"')
-                        walk++;
-                    next_state(token, ctx);
-                    token_handled = true;
-                    break;
-                }
-            }
-
-            if (strcmp(token->name, "line") == 0) {
-                while (*walk != '\0' && *walk != '\n' && *walk != '\r')
-                    walk++;
-                next_state(token, ctx);
-                token_handled = true;
+                token_handled = handle_number(&walk, token, ctx);
+            } else if (strcmp(token->name, "string") == 0 || strcmp(token->name, "word") == 0) {
+                token_handled = handle_word(&walk, token, ctx);
+            } else if (strcmp(token->name, "line") == 0) {
+                token_handled = handle_line(&walk, token, ctx);
                 linecnt++;
-                walk++;
-                break;
-            }
-
-            if (strcmp(token->name, "end") == 0) {
-                //printf("checking for end: *%s*\n", walk);
-                if (*walk == '\0' || *walk == '\n' || *walk == '\r') {
-                    next_state(token, ctx);
-                    token_handled = true;
-                    /* To make sure we start with an appropriate matching
-                     * datastructure for commands which do *not* specify any
-                     * criteria, we re-initialize the criteria system after
-                     * every command. */
-// TODO: make this testable
-#ifndef TEST_PARSER
-                    cfg_criteria_init(&(ctx->current_match), &subcommand_output, INITIAL);
-#endif
-                    linecnt++;
-                    walk++;
-                    break;
-                }
+            } else if (strcmp(token->name, "end") == 0) {
+               token_handled = handle_end(&walk, token, ctx, subcommand_output, &linecnt);
             }
         }
 
         if (!token_handled) {
-            /* Figure out how much memory we will need to fill in the names of
-             * all tokens afterwards. */
-            int tokenlen = 0;
-            for (c = 0; c < ptr->n; c++)
-                tokenlen += strlen(ptr->array[c].name) + strlen("'', ");
-
-            /* Build up a decent error message. We include the problem, the
-             * full input, and underline the position where the parser
-             * currently is. */
-            char *errormessage;
-            char *possible_tokens = (char*)smalloc(tokenlen + 1);
-            char *tokenwalk = possible_tokens;
-            for (c = 0; c < ptr->n; c++) {
-                token = &(ptr->array[c]);
-                if (token->name[0] == '\'') {
-                    /* A literal is copied to the error message enclosed with
-                     * single quotes. */
-                    *tokenwalk++ = '\'';
-                    strcpy(tokenwalk, token->name + 1);
-                    tokenwalk += strlen(token->name + 1);
-                    *tokenwalk++ = '\'';
-                } else {
-                    /* Skip error tokens in error messages, they are used
-                     * internally only and might confuse users. */
-                    if (strcmp(token->name, "error") == 0)
-                        continue;
-                    /* Any other token is copied to the error message enclosed
-                     * with angle brackets. */
-                    *tokenwalk++ = '<';
-                    strcpy(tokenwalk, token->name);
-                    tokenwalk += strlen(token->name);
-                    *tokenwalk++ = '>';
-                }
-                if (c < (ptr->n - 1)) {
-                    *tokenwalk++ = ',';
-                    *tokenwalk++ = ' ';
-                }
-            }
-            *tokenwalk = '\0';
-            sasprintf(&errormessage, "Expected one of these tokens: %s",
-                      possible_tokens);
-            free(possible_tokens);
-
-            /* Go back to the beginning of the line */
-            const char *error_line = start_of_line(walk, input);
-
-            /* Contains the same amount of characters as 'input' has, but with
-             * the unparseable part highlighted using ^ characters. */
-            char *position = (char*)scalloc(strlen(error_line) + 1, 1);
-            const char *copywalk;
-            for (copywalk = error_line;
-                 *copywalk != '\n' && *copywalk != '\r' && *copywalk != '\0';
-                 copywalk++)
-                position[(copywalk - error_line)] = (copywalk >= walk ? '^' : (*copywalk == '\t' ? '\t' : ' '));
-            position[(copywalk - error_line)] = '\0';
-
-            ELOG("CONFIG: %s\n", errormessage);
-            ELOG("CONFIG: (in file %s)\n", context->filename);
-            char *error_copy = single_line(error_line);
-
-            /* Print context lines *before* the error, if any. */
-            if (linecnt > 1) {
-                const char *context_p1_start = start_of_line(error_line - 2, input);
-                char *context_p1_line = single_line(context_p1_start);
-                if (linecnt > 2) {
-                    const char *context_p2_start = start_of_line(context_p1_start - 2, input);
-                    char *context_p2_line = single_line(context_p2_start);
-                    ELOG("CONFIG: Line %3d: %s\n", linecnt - 2, context_p2_line);
-                    free(context_p2_line);
-                }
-                ELOG("CONFIG: Line %3d: %s\n", linecnt - 1, context_p1_line);
-                free(context_p1_line);
-            }
-            ELOG("CONFIG: Line %3d: %s\n", linecnt, error_copy);
-            ELOG("CONFIG:           %s\n", position);
-            free(error_copy);
-            /* Print context lines *after* the error, if any. */
-            for (int i = 0; i < 2; i++) {
-                char *error_line_end = (char*)strchr(error_line, '\n');
-                if (error_line_end != nullptr && *(error_line_end + 1) != '\0') {
-                    error_line = error_line_end + 1;
-                    error_copy = single_line(error_line);
-                    ELOG("CONFIG: Line %3d: %s\n", linecnt + i + 1, error_copy);
-                    free(error_copy);
-                }
-            }
-
-            context->has_errors = true;
-
-            /* Skip the rest of this line, but continue parsing. */
-            while ((size_t)(walk - input) <= len && *walk != '\n')
-                walk++;
-
-            free(position);
-            free(errormessage);
-            clear_stack(ctx->stack);
-
-            /* To figure out in which state to go (e.g. MODE or INITIAL),
-             * we find the nearest state which contains an <error> token
-             * and follow that one. */
-            bool error_token_found = false;
-            for (int i = ctx->statelist_idx - 1; (i >= 0) && !error_token_found; i--) {
-                cmdp_token_ptr *errptr = &(tokens[ctx->statelist[i]]);
-                for (int j = 0; j < errptr->n; j++) {
-                    if (strcmp(errptr->array[j].name, "error") != 0)
-                        continue;
-                    next_state(&(errptr->array[j]), ctx);
-                    error_token_found = true;
-                    break;
-                }
-            }
-
-            assert(error_token_found);
+            unhandled_token(input, filename, linecnt, len, ptr, ctx, has_errors, &walk);
         }
     }
+
+    return has_errors;
 }
 
-/*******************************************************************************
- * Code for building the stand-alone binary test.commands_parser which is used
- * by t/187-commands-parser.t.
- ******************************************************************************/
-
-#ifdef TEST_PARSER
-
-/*
- * Logs the given message to stdout while prefixing the current time to it,
- * but only if debug logging was activated.
- * This is to be called by DLOG() which includes filename/linenumber
- *
- */
-void debuglog(char const *fmt, ...) {
-    va_list args;
-
-    va_start(args, fmt);
-    fprintf(stdout, "# ");
-    vfprintf(stdout, fmt, args);
-    va_end(args);
-}
-
-void errorlog(char const *fmt, ...) {
-    va_list args;
-
-    va_start(args, fmt);
-    vfprintf(stderr, fmt, args);
-    va_end(args);
-}
-
-static int criteria_next_state;
-
-void cfg_criteria_init(I3_CFG, int _state) {
-    criteria_next_state = _state;
-}
-
-void cfg_criteria_add(I3_CFG, const char *ctype, const char *cvalue) {
-}
-
-void cfg_criteria_pop_state(I3_CFG) {
-    result->next_state = criteria_next_state;
-}
-
-int main(int argc, char *argv[]) {
-    if (argc < 2) {
-        fprintf(stderr, "Syntax: %s <command>\n", argv[0]);
-        return 1;
-    }
-    struct stack stack;
-    memset(&stack, '\0', sizeof(struct stack));
-    struct parser_ctx ctx = {
-        .use_nagbar = false,
-        .stack = &stack,
-    };
-    SLIST_INIT(&(ctx.variables));
-    struct context context;
-    context.filename = "<stdin>";
-    parse_config(&ctx, argv[1], &context);
-}
-
-#else
-
+#ifndef TEST_PARSER
 /**
  * Launch nagbar to indicate errors in the configuration file.
  */
-void start_config_error_nagbar(const char *configpath, bool has_errors) {
-    const char *argv[] = {
-        nullptr, /* will be replaced by the executable path */
-        "-f",
-        (config.font.pattern ? config.font.pattern : "fixed"),
-        "-t",
-        (has_errors ? "error" : "warning"),
-        "-m",
-        (has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works."),
-        nullptr};
+void start_config_error_nagbar(bool has_errors) {
+    const char *font_pattern = config.font.pattern ? config.font.pattern : "fixed";
+    auto type = has_errors ? TYPE_ERROR : TYPE_WARNING;
+    const char *text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
 
-    start_nagbar(&config_error_nagbar_pid, argv);
+    std::vector<button_t> buttons{};
+    start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type);
 }
+#endif
+
+class ResourceDatabase {
+    xcb_xrm_database_t *database = nullptr;
+    xcb_connection_t *conn;
+   public:
+
+    explicit ResourceDatabase(xcb_connection_t *conn) : conn(conn) {
+    }
+
+    char* get_resource(char *name, const char *fallback) {
+        if (conn == nullptr) {
+            return nullptr;
+        }
+
+        /* Load the resource database lazily. */
+        if (database == nullptr) {
+            database = xcb_xrm_database_from_default(conn);
+
+            if (database == nullptr) {
+                ELOG("Failed to open the resource database.\n");
+
+                /* Load an empty database so we don't keep trying to load the
+                 * default database over and over again. */
+                database = xcb_xrm_database_from_string("");
+
+                return strdup(fallback);
+            }
+        }
+
+        char *resource;
+        xcb_xrm_resource_get_string(database, name, nullptr, &resource);
+
+        if (resource == nullptr) {
+            DLOG(fmt::sprintf("Could not get resource '%s', using fallback '%s'.\n",  name, fallback));
+            resource = strdup(fallback);
+        }
+
+        return resource;
+    }
+
+    ~ResourceDatabase() {
+        if (database) {
+            xcb_xrm_database_free(database);
+        }
+    }
+};
 
 /*
  * Inserts or updates a variable assignment depending on whether it already exists.
  *
  */
-static void upsert_variable(std::vector<Variable*> *variables, char *key, char *value) {
-    for (struct Variable *current : *variables) {
+static void upsert_variable(std::vector<std::shared_ptr<Variable>> &variables, char *key, char *value) {
+    for (auto &current : variables) {
         if (strcmp(current->key, key) != 0) {
             continue;
         }
 
-        DLOG("Updated variable: %s = %s -> %s\n", key, current->value, value);
+        DLOG(fmt::sprintf("Updated variable: %s = %s -> %s\n",  key, current->value, value));
         FREE(current->value);
         current->value = sstrdup(value);
         return;
     }
 
-    DLOG("Defined new variable: %s = %s\n", key, value);
-    auto *n = (struct Variable*)scalloc(1, sizeof(struct Variable));
-    auto loc = variables->begin();
+    DLOG(fmt::sprintf("Defined new variable: %s = %s\n",  key, value));
+    auto n = std::make_shared<Variable>();
+    auto loc = variables.begin();
     n->key = sstrdup(key);
     n->value = sstrdup(value);
     /* ensure that the correct variable is matched in case of one being
      * the prefix of another */
-    while (loc != variables->end()) {
+    while (loc != variables.end()) {
         if (strlen(n->key) >= strlen((*loc)->key))
             break;
         ++loc;
     }
 
-    if (loc == variables->end()) {
-        variables->insert(variables->begin(), n);
+    if (loc == variables.end()) {
+        variables.insert(variables.begin(), n);
     } else {
-        variables->insert(loc, n);
+        variables.insert(loc, n);
     }
 }
 
-static char *get_resource(char *name) {
-    if (conn == nullptr) {
-        return nullptr;
-    }
-
-    /* Load the resource database lazily. */
-    if (database == nullptr) {
-        database = xcb_xrm_database_from_default(conn);
-
-        if (database == nullptr) {
-            ELOG("Failed to open the resource database.\n");
-
-            /* Load an empty database so we don't keep trying to load the
-             * default database over and over again. */
-            database = xcb_xrm_database_from_string("");
-
-            return nullptr;
-        }
-    }
-
-    char *resource;
-    xcb_xrm_resource_get_string(database, name, nullptr, &resource);
-    return resource;
-}
-
-/*
- * Releases the memory of all variables in ctx.
- *
+/* We need to copy the buffer because we need to invalidate the
+ * variables (otherwise we will count them twice, which is bad when
+ * 'extra' is negative)
  */
-void free_variables(struct parser_ctx *ctx) {
-    struct Variable *current;
-    while (!ctx->variables->empty()) {
-        current = *ctx->variables->begin();
-        FREE(current->key);
-        FREE(current->value);
-        ctx->variables->erase(ctx->variables->begin());
-        FREE(current);
+static size_t count_extra_bytes(const char *buf, __off_t size, parser_ctx &ctx) {
+    size_t extra_bytes = 0;
+    char *bufcopy = sstrdup(buf);
+    for (auto &variable : ctx.variables) {
+        auto current = variable.get();
+        size_t extra = (strlen(current->value) - strlen(current->key));
+        char *next;
+        for (next = bufcopy;
+             next < (bufcopy + size) &&
+             (next = strcasestr(next, current->key)) != nullptr;
+             next += strlen(current->key)) {
+            *next = '_';
+            extra_bytes += extra;
+        }
     }
+    free(bufcopy);
+
+    return extra_bytes;
 }
 
-/*
- * Parses the given file by first replacing the variables, then calling
- * parse_config and possibly launching i3-nagbar.
- *
- */
-parse_file_result_t parse_file(struct parser_ctx *ctx, const char *f) {
-    int fd;
-    struct stat stbuf{};
-    char *buf;
-    FILE *fstr;
-    char buffer[4096], key[512], value[4096], *continuation = nullptr;
-
-    char *old_dir = get_current_dir_name();
-    char *dir = nullptr;
-    /* dirname(3) might modify the buffer, so make a copy: */
-    char *dirbuf = sstrdup(f);
-    if ((dir = dirname(dirbuf)) != nullptr) {
-        LOG("Changing working directory to config file directory %s\n", dir);
-        if (chdir(dir) == -1) {
-            ELOG("chdir(%s) failed: %s\n", dir, strerror(errno));
-            return PARSE_FILE_FAILED;
-        }
-    }
-    free(dirbuf);
-
-    if ((fd = open(f, O_RDONLY)) == -1) {
-        return PARSE_FILE_FAILED;
-    }
-
-    if (fstat(fd, &stbuf) == -1) {
-        return PARSE_FILE_FAILED;
-    }
-
-    buf = (char*)scalloc(stbuf.st_size + 1, 1);
-
-    if ((fstr = fdopen(fd, "r")) == nullptr) {
-        return PARSE_FILE_FAILED;
-    }
-
-    if (current_config == nullptr) {
-        current_config = (char*)scalloc(stbuf.st_size + 1, 1);
-        if ((ssize_t)fread(current_config, 1, stbuf.st_size, fstr) != stbuf.st_size) {
-            return PARSE_FILE_FAILED;
-        }
-        rewind(fstr);
-    }
-
+static bool read_file(FILE *fstr, char *buf, parser_ctx &ctx) {
+    ResourceDatabase resourceDatabase{global.conn};
     bool invalid_sets = false;
+    char buffer[4096], key[512], value[4096], *continuation = nullptr;
 
     while (!feof(fstr)) {
         if (!continuation)
@@ -737,10 +575,10 @@ parse_file_result_t parse_file(struct parser_ctx *ctx, const char *f) {
         if (fgets(continuation, sizeof(buffer) - (continuation - buffer), fstr) == nullptr) {
             if (feof(fstr))
                 break;
-            return PARSE_FILE_FAILED;
+            throw std::runtime_error("Unexpected EOF");
         }
         if (buffer[strlen(buffer) - 1] != '\n' && !feof(fstr)) {
-            ELOG("Your line continuation is too long, it exceeds %zd bytes\n", sizeof(buffer));
+            ELOG(fmt::sprintf("Your line continuation is too long, it exceeds %zd bytes\n",  sizeof(buffer)));
         }
 
         /* sscanf implicitly strips whitespace. */
@@ -754,7 +592,7 @@ parse_file_result_t parse_file(struct parser_ctx *ctx, const char *f) {
             if (!comment) {
                 continue;
             }
-            DLOG("line continuation in comment is ignored: \"%.*s\"\n", (int)strlen(buffer) - 1, buffer);
+            DLOG(fmt::sprintf("line continuation in comment is ignored: \"%.*s\"\n", (int)strlen(buffer) - 1, buffer));
             continuation = nullptr;
         }
 
@@ -770,7 +608,7 @@ parse_file_result_t parse_file(struct parser_ctx *ctx, const char *f) {
             char v_value[4096] = {'\0'};
 
             if (sscanf(value, "%511s %4095[^\n]", v_key, v_value) < 1) {
-                ELOG("Failed to parse variable specification '%s', skipping it.\n", value);
+                ELOG(fmt::sprintf("Failed to parse variable specification '%s', skipping it.\n",  value));
                 invalid_sets = true;
                 continue;
             }
@@ -781,7 +619,7 @@ parse_file_result_t parse_file(struct parser_ctx *ctx, const char *f) {
                 continue;
             }
 
-            upsert_variable(ctx->variables, v_key, v_value);
+            upsert_variable(ctx.variables, v_key, v_value);
             continue;
         } else if (strcasecmp(key, "set_from_resource") == 0) {
             char res_name[512] = {'\0'};
@@ -797,7 +635,7 @@ parse_file_result_t parse_file(struct parser_ctx *ctx, const char *f) {
             fallback[0] = '\0';
 
             if (sscanf(value, "%511s %511s %4095[^\n]", v_key, res_name, fallback) < 1) {
-                ELOG("Failed to parse resource specification '%s', skipping it.\n", value);
+                ELOG(fmt::sprintf("Failed to parse resource specification '%s', skipping it.\n",  value));
                 invalid_sets = true;
                 continue;
             }
@@ -807,74 +645,47 @@ parse_file_result_t parse_file(struct parser_ctx *ctx, const char *f) {
                 invalid_sets = true;
                 continue;
             }
+#ifndef TEST_PARSER
+            char *res_value = resourceDatabase.get_resource(res_name, fallback);
 
-            char *res_value = get_resource(res_name);
-            if (res_value == nullptr) {
-                DLOG("Could not get resource '%s', using fallback '%s'.\n", res_name, fallback);
-                res_value = sstrdup(fallback);
-            }
-
-            upsert_variable(ctx->variables, v_key, res_value);
-            FREE(res_value);
+            upsert_variable(ctx.variables, v_key, res_value);
+            free(res_value);
+#endif
             continue;
         }
     }
-    fclose(fstr);
 
-    if (database != nullptr) {
-        xcb_xrm_database_free(database);
-        /* Explicitly set the database to NULL again in case the config gets reloaded. */
-        database = nullptr;
-    }
+    return invalid_sets;
+}
 
-    /* For every custom variable, see how often it occurs in the file and
-     * how much extra bytes it requires when replaced. */
-    struct Variable *current, *nearest;
-    int extra_bytes = 0;
-    /* We need to copy the buffer because we need to invalidate the
-     * variables (otherwise we will count them twice, which is bad when
-     * 'extra' is negative) */
-    char *bufcopy = sstrdup(buf);
-    for (auto it = ctx->variables->begin(); it != ctx->variables->end(); ++it) {
-        current = *it;
-        int extra = (strlen(current->value) - strlen(current->key));
-        char *next;
-        for (next = bufcopy;
-             next < (bufcopy + stbuf.st_size) &&
-             (next = strcasestr(next, current->key)) != nullptr;
-             next += strlen(current->key)) {
-            *next = '_';
-            extra_bytes += extra;
-        }
-    }
-    FREE(bufcopy);
-
-    /* Then, allocate a new buffer and copy the file over to the new one,
-     * but replace occurrences of our variables */
+/* Allocate a new buffer and copy the file over to the new one,
+ * and replace occurrences of our variables */
+static char* replace_variables(char *n, char *buf, __off_t size, parser_ctx &ctx) {
     char *walk = buf, *destwalk;
-    char *n = (char*)scalloc(stbuf.st_size + extra_bytes + 1, 1);
     destwalk = n;
-    while (walk < (buf + stbuf.st_size)) {
+    while (walk < (buf + size)) {
+        std::map<char*, char*> next_match{};
+        struct Variable *nearest = nullptr;
         /* Find the next variable */
-        for (auto it = ctx->variables->begin(); it != ctx->variables->end(); ++it) {
-            current = *it;
-            current->next_match = strcasestr(walk, current->key);
+        for (auto &variable : ctx.variables) {
+            char *match = strcasestr(walk, variable->key);
+            if (match != nullptr) {
+                next_match[variable->key] = match;
+            }
         }
-        nearest = nullptr;
-        int distance = stbuf.st_size;
-        for (auto it = ctx->variables->begin(); it != ctx->variables->end(); ++it) {
-            current = *it;
-            if (current->next_match == nullptr)
+        long distance = size;
+        for (auto &variable : ctx.variables) {
+            if (!next_match.contains(variable->key))
                 continue;
-            if ((current->next_match - walk) < distance) {
-                distance = (current->next_match - walk);
-                nearest = current;
+            if ((next_match[variable->key] - walk) < distance) {
+                distance = (next_match[variable->key] - walk);
+                nearest = variable.get();
             }
         }
         if (nearest == nullptr) {
             /* If there are no more variables, we just copy the rest */
-            strncpy(destwalk, walk, (buf + stbuf.st_size) - walk);
-            destwalk += (buf + stbuf.st_size) - walk;
+            strncpy(destwalk, walk, (buf + size) - walk);
+            destwalk += (buf + size) - walk;
             *destwalk = '\0';
             break;
         } else {
@@ -886,37 +697,114 @@ parse_file_result_t parse_file(struct parser_ctx *ctx, const char *f) {
         }
     }
 
-    auto *context = (struct context*)scalloc(1, sizeof(struct context));
-    context->filename = f;
-    parse_config(ctx, n, context);
-    if (ctx->has_errors) {
-        context->has_errors = true;
+    return n;
+}
+
+
+Parser::Parser(const char *filename, struct parser_ctx &parent_ctx) : Parser(filename, parent_ctx.load_type) {
+    this->parent_ctx = &parent_ctx;
+    this->ctx.variables = parent_ctx.variables;
+}
+
+Parser::Parser(const char *filename, config_load_t load_type) : filename(filename) {
+    this->ctx.load_type = load_type;
+    this->old_dir = get_current_dir_name();
+    char *dir = nullptr;
+    /* dirname(3) might modify the buffer, so make a copy: */
+    char *dirbuf = sstrdup(filename);
+    if ((dir = dirname(dirbuf)) != nullptr) {
+        LOG(fmt::sprintf("Changing working directory to config file directory %s\n",  dir));
+        if (chdir(dir) == -1) {
+            throw std::runtime_error(fmt::sprintf("chdir(%s) failed: %s\n", dir, strerror(errno)));
+        }
+    }
+    free(dirbuf);
+
+    if ((fd = open(filename, O_RDONLY)) == -1) {
+        throw std::runtime_error(fmt::sprintf("cant open file: %s\n", filename));
     }
 
-    check_for_duplicate_bindings(context);
+    if ((fstr = fdopen(fd, "r")) == nullptr) {
+        throw std::runtime_error(fmt::sprintf("cant open file: %s\n", filename));
+    }
+}
 
-    if (ctx->use_nagbar && (context->has_errors || context->has_warnings || invalid_sets)) {
-        ELOG("FYI: You are using i3 version %s\n", i3_version);
+Parser::~Parser() {
+    chdir(this->old_dir);
+    free(this->old_dir);
+    fclose(fstr);
+}
 
-        start_config_error_nagbar(f, context->has_errors || invalid_sets);
+/*
+ * Parses the given file by first replacing the variables, then calling
+ * parse_config and possibly launching i3-nagbar.
+ *
+ */
+parse_file_result_t Parser::parse_file() {
+    struct stat stbuf{};
+
+    if (fstat(fd, &stbuf) == -1) {
+        return PARSE_FILE_FAILED;
     }
 
-    const bool has_errors = context->has_errors;
+    char *buf = (char*)scalloc(stbuf.st_size + 1, 1);
 
-    FREE(context->line_copy);
-    free(context);
+#ifndef TEST_PARSER
+    if (current_config == nullptr) {
+        current_config = (char*)scalloc(stbuf.st_size + 1, 1);
+        if ((ssize_t)fread(current_config, 1, stbuf.st_size, fstr) != stbuf.st_size) {
+            return PARSE_FILE_FAILED;
+        }
+        rewind(fstr);
+    }
+#endif
+
+    bool invalid_sets;
+
+    try {
+        invalid_sets = read_file(fstr, buf, ctx);
+    } catch (const std::exception &e) {
+        ELOG(fmt::sprintf("Failed to read config file: %s\n", e.what()));
+        return PARSE_FILE_FAILED;
+    }
+
+    /* For every custom variable, see how often it occurs in the file and
+     * how much extra bytes it requires when replaced. */
+    auto extra_bytes = count_extra_bytes(buf, stbuf.st_size, ctx);
+
+    char *n = (char*)scalloc(stbuf.st_size + extra_bytes + 1, 1);
+
+    /* Then, allocate a new buffer and copy the file over to the new one,
+     * but replace occurrences of our variables */
+    replace_variables(n, buf, stbuf.st_size, ctx);
+
+    bool has_errors = parse_config(ctx, n, filename);
+    if (ctx.has_errors) {
+        has_errors = true;
+    }
+
+#ifndef TEST_PARSER
+    if (has_duplicate_bindings()) {
+        has_errors = true;
+    }
+#endif
+
+    auto use_nagbar = (ctx.load_type != config_load_t::C_VALIDATE);
+
+    if (use_nagbar && (has_errors || invalid_sets)) {
+#ifndef TEST_PARSER
+        ELOG(fmt::sprintf("FYI: You are using i3 version %s\n",  i3_version));
+
+        start_config_error_nagbar(has_errors || invalid_sets);
+#endif
+    }
+
     free(n);
     free(buf);
 
-    if (chdir(old_dir) == -1) {
-        ELOG("chdir(%s) failed: %s\n", old_dir, strerror(errno));
-        return PARSE_FILE_FAILED;
-    }
-    free(old_dir);
     if (has_errors) {
         return PARSE_FILE_CONFIG_ERRORS;
     }
     return PARSE_FILE_SUCCESS;
 }
 
-#endif

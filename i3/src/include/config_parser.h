@@ -11,34 +11,28 @@
 
 #include <config.h>
 
-#include "data.h"
+#include "parser_stack.h"
+#include "configuration.h"
+#include "criteria_state.h"
+#include "match.h"
+#include "global.h"
 
-#include <yajl/yajl_gen.h>
+/**
+ * Holds a user-assigned variable for parsing the configuration file. The key
+ * is replaced by value in every following line of the file.
+ *
+ */
+struct Variable {
+    char *key;
+    char *value;
 
-extern pid_t config_error_nagbar_pid;
-
-struct stack_entry {
-    /* Just a pointer, not dynamically allocated. */
-    const char *identifier;
-    enum {
-        STACK_STR = 0,
-        STACK_LONG = 1,
-    } type;
-    union {
-        char *str;
-        long num;
-    } val;
-};
-
-struct stack {
-    struct stack_entry stack[10];
+    ~Variable();
 };
 
 struct parser_ctx {
-    bool use_nagbar;
-
+    config_load_t load_type;
     int state;
-    Match current_match;
+    struct criteria_state criteria_state{};
 
     /* A list which contains the states that lead to the current state, e.g.
    * INITIAL, WORKSPACE_LAYOUT.
@@ -53,9 +47,9 @@ struct parser_ctx {
    * The (small) stack where identified literals are stored during the parsing
    * of a single config directive (like $workspace).
    ******************************************************************************/
-    struct stack *stack;
+    struct stack stack{};
 
-    std::vector<Variable*> *variables;
+    std::vector<std::shared_ptr<Variable>> variables{};
 
     bool has_errors;
 };
@@ -67,7 +61,7 @@ struct parser_ctx {
  *
  */
 struct ConfigResultIR {
-    struct parser_ctx *ctx;
+    struct parser_ctx ctx;
 
     /* The next state to transition to. Passed to the function so that we can
      * determine the next state as a result of a function call, like
@@ -81,19 +75,13 @@ struct ConfigResultIR {
 /**
  * launch nagbar to indicate errors in the configuration file.
  */
-void start_config_error_nagbar(const char *configpath, bool has_errors);
+void start_config_error_nagbar(bool has_errors);
 
-/**
- * Releases the memory of all variables in ctx.
- *
- */
-void free_variables(struct parser_ctx *ctx);
-
-typedef enum {
+enum parse_file_result_t {
     PARSE_FILE_FAILED = -1,
     PARSE_FILE_SUCCESS = 0,
     PARSE_FILE_CONFIG_ERRORS = 1,
-} parse_file_result_t;
+};
 
 /**
  * Parses the given file by first replacing the variables, then calling
@@ -103,4 +91,17 @@ typedef enum {
  * parsing.
  *
  */
-parse_file_result_t parse_file(struct parser_ctx *ctx, const char *f);
+class Parser {
+private:
+    const char *filename;
+    char *old_dir;
+    int fd;
+    FILE *fstr;
+public:
+    struct parser_ctx *parent_ctx = nullptr;
+    struct parser_ctx ctx{};
+    Parser(const char *filename, struct parser_ctx &parent_ctx);
+    Parser(const char *filename, config_load_t load_type);
+    ~Parser();
+    parse_file_result_t parse_file();
+};

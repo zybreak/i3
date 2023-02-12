@@ -13,12 +13,12 @@ state INITIAL:
   # We have an end token here for all the commands which just call some
   # function without using an explicit 'end' token.
   end ->
-  '[' -> call cmd_criteria_init(); CRITERIA
+  '[' -> call cmd::criteria_init(); CRITERIA
   'move' -> MOVE
   'exec' -> EXEC
-  'exit' -> call cmd_exit()
-  'restart' -> call cmd_restart()
-  'reload' -> call cmd_reload()
+  'exit' -> call cmd::exit()
+  'restart' -> call cmd::restart()
+  'reload' -> call cmd::reload()
   'debuglog' -> DEBUGLOG
   'border' -> BORDER
   'layout' -> LAYOUT
@@ -26,7 +26,7 @@ state INITIAL:
   'workspace' -> WORKSPACE
   'focus' -> FOCUS
   'kill' -> KILL
-  'open' -> call cmd_open()
+  'open' -> call cmd::open()
   'fullscreen' -> FULLSCREEN
   'sticky' -> STICKY
   'split' -> SPLIT
@@ -35,11 +35,11 @@ state INITIAL:
   'rename' -> RENAME
   'nop' -> NOP
   'scratchpad' -> SCRATCHPAD
-  'swap' -> SWAP
   'title_format' -> TITLE_FORMAT
   'title_window_icon' -> TITLE_WINDOW_ICON
   'mode' -> MODE
   'bar' -> BAR
+  'nagbar' -> NAGBAR
 
 state CRITERIA:
   ctype = 'class'       -> CRITERION
@@ -53,27 +53,27 @@ state CRITERIA:
   ctype = 'workspace'   -> CRITERION
   ctype = 'machine'     -> CRITERION
   ctype = 'tiling', 'floating', 'all'
-      -> call cmd_criteria_add($ctype, NULL); CRITERIA
-  ']' -> call cmd_criteria_match_windows(); INITIAL
+      -> call cmd::criteria_add($ctype, NULL); CRITERIA
+  ']' -> call cmd::criteria_match_windows(); INITIAL
 
 state CRITERION:
   '=' -> CRITERION_STR
 
 state CRITERION_STR:
   cvalue = word
-      -> call cmd_criteria_add($ctype, $cvalue); CRITERIA
+      -> call cmd::criteria_add($ctype, $cvalue); CRITERIA
 
 # exec [--no-startup-id] <command>
 state EXEC:
   nosn = '--no-startup-id'
       ->
   command = string
-      -> call cmd_exec($nosn, $command)
+      -> call cmd::exec($nosn, $command)
 
 # debuglog toggle|on|off
 state DEBUGLOG:
   argument = 'toggle', 'on', 'off'
-    -> call cmd_debuglog($argument)
+    -> call cmd::debuglog($argument)
 
 # border normal|pixel [<n>]
 # border none|1pixel|toggle
@@ -81,34 +81,34 @@ state BORDER:
   border_style = 'normal', 'pixel', 'toggle'
     -> BORDER_WIDTH
   border_style = 'none'
-    -> call cmd_border($border_style, 0)
+    -> call cmd::border($border_style, 0)
   '1pixel'
-    -> call cmd_border("pixel", 1)
+    -> call cmd::border("pixel", 1)
 
 state BORDER_WIDTH:
   end
-    -> call cmd_border($border_style, -1)
+    -> call cmd::border($border_style, -1)
   border_width = number
-    -> call cmd_border($border_style, &border_width)
+    -> call cmd::border($border_style, &border_width)
 
 # layout default|stacked|stacking|tabbed|splitv|splith
 # layout toggle [split|all]
 state LAYOUT:
   layout_mode = 'default', 'stacked', 'stacking', 'tabbed', 'splitv', 'splith'
-      -> call cmd_layout($layout_mode)
+      -> call cmd::layout($layout_mode)
   'toggle'
       -> LAYOUT_TOGGLE
 
 # layout toggle [split|all]
 state LAYOUT_TOGGLE:
   end
-      -> call cmd_layout_toggle($toggle_mode)
+      -> call cmd::layout_toggle($toggle_mode)
   toggle_mode = string
-      -> call cmd_layout_toggle($toggle_mode)
+      -> call cmd::layout_toggle($toggle_mode)
 
 # append_layout <path>
 state APPEND_LAYOUT:
-  path = string -> call cmd_append_layout($path)
+  path = string -> call cmd::append_layout($path)
 
 # workspace next|prev|next_on_output|prev_on_output
 # workspace back_and_forth
@@ -118,17 +118,17 @@ state WORKSPACE:
   no_auto_back_and_forth = '--no-auto-back-and-forth'
       ->
   direction = 'next_on_output', 'prev_on_output', 'next', 'prev'
-      -> call cmd_workspace($direction)
+      -> call cmd::workspace($direction)
   'back_and_forth'
-      -> call cmd_workspace_back_and_forth()
+      -> call cmd::workspace_back_and_forth()
   'number'
       -> WORKSPACE_NUMBER
   workspace = string
-      -> call cmd_workspace_name($workspace, $no_auto_back_and_forth)
+      -> call cmd::workspace_name($workspace, $no_auto_back_and_forth)
 
 state WORKSPACE_NUMBER:
   workspace = string
-      -> call cmd_workspace_number($workspace, $no_auto_back_and_forth)
+      -> call cmd::workspace_number($workspace, $no_auto_back_and_forth)
 
 # focus left|right|up|down
 # focus output <output>
@@ -137,41 +137,41 @@ state WORKSPACE_NUMBER:
 # focus
 state FOCUS:
   direction = 'left', 'right', 'up', 'down'
-      -> call cmd_focus_direction($direction)
+      -> call cmd::focus_direction($direction)
   direction = 'prev', 'next'
       -> FOCUS_AUTO
   'output'
       -> FOCUS_OUTPUT
   window_mode = 'tiling', 'floating', 'mode_toggle'
-      -> call cmd_focus_window_mode($window_mode)
+      -> call cmd::focus_window_mode($window_mode)
   level = 'parent', 'child'
-      -> call cmd_focus_level($level)
+      -> call cmd::focus_level($level)
   end
-      -> call cmd_focus()
+      -> call cmd::focus()
 
 state FOCUS_AUTO:
   'sibling'
-      -> call cmd_focus_sibling($direction)
+      -> call cmd::focus_sibling($direction)
   end
-      -> call cmd_focus_direction($direction)
+      -> call cmd::focus_direction($direction)
 
 state FOCUS_OUTPUT:
   output = string
-      -> call cmd_focus_output($output)
+      -> call cmd::focus_output($output)
 
 # kill [window|client]
 state KILL:
   kill_mode = 'window', 'client'
-      -> call cmd_kill($kill_mode)
+      -> call cmd::kill($kill_mode)
   end
-      -> call cmd_kill($kill_mode)
+      -> call cmd::kill($kill_mode)
 
 # fullscreen enable|toggle [global]
 # fullscreen disable
 # fullscreen [global]
 state FULLSCREEN:
   action = 'disable'
-      -> call cmd_fullscreen($action, "output")
+      -> call cmd::fullscreen($action, "output")
   action = 'enable', 'toggle'
       -> FULLSCREEN_MODE
   action = ''
@@ -179,30 +179,30 @@ state FULLSCREEN:
 
 state FULLSCREEN_MODE:
   mode = 'global'
-      -> call cmd_fullscreen($action, $mode)
+      -> call cmd::fullscreen($action, $mode)
   end
-      -> call cmd_fullscreen($action, "output")
+      -> call cmd::fullscreen($action, "output")
 
 state FULLSCREEN_COMPAT:
   mode = 'global'
-      -> call cmd_fullscreen("toggle", $mode)
+      -> call cmd::fullscreen("toggle", $mode)
   end
-      -> call cmd_fullscreen("toggle", "output")
+      -> call cmd::fullscreen("toggle", "output")
 
 # sticky enable|disable|toggle
 state STICKY:
   action = 'enable', 'disable', 'toggle'
-      -> call cmd_sticky($action)
+      -> call cmd::sticky($action)
 
 # split v|h|t|vertical|horizontal|toggle
 state SPLIT:
   direction = 'horizontal', 'vertical', 'toggle', 'v', 'h', 't'
-      -> call cmd_split($direction)
+      -> call cmd::split($direction)
 
 # floating enable|disable|toggle
 state FLOATING:
   floating = 'enable', 'disable', 'toggle'
-      -> call cmd_floating($floating)
+      -> call cmd::floating($floating)
 
 # resize
 state RESIZE:
@@ -219,7 +219,7 @@ state RESIZE_PX:
   resize_px = number
       -> RESIZE_TILING
   end
-      -> call cmd_resize($way, $direction, 10, 10)
+      -> call cmd::resize($way, $direction, 10, 10)
 
 state RESIZE_TILING:
   'px'
@@ -227,7 +227,7 @@ state RESIZE_TILING:
   'or'
       -> RESIZE_TILING_OR
   end
-      -> call cmd_resize($way, $direction, &resize_px, 0)
+      -> call cmd::resize($way, $direction, &resize_px, 0)
 
 state RESIZE_TILING_OR:
   resize_ppt = number
@@ -235,7 +235,7 @@ state RESIZE_TILING_OR:
 
 state RESIZE_TILING_FINAL:
   'ppt', end
-      -> call cmd_resize($way, $direction, &resize_px, &resize_ppt)
+      -> call cmd::resize($way, $direction, &resize_px, &resize_ppt)
 
 state RESIZE_SET:
   'height'
@@ -249,7 +249,7 @@ state RESIZE_WIDTH:
   mode_width = 'px', 'ppt'
       ->
   end
-      -> call cmd_resize_set(&width, $mode_width, 0, 0)
+      -> call cmd::resize_set(&width, $mode_width, 0, 0)
   'height'
       -> RESIZE_HEIGHT_GET_NUMBER
   height = number
@@ -263,7 +263,7 @@ state RESIZE_HEIGHT:
   mode_height = 'px', 'ppt'
       ->
   end
-      -> call cmd_resize_set(&width, $mode_width, &height, $mode_height)
+      -> call cmd::resize_set(&width, $mode_width, &height, $mode_height)
 
 # rename workspace <name> to <name>
 # rename workspace to <name>
@@ -281,13 +281,13 @@ state RENAME_WORKSPACE_LIKELY_TO:
   'to '
       -> RENAME_WORKSPACE_LIKELY_TO_NEW_NAME
   new_name = word
-      -> call cmd_rename_workspace(NULL, $new_name)
+      -> call cmd::rename_workspace(NULL, $new_name)
 
 state RENAME_WORKSPACE_LIKELY_TO_NEW_NAME:
   new_name = string
-      -> call cmd_rename_workspace("to", $new_name)
+      -> call cmd::rename_workspace("to", $new_name)
   end
-      -> call cmd_rename_workspace(NULL, "to")
+      -> call cmd::rename_workspace(NULL, "to")
 
 state RENAME_WORKSPACE_TO:
   'to'
@@ -295,7 +295,7 @@ state RENAME_WORKSPACE_TO:
 
 state RENAME_WORKSPACE_TO_NEW_NAME:
   new_name = string
-      -> call cmd_rename_workspace($old_name, $new_name)
+      -> call cmd::rename_workspace($old_name, $new_name)
 
 
 # move <direction> [<amount> [px|ppt]]
@@ -320,7 +320,7 @@ state MOVE:
   'output'
       -> MOVE_TO_OUTPUT
   'scratchpad'
-      -> call cmd_move_scratchpad()
+      -> call cmd::move_scratchpad()
   direction = 'left', 'right', 'up', 'down'
       -> MOVE_DIRECTION
   method = 'position'
@@ -332,35 +332,35 @@ state MOVE_DIRECTION:
   amount = number
       -> MOVE_DIRECTION_NUMBER
   end
-      -> call cmd_move_direction($direction, 10, "px")
+      -> call cmd::move_direction($direction, 10, "px")
 
 state MOVE_DIRECTION_NUMBER:
   mode = 'px', 'ppt'
-      -> call cmd_move_direction($direction, &amount, $mode)
+      -> call cmd::move_direction($direction, &amount, $mode)
   end
-      -> call cmd_move_direction($direction, &amount, "px")
+      -> call cmd::move_direction($direction, &amount, "px")
 
 state MOVE_WORKSPACE:
   'to '
       -> MOVE_WORKSPACE_TO_OUTPUT
   workspace = 'next_on_output', 'prev_on_output', 'next', 'prev', 'current'
-      -> call cmd_move_con_to_workspace($workspace)
+      -> call cmd::move_con_to_workspace($workspace)
   'back_and_forth'
-      -> call cmd_move_con_to_workspace_back_and_forth()
+      -> call cmd::move_con_to_workspace_back_and_forth()
   'number'
       -> MOVE_WORKSPACE_NUMBER
   workspace = string
-      -> call cmd_move_con_to_workspace_name($workspace, $no_auto_back_and_forth)
+      -> call cmd::move_con_to_workspace_name($workspace, $no_auto_back_and_forth)
 
 state MOVE_WORKSPACE_NUMBER:
   number = string
-      -> call cmd_move_con_to_workspace_number($number, $no_auto_back_and_forth)
+      -> call cmd::move_con_to_workspace_number($number, $no_auto_back_and_forth)
 
 state MOVE_TO_OUTPUT:
   output = word
-      -> call cmd_move_con_to_output($output, 0); MOVE_TO_OUTPUT
+      -> call cmd::move_con_to_output($output, 0); MOVE_TO_OUTPUT
   end
-      -> call cmd_move_con_to_output(NULL, 0); INITIAL
+      -> call cmd::move_con_to_output(NULL, 0); INITIAL
 
 state MOVE_WORKSPACE_TO_OUTPUT:
   'output'
@@ -368,9 +368,9 @@ state MOVE_WORKSPACE_TO_OUTPUT:
 
 state MOVE_WORKSPACE_TO_OUTPUT_WORD:
   output = word
-      -> call cmd_move_con_to_output($output, 1); MOVE_WORKSPACE_TO_OUTPUT_WORD
+      -> call cmd::move_con_to_output($output, 1); MOVE_WORKSPACE_TO_OUTPUT_WORD
   end
-      -> call cmd_move_con_to_output(NULL, 1); INITIAL
+      -> call cmd::move_con_to_output(NULL, 1); INITIAL
 
 state MOVE_TO_ABSOLUTE_POSITION:
   'position'
@@ -378,9 +378,9 @@ state MOVE_TO_ABSOLUTE_POSITION:
 
 state MOVE_TO_POSITION:
   'center'
-      -> call cmd_move_window_to_center($method)
+      -> call cmd::move_window_to_center($method)
   'mouse', 'cursor', 'pointer'
-      -> call cmd_move_window_to_mouse()
+      -> call cmd::move_window_to_mouse()
   coord_x = number
       -> MOVE_TO_POSITION_X
 
@@ -392,55 +392,40 @@ state MOVE_TO_POSITION_X:
 
 state MOVE_TO_POSITION_Y:
   mode_y = 'px', 'ppt'
-      -> call cmd_move_window_to_position(&coord_x, $mode_x, &coord_y, $mode_y)
+      -> call cmd::move_window_to_position(&coord_x, $mode_x, &coord_y, $mode_y)
   end
-      -> call cmd_move_window_to_position(&coord_x, $mode_x, &coord_y, 0)
+      -> call cmd::move_window_to_position(&coord_x, $mode_x, &coord_y, 0)
 
 # mode <string>
 state MODE:
   mode = string
-      -> call cmd_mode($mode)
+      -> call cmd::mode($mode)
 
 state NOP:
   comment = string
-      -> call cmd_nop($comment)
+      -> call cmd::nop($comment)
   end
-      -> call cmd_nop(NULL)
+      -> call cmd::nop(NULL)
 
 state SCRATCHPAD:
   'show'
-      -> call cmd_scratchpad_show()
-
-# swap [container] [with] id <window>
-# swap [container] [with] con_id <con_id>
-# swap [container] [with] mark <mark>
-state SWAP:
-  'container'
-      ->
-  'with'
-      ->
-  mode = 'id', 'con_id'
-      -> SWAP_ARGUMENT
-
-state SWAP_ARGUMENT:
-  arg = string
-      -> call cmd_swap($mode, $arg)
+      -> call cmd::scratchpad_show()
 
 state TITLE_FORMAT:
   format = string
-      -> call cmd_title_format($format)
+      -> call cmd::title_format($format)
 
 state TITLE_WINDOW_ICON:
   'padding'
     -> TITLE_WINDOW_ICON_PADDING
   enable = '1', 'yes', 'true', 'on', 'enable', 'active', '0', 'no', 'false', 'off', 'disable', 'inactive'
-    -> call cmd_title_window_icon($enable, 0)
+    -> call cmd::title_window_icon($enable, 0)
 
 state TITLE_WINDOW_ICON_PADDING:
   end
-    -> call cmd_title_window_icon($enable, &padding)
+    -> call cmd::title_window_icon($enable, &padding)
   'px'
-    -> call cmd_title_window_icon($enable, &padding)
+    -> call cmd::title_window_icon($enable, &padding)
   padding = number
     ->
 
@@ -459,7 +444,7 @@ state BAR_HIDDEN_STATE_ID:
   bar_id = word
       ->
   end
-      -> call cmd_bar_hidden_state($bar_value, $bar_id)
+      -> call cmd::bar_hidden_state($bar_value, $bar_id)
 
 state BAR_MODE:
   bar_value = 'dock', 'hide', 'invisible', 'toggle'
@@ -469,4 +454,32 @@ state BAR_MODE_ID:
   bar_id = word
       ->
   end
-      -> call cmd_bar_mode($bar_value, $bar_id)
+      -> call cmd::bar_mode($bar_value, $bar_id)
+
+state NAGBAR:
+  type = 'error', 'warning'
+      -> NAGBAR_MESSAGE
+
+state NAGBAR_MESSAGE:
+  message = word
+      -> NAGBAR_FONT
+
+state NAGBAR_FONT:
+  font = word
+      -> NAGBAR_PRIMARY
+
+state NAGBAR_PRIMARY:
+  primary = 'true', 'false'
+      -> NAGBAR_BUTTON_LABEL
+
+state NAGBAR_BUTTON_LABEL:
+  label = word
+      -> NAGBAR_BUTTON_ACTION
+
+state NAGBAR_BUTTON_ACTION:
+  action = word
+      -> NAGBAR_BUTTON_TERMINAL
+
+state NAGBAR_BUTTON_TERMINAL:
+  terminal = 'true', 'false'
+      -> call cmd::nagbar($type, $message, $font, $primary, $label, $action, $terminal)

@@ -1,0 +1,92 @@
+#!/usr/bin/python3
+
+import json
+
+from i3ipc import Connection
+from argparse import ArgumentParser
+
+
+def handle_event(self, event):
+    if not self.quiet:
+        print(json.dumps(event.ipc_data))
+
+    if not self.monitor:
+        self.main_quit()
+
+
+def main():
+    types = [
+        "RUN_COMMAND",
+        "GET_WORKSPACES",
+        "GET_OUTPUTS",
+        "GET_TREE",
+        "GET_BAR_CONFIG",
+        "GET_BINDING_MODES",
+        "GET_BINDING_STATE",
+        "GET_VERSION",
+        "GET_CONFIG",
+        "SEND_TICK",
+        "SUBSCRIBE",
+    ]
+
+    parser = ArgumentParser(prog='i3-msg')
+
+    parser.add_argument('-v', '--version', action='version', version='4.20')
+    parser.add_argument('-s', '--socket')
+    parser.add_argument('-t', '--type', choices=types, default='RUN_COMMAND')
+    parser.add_argument('-q', '--quiet', action='store_true')
+    parser.add_argument('-m', '--monitor', action='store_true')
+    parser.add_argument('message', type=str, nargs='*', help='message')
+
+    args = parser.parse_args()
+
+    if (args.monitor and args.type != 'SUBSCRIBE'):
+        print("The monitor option -m is used with -t SUBSCRIBE exclusively.")
+        exit()
+
+    i3 = None
+
+    try:
+        i3 = Connection(socket_path=args.socket)
+    except:
+        print("Could not connect to i3")
+        exit()
+
+    reply = None
+    # Maybe a bit of a hack, but we need this information in the callback
+    i3.monitor = args.monitor
+    i3.quiet = args.quiet
+
+    match args.type:
+        case "RUN_COMMAND":
+            reply = i3.command(" ".join(args.message))
+        case "GET_WORKSPACES":
+            reply = i3.get_workspaces()
+        case "GET_OUTPUTS":
+            reply = i3.get_outputs()
+        case "GET_TREE":
+            reply = i3.get_tree()
+        case "GET_BAR_CONFIG":
+            reply = i3.get_bar_config()
+        case "GET_BINDING_MODES":
+            reply = i3.get_binding_modes()
+        case "GET_BINDING_STATE":
+            raise "Not implemented"
+        case "GET_VERSION":
+            reply = i3.get_version()
+        case "GET_CONFIG":
+            reply = i3.get_config()
+        case "SEND_TICK":
+            reply = i3.send_tick()
+        case "SUBSCRIBE":
+            i3.on("".join(args.message), handle_event)
+            i3.main()
+            exit()
+
+    if not args.quiet:
+        for d in reply:
+            print(json.dumps(d.ipc_data))
+
+
+if __name__ == "__main__":
+    main()
