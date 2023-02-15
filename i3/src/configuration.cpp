@@ -32,7 +32,7 @@
 #include "bindings.h"
 #include "config_parser.h"
 #include "global.h"
-#include "src/config/new/config_parser.h"
+#include "config/new/config_parser.h"
 #include "config/new/config_applier.h"
 
 std::string current_configpath{};

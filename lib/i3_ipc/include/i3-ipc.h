@@ -10,7 +10,7 @@
  */
 #pragma once
 
-#include <build/config.h>
+#include <config.h>
 
 #include <cstdint>
 #include <string_view>
