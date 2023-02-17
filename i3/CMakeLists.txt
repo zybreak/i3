@@ -59,13 +59,9 @@ find_package(Iconv)
 include(CheckLibraryExists)
 
 check_library_exists(m pow "" LIBM)
-find_library(LIBEV ev REQUIRED)
 if(LIBM)
     list(APPEND libraries m)
 endif()
-
-find_library(LIBEV ev REQUIRED)
-list(APPEND libraries ${LIBEV})
 
 pkg_check_modules(libsn_dep REQUIRED libstartup-notification-1.0)
 list(APPEND libraries ${libsn_dep_LINK_LIBRARIES})
@@ -126,16 +122,18 @@ list(APPEND libraries antlr4_shared)
 list(APPEND include_dirs ${ANTLR4_INCLUDE_DIR})
 
 list(APPEND libraries libi3 libi3ipc)
+list(APPEND libraries ${CONAN_LIBS})
 
-add_dependencies(i3 libi3 libi3ipc)
-target_link_libraries(i3 PUBLIC ${libraries})
-target_include_directories(i3 PUBLIC
+list(APPEND include_dirs
         "${PROJECT_BINARY_DIR}"
         "${PROJECT_SOURCE_DIR}"
         "${PROJECT_SOURCE_DIR}/lib"
         "src"
         "src/include"
         "src/config/old"
-        ${include_dirs}
         )
+
+add_dependencies(i3 libi3 libi3ipc)
+target_link_libraries(i3 PUBLIC ${libraries})
+target_include_directories(i3 PUBLIC ${include_dirs})
 target_compile_options(i3 PUBLIC ${compile_options})

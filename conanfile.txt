@@ -1,0 +1,5 @@
+[requires]
+libev/4.33
+
+[generators]
+cmake
