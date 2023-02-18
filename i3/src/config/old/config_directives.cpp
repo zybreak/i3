@@ -31,6 +31,23 @@
 #include <wordexp.h>
 #include <autostarts.h>
 
+static std::string_view null_to_empty_str(const char *s) {
+    if (s == nullptr) {
+        return "";
+    } else {
+        return s;
+    }
+}
+
+static bool str_to_bool(const char *s, const char *v) {
+    if (s == nullptr) {
+        return false;
+    } else {
+        return strcmp(s, v) >= 0;
+    }
+}
+
+
 /*******************************************************************************
  * Include functions.
  ******************************************************************************/
@@ -139,8 +156,9 @@ namespace cfg {
     void binding(struct criteria_state &criteria_state, struct ConfigResultIR &result, const char *bindtype, const char *modifiers,
                      const char *key, const char *release, const char *border, const char *whole_window,
                      const char *exclude_titlebar, const char *command) {
-        configure_binding(bindtype, modifiers, key, release, border, whole_window, exclude_titlebar, command, DEFAULT_BINDING_MODE, false);
+        configure_binding(bindtype, null_to_empty_str(modifiers), key, str_to_bool(release, "release"), str_to_bool(border, "border"), str_to_bool(whole_window, "whole_window"), str_to_bool(exclude_titlebar, "exclude_titlebar"), command, DEFAULT_BINDING_MODE, false);
     }
+
 
     /*******************************************************************************
      * Mode handling
@@ -152,7 +170,7 @@ namespace cfg {
     void mode_binding(struct criteria_state &criteria_state, struct ConfigResultIR &result, const char *bindtype, const char *modifiers,
                           const char *key, const char *release, const char *border, const char *whole_window,
                           const char *exclude_titlebar, const char *command) {
-        configure_binding(bindtype, modifiers, key, release, border, whole_window, exclude_titlebar, command, current_mode, current_mode_pango_markup);
+        configure_binding(bindtype, null_to_empty_str(modifiers), key, str_to_bool(release, "release"), str_to_bool(border, "border"), str_to_bool(whole_window, "whole_window"), str_to_bool(exclude_titlebar, "exclude_titlebar"), command, current_mode, current_mode_pango_markup);
     }
 
     void enter_mode(struct criteria_state &criteria_state, struct ConfigResultIR &result, const char *pango_markup, const char *modename) {

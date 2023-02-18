@@ -15,7 +15,7 @@ enum parse_file_result_t {
         /* It might be better to use strtok() here, but the simpler strstr() should
          * do for now. */
         i3_event_state_mask_t result = 0;
-        if (str == nullptr)
+        if (str == nullptr || strstr(str, "") != nullptr)
             return result;
         if (strstr(str, "Mod1") != nullptr)
             result |= XCB_KEY_BUT_MASK_MOD_1;
