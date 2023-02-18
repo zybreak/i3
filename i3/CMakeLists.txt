@@ -68,6 +68,9 @@ list(APPEND libraries ${libsn_dep_LINK_LIBRARIES})
 list(APPEND include_dirs ${libsn_dep_INCLUDE_DIRS})
 list(APPEND compile_options ${libsn_dep_CFLAGS_OTHER})
 
+find_package(libev REQUIRED)
+list(APPEND libraries libev::libev)
+
 find_package(X11 REQUIRED COMPONENTS xcb xcb_xkb xcb_randr xcb_util xcb_keysyms xcb_icccm xkbcommon xkbcommon_X11)
 list(APPEND libraries X11 X11::xcb X11::xcb_xkb X11::xcb_randr X11::xcb_util X11::xcb_keysyms X11::xcb_icccm X11::xkbcommon X11::xkbcommon_X11)
 
@@ -122,7 +125,6 @@ list(APPEND libraries antlr4_shared)
 list(APPEND include_dirs ${ANTLR4_INCLUDE_DIR})
 
 list(APPEND libraries libi3 libi3ipc)
-list(APPEND libraries ${CONAN_LIBS})
 
 list(APPEND include_dirs
         "${PROJECT_BINARY_DIR}"

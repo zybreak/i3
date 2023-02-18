@@ -2,4 +2,5 @@
 libev/4.33
 
 [generators]
-cmake
+cmake_find_package
+cmake_paths
