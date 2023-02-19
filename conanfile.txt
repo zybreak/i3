@@ -1,6 +1,8 @@
 [requires]
 libev/4.33
+pcre/8.45
+fmt/9.1.0
 
 [generators]
-cmake_find_package
-cmake_paths
+CMakeToolchain
+CMakeDeps

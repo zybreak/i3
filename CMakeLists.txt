@@ -5,7 +5,7 @@ project(i3 VERSION 4.19.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-include (${CMAKE_BINARY_DIR}/conan_paths.cmake)
+#include (${CMAKE_BINARY_DIR}/conan_paths.cmake)
 
 configure_file(config.h.in config.h)
 

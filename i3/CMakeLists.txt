@@ -68,7 +68,7 @@ list(APPEND libraries ${libsn_dep_LINK_LIBRARIES})
 list(APPEND include_dirs ${libsn_dep_INCLUDE_DIRS})
 list(APPEND compile_options ${libsn_dep_CFLAGS_OTHER})
 
-find_package(libev REQUIRED)
+find_package(libev CONFIG REQUIRED 4.33)
 list(APPEND libraries libev::libev)
 
 find_package(X11 REQUIRED COMPONENTS xcb xcb_xkb xcb_randr xcb_util xcb_keysyms xcb_icccm xkbcommon xkbcommon_X11)
@@ -89,10 +89,8 @@ list(APPEND libraries ${xcb_util_xrm_dep_LINK_LIBRARIES})
 list(APPEND include_dirs ${xcb_util_xrm_dep_INCLUDE_DIRS})
 list(APPEND compile_options ${xcb_util_xrm_dep_CFLAGS_OTHER})
 
-pkg_check_modules(libpcre_dep REQUIRED libpcre>=8.10)
-list(APPEND libraries ${libpcre_dep_LINK_LIBRARIES})
-list(APPEND include_dirs ${libpcre_dep_INCLUDE_DIRS})
-list(APPEND compile_options ${libpcre_dep_CFLAGS_OTHER})
+find_package(PCRE CONFIG REQUIRED 8.4)
+list(APPEND libraries pcre::libpcre)
 
 pkg_check_modules(cairo_dep REQUIRED cairo>=1.14.4)
 list(APPEND libraries ${cairo_dep_LINK_LIBRARIES})
@@ -114,7 +112,7 @@ list(APPEND libraries ${gobject_dep_LINK_LIBRARIES})
 list(APPEND include_dirs ${gobject_dep_INCLUDE_DIRS})
 list(APPEND compile_options ${gobject_dep_CFLAGS_OTHER})
 
-find_package(fmt REQUIRED)
+find_package(fmt CONFIG REQUIRED)
 list(APPEND libraries fmt::fmt)
 
 find_package(nlohmann_json 3.11.2 REQUIRED)
