@@ -1,5 +1,5 @@
 
-// Generated from parser-specs/config.g4 by ANTLR 4.10.1
+// Generated from parser-specs/config.g4 by ANTLR 4.11.1
 
 
 #include "configListener.h"
@@ -36,7 +36,7 @@ struct ConfigParserStaticData final {
   std::unique_ptr<antlr4::atn::ATN> atn;
 };
 
-std::once_flag configParserOnceFlag;
+::antlr4::internal::OnceFlag configParserOnceFlag;
 ConfigParserStaticData *configParserStaticData = nullptr;
 
 void configParserInitialize() {
@@ -348,50 +348,9 @@ configParser::FileContext* configParser::file() {
     _errHandler->sync(this);
 
     _la = _input->LA(1);
-    if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & ((1ULL << configParser::T__0)
-      | (1ULL << configParser::T__4)
-      | (1ULL << configParser::T__5)
-      | (1ULL << configParser::T__6)
-      | (1ULL << configParser::T__7)
-      | (1ULL << configParser::T__8)
-      | (1ULL << configParser::T__9)
-      | (1ULL << configParser::T__10)
-      | (1ULL << configParser::T__11)
-      | (1ULL << configParser::T__13)
-      | (1ULL << configParser::T__17)
-      | (1ULL << configParser::T__18)
-      | (1ULL << configParser::T__19)
-      | (1ULL << configParser::T__20)
-      | (1ULL << configParser::T__21)
-      | (1ULL << configParser::T__23)
-      | (1ULL << configParser::T__27)
-      | (1ULL << configParser::T__31)
-      | (1ULL << configParser::T__33)
-      | (1ULL << configParser::T__34)
-      | (1ULL << configParser::T__36)
-      | (1ULL << configParser::T__37)
-      | (1ULL << configParser::T__38)
-      | (1ULL << configParser::T__39)
-      | (1ULL << configParser::T__40)
-      | (1ULL << configParser::T__46))) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 64)) & ((1ULL << (configParser::T__63 - 64))
-      | (1ULL << (configParser::T__67 - 64))
-      | (1ULL << (configParser::T__68 - 64))
-      | (1ULL << (configParser::T__69 - 64))
-      | (1ULL << (configParser::T__70 - 64))
-      | (1ULL << (configParser::T__74 - 64))
-      | (1ULL << (configParser::T__79 - 64))
-      | (1ULL << (configParser::T__81 - 64))
-      | (1ULL << (configParser::T__82 - 64))
-      | (1ULL << (configParser::T__83 - 64))
-      | (1ULL << (configParser::T__85 - 64))
-      | (1ULL << (configParser::T__86 - 64))
-      | (1ULL << (configParser::T__87 - 64))
-      | (1ULL << (configParser::T__88 - 64))
-      | (1ULL << (configParser::T__89 - 64))
-      | (1ULL << (configParser::T__90 - 64))
-      | (1ULL << (configParser::T__91 - 64)))) != 0)) {
+    if (((_la & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 145054223851490) != 0 || (((_la - 64) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 64)) & 534579441) != 0) {
       setState(120);
       stmt();
     }
@@ -405,50 +364,9 @@ configParser::FileContext* configParser::file() {
       _errHandler->sync(this);
 
       _la = _input->LA(1);
-      if ((((_la & ~ 0x3fULL) == 0) &&
-        ((1ULL << _la) & ((1ULL << configParser::T__0)
-        | (1ULL << configParser::T__4)
-        | (1ULL << configParser::T__5)
-        | (1ULL << configParser::T__6)
-        | (1ULL << configParser::T__7)
-        | (1ULL << configParser::T__8)
-        | (1ULL << configParser::T__9)
-        | (1ULL << configParser::T__10)
-        | (1ULL << configParser::T__11)
-        | (1ULL << configParser::T__13)
-        | (1ULL << configParser::T__17)
-        | (1ULL << configParser::T__18)
-        | (1ULL << configParser::T__19)
-        | (1ULL << configParser::T__20)
-        | (1ULL << configParser::T__21)
-        | (1ULL << configParser::T__23)
-        | (1ULL << configParser::T__27)
-        | (1ULL << configParser::T__31)
-        | (1ULL << configParser::T__33)
-        | (1ULL << configParser::T__34)
-        | (1ULL << configParser::T__36)
-        | (1ULL << configParser::T__37)
-        | (1ULL << configParser::T__38)
-        | (1ULL << configParser::T__39)
-        | (1ULL << configParser::T__40)
-        | (1ULL << configParser::T__46))) != 0) || ((((_la - 64) & ~ 0x3fULL) == 0) &&
-        ((1ULL << (_la - 64)) & ((1ULL << (configParser::T__63 - 64))
-        | (1ULL << (configParser::T__67 - 64))
-        | (1ULL << (configParser::T__68 - 64))
-        | (1ULL << (configParser::T__69 - 64))
-        | (1ULL << (configParser::T__70 - 64))
-        | (1ULL << (configParser::T__74 - 64))
-        | (1ULL << (configParser::T__79 - 64))
-        | (1ULL << (configParser::T__81 - 64))
-        | (1ULL << (configParser::T__82 - 64))
-        | (1ULL << (configParser::T__83 - 64))
-        | (1ULL << (configParser::T__85 - 64))
-        | (1ULL << (configParser::T__86 - 64))
-        | (1ULL << (configParser::T__87 - 64))
-        | (1ULL << (configParser::T__88 - 64))
-        | (1ULL << (configParser::T__89 - 64))
-        | (1ULL << (configParser::T__90 - 64))
-        | (1ULL << (configParser::T__91 - 64)))) != 0)) {
+      if (((_la & ~ 0x3fULL) == 0) &&
+        ((1ULL << _la) & 145054223851490) != 0 || (((_la - 64) & ~ 0x3fULL) == 0) &&
+        ((1ULL << (_la - 64)) & 534579441) != 0) {
         setState(124);
         stmt();
       }
@@ -1019,11 +937,8 @@ configParser::Stmt_modeContext* configParser::stmt_mode() {
     _errHandler->sync(this);
 
     _la = _input->LA(1);
-    if (((((_la - 87) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 87)) & ((1ULL << (configParser::T__86 - 87))
-      | (1ULL << (configParser::T__89 - 87))
-      | (1ULL << (configParser::T__90 - 87))
-      | (1ULL << (configParser::T__91 - 87)))) != 0)) {
+    if ((((_la - 87) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 87)) & 57) != 0) {
       setState(182);
       stmt_mode_stmts();
     }
@@ -1037,11 +952,8 @@ configParser::Stmt_modeContext* configParser::stmt_mode() {
       _errHandler->sync(this);
 
       _la = _input->LA(1);
-      if (((((_la - 87) & ~ 0x3fULL) == 0) &&
-        ((1ULL << (_la - 87)) & ((1ULL << (configParser::T__86 - 87))
-        | (1ULL << (configParser::T__89 - 87))
-        | (1ULL << (configParser::T__90 - 87))
-        | (1ULL << (configParser::T__91 - 87)))) != 0)) {
+      if ((((_la - 87) & ~ 0x3fULL) == 0) &&
+        ((1ULL << (_la - 87)) & 57) != 0) {
         setState(186);
         stmt_mode_stmts();
       }
@@ -1367,12 +1279,8 @@ configParser::Color_multipleContext* configParser::color_multiple() {
     enterOuterAlt(_localctx, 1);
     setState(208);
     _la = _input->LA(1);
-    if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & ((1ULL << configParser::T__5)
-      | (1ULL << configParser::T__6)
-      | (1ULL << configParser::T__7)
-      | (1ULL << configParser::T__8)
-      | (1ULL << configParser::T__9))) != 0))) {
+    if (!(((_la & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 1984) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -1646,10 +1554,8 @@ configParser::Popup_during_fullscreen_valueContext* configParser::popup_during_f
     enterOuterAlt(_localctx, 1);
     setState(232);
     _la = _input->LA(1);
-    if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & ((1ULL << configParser::T__14)
-      | (1ULL << configParser::T__15)
-      | (1ULL << configParser::T__16))) != 0))) {
+    if (!(((_la & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 229376) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -2079,10 +1985,8 @@ configParser::Title_align_valueContext* configParser::title_align_value() {
     enterOuterAlt(_localctx, 1);
     setState(256);
     _la = _input->LA(1);
-    if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & ((1ULL << configParser::T__24)
-      | (1ULL << configParser::T__25)
-      | (1ULL << configParser::T__26))) != 0))) {
+    if (!(((_la & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 234881024) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -2194,11 +2098,8 @@ configParser::Focus_on_window_activation_valueContext* configParser::focus_on_wi
     enterOuterAlt(_localctx, 1);
     setState(261);
     _la = _input->LA(1);
-    if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & ((1ULL << configParser::T__16)
-      | (1ULL << configParser::T__28)
-      | (1ULL << configParser::T__29)
-      | (1ULL << configParser::T__30))) != 0))) {
+    if (!(((_la & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 3758227456) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -2999,12 +2900,8 @@ configParser::Assign_target_outputContext* configParser::assign_target_output() 
     match(configParser::T__22);
     setState(307);
     _la = _input->LA(1);
-    if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & ((1ULL << configParser::T__24)
-      | (1ULL << configParser::T__26)
-      | (1ULL << configParser::T__43)
-      | (1ULL << configParser::T__44)
-      | (1ULL << configParser::T__45))) != 0))) {
+    if (!(((_la & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 123145470083072) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -3139,22 +3036,8 @@ configParser::CriteriaContext* configParser::criteria() {
       setState(317); 
       _errHandler->sync(this);
       _la = _input->LA(1);
-    } while ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & ((1ULL << configParser::T__21)
-      | (1ULL << configParser::T__28)
-      | (1ULL << configParser::T__49)
-      | (1ULL << configParser::T__50)
-      | (1ULL << configParser::T__51)
-      | (1ULL << configParser::T__52)
-      | (1ULL << configParser::T__53)
-      | (1ULL << configParser::T__54)
-      | (1ULL << configParser::T__55)
-      | (1ULL << configParser::T__56)
-      | (1ULL << configParser::T__57)
-      | (1ULL << configParser::T__58)
-      | (1ULL << configParser::T__59)
-      | (1ULL << configParser::T__60)
-      | (1ULL << configParser::T__61))) != 0));
+    } while (((_la & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 9222246137488998400) != 0);
     setState(319);
     match(configParser::T__48);
    
@@ -3306,19 +3189,8 @@ configParser::Value_criterionContext* configParser::value_criterion() {
     enterOuterAlt(_localctx, 1);
     setState(327);
     _la = _input->LA(1);
-    if (!((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & ((1ULL << configParser::T__21)
-      | (1ULL << configParser::T__28)
-      | (1ULL << configParser::T__52)
-      | (1ULL << configParser::T__53)
-      | (1ULL << configParser::T__54)
-      | (1ULL << configParser::T__55)
-      | (1ULL << configParser::T__56)
-      | (1ULL << configParser::T__57)
-      | (1ULL << configParser::T__58)
-      | (1ULL << configParser::T__59)
-      | (1ULL << configParser::T__60)
-      | (1ULL << configParser::T__61))) != 0))) {
+    if (!(((_la & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 9214364838141100032) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -3440,11 +3312,8 @@ configParser::Border_typeContext* configParser::border_type() {
     _la = _input->LA(1);
     if (!(_la == configParser::T__16
 
-    || _la == configParser::T__30 || ((((_la - 65) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 65)) & ((1ULL << (configParser::T__64 - 65))
-      | (1ULL << (configParser::T__65 - 65))
-      | (1ULL << (configParser::T__66 - 65))
-      | (1ULL << (configParser::BOOL - 65)))) != 0))) {
+    || _la == configParser::T__30 || (((_la - 65) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 65)) & 281474976710663) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -3560,11 +3429,8 @@ configParser::Default_border_typeContext* configParser::default_border_type() {
     enterOuterAlt(_localctx, 1);
     setState(339);
     _la = _input->LA(1);
-    if (!(((((_la - 68) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 68)) & ((1ULL << (configParser::T__67 - 68))
-      | (1ULL << (configParser::T__68 - 68))
-      | (1ULL << (configParser::T__69 - 68))
-      | (1ULL << (configParser::T__70 - 68)))) != 0))) {
+    if (!((((_la - 68) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 68)) & 15) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -3766,11 +3632,8 @@ configParser::Workspace_layout_valueContext* configParser::workspace_layout_valu
     enterOuterAlt(_localctx, 1);
     setState(350);
     _la = _input->LA(1);
-    if (!(((((_la - 76) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 76)) & ((1ULL << (configParser::T__75 - 76))
-      | (1ULL << (configParser::T__76 - 76))
-      | (1ULL << (configParser::T__77 - 76))
-      | (1ULL << (configParser::T__78 - 76)))) != 0))) {
+    if (!((((_la - 76) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 76)) & 15) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -3882,10 +3745,8 @@ configParser::Default_orientation_valueContext* configParser::default_orientatio
     enterOuterAlt(_localctx, 1);
     setState(355);
     _la = _input->LA(1);
-    if (!(((((_la - 65) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 65)) & ((1ULL << (configParser::T__64 - 65))
-      | (1ULL << (configParser::T__65 - 65))
-      | (1ULL << (configParser::T__80 - 65)))) != 0))) {
+    if (!((((_la - 65) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 65)) & 65539) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -3959,21 +3820,8 @@ configParser::Floating_modifierContext* configParser::floating_modifier() {
       setState(361); 
       _errHandler->sync(this);
       _la = _input->LA(1);
-    } while (((((_la - 98) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 98)) & ((1ULL << (configParser::T__97 - 98))
-      | (1ULL << (configParser::T__98 - 98))
-      | (1ULL << (configParser::T__99 - 98))
-      | (1ULL << (configParser::T__100 - 98))
-      | (1ULL << (configParser::T__101 - 98))
-      | (1ULL << (configParser::T__102 - 98))
-      | (1ULL << (configParser::T__103 - 98))
-      | (1ULL << (configParser::T__104 - 98))
-      | (1ULL << (configParser::T__105 - 98))
-      | (1ULL << (configParser::T__106 - 98))
-      | (1ULL << (configParser::T__107 - 98))
-      | (1ULL << (configParser::T__108 - 98))
-      | (1ULL << (configParser::T__109 - 98))
-      | (1ULL << (configParser::VARIABLE - 98)))) != 0));
+    } while ((((_la - 98) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 98)) & 73727) != 0);
    
   }
   catch (RecognitionException &e) {
@@ -4457,10 +4305,8 @@ configParser::BindingContext* configParser::binding() {
     enterOuterAlt(_localctx, 1);
     setState(389);
     _la = _input->LA(1);
-    if (!(((((_la - 90) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 90)) & ((1ULL << (configParser::T__89 - 90))
-      | (1ULL << (configParser::T__90 - 90))
-      | (1ULL << (configParser::T__91 - 90)))) != 0))) {
+    if (!((((_la - 90) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 90)) & 7) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -4533,11 +4379,8 @@ configParser::Binding_optionsContext* configParser::binding_options() {
     enterOuterAlt(_localctx, 1);
     setState(399);
     _la = _input->LA(1);
-    if (!(((((_la - 93) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 93)) & ((1ULL << (configParser::T__92 - 93))
-      | (1ULL << (configParser::T__93 - 93))
-      | (1ULL << (configParser::T__94 - 93))
-      | (1ULL << (configParser::T__95 - 93)))) != 0))) {
+    if (!((((_la - 93) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 93)) & 15) != 0)) {
     _errHandler->recoverInline(this);
     }
     else {
@@ -4823,5 +4666,5 @@ bool configParser::modifierSempred(ModifierContext *_localctx, size_t predicateI
 }
 
 void configParser::initialize() {
-  std::call_once(configParserOnceFlag, configParserInitialize);
+  ::antlr4::internal::call_once(configParserOnceFlag, configParserInitialize);
 }

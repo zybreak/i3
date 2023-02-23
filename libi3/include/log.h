@@ -3,7 +3,6 @@
 #include <string>
 #include <fmt/core.h>
 #include <fmt/printf.h>
-#include <source_location>
 
 /**
  * Checks if debug logging is active.
@@ -56,9 +55,8 @@ void ELOG(const std::string_view &msg) {
  *
  */
 inline __attribute__((always_inline))
-void DLOG(const std::string_view &msg, std::source_location location = std::source_location::current()) {
+void DLOG(const std::string_view &msg) {
     if (!(get_debug_logging()))
         return;
 
-    std::cerr << fmt::format("DEBUG: {}:{}:{} - {}", location.file_name(), location.function_name(), location.line(), msg);
 }

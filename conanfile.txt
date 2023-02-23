@@ -2,6 +2,7 @@
 libev/4.33
 pcre/8.45
 fmt/9.1.0
+antlr4-cppruntime/4.11.1
 
 [generators]
 CMakeToolchain

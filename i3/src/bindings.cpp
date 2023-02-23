@@ -22,7 +22,6 @@
 #include "tree.h"
 #include "xcb.h"
 #include "i3.h"
-#include "configuration.h"
 #include "commands_parser.h"
 #include "bindings.h"
 #include "global.h"

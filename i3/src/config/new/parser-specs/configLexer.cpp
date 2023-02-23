@@ -1,5 +1,5 @@
 
-// Generated from parser-specs/config.g4 by ANTLR 4.10.1
+// Generated from parser-specs/config.g4 by ANTLR 4.11.1
 
 
 #include "configLexer.h"
@@ -41,7 +41,7 @@ struct ConfigLexerStaticData final {
   std::unique_ptr<antlr4::atn::ATN> atn;
 };
 
-std::once_flag configlexerLexerOnceFlag;
+::antlr4::internal::OnceFlag configlexerLexerOnceFlag;
 ConfigLexerStaticData *configlexerLexerStaticData = nullptr;
 
 void configlexerLexerInitialize() {
@@ -664,5 +664,5 @@ const atn::ATN& configLexer::getATN() const {
 
 
 void configLexer::initialize() {
-  std::call_once(configlexerLexerOnceFlag, configlexerLexerInitialize);
+  ::antlr4::internal::call_once(configlexerLexerOnceFlag, configlexerLexerInitialize);
 }

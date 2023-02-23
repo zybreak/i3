@@ -17,7 +17,6 @@
 #include "bindings.h"
 #include "tree.h"
 #include "con.h"
-#include "configuration.h"
 
 #include "i3-ipc.h"
 

@@ -13,6 +13,7 @@
 #pragma once
 
 #include "i3.h"
+#include "bindings.h"
 
 typedef struct Mode Mode;
 typedef struct Config Config;
@@ -25,8 +26,6 @@ extern std::vector<std::unique_ptr<Mode>> modes;
 extern std::vector<std::unique_ptr<Barconfig>> barconfigs;
 extern std::vector<std::string> included_files;
 extern struct Mode* current_mode;
-
-struct Binding;
 
 /**
  * Mouse pointer warping modes.
@@ -73,6 +72,8 @@ struct Mode {
     Mode(const std::string &s) {
         name = s;
     }
+
+    ~Mode() = default;
 };
 
 enum conf_fowa_t {

@@ -118,9 +118,9 @@ list(APPEND libraries fmt::fmt)
 find_package(nlohmann_json 3.11.2 REQUIRED)
 list(APPEND libraries nlohmann_json::nlohmann_json)
 
-find_package(antlr4-runtime REQUIRED)
-list(APPEND libraries antlr4_shared)
-list(APPEND include_dirs ${ANTLR4_INCLUDE_DIR})
+find_package(antlr4-runtime 4.11.1 REQUIRED)
+list(APPEND libraries antlr4_static)
+list(APPEND include_dirs ${antlr4-runtime_INCLUDE_DIR})
 
 list(APPEND libraries libi3 libi3ipc)
 

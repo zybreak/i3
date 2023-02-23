@@ -5,6 +5,8 @@
 #ifndef BUILD_RECT_H
 #define BUILD_RECT_H
 
+#include <compare>
+
 /**
  * Stores a rectangle, for example the size of a window, the child window etc.
  *
