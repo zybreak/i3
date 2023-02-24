@@ -73,7 +73,7 @@ static struct Mode *mode_from_name(const std::string &name, bool pango_markup) {
  * be parsed.
  *
  */
-Binding *configure_binding(const std::string_view &bindtype, const std::string_view &modifiers, const std::string_view &input_code,
+void configure_binding(const std::string_view &bindtype, const std::string_view &modifiers, const std::string_view &input_code,
                            bool release, bool border, bool whole_window,
                            bool exclude_titlebar, const std::string_view &command, const std::string_view &modename,
                            bool pango_markup) {
@@ -93,7 +93,7 @@ Binding *configure_binding(const std::string_view &bindtype, const std::string_v
         long keycode;
         if (!parse_long(input_code.data(), &keycode, 10)) {
              ELOG(fmt::sprintf("Could not parse \"%s\" as an input code, ignoring this binding.\n", input_code.data()));
-            return nullptr;
+            return;
         }
 
         new_binding->keycode = keycode;
@@ -115,10 +115,7 @@ Binding *configure_binding(const std::string_view &bindtype, const std::string_v
 
     struct Mode *mode = mode_from_name(modename.data(), pango_markup);
 
-    auto new_binding_ptr = new_binding.get();
     mode->bindings.push_back(std::move(new_binding));
-
-    return new_binding_ptr;
 }
 
 static bool binding_in_current_group(const Binding *bind) {

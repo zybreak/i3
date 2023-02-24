@@ -59,4 +59,5 @@ void DLOG(const std::string_view &msg) {
     if (!(get_debug_logging()))
         return;
 
+    std::cerr << fmt::format("DEBUG: {}", msg);
 }
