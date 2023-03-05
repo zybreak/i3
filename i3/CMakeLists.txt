@@ -102,13 +102,9 @@ list(APPEND libraries ${pangocairo_dep_LINK_LIBRARIES})
 list(APPEND include_dirs ${pangocairo_dep_INCLUDE_DIRS})
 list(APPEND compile_options ${pangocairo_dep_CFLAGS_OTHER})
 
-find_package(glib CONFIG REQUIRED 2.52.0)
+find_package(glib CONFIG COMPONENTS gobject-2.0 REQUIRED 2.52.0)
 list(APPEND libraries glib::glib)
-
-pkg_check_modules(gobject_dep REQUIRED gobject-2.0)
-list(APPEND libraries ${gobject_dep_LINK_LIBRARIES})
-list(APPEND include_dirs ${gobject_dep_INCLUDE_DIRS})
-list(APPEND compile_options ${gobject_dep_CFLAGS_OTHER})
+list(APPEND libraries glib::gobject-2.0)
 
 find_package(fmt CONFIG REQUIRED)
 list(APPEND libraries fmt::fmt)
