@@ -587,15 +587,6 @@ void con_move_to_workspace(Con *con, Con *workspace, bool fix_coordinates,
 void con_move_to_output(Con *con, Output *output, bool fix_coordinates);
 
 /**
- * Moves the given container to the currently focused container on the
- * visible workspace on the output specified by the given name.
- * The current output for the container is used to resolve relative names
- * such as left, right, up, down.
- *
- */
-bool con_move_to_output_name(Con *con, const std::string &name, bool fix_coordinates);
-
-/**
  * Returns the orientation of the given container (for stacked containers,
  * vertical orientation is used regardless of the actual orientation of the
  * container).
@@ -679,15 +670,6 @@ void con_set_border_style(Con *con, int border_style, int border_width);
 void con_set_layout(Con *con, layout_t layout);
 
 /**
- * This function toggles the layout of a given container. toggle_mode can be
- * either 'default' (toggle only between stacked/tabbed/last_split_layout),
- * 'split' (toggle only between splitv/splith) or 'all' (toggle between all
- * layouts).
- *
- */
-void con_toggle_layout(Con *con, const char *toggle_mode);
-
-/**
  * Returns true if changing the focus to con would be allowed considering
  * the fullscreen focus constraints. Specifically, if a fullscreen container or
  * any of its descendants is focused, this function returns true if and only if
@@ -709,12 +691,6 @@ void con_toggle_layout(Con *con, const char *toggle_mode);
  *
  */
 bool con_fullscreen_permits_focusing(Con *con);
-
-/**
- * Checks if the given container has an urgent child.
- *
- */
-bool con_has_urgent_child(Con *con);
 
 /**
  * Make all parent containers urgent if con is urgent or clear the urgent flag
@@ -753,11 +729,3 @@ i3String *con_parse_title_format(Con *con);
  *
  */
 uint32_t con_rect_size_in_orientation(Con *con);
-
-/**
- * Merges container specific data that should move with the window (e.g. marks,
- * title format, and the window itself) into another container, and closes the
- * old container.
- *
- */
-void con_merge_into(Con *old, Con *newCon);

@@ -16,6 +16,52 @@
 /** Stores the X11 window ID of the currently focused window */
 extern xcb_window_t focused_id;
 
+/*
+ * Describes the X11 state we may modify (map state, position, window stack).
+ * There is one entry per container. The state represents the current situation
+ * as X11 sees it (with the exception of the order in the state_head CIRCLEQ,
+ * which represents the order that will be pushed to X11, while old_state_head
+ * represents the current order). It will be updated in x_push_changes().
+ *
+ */
+struct con_state {
+    xcb_window_t id{};
+    bool mapped{};
+    bool unmap_now{};
+    bool child_mapped{};
+    bool is_hidden{};
+
+    /* The con for which this state is. */
+    Con *con{};
+
+    /* For reparenting, we have a flag (need_reparent) and the X ID of the old
+     * frame this window was in. The latter is necessary because we need to
+     * ignore UnmapNotify events (by changing the window event mask). */
+    bool need_reparent{};
+    xcb_window_t old_frame{};
+
+    /* The container was child of floating container during the previous call of
+     * x_push_node(). This is used to remove the shape when the container is no
+     * longer floating. */
+    bool was_floating{};
+
+    Rect rect;
+    Rect window_rect;
+
+    bool initial{};
+
+    std::string name{};
+};
+
+/*
+ * Returns the container state for the given frame. This function always
+ * returns a container state (otherwise, there is a bug in the code and the
+ * container state of a container for which x_con_init() was not called was
+ * requested).
+ *
+ */
+con_state *state_for_frame(xcb_window_t window);
+
 /**
  * Initializes the X11 part for the given container. Called exactly once for
  * every container from con_new().
@@ -24,25 +70,11 @@ extern xcb_window_t focused_id;
 void x_con_init(Con *con);
 
 /**
- * Moves a child window from Container src to Container dest.
- *
- */
-void x_move_win(Con *src, Con *dest);
-
-/**
  * Reparents the child window of the given container (necessary for sticky
  * containers). The reparenting happens in the next call of x_push_changes().
  *
  */
 void x_reparent_child(Con *con, Con *old);
-
-/**
- * Re-initializes the associated X window state for this container. You have
- * to call this when you assign a client to an empty container to ensure that
- * its state gets updated correctly.
- *
- */
-void x_reinit(Con *con);
 
 /**
  * Kills the window decoration associated with the given container.

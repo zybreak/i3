@@ -50,44 +50,6 @@ static xcb_window_t last_focused = XCB_NONE;
 /* Stores coordinates to warp mouse pointer to if set */
 static Rect *warp_to;
 
-/*
- * Describes the X11 state we may modify (map state, position, window stack).
- * There is one entry per container. The state represents the current situation
- * as X11 sees it (with the exception of the order in the state_head CIRCLEQ,
- * which represents the order that will be pushed to X11, while old_state_head
- * represents the current order). It will be updated in x_push_changes().
- *
- */
-struct con_state {
-    xcb_window_t id{};
-    bool mapped{};
-    bool unmap_now{};
-    bool child_mapped{};
-    bool is_hidden{};
-
-    /* The con for which this state is. */
-    Con *con{};
-
-    /* For reparenting, we have a flag (need_reparent) and the X ID of the old
-     * frame this window was in. The latter is necessary because we need to
-     * ignore UnmapNotify events (by changing the window event mask). */
-    bool need_reparent{};
-    xcb_window_t old_frame{};
-
-    /* The container was child of floating container during the previous call of
-     * x_push_node(). This is used to remove the shape when the container is no
-     * longer floating. */
-    bool was_floating{};
-
-    Rect rect;
-    Rect window_rect;
-
-    bool initial{};
-
-    std::string name{};
-
-};
-
 std::deque<con_state*> state_head{};
 std::deque<con_state*> old_state_head{};
 std::deque<con_state*> initial_mapping_head{};
@@ -99,7 +61,7 @@ std::deque<con_state*> initial_mapping_head{};
  * requested).
  *
  */
-static con_state *state_for_frame(xcb_window_t window) {
+con_state *state_for_frame(xcb_window_t window) {
     auto it = std::ranges::find_if(state_head, [window](auto &state) { return state->id == window; });
 
     if (it != state_head.end()) {
@@ -204,27 +166,6 @@ void x_con_init(Con *con) {
 }
 
 /*
- * Re-initializes the associated X window state for this container. You have
- * to call this when you assign a client to an empty container to ensure that
- * its state gets updated correctly.
- *
- */
-void x_reinit(Con *con) {
-    struct con_state *state;
-
-    if ((state = state_for_frame(con->frame.id)) == nullptr) {
-        ELOG("window state not found\n");
-        return;
-    }
-
-    DLOG(fmt::sprintf("resetting state %p to initial\n",  (void*)state));
-    state->initial = true;
-    state->child_mapped = false;
-    state->con = con;
-    state->window_rect = Rect{};
-}
-
-/*
  * Reparents the child window of the given container (necessary for sticky
  * containers). The reparenting happens in the next call of x_push_changes().
  *
@@ -238,32 +179,6 @@ void x_reparent_child(Con *con, Con *old) {
 
     state->need_reparent = true;
     state->old_frame = old->frame.id;
-}
-
-/*
- * Moves a child window from Container src to Container dest.
- *
- */
-void x_move_win(Con *src, Con *dest) {
-    struct con_state *state_src, *state_dest;
-
-    if ((state_src = state_for_frame(src->frame.id)) == nullptr) {
-        ELOG("window state for src not found\n");
-        return;
-    }
-
-    if ((state_dest = state_for_frame(dest->frame.id)) == nullptr) {
-        ELOG("window state for dest not found\n");
-        return;
-    }
-
-    state_dest->con = state_src->con;
-    state_src->con = nullptr;
-
-    if (state_dest->window_rect == (Rect){0, 0, 0, 0}) {
-        memcpy(&(state_dest->window_rect), &(state_src->window_rect), sizeof(Rect));
-        DLOG("COPYING RECT\n");
-    }
 }
 
 static void _x_con_kill(Con *con) {
@@ -527,17 +442,18 @@ void x_draw_decoration(Con *con) {
         return;
 
     /* 1: build deco_params and compare with cache */
-    auto *p = new struct deco_render_params();
+    auto *p = new deco_render_params();
 
     /* find out which colors to use */
-    if (con->urgent)
+    if (con->urgent) {
         p->color = &config.client.urgent;
-    else if (con == focused || con->con_inside_focused())
+    } else if (con == focused || con->con_inside_focused()) {
         p->color = &config.client.focused;
-    else if (con == con::first(parent->focus_head))
+    } else if (con == con::first(parent->focus_head)) {
         p->color = &config.client.focused_inactive;
-    else
+    } else {
         p->color = &config.client.unfocused;
+    }
 
     p->border_style = con_border_style(con);
 

@@ -122,6 +122,76 @@ struct free_delete
     void operator()(void* x) { free(x); }
 };
 
+
+/*
+ * Moves the given container to the currently focused container on the
+ * visible workspace on the output specified by the given name.
+ * The current output for the container is used to resolve relative names
+ * such as left, right, up, down.
+ *
+ */
+static bool con_move_to_output_name(Con *con, const std::string &name, bool fix_coordinates) {
+    Output *current_output = get_output_for_con(con);
+    Output *output = current_output->get_output_from_string(name);
+    if (output == nullptr) {
+        ELOG(fmt::sprintf("Could not find output \"%s\"\n", name));
+        return false;
+    }
+
+    con_move_to_output(con, output, fix_coordinates);
+    return true;
+}
+
+/*
+ * Merges container specific data that should move with the window (e.g. marks,
+ * title format, and the window itself) into another container, and closes the
+ * old container.
+ *
+ */
+void con_merge_into(Con *old, Con *new_con) {
+    new_con->window = old->window;
+    old->window = nullptr;
+
+    if (!old->title_format.empty()) {
+        new_con->title_format = old->title_format;
+        old->title_format.clear();
+    }
+
+    if (old->sticky_group) {
+        FREE(new_con->sticky_group);
+        new_con->sticky_group = old->sticky_group;
+        old->sticky_group = nullptr;
+    }
+
+    new_con->sticky = old->sticky;
+
+    con_set_urgency(new_con, old->urgent);
+
+    tree_close_internal(old, DONT_KILL_WINDOW, false);
+}
+
+
+/*
+ * Re-initializes the associated X window state for this container. You have
+ * to call this when you assign a client to an empty container to ensure that
+ * its state gets updated correctly.
+ *
+ */
+static void x_reinit(Con *con) {
+    con_state *state;
+
+    if ((state = state_for_frame(con->frame.id)) == nullptr) {
+        ELOG("window state not found\n");
+        return;
+    }
+
+    DLOG(fmt::sprintf("resetting state %p to initial\n",  (void*)state));
+    state->initial = true;
+    state->child_mapped = false;
+    state->con = con;
+    state->window_rect = Rect{};
+}
+
 /*
  * Do some sanity checks and then reparent the window.
  *

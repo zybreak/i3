@@ -417,6 +417,8 @@ void Con::con_activate_unblock() {
 /*
  * Closes the given container.
  *
+ * TODO: Only one usage in commands.cpp, move code?
+ *
  */
 void Con::con_close(kill_window_t kill_window) {
     assert(this != nullptr);
@@ -1272,25 +1274,6 @@ void con_move_to_output(Con *con, Output *output, bool fix_coordinates) {
 }
 
 /*
- * Moves the given container to the currently focused container on the
- * visible workspace on the output specified by the given name.
- * The current output for the container is used to resolve relative names
- * such as left, right, up, down.
- *
- */
-bool con_move_to_output_name(Con *con, const std::string &name, bool fix_coordinates) {
-    Output *current_output = get_output_for_con(con);
-    Output *output = current_output->get_output_from_string(name);
-    if (output == nullptr) {
-         ELOG(fmt::sprintf("Could not find output \"%s\"\n", name));
-        return false;
-    }
-
-    con_move_to_output(con, output, fix_coordinates);
-    return true;
-}
-
-/*
  * Returns the orientation of the given container (for stacked containers,
  * vertical orientation is used regardless of the actual orientation of the
  * container).
@@ -1697,100 +1680,6 @@ void con_set_layout(Con *con, layout_t layout) {
 }
 
 /*
- * This function toggles the layout of a given container. toggle_mode can be
- * either 'default' (toggle only between stacked/tabbed/last_split_layout),
- * 'split' (toggle only between splitv/splith) or 'all' (toggle between all
- * layouts).
- *
- */
-void con_toggle_layout(Con *con, const char *toggle_mode) {
-    Con *parent = con;
-    /* Users can focus workspaces, but not any higher in the hierarchy.
-     * Focus on the workspace is a special case, since in every other case, the
-     * user means "change the layout of the parent split container". */
-    if (con->type != CT_WORKSPACE)
-        parent = con->parent;
-    DLOG(fmt::sprintf("con_toggle_layout(%p, %s), parent = %p\n",  (void*)con, toggle_mode, (void*)parent));
-
-    const char delim[] = " ";
-
-    if (strcasecmp(toggle_mode, "split") == 0 || strstr(toggle_mode, delim)) {
-        /* L_DEFAULT is used as a placeholder value to distinguish if
-         * the first layout has already been saved. (it can never be L_DEFAULT) */
-        layout_t new_layout = L_DEFAULT;
-        bool current_layout_found = false;
-        char *tm_dup = sstrdup(toggle_mode);
-        char *cur_tok = strtok(tm_dup, delim);
-
-        for (layout_t layout; cur_tok != nullptr; cur_tok = strtok(nullptr, delim)) {
-            if (strcasecmp(cur_tok, "split") == 0) {
-                /* Toggle between splits. When the current layout is not a split
-                 * layout, we just switch back to last_split_layout. Otherwise, we
-                 * change to the opposite split layout. */
-                if (parent->layout != L_SPLITH && parent->layout != L_SPLITV) {
-                    layout = parent->last_split_layout;
-                    /* In case last_split_layout was not initialized… */
-                    if (layout == L_DEFAULT) {
-                        layout = L_SPLITH;
-                    }
-                } else {
-                    layout = (parent->layout == L_SPLITH) ? L_SPLITV : L_SPLITH;
-                }
-            } else {
-                bool success = layout_from_name(cur_tok, &layout);
-                if (!success || layout == L_DEFAULT) {
-                    ELOG(fmt::sprintf("The token '%s' was not recognized and has been skipped.\n",  cur_tok));
-                    continue;
-                }
-            }
-
-            /* If none of the specified layouts match the current,
-             * fall back to the first layout in the list */
-            if (new_layout == L_DEFAULT) {
-                new_layout = layout;
-            }
-
-            /* We found the active layout in the last iteration, so
-             * now let's activate the current layout (next in list) */
-            if (current_layout_found) {
-                new_layout = layout;
-                break;
-            }
-
-            if (parent->layout == layout) {
-                current_layout_found = true;
-            }
-        }
-        free(tm_dup);
-
-        if (new_layout != L_DEFAULT) {
-            con_set_layout(con, new_layout);
-        }
-    } else if (strcasecmp(toggle_mode, "all") == 0 || strcasecmp(toggle_mode, "default") == 0) {
-        if (parent->layout == L_STACKED)
-            con_set_layout(con, L_TABBED);
-        else if (parent->layout == L_TABBED) {
-            if (strcasecmp(toggle_mode, "all") == 0)
-                con_set_layout(con, L_SPLITH);
-            else
-                con_set_layout(con, parent->last_split_layout);
-        } else if (parent->layout == L_SPLITH || parent->layout == L_SPLITV) {
-            if (strcasecmp(toggle_mode, "all") == 0) {
-                /* When toggling through all modes, we toggle between
-                 * splith/splitv, whereas normally we just directly jump to
-                 * stacked. */
-                if (parent->layout == L_SPLITH)
-                    con_set_layout(con, L_SPLITV);
-                else
-                    con_set_layout(con, L_STACKED);
-            } else {
-                con_set_layout(con, L_STACKED);
-            }
-        }
-    }
-}
-
-/*
  * Callback which will be called when removing a child from the given con.
  * Kills the container if it is empty and replaces it with the child if there
  * is exactly one child.
@@ -1897,7 +1786,7 @@ bool con_fullscreen_permits_focusing(Con *con) {
  * Checks if the given container has an urgent child.
  *
  */
-bool con_has_urgent_child(Con *con) {
+static bool con_has_urgent_child(Con *con) {
     if (con->con_is_leaf())
         return con->urgent;
 
@@ -2081,32 +1970,4 @@ i3String *con_parse_title_format(Con *con) {
  */
 uint32_t con_rect_size_in_orientation(Con *con) {
     return (con_orientation(con) == HORIZ ? con->rect.width : con->rect.height);
-}
-
-/*
- * Merges container specific data that should move with the window (e.g. marks,
- * title format, and the window itself) into another container, and closes the
- * old container.
- *
- */
-void con_merge_into(Con *old, Con *new_con) {
-    new_con->window = old->window;
-    old->window = nullptr;
-
-    if (!old->title_format.empty()) {
-        new_con->title_format = old->title_format;
-        old->title_format.clear();
-    }
-
-    if (old->sticky_group) {
-        FREE(new_con->sticky_group);
-        new_con->sticky_group = old->sticky_group;
-        old->sticky_group = nullptr;
-    }
-
-    new_con->sticky = old->sticky;
-
-    con_set_urgency(new_con, old->urgent);
-
-    tree_close_internal(old, DONT_KILL_WINDOW, false);
 }
