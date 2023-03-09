@@ -242,7 +242,7 @@ static void setup_term_handlers() {
  * to.
  *
  */
-static std::pair<std::string, int> create_socket(const char *filename) {
+static std::tuple<std::string, int> create_socket(const char *filename) {
     auto resolved = resolve_tilde(filename);
     DLOG(fmt::sprintf("Creating UNIX socket at %s\n",  resolved));
     const std::filesystem::path p(resolved);
@@ -282,7 +282,7 @@ static std::pair<std::string, int> create_socket(const char *filename) {
         throw std::exception();
     }
 
-    return std::make_pair(resolved, sockfd);
+    return std::make_tuple(resolved, sockfd);
 }
 
 static int parse_restart_fd() {

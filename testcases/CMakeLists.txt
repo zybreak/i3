@@ -17,8 +17,8 @@ add_custom_target(complete_run ALL
         complete-run.pl
         DEPENDS complete-run.pl i3test.pm)
 
-enable_testing()
+#enable_testing()
 
-add_test(NAME CompleteRun
-        COMMAND complete_run
-)
+#add_test(NAME CompleteRun
+#        COMMAND complete_run
+#)

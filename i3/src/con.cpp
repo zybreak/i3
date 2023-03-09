@@ -796,6 +796,7 @@ Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
  */
 std::vector<Con*> Con::get_focus_order() {
     std::vector<Con*> focus_order;
+    focus_order.reserve(focus_head.size());
     for (auto &current : focus_head) {
         focus_order.push_back(current);
     }
