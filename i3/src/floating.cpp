@@ -596,7 +596,8 @@ void floating_move_to_pointer(Con *con) {
     floating_reposition(con, (Rect){(uint32_t)x, (uint32_t)y, con->rect.width, con->rect.height});
 }
 
-DRAGGING_CB(drag_window_callback) {
+static void drag_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uint32_t new_y,
+                 const xcb_button_press_event_t *event, const void *extra) {
     /* Reposition the client correctly while moving */
     con->rect.x = old_rect->x + (new_x - event->root_x);
     con->rect.y = old_rect->y + (new_y - event->root_y);
@@ -661,7 +662,8 @@ struct resize_window_callback_params {
     const bool proportional;
 };
 
-DRAGGING_CB(resize_window_callback) {
+static void resize_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uint32_t new_y,
+                 const xcb_button_press_event_t *event, const void *extra) {
     const struct resize_window_callback_params *params = (struct resize_window_callback_params*)extra;
     border_t corner = params->corner;
 

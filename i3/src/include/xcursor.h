@@ -23,11 +23,10 @@ enum xcursor_cursor_t {
     XCURSOR_CURSOR_BOTTOM_RIGHT_CORNER,
     XCURSOR_CURSOR_WATCH,
     XCURSOR_CURSOR_MOVE,
-    XCURSOR_CURSOR_MAX
 };
 
 void xcursor_load_cursors();
-xcb_cursor_t xcursor_get_cursor(enum xcursor_cursor_t c);
+xcb_cursor_t xcursor_get_cursor(xcursor_cursor_t c);
 
 /**
  * Sets the cursor of the root window to the 'pointer' cursor.
@@ -40,4 +39,4 @@ xcb_cursor_t xcursor_get_cursor(enum xcursor_cursor_t c);
  * races might occur (even though we flush the Xlib connection).
  *
  */
-void xcursor_set_root_cursor(int cursor_id);
+void xcursor_set_root_cursor(xcursor_cursor_t cursor_id);

@@ -56,7 +56,8 @@
  * Returns true if the name consists of only digits.
  *
  */
-__attribute__((pure)) bool name_is_digits(const char *name) {
+__attribute__((pure))
+bool name_is_digits(const char *name) {
     /* positive integers and zero are interpreted as numbers */
     for (size_t i = 0; i < strlen(name); i++)
         if (!isdigit(name[i]))

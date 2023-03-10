@@ -26,7 +26,7 @@
 #include <xcb/xcb_cursor.h>
 
 static xcb_cursor_context_t *ctx;
-static xcb_cursor_t cursors[XCURSOR_CURSOR_MAX];
+static std::map<xcursor_cursor_t, xcb_cursor_t> cursors{};
 
 void xcursor_load_cursors() {
     if (xcb_cursor_context_new(global.conn, global.root_screen, &ctx) < 0) {
@@ -50,13 +50,12 @@ void xcursor_load_cursors() {
  * managers, the root window will not have a cursor otherwise.
  *
  */
-void xcursor_set_root_cursor(int cursor_id) {
-    uint32_t value_list[]{xcursor_get_cursor((enum xcursor_cursor_t)cursor_id)};
+void xcursor_set_root_cursor(xcursor_cursor_t cursor_id) {
+    uint32_t value_list[]{xcursor_get_cursor(cursor_id)};
     xcb_change_window_attributes(global.conn, root, XCB_CW_CURSOR,
                                  value_list);
 }
 
-xcb_cursor_t xcursor_get_cursor(enum xcursor_cursor_t c) {
-    assert(c < XCURSOR_CURSOR_MAX);
-    return cursors[c];
+xcb_cursor_t xcursor_get_cursor(xcursor_cursor_t c) {
+    return cursors.at(c);
 }

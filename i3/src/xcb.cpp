@@ -158,17 +158,18 @@ xcb_atom_t xcb_get_preferred_window_type(xcb_get_property_reply_t *reply) {
         return XCB_NONE;
 
     for (int i = 0; i < xcb_get_property_value_length(reply) / (reply->format / 8); i++) {
-        if (atoms[i] == A__NET_WM_WINDOW_TYPE_NORMAL ||
-            atoms[i] == A__NET_WM_WINDOW_TYPE_DIALOG ||
-            atoms[i] == A__NET_WM_WINDOW_TYPE_UTILITY ||
-            atoms[i] == A__NET_WM_WINDOW_TYPE_TOOLBAR ||
-            atoms[i] == A__NET_WM_WINDOW_TYPE_SPLASH ||
-            atoms[i] == A__NET_WM_WINDOW_TYPE_MENU ||
-            atoms[i] == A__NET_WM_WINDOW_TYPE_DROPDOWN_MENU ||
-            atoms[i] == A__NET_WM_WINDOW_TYPE_POPUP_MENU ||
-            atoms[i] == A__NET_WM_WINDOW_TYPE_TOOLTIP ||
-            atoms[i] == A__NET_WM_WINDOW_TYPE_NOTIFICATION) {
-            return atoms[i];
+        xcb_atom_t atom = atoms[i];
+        if (atom == A__NET_WM_WINDOW_TYPE_NORMAL ||
+            atom == A__NET_WM_WINDOW_TYPE_DIALOG ||
+            atom == A__NET_WM_WINDOW_TYPE_UTILITY ||
+            atom == A__NET_WM_WINDOW_TYPE_TOOLBAR ||
+            atom == A__NET_WM_WINDOW_TYPE_SPLASH ||
+            atom == A__NET_WM_WINDOW_TYPE_MENU ||
+            atom == A__NET_WM_WINDOW_TYPE_DROPDOWN_MENU ||
+            atom == A__NET_WM_WINDOW_TYPE_POPUP_MENU ||
+            atom == A__NET_WM_WINDOW_TYPE_TOOLTIP ||
+            atom == A__NET_WM_WINDOW_TYPE_NOTIFICATION) {
+            return atom;
         }
     }
 

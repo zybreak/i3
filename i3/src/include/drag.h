@@ -15,11 +15,6 @@
 typedef void (*callback_t)(Con *, Rect *, uint32_t, uint32_t,
                            const xcb_button_press_event_t *, const void *);
 
-/** Macro to create a callback function for dragging */
-#define DRAGGING_CB(name)                                                      \
-    static void name(Con *con, Rect *old_rect, uint32_t new_x, uint32_t new_y, \
-                     const xcb_button_press_event_t *event, const void *extra)
-
 /**
  * This is the return value of a drag operation like drag_pointer.
  *

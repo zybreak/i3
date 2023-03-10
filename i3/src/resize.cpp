@@ -42,7 +42,8 @@ struct callback_params {
     bool *threshold_exceeded;
 };
 
-DRAGGING_CB(resize_callback) {
+static void resize_callback(Con *con, Rect *old_rect, uint32_t new_x, uint32_t new_y,
+                 const xcb_button_press_event_t *event, const void *extra) {
     const struct callback_params *params = (struct callback_params*)extra;
     Con *output = params->output;
     DLOG(fmt::sprintf("new x = %d, y = %d\n",  new_x, new_y));
