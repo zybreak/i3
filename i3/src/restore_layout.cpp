@@ -20,8 +20,13 @@
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
 #include "global.h"
-
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "font.h"
+#include "wrapper.h"
+#include "dpi.h"
+#include "get_visualtype.h"
 
 #include "xcb.h"
 #include "i3.h"

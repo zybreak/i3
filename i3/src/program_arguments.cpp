@@ -1,6 +1,7 @@
 #include "program_arguments.h"
 #include "util.h"
 #include "i3.h"
+#include "root_atom_contents.h"
 
 #include <getopt.h>
 

@@ -13,7 +13,7 @@
 #include <algorithm>
 #include "ipc.h"
 
-#include "libi3.h"
+#include "log.h"
 
 #include "util.h"
 #include "i3-ipc.h"

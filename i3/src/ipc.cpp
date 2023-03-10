@@ -15,12 +15,14 @@
 
 #include <cstdint>
 #include <cstdio>
-#include <cstdlib>
 #include <vector>
 
 #include <xcb/xcb.h>
 
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "wrapper.h"
 
 #include "bindings.h"
 #include "util.h"

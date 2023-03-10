@@ -19,7 +19,14 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "font.h"
+#include "wrapper.h"
+#include "dpi.h"
+
+#include "draw.h"
 
 #include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
@@ -379,32 +386,6 @@ static size_t x_get_border_rectangles(Con *con, xcb_rectangle_t rectangles[4]) {
     }
 
     return count;
-}
-
-/**
- * This function is a convenience wrapper and takes care of flushing the
- * surface as well as restoring the cairo state.
- *
- */
-static void draw_util_image(cairo_surface_t *image, surface_t *surface, int x, int y, int width, int height) {
-    if ((surface)->id == XCB_NONE) {
-        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n",  (void*)surface));
-        return;
-    }
-
-    cairo_save(surface->cr);
-
-    cairo_translate(surface->cr, x, y);
-
-    const int src_width = cairo_image_surface_get_width(image);
-    const int src_height = cairo_image_surface_get_height(image);
-    double scale = std::min((double)width / src_width, (double)height / src_height);
-    cairo_scale(surface->cr, scale, scale);
-
-    cairo_set_source_surface(surface->cr, image, 0, 0);
-    cairo_paint(surface->cr);
-
-    cairo_restore(surface->cr);
 }
 
 /*

@@ -20,6 +20,8 @@ add_executable(i3
   src/drag.cpp
   src/ewmh.cpp
   src/floating.cpp
+  src/font.cpp
+  src/format_placeholders.cpp
   src/global.cpp
   src/handlers.cpp
   src/ipc.cpp
@@ -44,6 +46,16 @@ add_executable(i3
   src/scratchpad.cpp
   src/sighandler.cpp
   src/startup.cpp
+  src/string.cpp
+  src/dpi.cpp
+  src/draw_util.cpp
+  src/get_process_filename.cpp
+  src/get_visualtype.cpp
+  src/log.cpp
+  src/resolve_tilde.cpp
+  src/root_atom_contents.cpp
+  src/safewrappers.cpp
+  src/mkdirp.cpp
   src/sync.cpp
   src/tree.cpp
   src/util.cpp
@@ -116,7 +128,7 @@ find_package(antlr4-runtime 4.11.1 REQUIRED)
 list(APPEND libraries antlr4_static)
 list(APPEND include_dirs ${antlr4-runtime_INCLUDE_DIR})
 
-list(APPEND libraries libi3 libi3ipc)
+list(APPEND libraries libi3ipc)
 
 list(APPEND include_dirs
         "${PROJECT_BINARY_DIR}"
@@ -127,7 +139,7 @@ list(APPEND include_dirs
         "src/config/old"
         )
 
-add_dependencies(i3 libi3 libi3ipc)
+add_dependencies(i3 libi3ipc)
 target_link_libraries(i3 PUBLIC ${libraries})
 target_include_directories(i3 PUBLIC ${include_dirs})
 target_compile_options(i3 PUBLIC ${compile_options})

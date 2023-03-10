@@ -11,7 +11,13 @@
  * match_matches_window() to find the windows affected by this command.
  *
  */
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "font.h"
+#include "wrapper.h"
+#include "dpi.h"
+
 #include "configuration.h"
 #include "con.h"
 #include "match.h"

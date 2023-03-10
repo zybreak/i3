@@ -13,7 +13,7 @@
 #include <ranges>
 #include <algorithm>
 
-#include "libi3.h"
+#include "log.h"
 
 #include "util.h"
 #include "tree.h"

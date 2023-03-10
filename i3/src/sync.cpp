@@ -13,7 +13,9 @@
 
 #include <xcb/xcb.h>
 
-#include "libi3.h"
+#include "log.h"
+#include "wrapper.h"
+
 #include "global.h"
 
 #include "xcb.h"

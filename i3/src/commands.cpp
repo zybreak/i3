@@ -15,7 +15,12 @@
 #include <cstring>
 #include <queue>
 
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "wrapper.h"
+#include "dpi.h"
+#include "resolve_tilde.h"
 
 #include "con.h"
 #include "util.h"

@@ -13,8 +13,12 @@
 #include <cstdlib>
 
 #include <xcb/xcb.h>
-
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "font.h"
+#include "wrapper.h"
+#include "dpi.h"
 #include "i3.h"
 #include "xcursor.h"
 #include "global.h"

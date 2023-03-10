@@ -13,7 +13,8 @@
 
 #include <xcb/xcb.h>
 
-#include "libi3.h"
+#include "log.h"
+#include "dpi.h"
 
 #include "util.h"
 #include "tree.h"

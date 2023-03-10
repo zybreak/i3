@@ -16,7 +16,11 @@
 #include <algorithm>
 #include <ranges>
 
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "font.h"
+#include "wrapper.h"
 
 #include <xcb/xcb.h>
 #include <vector>
@@ -37,6 +41,7 @@
 #include "ewmh.h"
 #include "startup.h"
 #include "global.h"
+#include "format_placeholders.h"
 
 /*
  * Returns the content container below the given output container.
@@ -356,6 +361,20 @@ void Con::con_focus() {
         workspace_update_urgent_flag(this->con_get_workspace());
         ipc_send_window_event("urgent", this);
     }
+}
+
+/*
+ *
+ * Checks if the given container has an urgent child.
+ *
+ */
+static bool con_has_urgent_child(Con *con) {
+    if (con->con_is_leaf())
+        return con->urgent;
+
+    /* We are not interested in floating windows since they can only be
+     * attached to a workspace → nodes_head instead of focus_head */
+    return std::ranges::any_of(con->nodes_head, [](Con *child) { return con_has_urgent_child(child); });
 }
 
 /*
@@ -1782,20 +1801,6 @@ bool con_fullscreen_permits_focusing(Con *con) {
 }
 
 /*
- *
- * Checks if the given container has an urgent child.
- *
- */
-static bool con_has_urgent_child(Con *con) {
-    if (con->con_is_leaf())
-        return con->urgent;
-
-    /* We are not interested in floating windows since they can only be
-     * attached to a workspace → nodes_head instead of focus_head */
-    return std::ranges::any_of(con->nodes_head, [](Con *child) { return con_has_urgent_child(child); });
-}
-
-/*
  * Make all parent containers urgent if con is urgent or clear the urgent flag
  * of all parent containers if there are no more urgent children left.
  *
@@ -1948,15 +1953,14 @@ i3String *con_parse_title_format(Con *con) {
         machine = pango_escape_markup((win->machine == nullptr) ? "" : win->machine);
     }
 
-    placeholder_t placeholders[] = {
-        {.name = "%title", .value = title.c_str()},
-        {.name = "%class", .value = window_class.c_str()},
-        {.name = "%instance", .value = instance.c_str()},
-        {.name = "%machine", .value = machine.c_str()},
+    std::vector<placeholder_t> placeholders = {
+        {.name = "%title", .value = title},
+        {.name = "%class", .value = window_class},
+        {.name = "%instance", .value = instance},
+        {.name = "%machine", .value = machine},
     };
-    const size_t num = sizeof(placeholders) / sizeof(placeholder_t);
 
-    std::string formatted_str = format_placeholders(con->title_format, &placeholders[0], num);
+    std::string formatted_str = format_placeholders(con->title_format, placeholders);
     i3String *formatted = i3string_from_utf8(formatted_str);
     i3string_set_markup(formatted, pango_markup);
 

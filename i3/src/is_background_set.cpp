@@ -5,8 +5,8 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "libi3.h"
-#include "global.h"
+#include "i3string.h"
+#include "dpi.h"
 
 #include <algorithm>
 #include <xcb/xcb_aux.h>

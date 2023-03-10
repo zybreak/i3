@@ -13,7 +13,9 @@
 
 #include <xcb/xcb.h>
 
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
 
 #include "tree.h"
 #include "xcb.h"
@@ -21,7 +23,6 @@
 #include "i3.h"
 #include "configuration.h"
 #include "con.h"
-#include "output.h"
 #include "ewmh.h"
 #include "global.h"
 

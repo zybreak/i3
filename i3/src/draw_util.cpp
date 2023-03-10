@@ -6,19 +6,31 @@
  * draw.c: Utility for drawing.
  *
  */
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "font.h"
+#include "wrapper.h"
 
 #include <cstdlib>
 #include <cstring>
 
 #include <xcb/xcb.h>
-#include <algorithm>
+#include <deque>
 
 /* The default visual_type to use if none is specified when creating the surface. Must be defined globally. */
 extern xcb_visualtype_t *visual_type;
 
 /* Forward declarations */
 static void draw_util_set_source_color(surface_t *surface, color_t color);
+
+/* We need to flush cairo surfaces twice to avoid an assertion bug. See #1989
+ * and https://bugs.freedesktop.org/show_bug.cgi?id=92455. */
+#define CAIRO_SURFACE_FLUSH(surface)  \
+    do {                              \
+        cairo_surface_flush(surface); \
+        cairo_surface_flush(surface); \
+    } while (0)
 
 #define RETURN_UNLESS_SURFACE_INITIALIZED(surface)                               \
     do {                                                                         \
@@ -27,6 +39,74 @@ static void draw_util_set_source_color(surface_t *surface, color_t color);
             return;                                                              \
         }                                                                        \
     } while (0)
+
+
+struct Colorpixel {
+    char hex[8];
+    uint32_t pixel;
+};
+
+std::deque<Colorpixel*> colorpixels{};
+
+/*
+ * Returns the colorpixel to use for the given hex color (think of HTML).
+ *
+ * The hex_color has to start with #, for example #FF00FF.
+ *
+ * NOTE that get_colorpixel() does _NOT_ check the given color code for validity.
+ * This has to be done by the caller.
+ *
+ */
+static uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *hex) {
+    char strgroups[3][3] = {
+        {hex[1], hex[2], '\0'},
+        {hex[3], hex[4], '\0'},
+        {hex[5], hex[6], '\0'}};
+    uint8_t r = strtol(strgroups[0], nullptr, 16);
+    uint8_t g = strtol(strgroups[1], nullptr, 16);
+    uint8_t b = strtol(strgroups[2], nullptr, 16);
+
+    /* Shortcut: if our screen is true color, no need to do a roundtrip to X11 */
+    if (root_screen == nullptr || root_screen->root_depth == 24 || root_screen->root_depth == 32) {
+        return (0xFFUL << 24) | (r << 16 | g << 8 | b);
+    }
+
+    /* Lookup this colorpixel in the cache */
+    for (const auto &colorpixel : colorpixels) {
+        if (strcmp(colorpixel->hex, hex) == 0)
+            return colorpixel->pixel;
+    }
+
+#define RGB_8_TO_16(i) (65535 * ((i)&0xFF) / 255)
+    int r16 = RGB_8_TO_16(r);
+    int g16 = RGB_8_TO_16(g);
+    int b16 = RGB_8_TO_16(b);
+
+    xcb_alloc_color_reply_t *reply;
+
+    reply = xcb_alloc_color_reply(conn, xcb_alloc_color(conn, root_screen->default_colormap, r16, g16, b16),
+                                  nullptr);
+
+    if (!reply) {
+        LOG("Could not allocate color\n");
+        exit(1);
+    }
+
+    uint32_t pixel = reply->pixel;
+    free(reply);
+
+    /* Store the result in the cache */
+    auto *cache_pixel = (Colorpixel*)scalloc(1, sizeof(struct Colorpixel));
+
+    strncpy(cache_pixel->hex, hex, 7);
+    cache_pixel->hex[7] = '\0';
+
+    cache_pixel->pixel = pixel;
+
+    colorpixels.push_front(cache_pixel);
+
+    return pixel;
+}
 
 /*
  * Initialize the surface to represent the given drawable.
@@ -218,4 +298,30 @@ void draw_util_copy_surface(surface_t *src, surface_t *dest, double src_x, doubl
     CAIRO_SURFACE_FLUSH(dest->surface);
 
     cairo_restore(dest->cr);
+}
+
+/**
+ * This function is a convenience wrapper and takes care of flushing the
+ * surface as well as restoring the cairo state.
+ *
+ */
+void draw_util_image(cairo_surface_t *image, surface_t *surface, int x, int y, int width, int height) {
+    if ((surface)->id == XCB_NONE) {
+        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n",  (void*)surface));
+        return;
+    }
+
+    cairo_save(surface->cr);
+
+    cairo_translate(surface->cr, x, y);
+
+    const int src_width = cairo_image_surface_get_width(image);
+    const int src_height = cairo_image_surface_get_height(image);
+    double scale = std::min((double)width / src_width, (double)height / src_height);
+    cairo_scale(surface->cr, scale, scale);
+
+    cairo_set_source_surface(surface->cr, image, 0, 0);
+    cairo_paint(surface->cr);
+
+    cairo_restore(surface->cr);
 }

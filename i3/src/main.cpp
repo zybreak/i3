@@ -14,14 +14,21 @@
 #include <cstdlib>
 #include <clocale>
 #include <csignal>
-#include <queue>
 
 #include <err.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_keysyms.h>
 
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "wrapper.h"
+#include "dpi.h"
+#include "get_visualtype.h"
+#include "root_atom_contents.h"
+#include "resolve_tilde.h"
+#include "get_process_filename.h"
 
 #include "util.h"
 #include "i3_ipc/include/i3-ipc.h"

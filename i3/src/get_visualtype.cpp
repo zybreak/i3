@@ -5,8 +5,7 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "libi3.h"
-
+#include "dpi.h"
 /*
  * Returns the visual type associated with the given screen.
  *

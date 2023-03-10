@@ -1,7 +1,7 @@
 #include "autostarts.h"
 #include <vector>
 #include <memory>
-#include <libi3.h>
+#include "log.h"
 #include <startup.h>
 
 /* The list of exec-lines */

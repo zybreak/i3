@@ -9,10 +9,11 @@
  *
  */
 
-#include <cstdlib>
 #include <cstring>
-
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "wrapper.h"
 
 #include "util.h"
 #include "workspace.h"

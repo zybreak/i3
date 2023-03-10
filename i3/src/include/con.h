@@ -11,7 +11,12 @@
  */
 #pragma once
 
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "font.h"
+#include "wrapper.h"
+#include "dpi.h"
 
 #include <config.h>
 #include <deque>

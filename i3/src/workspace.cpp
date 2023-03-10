@@ -15,7 +15,12 @@
 #include <algorithm>
 #include <ranges>
 
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "font.h"
+#include "wrapper.h"
+#include "dpi.h"
 
 #include "util.h"
 #include "i3_ipc/include/i3-ipc.h"

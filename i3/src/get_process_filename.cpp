@@ -5,7 +5,8 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "libi3.h"
+#include "wrapper.h"
+#include "mkdirp.h"
 
 #include <err.h>
 #include <pwd.h>

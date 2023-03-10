@@ -5,7 +5,12 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "libi3.h"
+#include "get_visualtype.h"
+#include "draw.h"
+#include "dpi.h"
+#include "log.h"
+#include "wrapper.h"
+#include "font.h"
 
 #include <cassert>
 #include <cairo/cairo-xcb.h>

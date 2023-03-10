@@ -5,7 +5,7 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "libi3.h"
+#include "format_placeholders.h"
 
 #include <cstring>
 
@@ -13,27 +13,33 @@ static bool CS_STARTS_WITH(const char *string, const char *needle) {
     return strncmp(string, needle, strlen(needle)) == 0;
 }
 
+static unsigned long get_buffer_len(const std::string &format, std::vector<placeholder_t> &placeholders) {
+    unsigned long buffer_len = format.length() + 1;
+    for (const char *walk = format.c_str(); *walk != '\0'; walk++) {
+        for (auto &placeholder : placeholders) {
+            if (!CS_STARTS_WITH(walk, placeholder.name.c_str()))
+                continue;
+
+            buffer_len = buffer_len - placeholder.name.size() + placeholder.value.size();
+            walk += placeholder.name.size() - 1;
+            break;
+        }
+    }
+
+    return buffer_len;
+}
+
 /*
  * Replaces occurrences of the defined placeholders in the format string.
  *
  */
-std::string format_placeholders(const std::string &format, placeholder_t *placeholders, int num) {
+std::string format_placeholders(const std::string &format, std::vector<placeholder_t> &placeholders) {
     if (format.empty())
         return "";
 
     /* We have to first iterate over the string to see how much buffer space
      * we need to allocate. */
-    unsigned long buffer_len = format.length() + 1;
-    for (const char *walk = format.c_str(); *walk != '\0'; walk++) {
-        for (int i = 0; i < num; i++) {
-            if (!CS_STARTS_WITH(walk, placeholders[i].name))
-                continue;
-
-            buffer_len = buffer_len - strlen(placeholders[i].name) + strlen(placeholders[i].value);
-            walk += strlen(placeholders[i].name) - 1;
-            break;
-        }
-    }
+    auto buffer_len = get_buffer_len(format, placeholders);
 
     /* Now we can parse the format string. */
     char buffer[buffer_len];
@@ -45,14 +51,14 @@ std::string format_placeholders(const std::string &format, placeholder_t *placeh
         }
 
         bool matched = false;
-        for (int i = 0; i < num; i++) {
-            if (!CS_STARTS_WITH(walk, placeholders[i].name)) {
+        for (auto &placeholder : placeholders) {
+            if (!CS_STARTS_WITH(walk, placeholder.name.c_str())) {
                 continue;
             }
 
             matched = true;
-            outwalk += sprintf(outwalk, "%s", placeholders[i].value);
-            walk += strlen(placeholders[i].name) - 1;
+            outwalk += sprintf(outwalk, "%s", placeholder.value.c_str());
+            walk += placeholder.name.size() - 1;
             break;
         }
 

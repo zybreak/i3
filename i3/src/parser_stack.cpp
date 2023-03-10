@@ -1,8 +1,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <cstring>
-#include <libi3.h>
 #include "parser_stack.h"
+#include "wrapper.h"
 
 void clear_stack(stack &ctx) {
     for (auto & c : ctx.stack) {

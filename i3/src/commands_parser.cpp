@@ -32,14 +32,16 @@
 #include <regex>
 #include <fmt/core.h>
 
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "wrapper.h"
 
 #include "parser_stack.h"
 #include "i3-ipc.h"
 #include "commands.h"
 #include "commands_parser.h"
 #include "config_parser.h"
-#include "nagbar.h"
 
 /*******************************************************************************
  * The data structures used for parsing. Essentially the current state and a

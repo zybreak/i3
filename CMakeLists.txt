@@ -33,7 +33,6 @@ add_custom_target(Config ALL
             'GENERATED_config_tokens.h'
             'GENERATED_config_call.h')
 
-add_subdirectory(libi3)
 add_subdirectory(lib/i3_ipc)
 add_subdirectory(i3)
 #add_subdirectory(i3-msg)

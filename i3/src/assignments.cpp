@@ -10,10 +10,11 @@
 
 #include <fmt/core.h>
 
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
 
 #include "tree.h"
-#include "i3.h"
 #include "match.h"
 #include "assignments.h"
 #include "commands_parser.h"

@@ -18,7 +18,8 @@
 
 #include <xcb/xcb.h>
 
-#include "libi3.h"
+#include "log.h"
+#include "wrapper.h"
 
 #include "util.h"
 #include "tree.h"

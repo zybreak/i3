@@ -5,8 +5,8 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "libi3.h"
 
+#include <cstring>
 /*
  * Reports whether str represents the enabled state (1, yes, true, …).
  *

@@ -14,7 +14,7 @@
 
 #include <xcb/xcb.h>
 
-#include "libi3.h"
+#include "log.h"
 
 #include "util.h"
 #include "x.h"

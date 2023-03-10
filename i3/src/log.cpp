@@ -7,15 +7,7 @@
  * log.c: Logging functions.
  *
  */
-#include <cstdarg>
-
-#include <string_view>
-#include <utility>
-
-#include "libi3.h"
-
-#include <fcntl.h>
-#include <ctime>
+#include "log.h"
 
 static bool debug_logging = false;
 static bool verbose = false;

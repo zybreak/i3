@@ -16,7 +16,12 @@
 
 #include <xcb/xcb.h>
 
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "font.h"
+#include "wrapper.h"
+#include "dpi.h"
 
 #include "criteria_state.h"
 #include "util.h"

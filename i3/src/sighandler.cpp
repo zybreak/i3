@@ -13,7 +13,12 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
-#include "libi3.h"
+#include "i3string.h"
+#include "log.h"
+#include "draw.h"
+#include "font.h"
+#include "wrapper.h"
+#include "dpi.h"
 
 #include "util.h"
 #include "xcb.h"
