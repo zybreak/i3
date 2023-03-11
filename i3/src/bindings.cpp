@@ -642,10 +642,10 @@ void switch_mode(const char *new_mode) {
         if (strcmp(mode->name.c_str(), new_mode) != 0)
             continue;
 
-        ungrab_all_keys(global.conn);
+        ungrab_all_keys(*global.a);
         current_mode = mode.get();
         translate_keysyms();
-        grab_all_keys(global.conn);
+        grab_all_keys(*global.a);
 
         /* Reset all B_UPON_KEYRELEASE_IGNORE_MODS bindings to avoid possibly
          * activating one of them. */
@@ -853,15 +853,15 @@ static int fill_rmlvo_from_root(struct xkb_rule_names *xkb_names) {
     size_t content_max_words = 256;
 
     atom_reply = xcb_intern_atom_reply(
-        global.conn, xcb_intern_atom(global.conn, 0, strlen("_XKB_RULES_NAMES"), "_XKB_RULES_NAMES"), nullptr);
+        *global.a, xcb_intern_atom(*global.a, 0, strlen("_XKB_RULES_NAMES"), "_XKB_RULES_NAMES"), nullptr);
     if (atom_reply == nullptr)
         return -1;
 
     xcb_get_property_cookie_t prop_cookie;
     xcb_get_property_reply_t *prop_reply;
-    prop_cookie = xcb_get_property_unchecked(global.conn, false, root, atom_reply->atom,
+    prop_cookie = xcb_get_property_unchecked(*global.a, false, root, atom_reply->atom,
                                              XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
-    prop_reply = xcb_get_property_reply(global.conn, prop_cookie, nullptr);
+    prop_reply = xcb_get_property_reply(*global.a, prop_cookie, nullptr);
     if (prop_reply == nullptr) {
         free(atom_reply);
         return -1;
@@ -872,9 +872,9 @@ static int fill_rmlvo_from_root(struct xkb_rule_names *xkb_names) {
         content_max_words += ceil(prop_reply->bytes_after / 4.0);
         /* Repeat the request, with adjusted size */
         free(prop_reply);
-        prop_cookie = xcb_get_property_unchecked(global.conn, false, root, atom_reply->atom,
+        prop_cookie = xcb_get_property_unchecked(*global.a, false, root, atom_reply->atom,
                                                  XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
-        prop_reply = xcb_get_property_reply(global.conn, prop_cookie, nullptr);
+        prop_reply = xcb_get_property_reply(*global.a, prop_cookie, nullptr);
         if (prop_reply == nullptr) {
             free(atom_reply);
             return -1;
@@ -931,8 +931,8 @@ bool load_keymap() {
 
     struct xkb_keymap *new_keymap = nullptr;
     int32_t device_id;
-    if (xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(global.conn)) > -1) {
-        if ((new_keymap = xkb_x11_keymap_new_from_device(xkb_context, global.conn, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
+    if (xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(*global.a)) > -1) {
+        if ((new_keymap = xkb_x11_keymap_new_from_device(xkb_context, *global.a, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
             ELOG("xkb_x11_keymap_new_from_device failed\n");
             return false;
         }

@@ -428,7 +428,7 @@ parse_file_result_t NewParser::parse_file() {
     //cout << tree->toStringTree(&parser, true) << endl << endl;
 
     // 1st pass, store all variables
-    VariableListener variableListener{global.conn};
+    VariableListener variableListener{*global.a};
     tree::ParseTreeWalker::DEFAULT.walk(&variableListener, tree);
 
     // 2nd pass, execute instructions

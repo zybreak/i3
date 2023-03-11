@@ -570,7 +570,7 @@ static size_t count_extra_bytes(const char *buf, __off_t size, parser_ctx &ctx) 
 }
 
 static bool read_file(FILE *fstr, char *buf, parser_ctx &ctx) {
-    ResourceDatabase resourceDatabase{global.conn};
+    ResourceDatabase resourceDatabase{*global.a};
     bool invalid_sets = false;
     char buffer[4096], key[512], value[4096], *continuation = nullptr;
 

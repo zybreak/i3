@@ -129,7 +129,7 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
        sleeps. */
     xcb_generic_event_t *event;
 
-    while ((event = xcb_poll_for_event(global.conn)) != nullptr) {
+    while ((event = xcb_poll_for_event(*global.a)) != nullptr) {
         if (event->response_type == 0) {
             if (event_is_ignored(event->sequence, 0))
                 DLOG(fmt::sprintf("Expected X11 Error received for sequence %x\n",  event->sequence));
@@ -151,7 +151,7 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
     }
 
     /* Flush all queued events to X11. */
-    xcb_flush(global.conn);
+    xcb_flush(*global.a);
 }
 
 /*
@@ -183,7 +183,7 @@ static void i3_exit() {
 
     ipc_shutdown(SHUTDOWN_REASON_EXIT, -1);
     unlink(config.ipc_socket_path);
-    xcb_disconnect(global.conn);
+    xcb_disconnect(*global.a);
 
     /* If a nagbar is active, kill it */
     kill_nagbar(global.config_error_nagbar_pid, false);
@@ -673,10 +673,8 @@ int main(int argc, char *argv[]) {
         errx(EXIT_FAILURE, "Cannot open display");
 
     global.conn_screen = global.a->default_screen();
-    auto conn = *global.a;
-    global.conn = conn;
 
-    sndisplay = sn_xcb_display_new(conn, nullptr, nullptr);
+    sndisplay = sn_xcb_display_new(*global.a, nullptr, nullptr);
 
     /* Initialize the libev event loop. This needs to be done before loading
      * the config file because the parser will install an ev_child watcher

@@ -102,8 +102,8 @@ void fake_absolute_configure_notify(Con *con) {
 
     DLOG(fmt::sprintf("fake rect = (%d, %d, %d, %d)\n", generatedEvent.x, generatedEvent.y, generatedEvent.width, generatedEvent.height));
 
-    xcb_send_event(global.conn, false, con->window->id, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *) &generatedEvent);
-    xcb_flush(global.conn);
+    xcb_send_event(*global.a, false, con->window->id, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *) &generatedEvent);
+    xcb_flush(*global.a);
 }
 
 /*
@@ -125,7 +125,7 @@ void send_take_focus(xcb_window_t window, xcb_timestamp_t timestamp) {
     ev->data.data32[1] = timestamp;
 
     DLOG("Sending WM_TAKE_FOCUS to the client\n");
-    xcb_send_event(global.conn, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)ev);
+    xcb_send_event(*global.a, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)ev);
     free(event);
 }
 

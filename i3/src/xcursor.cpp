@@ -29,7 +29,7 @@ static xcb_cursor_context_t *ctx;
 static std::map<xcursor_cursor_t, xcb_cursor_t> cursors{};
 
 void xcursor_load_cursors() {
-    if (xcb_cursor_context_new(global.conn, global.root_screen, &ctx) < 0) {
+    if (xcb_cursor_context_new(*global.a, global.root_screen, &ctx) < 0) {
         errx(EXIT_FAILURE, "Cannot allocate xcursor context");
     }
     cursors[XCURSOR_CURSOR_POINTER] = xcb_cursor_load_cursor(ctx, "left_ptr");;
@@ -52,7 +52,7 @@ void xcursor_load_cursors() {
  */
 void xcursor_set_root_cursor(xcursor_cursor_t cursor_id) {
     uint32_t value_list[]{xcursor_get_cursor(cursor_id)};
-    xcb_change_window_attributes(global.conn, root, XCB_CW_CURSOR,
+    xcb_change_window_attributes(*global.a, root, XCB_CW_CURSOR,
                                  value_list);
 }
 

@@ -71,7 +71,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
     xcb_motion_notify_event_t *last_motion_notify = nullptr;
     xcb_generic_event_t *event;
 
-    while ((event = xcb_poll_for_event(global.conn)) != nullptr) {
+    while ((event = xcb_poll_for_event(*global.a)) != nullptr) {
         if (event->response_type == 0) {
             auto *error = (xcb_generic_error_t *)event;
             DLOG(fmt::sprintf("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
@@ -147,7 +147,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
                            dragloop->event->root_x, dragloop->event->root_y)) {
         if (dragloop->xcursor != XCB_NONE) {
             xcb_change_active_pointer_grab(
-                global.conn,
+                *global.a,
                 dragloop->xcursor,
                 XCB_CURRENT_TIME,
                 XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION);
@@ -169,7 +169,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
     }
     FREE(last_motion_notify);
 
-    xcb_flush(global.conn);
+    xcb_flush(*global.a);
     return dragloop->result != DRAGGING;
 }
 
@@ -203,7 +203,7 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
     xcb_grab_pointer_reply_t *reply;
     xcb_generic_error_t *error;
 
-    cookie = xcb_grab_pointer(global.conn,
+    cookie = xcb_grab_pointer(*global.a,
                               false,                                                         /* get all pointer events specified by the following mask */
                               root,                                                          /* grab the root window */
                               XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION, /* which events to let through */
@@ -213,7 +213,7 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
                               use_threshold ? XCB_NONE : xcursor,                            /* possibly display a special cursor */
                               XCB_CURRENT_TIME);
 
-    if ((reply = xcb_grab_pointer_reply(global.conn, cookie, &error)) == nullptr) {
+    if ((reply = xcb_grab_pointer_reply(*global.a, cookie, &error)) == nullptr) {
         ELOG(fmt::sprintf("Could not grab pointer (error_code = %d)\n",  error->error_code));
         free(error);
         return DRAG_ABORT;
@@ -225,7 +225,7 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
     xcb_grab_keyboard_cookie_t keyb_cookie;
     xcb_grab_keyboard_reply_t *keyb_reply;
 
-    keyb_cookie = xcb_grab_keyboard(global.conn,
+    keyb_cookie = xcb_grab_keyboard(*global.a,
                                     false, /* get all keyboard events */
                                     root,  /* grab the root window */
                                     XCB_CURRENT_TIME,
@@ -233,10 +233,10 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
                                     XCB_GRAB_MODE_ASYNC  /* keyboard mode */
     );
 
-    if ((keyb_reply = xcb_grab_keyboard_reply(global.conn, keyb_cookie, &error)) == nullptr) {
+    if ((keyb_reply = xcb_grab_keyboard_reply(*global.a, keyb_cookie, &error)) == nullptr) {
         ELOG(fmt::sprintf("Could not grab keyboard (error_code = %d)\n",  error->error_code));
         free(error);
-        xcb_ungrab_pointer(global.conn, XCB_CURRENT_TIME);
+        xcb_ungrab_pointer(*global.a, XCB_CURRENT_TIME);
         return DRAG_ABORT;
     }
 
@@ -265,9 +265,9 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
     ev_prepare_stop(main_loop, prepare);
     main_set_x11_cb(true);
 
-    xcb_ungrab_keyboard(global.conn, XCB_CURRENT_TIME);
-    xcb_ungrab_pointer(global.conn, XCB_CURRENT_TIME);
-    xcb_flush(global.conn);
+    xcb_ungrab_keyboard(*global.a, XCB_CURRENT_TIME);
+    xcb_ungrab_pointer(*global.a, XCB_CURRENT_TIME);
+    xcb_flush(*global.a);
 
     return loop.result;
 }

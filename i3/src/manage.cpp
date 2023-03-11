@@ -101,9 +101,9 @@ void restore_geometry() {
             DLOG(fmt::sprintf("Re-adding X11 border of %d px\n",  con->border_width));
             con->window_rect.width += (2 * con->border_width);
             con->window_rect.height += (2 * con->border_width);
-            xcb_set_window_rect(global.conn, con->window->id, con->window_rect);
+            xcb_set_window_rect(*global.a, con->window->id, con->window_rect);
             DLOG(fmt::sprintf("placing window %08x at %d %d\n",  con->window->id, con->rect.x, con->rect.y));
-            xcb_reparent_window(global.conn, con->window->id, root,
+            xcb_reparent_window(*global.a, con->window->id, root,
                                 con->rect.x, con->rect.y);
         }
     }
@@ -111,10 +111,10 @@ void restore_geometry() {
     /* Strictly speaking, this line doesn’t really belong here, but since we
      * are syncing, let’s un-register as a window manager first */
     uint32_t value_list[]{XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT};
-    xcb_change_window_attributes(global.conn, root, XCB_CW_EVENT_MASK, value_list);
+    xcb_change_window_attributes(*global.a, root, XCB_CW_EVENT_MASK, value_list);
 
     /* Make sure our changes reach the X server, we restart/exit now */
-    xcb_aux_sync(global.conn);
+    xcb_aux_sync(*global.a);
 }
 
 struct free_delete
@@ -203,35 +203,35 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     xcb_drawable_t d = {window};
     xcb_get_geometry_cookie_t geomc;
 
-    geomc = xcb_get_geometry(global.conn, d);
+    geomc = xcb_get_geometry(*global.a, d);
 
     /* Check if the window is mapped (it could be not mapped when intializing and
        calling manage_window() for every window) */
     if (attr == nullptr) {
         DLOG("Could not get attributes\n");
-        xcb_discard_reply(global.conn, geomc.sequence);
+        xcb_discard_reply(*global.a, geomc.sequence);
         return;
     }
 
     if (needs_to_be_mapped && attr->map_state != XCB_MAP_STATE_VIEWABLE) {
-        xcb_discard_reply(global.conn, geomc.sequence);
+        xcb_discard_reply(*global.a, geomc.sequence);
         return;
     }
 
     /* Don’t manage clients with the override_redirect flag */
     if (attr->override_redirect) {
-        xcb_discard_reply(global.conn, geomc.sequence);
+        xcb_discard_reply(*global.a, geomc.sequence);
         return;
     }
 
     /* Check if the window is already managed */
     if (con_by_window_id(window) != nullptr) {
         DLOG(fmt::sprintf("already managed (by con %p)\n",  (void*)con_by_window_id(window)));
-        xcb_discard_reply(global.conn, geomc.sequence);
+        xcb_discard_reply(*global.a, geomc.sequence);
         return;
     }
 
-    xcb_get_geometry_reply_t *raw_geom = xcb_get_geometry_reply(global.conn, geomc, nullptr);
+    xcb_get_geometry_reply_t *raw_geom = xcb_get_geometry_reply(*global.a, geomc, nullptr);
     /* Get the initial geometry (position, size, …) */
     if (raw_geom == nullptr) {
         DLOG("could not get geometry\n");
@@ -254,8 +254,8 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     values[0] = XCB_EVENT_MASK_PROPERTY_CHANGE |
                 XCB_EVENT_MASK_STRUCTURE_NOTIFY;
     xcb_void_cookie_t event_mask_cookie =
-        xcb_change_window_attributes_checked(global.conn, window, XCB_CW_EVENT_MASK, values);
-    if (xcb_request_check(global.conn, event_mask_cookie) != nullptr) {
+        xcb_change_window_attributes_checked(*global.a, window, XCB_CW_EVENT_MASK, values);
+    if (xcb_request_check(*global.a, event_mask_cookie) != nullptr) {
         LOG("Could not change event mask, the window probably already disappeared.\n");
         return;
     }
@@ -631,35 +631,35 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     /* to avoid getting an UnmapNotify event due to reparenting, we temporarily
      * declare no interest in any state change event of this window */
     values[0] = XCB_NONE;
-    xcb_change_window_attributes(global.conn, window, XCB_CW_EVENT_MASK, values);
+    xcb_change_window_attributes(*global.a, window, XCB_CW_EVENT_MASK, values);
 
-    xcb_void_cookie_t rcookie = xcb_reparent_window_checked(global.conn, window, nc->frame.id, 0, 0);
-    if (xcb_request_check(global.conn, rcookie) != nullptr) {
+    xcb_void_cookie_t rcookie = xcb_reparent_window_checked(*global.a, window, nc->frame.id, 0, 0);
+    if (xcb_request_check(*global.a, rcookie) != nullptr) {
         LOG("Could not reparent the window, aborting\n");
         return;
     }
 
     values[0] = CHILD_EVENT_MASK & ~XCB_EVENT_MASK_ENTER_WINDOW;
-    xcb_change_window_attributes(global.conn, window, XCB_CW_EVENT_MASK, values);
-    xcb_flush(global.conn);
+    xcb_change_window_attributes(*global.a, window, XCB_CW_EVENT_MASK, values);
+    xcb_flush(*global.a);
 
     /* Put the client inside the save set. Upon termination (whether killed or
      * normal exit does not matter) of the window manager, these clients will
      * be correctly reparented to their most closest living ancestor (=
      * cleanup) */
-    xcb_change_save_set(global.conn, XCB_SET_MODE_INSERT, window);
+    xcb_change_save_set(*global.a, XCB_SET_MODE_INSERT, window);
 
     if (shape_supported) {
         /* Receive ShapeNotify events whenever the client altered its window
          * shape. */
-        xcb_shape_select_input(global.conn, window, true);
+        xcb_shape_select_input(*global.a, window, true);
 
         /* Check if the window is shaped. Sadly, we can check only for the
          * bounding shape, not for the input shape. */
         xcb_shape_query_extents_cookie_t cookie =
-            xcb_shape_query_extents(global.conn, window);
+            xcb_shape_query_extents(*global.a, window);
         xcb_shape_query_extents_reply_t *reply =
-            xcb_shape_query_extents_reply(global.conn, cookie, nullptr);
+            xcb_shape_query_extents_reply(*global.a, cookie, nullptr);
         if (reply != nullptr && reply->bounding_shaped) {
             cwindow->shaped = true;
         }
@@ -724,7 +724,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             set_focus = false;
         }
     } else {
-        xcb_discard_reply(global.conn, wm_user_time_cookie->sequence);
+        xcb_discard_reply(*global.a, wm_user_time_cookie->sequence);
     }
 
     if (set_focus) {
@@ -750,7 +750,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     /* Destroy the old frame if we had to reframe the container. This needs to be done
      * after rendering in order to prevent the background from flickering in its place. */
     if (old_frame != XCB_NONE) {
-        xcb_destroy_window(global.conn, old_frame);
+        xcb_destroy_window(*global.a, old_frame);
     }
 
     /* Windows might get managed with the urgency hint already set (Pidgin is
@@ -810,7 +810,7 @@ Con *remanage_window(Con *con) {
     /* Destroy the old frame if we had to reframe the container. This needs to be done
      * after rendering in order to prevent the background from flickering in its place. */
     if (old_frame != XCB_NONE) {
-        xcb_destroy_window(global.conn, old_frame);
+        xcb_destroy_window(*global.a, old_frame);
     }
 
     run_assignments(nc->window);

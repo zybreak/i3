@@ -75,13 +75,13 @@ static void floating_set_hint_atom(Con *con, bool floating) {
 
     if (floating) {
         uint32_t val = 1;
-        xcb_change_property(global.conn, XCB_PROP_MODE_REPLACE, con->window->id,
+        xcb_change_property(*global.a, XCB_PROP_MODE_REPLACE, con->window->id,
                             A_I3_FLOATING_WINDOW, XCB_ATOM_CARDINAL, 32, 1, &val);
     } else {
-        xcb_delete_property(global.conn, con->window->id, A_I3_FLOATING_WINDOW);
+        xcb_delete_property(*global.a, con->window->id, A_I3_FLOATING_WINDOW);
     }
 
-    xcb_flush(global.conn);
+    xcb_flush(*global.a);
 }
 
 /*
@@ -567,7 +567,7 @@ void floating_center(Con *con, Rect rect) {
 void floating_move_to_pointer(Con *con) {
     assert(con->type == CT_FLOATING_CON);
 
-    xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(global.conn, xcb_query_pointer(global.conn, root), nullptr);
+    xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(*global.a, xcb_query_pointer(*global.a, root), nullptr);
     if (reply == nullptr) {
         ELOG("could not query pointer position, not moving this container\n");
         return;
@@ -604,7 +604,7 @@ static void drag_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uint3
 
     render_con(con);
     x_push_node(con);
-    xcb_flush(global.conn);
+    xcb_flush(*global.a);
 
     /* Check if we cross workspace boundaries while moving */
     if (!floating_maybe_reassign_ws(con))

@@ -150,7 +150,7 @@ namespace cfg {
     static char *font_pattern;
 
     void font(struct criteria_state &criteria_state, struct ConfigResultIR &result, const char *font) {
-        config.font = load_font(global.conn, global.root_screen, font, true);
+        config.font = load_font(*global.a, global.root_screen, font, true);
         set_font(&config.font);
 
         /* Save the font pattern for using it as bar font later on */
@@ -433,7 +433,7 @@ namespace cfg {
 
     void color_single(struct criteria_state &criteria_state, struct ConfigResultIR &result, const char *colorclass, const char *color) {
         /* used for client.background only currently */
-        config.client.background = draw_util_hex_to_color(global.conn, global.root_screen, color);
+        config.client.background = draw_util_hex_to_color(*global.a, global.root_screen, color);
     }
 
     void color(struct criteria_state &criteria_state, struct ConfigResultIR &result, const char *colorclass, const char *border,
@@ -441,14 +441,14 @@ namespace cfg {
     #define APPLY_COLORS(classname)                                                              \
         do {                                                                                     \
             if (strcmp(colorclass, "client." #classname) == 0) {                                 \
-                config.client.classname.border = draw_util_hex_to_color(global.conn, global.root_screen, border);                 \
-                config.client.classname.background = draw_util_hex_to_color(global.conn, global.root_screen, background);         \
-                config.client.classname.text = draw_util_hex_to_color(global.conn, global.root_screen, text);                     \
+                config.client.classname.border = draw_util_hex_to_color(*global.a, global.root_screen, border);                 \
+                config.client.classname.background = draw_util_hex_to_color(*global.a, global.root_screen, background);         \
+                config.client.classname.text = draw_util_hex_to_color(*global.a, global.root_screen, text);                     \
                 if (indicator != NULL) {                                                         \
-                    config.client.classname.indicator = draw_util_hex_to_color(global.conn, global.root_screen, indicator);       \
+                    config.client.classname.indicator = draw_util_hex_to_color(*global.a, global.root_screen, indicator);       \
                 }                                                                                \
                 if (child_border != NULL) {                                                      \
-                    config.client.classname.child_border = draw_util_hex_to_color(global.conn, global.root_screen, child_border); \
+                    config.client.classname.child_border = draw_util_hex_to_color(*global.a, global.root_screen, child_border); \
                 } else {                                                                         \
                     config.client.classname.child_border = config.client.classname.background;   \
                 }                                                                                \

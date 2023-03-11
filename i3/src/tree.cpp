@@ -255,10 +255,10 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
              * unmap the window,
              * then reparent it to the root window. */
             uint32_t value_list[]{XCB_NONE};
-            xcb_change_window_attributes(global.conn, con->window->id,
+            xcb_change_window_attributes(*global.a, con->window->id,
                                          XCB_CW_EVENT_MASK, value_list);
-            xcb_unmap_window(global.conn, con->window->id);
-            cookie = xcb_reparent_window(global.conn, con->window->id, root, con->rect.x, con->rect.y);
+            xcb_unmap_window(*global.a, con->window->id);
+            cookie = xcb_reparent_window(*global.a, con->window->id, root, con->rect.x, con->rect.y);
 
             /* Ignore X11 errors for the ReparentWindow request.
              * X11 Errors are returned when the window was already destroyed */
@@ -267,7 +267,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
             /* We are no longer handling this window, thus set WM_STATE to
              * WM_STATE_WITHDRAWN (see ICCCM 4.1.3.1) */
             long data[] = {XCB_ICCCM_WM_STATE_WITHDRAWN, XCB_NONE};
-            cookie = xcb_change_property(global.conn, XCB_PROP_MODE_REPLACE,
+            cookie = xcb_change_property(*global.a, XCB_PROP_MODE_REPLACE,
                                          con->window->id, A_WM_STATE, A_WM_STATE, 32, 2, data);
 
             /* Remove the window from the save set. All windows in the save set
@@ -275,11 +275,11 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
              * restarting). This is not what we want, since some apps keep
              * unmapped windows around and don’t expect them to suddenly be
              * mapped. See https://bugs.i3wm.org/1617 */
-            xcb_change_save_set(global.conn, XCB_SET_MODE_DELETE, con->window->id);
+            xcb_change_save_set(*global.a, XCB_SET_MODE_DELETE, con->window->id);
 
             /* Stop receiving ShapeNotify events. */
             if (shape_supported) {
-                xcb_shape_select_input(global.conn, con->window->id, false);
+                xcb_shape_select_input(*global.a, con->window->id, false);
             }
 
             /* Ignore X11 errors for the ReparentWindow request.

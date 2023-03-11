@@ -34,7 +34,7 @@ void sync_respond(xcb_window_t window, uint32_t rnd) {
     ev->data.data32[0] = window;
     ev->data.data32[1] = rnd;
 
-    xcb_send_event(global.conn, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)ev);
-    xcb_flush(global.conn);
+    xcb_send_event(*global.a, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)ev);
+    xcb_flush(*global.a);
     free(reply);
 }

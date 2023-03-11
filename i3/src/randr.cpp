@@ -565,7 +565,7 @@ static bool randr_query_outputs_15() {
     xcb_generic_error_t *err;
     xcb_randr_get_monitors_reply_t *monitors =
         xcb_randr_get_monitors_reply(
-            global.conn, xcb_randr_get_monitors(global.conn, root, true), &err);
+            *global.a, xcb_randr_get_monitors(*global.a, root, true), &err);
     if (err != nullptr) {
         ELOG(fmt::sprintf("Could not get RandR monitors: X11 error code %d\n",  err->error_code));
         free(err);
@@ -592,7 +592,7 @@ static bool randr_query_outputs_15() {
         const xcb_randr_monitor_info_t *monitor_info = iter.data;
         xcb_get_atom_name_reply_t *atom_reply =
             xcb_get_atom_name_reply(
-                global.conn, xcb_get_atom_name(global.conn, monitor_info->name), &err);
+                *global.a, xcb_get_atom_name(*global.a, monitor_info->name), &err);
         if (err != nullptr) {
             ELOG(fmt::sprintf("Could not get RandR monitor name: X11 error code %d\n",  err->error_code));
             free(err);
@@ -615,8 +615,8 @@ static bool randr_query_outputs_15() {
                 xcb_randr_output_t randr_output = randr_outputs[i];
 
                 xcb_randr_get_output_info_reply_t *info =
-                    xcb_randr_get_output_info_reply(global.conn,
-                                                    xcb_randr_get_output_info(global.conn, randr_output, monitors->timestamp),
+                    xcb_randr_get_output_info_reply(*global.a,
+                                                    xcb_randr_get_output_info(*global.a, randr_output, monitors->timestamp),
                                                     nullptr);
 
                 if (info != nullptr && info->crtc != XCB_NONE) {
@@ -718,8 +718,8 @@ static void handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
     }
 
     xcb_randr_get_crtc_info_cookie_t icookie;
-    icookie = xcb_randr_get_crtc_info(global.conn, output->crtc, cts);
-    if ((crtc = xcb_randr_get_crtc_info_reply(global.conn, icookie, nullptr)) == nullptr) {
+    icookie = xcb_randr_get_crtc_info(*global.a, output->crtc, cts);
+    if ((crtc = xcb_randr_get_crtc_info_reply(*global.a, icookie, nullptr)) == nullptr) {
         DLOG(fmt::sprintf("Skipping output %s: could not get CRTC (%p)\n",
              new_output->output_primary_name(), (void*)crtc));
         free(new_output);
@@ -765,17 +765,17 @@ static void randr_query_outputs_14() {
 
     /* Get screen resources (primary output, crtcs, outputs, modes) */
     xcb_randr_get_screen_resources_current_cookie_t rcookie;
-    rcookie = xcb_randr_get_screen_resources_current(global.conn, root);
+    rcookie = xcb_randr_get_screen_resources_current(*global.a, root);
     xcb_randr_get_output_primary_cookie_t pcookie;
-    pcookie = xcb_randr_get_output_primary(global.conn, root);
+    pcookie = xcb_randr_get_output_primary(*global.a, root);
 
-    if ((primary = xcb_randr_get_output_primary_reply(global.conn, pcookie, nullptr)) == nullptr)
+    if ((primary = xcb_randr_get_output_primary_reply(*global.a, pcookie, nullptr)) == nullptr)
         ELOG("Could not get RandR primary output\n");
     else
         DLOG(fmt::sprintf("primary output is %08x\n",  primary->output));
 
     xcb_randr_get_screen_resources_current_reply_t *res =
-        xcb_randr_get_screen_resources_current_reply(global.conn, rcookie, nullptr);
+        xcb_randr_get_screen_resources_current_reply(*global.a, rcookie, nullptr);
     if (res == nullptr) {
         ELOG("Could not query screen resources.\n");
         return;
@@ -793,16 +793,16 @@ static void randr_query_outputs_14() {
     /* Request information for each output */
     xcb_randr_get_output_info_cookie_t ocookie[len];
     for (int i = 0; i < len; i++)
-        ocookie[i] = xcb_randr_get_output_info(global.conn, randr_outputs[i], cts);
+        ocookie[i] = xcb_randr_get_output_info(*global.a, randr_outputs[i], cts);
 
     /* Loop through all outputs available for this X11 screen */
     for (int i = 0; i < len; i++) {
         xcb_randr_get_output_info_reply_t *output;
 
-        if ((output = xcb_randr_get_output_info_reply(global.conn, ocookie[i], nullptr)) == nullptr)
+        if ((output = xcb_randr_get_output_info_reply(*global.a, ocookie[i], nullptr)) == nullptr)
             continue;
 
-        handle_output(global.conn, randr_outputs[i], output, cts, res);
+        handle_output(*global.a, randr_outputs[i], output, cts, res);
         free(output);
     }
 
@@ -971,7 +971,7 @@ void randr_query_outputs() {
         }
 
         if (output->changed) {
-            output_change_mode(global.conn, output);
+            output_change_mode(*global.a, output);
             output->changed = false;
         }
     }
@@ -1040,10 +1040,10 @@ static void fallback_to_root_output() {
 void randr_init(int *event_base) {
     const xcb_query_extension_reply_t *extreply;
 
-    root_output = create_root_output(global.conn);
+    root_output = create_root_output(*global.a);
     outputs.push_back(root_output);
 
-    extreply = xcb_get_extension_data(global.conn, &xcb_randr_id);
+    extreply = xcb_get_extension_data(*global.a, &xcb_randr_id);
     if (!extreply->present) {
         DLOG("RandR is not present, activating root output.\n");
         fallback_to_root_output();
@@ -1053,7 +1053,7 @@ void randr_init(int *event_base) {
     xcb_generic_error_t *err;
     xcb_randr_query_version_reply_t *randr_version =
         xcb_randr_query_version_reply(
-            global.conn, xcb_randr_query_version(global.conn, XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION), &err);
+            *global.a, xcb_randr_query_version(*global.a, XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION), &err);
     if (err != nullptr) {
         ELOG(fmt::sprintf("Could not query RandR version: X11 error code %d\n",  err->error_code));
         free(err);
@@ -1071,11 +1071,11 @@ void randr_init(int *event_base) {
     if (event_base != nullptr)
         *event_base = extreply->first_event;
 
-    xcb_randr_select_input(global.conn, root,
+    xcb_randr_select_input(*global.a, root,
                            XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE |
                                XCB_RANDR_NOTIFY_MASK_OUTPUT_CHANGE |
                                XCB_RANDR_NOTIFY_MASK_CRTC_CHANGE |
                                XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY);
 
-    xcb_flush(global.conn);
+    xcb_flush(*global.a);
 }

@@ -179,7 +179,7 @@ static void update_placeholder_contents(placeholder_state *state) {
         DLOG(fmt::sprintf("con %p (placeholder 0x%08x) line %d: %s\n",  (void*)state->con, state->window, n, serialized));
 
         i3String *str = i3string_from_utf8(serialized);
-        draw_util_text(global.conn, str, &(state->surface), foreground, background,
+        draw_util_text(*global.a, str, &(state->surface), foreground, background,
                        TEXT_PADDING,
                        (n * (config.font.height + TEXT_PADDING)) + TEXT_PADDING,
                        state->rect.width - 2 * TEXT_PADDING);
@@ -190,10 +190,10 @@ static void update_placeholder_contents(placeholder_state *state) {
 
     // TODO: render the watch symbol in a bigger font
     i3String *line = i3string_from_utf8("⌚");
-    int text_width = predict_text_width(global.conn, global.root_screen, line);
+    int text_width = predict_text_width(*global.a, global.root_screen, line);
     int x = (state->rect.width / 2) - (text_width / 2);
     int y = (state->rect.height / 2) - (config.font.height / 2);
-    draw_util_text(global.conn, line, &(state->surface), foreground, background, x, y, text_width);
+    draw_util_text(*global.a, line, &(state->surface), foreground, background, x, y, text_width);
     delete line;
     xcb_aux_sync(restore_conn);
 }

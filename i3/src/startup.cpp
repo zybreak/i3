@@ -295,9 +295,9 @@ std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3
 
         xcb_get_property_cookie_t cookie;
 
-        cookie = xcb_get_property(global.conn, false, cwindow->leader,
+        cookie = xcb_get_property(*global.a, false, cwindow->leader,
                                   A__NET_STARTUP_ID, XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
-        startup_id_reply = xcb_get_property_reply(global.conn, cookie, nullptr);
+        startup_id_reply = xcb_get_property_reply(*global.a, cookie, nullptr);
 
         if (startup_id_reply == nullptr ||
             xcb_get_property_value_length(startup_id_reply) == 0) {

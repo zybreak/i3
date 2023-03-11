@@ -45,7 +45,6 @@ struct global {
     xcb_timestamp_t last_timestamp = XCB_CURRENT_TIME;
 
     xcb_screen_t *root_screen;
-    xcb_connection_t *conn;
 
     bool new_parser;
 };
