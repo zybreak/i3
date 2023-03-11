@@ -90,8 +90,6 @@ char **start_argv;
 /* Display handle for libstartup-notification */
 SnDisplay *sndisplay;
 
-xcb_window_t root;
-
 /* Color depth, visual id and colormap to use when creating windows and
  * pixmaps. Will use 32 bit depth and an appropriate visual, if available,
  * otherwise the root window’s default (usually 24 bit TrueColor). */
@@ -107,7 +105,7 @@ xcb_key_symbols_t *keysyms;
 bool xkb_supported = true;
 bool shape_supported = true;
 
-bool is_background_set(xcb_connection_t *conn, xcb_screen_t *screen);
+bool is_background_set(x_connection *conn, xcb_screen_t *screen);
 
 /*
  * This callback is only a dummy, see xcb_prepare_cb.
@@ -129,7 +127,7 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
        sleeps. */
     xcb_generic_event_t *event;
 
-    while ((event = xcb_poll_for_event(*global.a)) != nullptr) {
+    while ((event = xcb_poll_for_event(**global.x)) != nullptr) {
         if (event->response_type == 0) {
             if (event_is_ignored(event->sequence, 0))
                 DLOG(fmt::sprintf("Expected X11 Error received for sequence %x\n",  event->sequence));
@@ -145,13 +143,13 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
 
-        handle_event(type, event);
+        handle_event(*global.x, type, event);
 
         free(event);
     }
 
     /* Flush all queued events to X11. */
-    xcb_flush(*global.a);
+    xcb_flush(**global.x);
 }
 
 /*
@@ -183,7 +181,7 @@ static void i3_exit() {
 
     ipc_shutdown(SHUTDOWN_REASON_EXIT, -1);
     unlink(config.ipc_socket_path);
-    xcb_disconnect(*global.a);
+    xcb_disconnect(**global.x);
 
     /* If a nagbar is active, kill it */
     kill_nagbar(global.config_error_nagbar_pid, false);
@@ -379,38 +377,38 @@ void do_tree_init(const program_arguments &args, const xcb_get_geometry_reply_t 
         tree_init(greply);
 }
 
-static void set_screenshot_as_wallpaper(xcb_connection_t *conn, xcb_screen_t *screen) {
+static void set_screenshot_as_wallpaper(x_connection *conn, xcb_screen_t *screen) {
     uint16_t width = screen->width_in_pixels;
     uint16_t height = screen->height_in_pixels;
-    xcb_pixmap_t pixmap = xcb_generate_id(conn);
-    xcb_gcontext_t gc = xcb_generate_id(conn);
+    xcb_pixmap_t pixmap = conn->generate_id();
+    xcb_gcontext_t gc = conn->generate_id();
 
-    xcb_create_pixmap(conn, screen->root_depth, pixmap, screen->root, width, height);
+    conn->create_pixmap(screen->root_depth, pixmap, screen->root, width, height);
 
     uint32_t list[]{XCB_GX_COPY, (uint32_t)~0, XCB_FILL_STYLE_SOLID, XCB_SUBWINDOW_MODE_INCLUDE_INFERIORS};
-    xcb_create_gc(conn, gc, screen->root,
+    conn->create_gc(gc, screen->root,
             XCB_GC_FUNCTION | XCB_GC_PLANE_MASK | XCB_GC_FILL_STYLE | XCB_GC_SUBWINDOW_MODE,
             list);
 
-    xcb_copy_area(conn, screen->root, pixmap, gc, 0, 0, 0, 0, width, height);
+    conn->copy_area(screen->root, pixmap, gc, 0, 0, 0, 0, width, height);
     uint32_t value_list[]{pixmap};
-    xcb_change_window_attributes(conn, screen->root, XCB_CW_BACK_PIXMAP, value_list);
-    xcb_free_gc(conn, gc);
-    xcb_free_pixmap(conn, pixmap);
-    xcb_flush(conn);
+    conn->change_window_attributes(screen->root, XCB_CW_BACK_PIXMAP, value_list);
+    conn->free_gc(gc);
+    conn->free_pixmap(pixmap);
+    conn->flush();
 }
 
 static xcb_visualtype_t* get_visualtype_for_root() {
-    auto visual_type = xcb_aux_find_visual_by_attrs(global.root_screen, -1, 32);
+    auto visual_type = xcb_aux_find_visual_by_attrs(global.x->root_screen, -1, 32);
     if (visual_type != nullptr) {
-        root_depth = xcb_aux_get_depth_of_visual(global.root_screen, visual_type->visual_id);
-        colormap = global.a->generate_id();
+        root_depth = xcb_aux_get_depth_of_visual(global.x->root_screen, visual_type->visual_id);
+        colormap = global.x->conn->generate_id();
 
         try {
-            xpp::x::create_colormap_checked(*global.a,
+            xpp::x::create_colormap_checked(**global.x,
                     XCB_COLORMAP_ALLOC_NONE,
                     colormap,
-                    root,
+                    global.x->root,
                     visual_type->visual_id);
 
         } catch (std::exception &e) {
@@ -418,21 +416,21 @@ static xcb_visualtype_t* get_visualtype_for_root() {
             exit(EXIT_FAILURE);
         }
     } else {
-        visual_type = get_visualtype(global.root_screen);
+        visual_type = get_visualtype(global.x->root_screen);
     }
 
     return visual_type;
 }
 
-static void init_xkb() {
-    auto xkb_ext = global.a->extension<xpp::xkb::extension>();
+static void init_xkb(x_connection *conn) {
+    auto xkb_ext = conn->extension<xpp::xkb::extension>();
     xkb_supported = xkb_ext->present;
     if (!xkb_supported) {
         DLOG("xkb is not present on this server\n");
     } else {
         DLOG("initializing xcb-xkb\n");
-        global.a->xkb().use_extension(XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
-        global.a->xkb().select_events(
+        conn->xkb().use_extension(XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
+        conn->xkb().select_events(
                               XCB_XKB_ID_USE_CORE_KBD,
                               XCB_XKB_EVENT_TYPE_STATE_NOTIFY | XCB_XKB_EVENT_TYPE_MAP_NOTIFY | XCB_XKB_EVENT_TYPE_NEW_KEYBOARD_NOTIFY,
                               0,
@@ -458,7 +456,7 @@ static void init_xkb() {
          * when using a feature called “automatic reset of boolean controls”:
          * https://www.x.org/releases/X11R7.7/doc/kbproto/xkbproto.html#Automatic_Reset_of_Boolean_Controls
          * */
-        auto pcf_reply = xpp::xkb::per_client_flags(*global.a, XCB_XKB_ID_USE_CORE_KBD, mask, mask, 0, 0, 0);
+        auto pcf_reply = conn->xkb().per_client_flags(XCB_XKB_ID_USE_CORE_KBD, mask, mask, 0, 0, 0);
 
         if (pcf_reply.get() == nullptr || !(pcf_reply->value & (XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE))) {
             ELOG("Could not set " "XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE" "\n");
@@ -474,11 +472,11 @@ static void init_xkb() {
     }
 }
 
-static void init_shape() {
-    auto shape_ext = global.a->extension<xpp::shape::extension>();
+static void init_shape(x_connection *conn) {
+    auto shape_ext = conn->extension<xpp::shape::extension>();
     if (shape_ext->present) {
         shape_base = shape_ext->first_event;
-        auto version = global.a->shape().query_version();
+        auto version = global.x->conn->shape().query_version();
         shape_supported = version && version->minor_version >= 1;
     } else {
         shape_supported = false;
@@ -513,7 +511,7 @@ static void force_disable_output(const program_arguments &args) {
 static Output *get_focused_output() {
     Output *output;
 
-    auto pointerreply = xpp::x::query_pointer(*global.a, root);
+    auto pointerreply = xpp::x::query_pointer(**global.x, global.x->root);
     if (pointerreply.get() == nullptr) {
         ELOG("Could not query pointer position, using first screen\n");
     } else {
@@ -567,14 +565,13 @@ static void confirm_restart() {
  * connections), then discard all pending events (since we didn’t do
  * anything, there cannot be any meaningful responses), then ungrab the
  * server. */
-static void ignore_restart_events(xcb_connection_t *conn) {
-    global.a->grab_server();
+static void ignore_restart_events(x_connection *conn) {
+    conn->grab_server();
     {
-        xcb_aux_sync(conn);
-        xcb_generic_event_t *event;
-        while ((event = xcb_poll_for_event(conn)) != nullptr) {
+        xcb_aux_sync(*conn);
+        std::shared_ptr<xcb_generic_event_t> event;
+        while ((event = conn->poll_for_event()) != nullptr) {
             if (event->response_type == 0) {
-                free(event);
                 continue;
             }
 
@@ -585,16 +582,14 @@ static void ignore_restart_events(xcb_connection_t *conn) {
              * timespan starting from when we register as a window manager and
              * this piece of code which drops events. */
             if (type == XCB_MAP_REQUEST)
-                handle_event(type, event);
-
-            free(event);
+                handle_event(conn, type, event.get());
         }
-        manage_existing_windows(root);
+        manage_existing_windows(global.x->root);
     }
-    global.a->ungrab_server();
+    conn->ungrab_server();
 }
 
-static void fix_empty_background(xcb_connection_t *conn) {
+static void fix_empty_background(x_connection *conn) {
     /* When the root's window background is set to NONE, that might mean
      * that old content stays visible when a window is closed. That has
      * unpleasant effect of "my terminal (does not seem to) close!".
@@ -605,7 +600,7 @@ static void fix_empty_background(xcb_connection_t *conn) {
      */
     LOG("This is not an in-place restart, checking if a wallpaper is set.\n");
 
-    xcb_screen_t *s = xcb_aux_get_screen(conn, global.conn_screen);
+    xcb_screen_t *s = xcb_aux_get_screen(*conn, global.x->conn->default_screen());
     if (is_background_set(conn, s)) {
         LOG("A wallpaper is set, so no screenshot is necessary.\n");
     } else {
@@ -668,13 +663,11 @@ int main(int argc, char *argv[]) {
     LOG(fmt::sprintf("i3 %s starting\n",  i3_version));
 
     /* Prefetch X11 extensions that we are interested in. */
-    global.a = new x_connection();
-    if (global.a->connection_has_error())
+    global.x = new X();
+    if (global.x->conn->connection_has_error())
         errx(EXIT_FAILURE, "Cannot open display");
 
-    global.conn_screen = global.a->default_screen();
-
-    sndisplay = sn_xcb_display_new(*global.a, nullptr, nullptr);
+    sndisplay = sn_xcb_display_new(**global.x, nullptr, nullptr);
 
     /* Initialize the libev event loop. This needs to be done before loading
      * the config file because the parser will install an ev_child watcher
@@ -683,24 +676,21 @@ int main(int argc, char *argv[]) {
     if (main_loop == nullptr)
         errx(EXIT_FAILURE, "Could not initialize libev. Bad LIBEV_FLAGS?\n");;
 
-    global.root_screen = global.a->screen_of_display(global.a->default_screen());
-    root = global.a->root();
-
     /* Place requests for the atoms we need as soon as possible */
     setup_atoms();
 
-    root_depth = global.root_screen->root_depth;
-    colormap = global.root_screen->default_colormap;
+    root_depth = global.x->root_screen->root_depth;
+    colormap = global.x->root_screen->default_colormap;
     visual_type = get_visualtype_for_root();
 
-    global.a->prefetch_maximum_request_length();
+    global.x->conn->prefetch_maximum_request_length();
 
-    init_dpi(*global.a, global.root_screen);
+    init_dpi(**global.x, global.x->root_screen);
 
     DLOG(fmt::sprintf("root_depth = %d, visual_id = 0x%08x.\n",  root_depth, visual_type->visual_id));
     DLOG(fmt::sprintf("root_screen->height_in_pixels = %d, root_screen->height_in_millimeters = %d\n",
-         global.root_screen->height_in_pixels, global.root_screen->height_in_millimeters));
-    DLOG(fmt::sprintf("One logical pixel corresponds to %ld physical pixels on this display.\n",  logical_px(global.root_screen, 1)));
+         global.x->root_screen->height_in_pixels, global.x->root_screen->height_in_millimeters));
+    DLOG(fmt::sprintf("One logical pixel corresponds to %ld physical pixels on this display.\n",  logical_px(global.x->root_screen, 1)));
 
     load_configuration(&args.override_configpath, config_load_t::C_LOAD);
 
@@ -714,13 +704,13 @@ int main(int argc, char *argv[]) {
 
     try {
         uint32_t valueList[]{ROOT_EVENT_MASK};
-        global.a->change_window_attributes_checked(root, XCB_CW_EVENT_MASK, valueList);
+        global.x->conn->change_window_attributes_checked(global.x->root, XCB_CW_EVENT_MASK, valueList);
     } catch (std::exception &e) {
         ELOG(fmt::sprintf("Another window manager seems to be running (X error %s)\n",  e.what()));
         exit(EXIT_FAILURE);
     }
 
-    auto greply = global.a->get_geometry(root).get();
+    auto greply = global.x->conn->get_geometry(global.x->root).get();
     if (greply == nullptr) {
         ELOG("Could not get geometry of the root window, exiting\n");
         return 1;
@@ -733,11 +723,11 @@ int main(int argc, char *argv[]) {
        cursor until the first client is launched). */
     xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
 
-    init_xkb();
+    init_xkb(*global.x);
 
     /* Check for Shape extension. We want to handle input shapes which is
      * introduced in 1.1. */
-    init_shape();
+    init_shape(*global.x);
 
     restore_connect();
 
@@ -745,7 +735,7 @@ int main(int argc, char *argv[]) {
 
     ewmh_setup_hints();
 
-    keysyms = xcb_key_symbols_alloc(*global.a);
+    keysyms = xcb_key_symbols_alloc(**global.x);
 
     xcb_numlock_mask = aio_get_mod_mask_for(XCB_NUM_LOCK, keysyms);
 
@@ -753,7 +743,7 @@ int main(int argc, char *argv[]) {
         errx(EXIT_FAILURE, "Could not load keymap\n");;
 
     translate_keysyms();
-    grab_all_keys(*global.a);
+    grab_all_keys(*global.x);
 
     do_tree_init(args, greply.get());
 
@@ -788,18 +778,18 @@ int main(int argc, char *argv[]) {
     auto *xcb_watcher = new ev_io();
     xcb_prepare = new ev_prepare;
 
-    ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(*global.a), EV_READ);
+    ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(**global.x), EV_READ);
     ev_io_start(main_loop, xcb_watcher);
 
     ev_prepare_init(xcb_prepare, xcb_prepare_cb);
     ev_prepare_start(main_loop, xcb_prepare);
 
-    global.a->flush();
+    global.x->conn->flush();
 
-    ignore_restart_events(*global.a);
+    ignore_restart_events(*global.x);
 
     if (args.autostart) {
-        fix_empty_background(*global.a);
+        fix_empty_background(*global.x);
 
     }
 

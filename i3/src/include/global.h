@@ -7,22 +7,13 @@
 #include "main.h"
 #include "assignments.h"
 #include "workspace.h"
-
-#include <xpp/xpp.hpp>
-#include <xpp/proto/randr.hpp>
-#define explicit dont_use_cxx_explicit
-#include <xpp/proto/xkb.hpp>
-#undef explicit
-#include <xpp/proto/shape.hpp>
-#include <xpp/proto/bigreq.hpp>
-
-using x_connection = xpp::connection<xpp::xkb::extension, xpp::shape::extension, xpp::big_requests::extension, xpp::randr::extension>;
+#include "x.h"
 
 struct global {
     bool run_atexit{true};
     pid_t config_error_nagbar_pid = -1;
     pid_t command_error_nagbar_pid = -1;
-    x_connection *a;
+    X *x;
 
     /* The original value of RLIMIT_CORE when i3 was started. We need to restore
      * this before starting any other process, since we set RLIMIT_CORE to
@@ -36,15 +27,10 @@ struct global {
      * output) */
     std::deque<std::unique_ptr<Workspace_Assignment>> ws_assignments{};
 
-    /* The screen (0 when you are using DISPLAY=:0) of the connection 'conn' */
-    int conn_screen;
-
     /* The last timestamp we got from X11 (timestamps are included in some events
      * and are used for some things, like determining a unique ID in startup
      * notification). */
     xcb_timestamp_t last_timestamp = XCB_CURRENT_TIME;
-
-    xcb_screen_t *root_screen;
 
     bool new_parser;
 };

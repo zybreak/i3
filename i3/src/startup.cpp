@@ -149,7 +149,7 @@ void start_application(const std::string_view &command, bool no_startup_id) {
     if (!no_startup_id) {
         /* Create a startup notification context to monitor the progress of this
          * startup. */
-        context = sn_launcher_context_new(sndisplay, global.conn_screen);
+        context = sn_launcher_context_new(sndisplay, global.x->conn->default_screen());
         sn_launcher_context_set_name(context, "i3");
         sn_launcher_context_set_description(context, "exec command in i3");
         /* Chop off everything starting from the first space (if there are any
@@ -295,9 +295,9 @@ std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3
 
         xcb_get_property_cookie_t cookie;
 
-        cookie = xcb_get_property(*global.a, false, cwindow->leader,
+        cookie = xcb_get_property(**global.x, false, cwindow->leader,
                                   A__NET_STARTUP_ID, XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
-        startup_id_reply = xcb_get_property_reply(*global.a, cookie, nullptr);
+        startup_id_reply = xcb_get_property_reply(**global.x, cookie, nullptr);
 
         if (startup_id_reply == nullptr ||
             xcb_get_property_value_length(startup_id_reply) == 0) {
@@ -354,7 +354,7 @@ char *startup_workspace_for_window(i3Window *cwindow, xcb_get_property_reply_t *
  */
 void startup_sequence_delete_by_window(i3Window *win) {
 
-    auto startup_id_reply = global.a->get_property(false, win->id, A__NET_STARTUP_ID, XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
+    auto startup_id_reply = global.x->conn->get_property(false, win->id, A__NET_STARTUP_ID, XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
 
     auto sequence = startup_sequence_get(win, (startup_id_reply.get() != nullptr) ? startup_id_reply.get().get() : nullptr, true);
     if (sequence != startup_sequences.end()) {

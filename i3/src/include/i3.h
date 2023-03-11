@@ -68,7 +68,6 @@ extern uint8_t root_depth;
 extern xcb_colormap_t colormap;
 
 extern bool xkb_supported, shape_supported;
-extern xcb_window_t root;
 extern struct ev_loop *main_loop;
 
 /**

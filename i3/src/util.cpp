@@ -463,11 +463,11 @@ uint32_t aio_get_mod_mask_for(uint32_t keysym, xcb_key_symbols_t *symbols) {
     xcb_get_modifier_mapping_cookie_t cookie;
     xcb_get_modifier_mapping_reply_t *modmap_r;
 
-    xcb_flush(*global.a);
+    xcb_flush(**global.x);
 
     /* Get the current modifier mapping (this is blocking!) */
-    cookie = xcb_get_modifier_mapping(*global.a);
-    if (!(modmap_r = xcb_get_modifier_mapping_reply(*global.a, cookie, nullptr)))
+    cookie = xcb_get_modifier_mapping(**global.x);
+    if (!(modmap_r = xcb_get_modifier_mapping_reply(**global.x, cookie, nullptr)))
         return 0;
 
     uint32_t result = get_mod_mask_for(keysym, symbols, modmap_r);

@@ -42,7 +42,7 @@
 using namespace std::literals;
 
 void ConfigApplier::font(const std::string &font) {
-    config.font = load_font(*global.a, global.root_screen, font.c_str(), true);
+    config.font = load_font(**global.x, global.x->root_screen, font.c_str(), true);
     set_font(&config.font);
 }
 
@@ -155,14 +155,14 @@ void ConfigApplier::default_border(const std::string &windowtype, const std::str
 
     if (windowtype ==  "default_border"s || windowtype == "new_window"s) {
         DLOG(fmt::sprintf("default tiled border style = %d and border width = %d (%ld physical px)\n",
-             border_style, border_width, logical_px(global.root_screen, border_width)));
+             border_style, border_width, logical_px(global.x->root_screen, border_width)));
         config.default_border = (border_style_t)border_style;
-        config.default_border_width = logical_px(global.root_screen, border_width);
+        config.default_border_width = logical_px(global.x->root_screen, border_width);
     } else {
         DLOG(fmt::sprintf("default floating border style = %d and border width = %d (%ld physical px)\n",
-             border_style, border_width, logical_px(global.root_screen, border_width)));
+             border_style, border_width, logical_px(global.x->root_screen, border_width)));
         config.default_floating_border = (border_style_t)border_style;
-        config.default_floating_border_width = logical_px(global.root_screen, border_width);
+        config.default_floating_border_width = logical_px(global.x->root_screen, border_width);
     }
 }
 
@@ -294,21 +294,21 @@ void ConfigApplier::popup_during_fullscreen(const std::string &value) {
 
 void ConfigApplier::color_single(const std::string &colorclass, const std::string &color) {
     /* used for client.background only currently */
-    config.client.background = draw_util_hex_to_color(*global.a, global.root_screen, color.c_str());
+    config.client.background = draw_util_hex_to_color(**global.x, global.x->root_screen, color.c_str());
 }
 
 void ConfigApplier::color(const std::string &colorclass, const std::string &border, const std::string &background, const std::string &text, const std::string &indicator, const std::string &child_border) {
 #define APPLY_COLORS(classname)                                                              \
     do {                                                                                     \
         if (strcmp(colorclass.c_str(), "client." #classname) == 0) {                                 \
-            config.client.classname.border = draw_util_hex_to_color(*global.a, global.root_screen, border.c_str());                 \
-            config.client.classname.background = draw_util_hex_to_color(*global.a, global.root_screen, background.c_str());         \
-            config.client.classname.text = draw_util_hex_to_color(*global.a, global.root_screen, text.c_str());                     \
+            config.client.classname.border = draw_util_hex_to_color(**global.x, global.x->root_screen, border.c_str());                 \
+            config.client.classname.background = draw_util_hex_to_color(**global.x, global.x->root_screen, background.c_str());         \
+            config.client.classname.text = draw_util_hex_to_color(**global.x, global.x->root_screen, text.c_str());                     \
             if (!indicator.empty()) {                                                         \
-                config.client.classname.indicator = draw_util_hex_to_color(*global.a, global.root_screen, indicator.c_str());       \
+                config.client.classname.indicator = draw_util_hex_to_color(**global.x, global.x->root_screen, indicator.c_str());       \
             }                                                                                \
             if (!child_border.empty()) {                                                      \
-                config.client.classname.child_border = draw_util_hex_to_color(*global.a, global.root_screen, child_border.c_str()); \
+                config.client.classname.child_border = draw_util_hex_to_color(**global.x, global.x->root_screen, child_border.c_str()); \
             } else {                                                                         \
                 config.client.classname.child_border = config.client.classname.background;   \
             }                                                                                \

@@ -13,54 +13,51 @@
 #include <config.h>
 #include <xcb/shape.h>
 
+#include <xpp/xpp.hpp>
+#include <xpp/proto/randr.hpp>
+#define explicit dont_use_cxx_explicit
+#include <xpp/proto/xkb.hpp>
+#undef explicit
+#include <xpp/proto/shape.hpp>
+#include <xpp/proto/bigreq.hpp>
+
+
+using x_connection = xpp::connection<xpp::xkb::extension, xpp::shape::extension, xpp::big_requests::extension, xpp::randr::extension>;
+
 /** Stores the X11 window ID of the currently focused window */
 extern xcb_window_t focused_id;
 
-/*
- * Describes the X11 state we may modify (map state, position, window stack).
- * There is one entry per container. The state represents the current situation
- * as X11 sees it (with the exception of the order in the state_head CIRCLEQ,
- * which represents the order that will be pushed to X11, while old_state_head
- * represents the current order). It will be updated in x_push_changes().
- *
- */
-struct con_state {
-    xcb_window_t id{};
-    bool mapped{};
-    bool unmap_now{};
-    bool child_mapped{};
-    bool is_hidden{};
+struct X {
+    x_connection *conn;
+    xcb_screen_t *root_screen;
+    /* The screen (0 when you are using DISPLAY=:0) of the connection 'conn' */
+    int conn_screen;
+    xcb_window_t root;
 
-    /* The con for which this state is. */
-    Con *con{};
+    explicit X() : conn(new x_connection()) {
+        this->conn_screen = conn->default_screen();
+        this->root_screen = conn->screen_of_display(this->conn_screen);
+        this->root = conn->root();
+    };
 
-    /* For reparenting, we have a flag (need_reparent) and the X ID of the old
-     * frame this window was in. The latter is necessary because we need to
-     * ignore UnmapNotify events (by changing the window event mask). */
-    bool need_reparent{};
-    xcb_window_t old_frame{};
-
-    /* The container was child of floating container during the previous call of
-     * x_push_node(). This is used to remove the shape when the container is no
-     * longer floating. */
-    bool was_floating{};
-
-    Rect rect;
-    Rect window_rect;
-
-    bool initial{};
-
-    std::string name{};
+    operator x_connection *() {
+        return conn;
+    }
 };
 
 /*
- * Returns the container state for the given frame. This function always
- * returns a container state (otherwise, there is a bug in the code and the
- * container state of a container for which x_con_init() was not called was
- * requested).
+ * Moves a child window from Container src to Container dest.
  *
  */
-con_state *state_for_frame(xcb_window_t window);
+void x_move_win(Con *src, Con *dest);
+
+/*
+ * Re-initializes the associated X window state for this container. You have
+ * to call this when you assign a client to an empty container to ensure that
+ * its state gets updated correctly.
+ *
+ */
+void x_reinit(Con *con);
 
 /**
  * Initializes the X11 part for the given container. Called exactly once for

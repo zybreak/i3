@@ -273,9 +273,9 @@ static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
 
     xcb_numlock_mask = aio_get_mod_mask_for(XCB_NUM_LOCK, keysyms);
 
-    ungrab_all_keys(*global.a);
+    ungrab_all_keys(*global.x);
     translate_keysyms();
-    grab_all_keys(*global.a);
+    grab_all_keys(*global.x);
 }
 
 /*
@@ -284,7 +284,7 @@ static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
  */
 static void handle_map_request(xcb_map_request_event_t *event) {
 
-    auto attr = global.a->get_window_attributes_unchecked(event->window);
+    auto attr = global.x->conn->get_window_attributes_unchecked(event->window);
 
     DLOG(fmt::sprintf("window = 0x%08x, serial is %d.\n",  event->window, event->sequence));
     add_ignore_event(event->sequence, -1);
@@ -330,8 +330,8 @@ static void handle_configure_request(xcb_configure_request_event_t *event) {
         COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_SIBLING, sibling);
         COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_STACK_MODE, stack_mode);
 
-        xcb_configure_window(*global.a, event->window, mask, values);
-        xcb_flush(*global.a);
+        xcb_configure_window(**global.x, event->window, mask, values);
+        xcb_flush(**global.x);
 
         return;
     }
@@ -465,8 +465,8 @@ static void handle_screen_change(xcb_generic_event_t *e) {
 
     /* The geometry of the root window is used for “fullscreen global” and
      * changes when new outputs are added. */
-    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(*global.a, root);
-    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(*global.a, cookie, nullptr);
+    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(**global.x, global.x->root);
+    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(**global.x, cookie, nullptr);
     if (reply == nullptr) {
         ELOG("Could not get geometry of the root window, exiting\n");
         exit(EXIT_FAILURE);
@@ -504,13 +504,13 @@ static void handle_unmap_notify_event(xcb_unmap_notify_event_t *event) {
         if (con->ignore_unmap > 0)
             con->ignore_unmap--;
         /* See the end of this function. */
-        cookie = xcb_get_input_focus(*global.a);
+        cookie = xcb_get_input_focus(**global.x);
         DLOG(fmt::sprintf("ignore_unmap = %d for frame of container %p\n",  con->ignore_unmap, (void*)con));
         goto ignore_end;
     }
 
     /* See the end of this function. */
-    cookie = xcb_get_input_focus(*global.a);
+    cookie = xcb_get_input_focus(**global.x);
 
     if (con->ignore_unmap > 0) {
         DLOG(fmt::sprintf("ignore_unmap = %d, dec\n",  con->ignore_unmap));
@@ -520,8 +520,8 @@ static void handle_unmap_notify_event(xcb_unmap_notify_event_t *event) {
 
     /* Since we close the container, we need to unset _NET_WM_DESKTOP and
      * _NET_WM_STATE according to the spec. */
-    xcb_delete_property(*global.a, event->window, A__NET_WM_DESKTOP);
-    xcb_delete_property(*global.a, event->window, A__NET_WM_STATE);
+    xcb_delete_property(**global.x, event->window, A__NET_WM_DESKTOP);
+    xcb_delete_property(**global.x, event->window, A__NET_WM_STATE);
 
     tree_close_internal(con, DONT_KILL_WINDOW, false);
     tree_render();
@@ -547,7 +547,7 @@ ignore_end:
      * into fullscreen and moving the pointer to a different window, without
      * using GetInputFocus, subsequent (legitimate) EnterNotify events arrived
      * with the same sequence and thus were ignored (see ticket #609). */
-    free(xcb_get_input_focus_reply(*global.a, cookie, nullptr));
+    free(xcb_get_input_focus_reply(**global.x, cookie, nullptr));
 }
 
 /*
@@ -658,7 +658,7 @@ static void handle_expose_event(xcb_expose_event_t *event) {
      * only tell us that the X server lost (parts of) the window contents. */
     draw_util_copy_surface(&(parent->frame_buffer), &(parent->frame),
                            0, 0, 0, 0, parent->rect.width, parent->rect.height);
-    xcb_flush(*global.a);
+    xcb_flush(**global.x);
 }
 
 #define _NET_WM_MOVERESIZE_SIZE_TOPLEFT 0
@@ -822,13 +822,13 @@ static void handle_client_message(xcb_client_message_event_t *event) {
                 (uint32_t)config.default_border_width  /* bottom */
         };
         xcb_change_property(
-            *global.a,
+            **global.x,
             XCB_PROP_MODE_REPLACE,
             event->window,
             A__NET_FRAME_EXTENTS,
             XCB_ATOM_CARDINAL, 32, 4,
             &r);
-        xcb_flush(*global.a);
+        xcb_flush(**global.x);
     } else if (event->type == A_WM_CHANGE_STATE) {
         /* http://tronche.com/gui/x/icccm/sec-4.html#s-4.1.4 */
         if (event->data.data32[0] == XCB_ICCCM_WM_STATE_ICONIC) {
@@ -836,7 +836,7 @@ static void handle_client_message(xcb_client_message_event_t *event) {
              * immediately revert to normal to avoid being stuck in a paused state. */
             DLOG(fmt::sprintf("Client has requested iconic state, rejecting. (window = %d)\n",  event->window));
             long data[] = {XCB_ICCCM_WM_STATE_NORMAL, XCB_NONE};
-            xcb_change_property(*global.a, XCB_PROP_MODE_REPLACE, event->window,
+            xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, event->window,
                                 A_WM_STATE, A_WM_STATE, 32, 2, data);
         } else {
             DLOG(fmt::sprintf("Not handling WM_CHANGE_STATE request. (window = %d, state = %d)\n",  event->window, event->data.data32[0]));
@@ -1041,7 +1041,7 @@ static bool handle_clientleader_change(Con *con, xcb_get_property_reply_t *prop)
 static void handle_focus_in(xcb_focus_in_event_t *event) {
     DLOG(fmt::sprintf("focus change in, for window 0x%08x\n",  event->event));
 
-    if (event->event == root) {
+    if (event->event == global.x->root) {
         DLOG("Received focus in for root window, refocusing the focused window.\n");
         focused->con_focus();
         focused_id = XCB_NONE;
@@ -1092,7 +1092,7 @@ static void handle_focus_in(xcb_focus_in_event_t *event) {
  *
  */
 static void handle_configure_notify(xcb_configure_notify_event_t *event) {
-    if (event->event != root) {
+    if (event->event != global.x->root) {
         DLOG(fmt::sprintf("ConfigureNotify for non-root window 0x%08x, ignoring\n",  event->event));
         return;
     }
@@ -1243,7 +1243,7 @@ static std::vector<property_handler_t> property_handlers{};
  *
  */
 void property_handlers_init() {
-    sn_monitor_context_new(sndisplay, global.conn_screen, startup_monitor_event, nullptr, nullptr);
+    sn_monitor_context_new(sndisplay, global.x->conn->default_screen(), startup_monitor_event, nullptr, nullptr);
 
     property_handlers.emplace_back(A__NET_WM_NAME, 128, handle_windowname_change);
     property_handlers.emplace_back(XCB_ATOM_WM_HINTS, UINT_MAX, handle_hints);
@@ -1286,7 +1286,7 @@ static void property_notify(xcb_property_notify_event_t *event) {
 
     if (state != XCB_PROPERTY_DELETE) {
         try {
-            auto propr = global.a->get_property(0, window, atom, XCB_GET_PROPERTY_TYPE_ANY, 0, handler.long_len);
+            auto propr = global.x->conn->get_property(0, window, atom, XCB_GET_PROPERTY_TYPE_ANY, 0, handler.long_len);
 
             handler.cb(con, propr.get().get());
         } catch (std::exception &e) {
@@ -1302,7 +1302,7 @@ static void property_notify(xcb_property_notify_event_t *event) {
  * event type.
  *
  */
-void handle_event(int type, xcb_generic_event_t *event) {
+void handle_event(x_connection *conn, int type, xcb_generic_event_t *event) {
     if (type != XCB_MOTION_NOTIFY)
         DLOG(fmt::sprintf("event type %d, xkb_base %d\n",  type, xkb_base));
 
@@ -1319,13 +1319,13 @@ void handle_event(int type, xcb_generic_event_t *event) {
         if (state->xkbType == XCB_XKB_NEW_KEYBOARD_NOTIFY) {
             DLOG(fmt::sprintf("xkb new keyboard notify, sequence %d, time %d\n",  state->sequence, state->time));
             xcb_key_symbols_free(keysyms);
-            keysyms = xcb_key_symbols_alloc(*global.a);
+            keysyms = xcb_key_symbols_alloc(*conn);
             if (((xcb_xkb_new_keyboard_notify_event_t *)event)->changed & XCB_XKB_NKN_DETAIL_KEYCODES) {
                 load_keymap();
             }
-            ungrab_all_keys(*global.a);
+            ungrab_all_keys(conn);
             translate_keysyms();
-            grab_all_keys(*global.a);
+            grab_all_keys(conn);
         } else if (state->xkbType == XCB_XKB_MAP_NOTIFY) {
             if (event_is_ignored(event->sequence, type)) {
                 DLOG(fmt::sprintf("Ignoring map notify event for sequence %d.\n",  state->sequence));
@@ -1333,10 +1333,10 @@ void handle_event(int type, xcb_generic_event_t *event) {
                 DLOG(fmt::sprintf("xkb map notify, sequence %d, time %d\n",  state->sequence, state->time));
                 add_ignore_event(event->sequence, type);
                 xcb_key_symbols_free(keysyms);
-                keysyms = xcb_key_symbols_alloc(*global.a);
-                ungrab_all_keys(*global.a);
+                keysyms = xcb_key_symbols_alloc(*conn);
+                ungrab_all_keys(conn);
                 translate_keysyms();
-                grab_all_keys(*global.a);
+                grab_all_keys(conn);
                 load_keymap();
             }
         } else if (state->xkbType == XCB_XKB_STATE_NOTIFY) {
@@ -1345,8 +1345,8 @@ void handle_event(int type, xcb_generic_event_t *event) {
                 return;
             }
             xkb_current_group = state->group;
-            ungrab_all_keys(*global.a);
-            grab_all_keys(*global.a);
+            ungrab_all_keys(conn);
+            grab_all_keys(conn);
         }
 
         return;

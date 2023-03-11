@@ -40,7 +40,7 @@
 #include <sanitizer/lsan_interface.h>
 #endif
 
-#define TEXT_PADDING logical_px(global.root_screen, 2)
+#define TEXT_PADDING logical_px(global.x->root_screen, 2)
 
 typedef struct placeholder_state {
     /** The X11 placeholder window. */
@@ -144,7 +144,7 @@ void restore_connect() {
     ev_prepare_start(main_loop, xcb_prepare);
 }
 
-static void update_placeholder_contents(placeholder_state *state) {
+static void update_placeholder_contents(x_connection *conn, placeholder_state *state) {
     const color_t foreground = config.client.placeholder.text;
     const color_t background = config.client.placeholder.background;
 
@@ -179,7 +179,7 @@ static void update_placeholder_contents(placeholder_state *state) {
         DLOG(fmt::sprintf("con %p (placeholder 0x%08x) line %d: %s\n",  (void*)state->con, state->window, n, serialized));
 
         i3String *str = i3string_from_utf8(serialized);
-        draw_util_text(*global.a, str, &(state->surface), foreground, background,
+        draw_util_text(*conn, str, &(state->surface), foreground, background,
                        TEXT_PADDING,
                        (n * (config.font.height + TEXT_PADDING)) + TEXT_PADDING,
                        state->rect.width - 2 * TEXT_PADDING);
@@ -190,15 +190,15 @@ static void update_placeholder_contents(placeholder_state *state) {
 
     // TODO: render the watch symbol in a bigger font
     i3String *line = i3string_from_utf8("⌚");
-    int text_width = predict_text_width(*global.a, global.root_screen, line);
+    int text_width = predict_text_width(*conn, global.x->root_screen, line);
     int x = (state->rect.width / 2) - (text_width / 2);
     int y = (state->rect.height / 2) - (config.font.height / 2);
-    draw_util_text(*global.a, line, &(state->surface), foreground, background, x, y, text_width);
+    draw_util_text(*conn, line, &(state->surface), foreground, background, x, y, text_width);
     delete line;
     xcb_aux_sync(restore_conn);
 }
 
-static void open_placeholder_window(Con *con) {
+static void open_placeholder_window(x_connection *conn, Con *con) {
     if (con->con_is_leaf() &&
         (con->window == nullptr || con->window->id == XCB_NONE) &&
         !con->swallow.empty() &&
@@ -237,8 +237,8 @@ static void open_placeholder_window(Con *con) {
         state->con = con;
         state->rect = con->rect;
 
-        draw_util_surface_init(restore_conn, &(state->surface), placeholder, get_visualtype(global.root_screen), state->rect.width, state->rect.height);
-        update_placeholder_contents(state.get());
+        draw_util_surface_init(restore_conn, &(state->surface), placeholder, get_visualtype(global.x->root_screen), state->rect.width, state->rect.height);
+        update_placeholder_contents(conn, state.get());
         states.push_back(std::move(state));
 
         /* create temporary id swallow to match the placeholder */
@@ -249,10 +249,10 @@ static void open_placeholder_window(Con *con) {
     }
 
     for (auto &child : con->nodes_head) {
-        open_placeholder_window(child);
+        open_placeholder_window(conn, child);
     }
     for (auto &child : con->floating_windows) {
-        open_placeholder_window(child);
+        open_placeholder_window(conn, child);
     }
 }
 
@@ -265,10 +265,10 @@ static void open_placeholder_window(Con *con) {
  */
 void restore_open_placeholder_windows(Con *parent) {
     for (auto &child : parent->nodes_head) {
-        open_placeholder_window(child);
+        open_placeholder_window(*global.x, child);
     }
     for (auto &child : parent->floating_windows) {
-        open_placeholder_window(child);
+        open_placeholder_window(*global.x, child);
     }
 
     xcb_flush(restore_conn);
@@ -305,7 +305,7 @@ static void expose_event(xcb_expose_event_t *event) {
 
         DLOG(fmt::sprintf("refreshing window 0x%08x contents (con %p)\n",  state->window, (void*)state->con));
 
-        update_placeholder_contents(state.get());
+        update_placeholder_contents(*global.x, state.get());
 
         return;
     }
@@ -332,7 +332,7 @@ static void configure_notify(xcb_configure_notify_event_t *event) {
 
         draw_util_surface_set_size(&(state->surface), state->rect.width, state->rect.height);
 
-        update_placeholder_contents(state.get());
+        update_placeholder_contents(*global.x, state.get());
 
         return;
     }

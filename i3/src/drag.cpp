@@ -71,7 +71,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
     xcb_motion_notify_event_t *last_motion_notify = nullptr;
     xcb_generic_event_t *event;
 
-    while ((event = xcb_poll_for_event(*global.a)) != nullptr) {
+    while ((event = xcb_poll_for_event(**global.x)) != nullptr) {
         if (event->response_type == 0) {
             auto *error = (xcb_generic_error_t *)event;
             DLOG(fmt::sprintf("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
@@ -91,7 +91,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
             case XCB_KEY_PRESS:
                 DLOG("A key was pressed during drag, reverting changes.\n");
                 dragloop->result = DRAG_REVERT;
-                handle_event(type, event);
+                handle_event(*global.x, type, event);
                 break;
 
             case XCB_UNMAP_NOTIFY: {
@@ -107,7 +107,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
                     }
                 }
 
-                handle_event(type, event);
+                handle_event(*global.x, type, event);
                 break;
             }
 
@@ -119,7 +119,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
 
             default:
                 DLOG("Passing to original handler\n");
-                handle_event(type, event);
+                handle_event(*global.x, type, event);
                 break;
         }
 
@@ -147,7 +147,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
                            dragloop->event->root_x, dragloop->event->root_y)) {
         if (dragloop->xcursor != XCB_NONE) {
             xcb_change_active_pointer_grab(
-                *global.a,
+                **global.x,
                 dragloop->xcursor,
                 XCB_CURRENT_TIME,
                 XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION);
@@ -169,7 +169,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
     }
     FREE(last_motion_notify);
 
-    xcb_flush(*global.a);
+    xcb_flush(**global.x);
     return dragloop->result != DRAGGING;
 }
 
@@ -203,9 +203,9 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
     xcb_grab_pointer_reply_t *reply;
     xcb_generic_error_t *error;
 
-    cookie = xcb_grab_pointer(*global.a,
+    cookie = xcb_grab_pointer(**global.x,
                               false,                                                         /* get all pointer events specified by the following mask */
-                              root,                                                          /* grab the root window */
+                              global.x->root,                                                          /* grab the root window */
                               XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION, /* which events to let through */
                               XCB_GRAB_MODE_ASYNC,                                           /* pointer events should continue as normal */
                               XCB_GRAB_MODE_ASYNC,                                           /* keyboard mode */
@@ -213,7 +213,7 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
                               use_threshold ? XCB_NONE : xcursor,                            /* possibly display a special cursor */
                               XCB_CURRENT_TIME);
 
-    if ((reply = xcb_grab_pointer_reply(*global.a, cookie, &error)) == nullptr) {
+    if ((reply = xcb_grab_pointer_reply(**global.x, cookie, &error)) == nullptr) {
         ELOG(fmt::sprintf("Could not grab pointer (error_code = %d)\n",  error->error_code));
         free(error);
         return DRAG_ABORT;
@@ -225,18 +225,18 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
     xcb_grab_keyboard_cookie_t keyb_cookie;
     xcb_grab_keyboard_reply_t *keyb_reply;
 
-    keyb_cookie = xcb_grab_keyboard(*global.a,
+    keyb_cookie = xcb_grab_keyboard(**global.x,
                                     false, /* get all keyboard events */
-                                    root,  /* grab the root window */
+                                    global.x->root,  /* grab the root window */
                                     XCB_CURRENT_TIME,
                                     XCB_GRAB_MODE_ASYNC, /* continue processing pointer events as normal */
                                     XCB_GRAB_MODE_ASYNC  /* keyboard mode */
     );
 
-    if ((keyb_reply = xcb_grab_keyboard_reply(*global.a, keyb_cookie, &error)) == nullptr) {
+    if ((keyb_reply = xcb_grab_keyboard_reply(**global.x, keyb_cookie, &error)) == nullptr) {
         ELOG(fmt::sprintf("Could not grab keyboard (error_code = %d)\n",  error->error_code));
         free(error);
-        xcb_ungrab_pointer(*global.a, XCB_CURRENT_TIME);
+        xcb_ungrab_pointer(**global.x, XCB_CURRENT_TIME);
         return DRAG_ABORT;
     }
 
@@ -265,9 +265,9 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
     ev_prepare_stop(main_loop, prepare);
     main_set_x11_cb(true);
 
-    xcb_ungrab_keyboard(*global.a, XCB_CURRENT_TIME);
-    xcb_ungrab_pointer(*global.a, XCB_CURRENT_TIME);
-    xcb_flush(*global.a);
+    xcb_ungrab_keyboard(**global.x, XCB_CURRENT_TIME);
+    xcb_ungrab_pointer(**global.x, XCB_CURRENT_TIME);
+    xcb_flush(**global.x);
 
     return loop.result;
 }

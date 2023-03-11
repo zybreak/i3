@@ -134,7 +134,7 @@ static std::string get_config_path(const std::string *override_configpath, bool 
 }
 
 static void free_configuration() {
-    assert(global.a != nullptr);
+    assert(*global.x != nullptr);
 
     /* If we are currently in a binding mode, we first revert to the default
      * since we have no guarantee that the current mode will even still exist
@@ -142,7 +142,7 @@ static void free_configuration() {
     switch_mode("default");
 
     /* First ungrab the keys */
-    ungrab_all_keys(*global.a);
+    ungrab_all_keys(*global.x);
 
     modes.clear();
     global.assignments.clear();
@@ -160,7 +160,7 @@ static void free_configuration() {
     }
 
     /* Get rid of the current font */
-    free_font(*global.a);
+    free_font(**global.x);
 
     free(config.ipc_socket_path);
     free(config.restart_state_path);
@@ -202,11 +202,11 @@ Barconfig::~Barconfig() {
 }
 
 void INIT_COLOR(Colortriple &x, const char *cborder, const char *cbackground, const char *ctext, const char *cindicator) {
-    x.border = draw_util_hex_to_color(*global.a, global.root_screen, cborder);
-    x.background = draw_util_hex_to_color(*global.a, global.root_screen, cbackground);
-    x.text = draw_util_hex_to_color(*global.a, global.root_screen, ctext);
-    x.indicator = draw_util_hex_to_color(*global.a, global.root_screen, cindicator);
-    x.child_border = draw_util_hex_to_color(*global.a, global.root_screen, cbackground);
+    x.border = draw_util_hex_to_color(**global.x, global.x->root_screen, cborder);
+    x.background = draw_util_hex_to_color(**global.x, global.x->root_screen, cbackground);
+    x.text = draw_util_hex_to_color(**global.x, global.x->root_screen, ctext);
+    x.indicator = draw_util_hex_to_color(**global.x, global.x->root_screen, cindicator);
+    x.child_border = draw_util_hex_to_color(**global.x, global.x->root_screen, cbackground);
 }
 
 /*
@@ -235,7 +235,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     memset(&config, 0, sizeof(config));
 
     /* Initialize default colors */
-    config.client.background = draw_util_hex_to_color(*global.a, global.root_screen, "#000000");
+    config.client.background = draw_util_hex_to_color(**global.x, global.x->root_screen, "#000000");
     INIT_COLOR(config.client.focused, "#4c7899", "#285577", "#ffffff", "#2e9ef4");
     INIT_COLOR(config.client.focused_inactive, "#333333", "#5f676a", "#ffffff", "#484e50");
     INIT_COLOR(config.client.unfocused, "#333333", "#222222", "#888888", "#292d2e");
@@ -251,8 +251,8 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
 
     config.default_border = BS_NORMAL;
     config.default_floating_border = BS_NORMAL;
-    config.default_border_width = logical_px(global.root_screen, 2);
-    config.default_floating_border_width = logical_px(global.root_screen, 2);
+    config.default_border_width = logical_px(global.x->root_screen, 2);
+    config.default_floating_border_width = logical_px(global.x->root_screen, 2);
     /* Set default_orientation to NO_ORIENTATION for auto orientation. */
     config.default_orientation = NO_ORIENTATION;
 
@@ -302,19 +302,19 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
 
     if (config.font.type == i3Font::FONT_TYPE_NONE && load_type != config_load_t::C_VALIDATE) {
         ELOG("You did not specify required configuration option \"font\"\n");
-        config.font = load_font(*global.a, global.root_screen, "fixed", true);
+        config.font = load_font(**global.x, global.x->root_screen, "fixed", true);
         set_font(&config.font);
     }
 
     if (load_type == config_load_t::C_RELOAD) {
         translate_keysyms();
-        grab_all_keys(*global.a);
-        regrab_all_buttons(*global.a);
+        grab_all_keys(*global.x);
+        regrab_all_buttons(*global.x);
 
         /* Redraw the currently visible decorations on reload, so that the
          * possibly new drawing parameters changed. */
         x_deco_recurse(croot);
-        xcb_flush(*global.a);
+        xcb_flush(**global.x);
     }
 
     return result == PARSE_FILE_SUCCESS;

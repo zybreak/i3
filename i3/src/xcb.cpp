@@ -49,7 +49,7 @@ xcb_window_t create_window(xcb_connection_t *conn, Rect dims,
     xcb_void_cookie_t gc_cookie = xcb_create_window(conn,
                                                     depth,
                                                     result,                                  /* the window id */
-                                                    root,                                    /* parent == root */
+                                                    global.x->root,                                    /* parent == root */
                                                     dims.x, dims.y, dims.width, dims.height, /* dimensions */
                                                     0,                                       /* border = 0, we draw our own */
                                                     window_class,
@@ -102,8 +102,8 @@ void fake_absolute_configure_notify(Con *con) {
 
     DLOG(fmt::sprintf("fake rect = (%d, %d, %d, %d)\n", generatedEvent.x, generatedEvent.y, generatedEvent.width, generatedEvent.height));
 
-    xcb_send_event(*global.a, false, con->window->id, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *) &generatedEvent);
-    xcb_flush(*global.a);
+    xcb_send_event(**global.x, false, con->window->id, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *) &generatedEvent);
+    xcb_flush(**global.x);
 }
 
 /*
@@ -125,7 +125,7 @@ void send_take_focus(xcb_window_t window, xcb_timestamp_t timestamp) {
     ev->data.data32[1] = timestamp;
 
     DLOG("Sending WM_TAKE_FOCUS to the client\n");
-    xcb_send_event(*global.a, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)ev);
+    xcb_send_event(**global.x, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)ev);
     free(event);
 }
 
@@ -202,7 +202,7 @@ bool xcb_reply_contains_atom(xcb_get_property_reply_t *prop, xcb_atom_t atom) {
 uint16_t get_visual_depth(xcb_visualid_t visual_id) {
     xcb_depth_iterator_t depth_iter;
 
-    depth_iter = xcb_screen_allowed_depths_iterator(global.root_screen);
+    depth_iter = xcb_screen_allowed_depths_iterator(global.x->root_screen);
     for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
         xcb_visualtype_iterator_t visual_iter;
 
@@ -223,7 +223,7 @@ uint16_t get_visual_depth(xcb_visualid_t visual_id) {
 xcb_visualtype_t *get_visualtype_by_id(xcb_visualid_t visual_id) {
     xcb_depth_iterator_t depth_iter;
 
-    depth_iter = xcb_screen_allowed_depths_iterator(global.root_screen);
+    depth_iter = xcb_screen_allowed_depths_iterator(global.x->root_screen);
     for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
         xcb_visualtype_iterator_t visual_iter;
 
@@ -244,7 +244,7 @@ xcb_visualtype_t *get_visualtype_by_id(xcb_visualid_t visual_id) {
 xcb_visualid_t get_visualid_by_depth(uint16_t depth) {
     xcb_depth_iterator_t depth_iter;
 
-    depth_iter = xcb_screen_allowed_depths_iterator(global.root_screen);
+    depth_iter = xcb_screen_allowed_depths_iterator(global.x->root_screen);
     for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
         if (depth_iter.data->depth != depth)
             continue;
@@ -315,7 +315,7 @@ release_grab:
  */
 void xcb_grab_buttons(xcb_window_t window, std::set<int> &buttons) {
     for (int i : buttons) {
-        global.a->grab_button(false, window, XCB_EVENT_MASK_BUTTON_PRESS, XCB_GRAB_MODE_SYNC,
-                        XCB_GRAB_MODE_ASYNC, root, XCB_NONE, i, XCB_BUTTON_MASK_ANY);
+        global.x->conn->grab_button(false, window, XCB_EVENT_MASK_BUTTON_PRESS, XCB_GRAB_MODE_SYNC,
+                        XCB_GRAB_MODE_ASYNC, global.x->root, XCB_NONE, i, XCB_BUTTON_MASK_ANY);
     }
 }

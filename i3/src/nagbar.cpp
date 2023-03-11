@@ -249,8 +249,8 @@ static int handle_expose(xcb_connection_t *conn, i3String *prompt, std::vector<b
  * Tries to position the rectangle on the primary output.
  */
 static void set_window_position_primary(xcb_rectangle_t *result) {
-    xcb_randr_get_screen_resources_current_cookie_t rcookie = xcb_randr_get_screen_resources_current(conn, root);
-    xcb_randr_get_output_primary_cookie_t pcookie = xcb_randr_get_output_primary(conn, root);
+    xcb_randr_get_screen_resources_current_cookie_t rcookie = xcb_randr_get_screen_resources_current(conn, global.x->root);
+    xcb_randr_get_output_primary_cookie_t pcookie = xcb_randr_get_output_primary(conn, global.x->root);
 
     xcb_randr_get_output_primary_reply_t *primary = nullptr;
     xcb_randr_get_screen_resources_current_reply_t *res = nullptr;
@@ -332,7 +332,7 @@ static void set_window_position_focus(xcb_rectangle_t *result) {
     }
 
     coordinates = xcb_translate_coordinates_reply(
-            conn, xcb_translate_coordinates(conn, input_focus->focus, root, geometry->x, geometry->y), nullptr);
+            conn, xcb_translate_coordinates(conn, input_focus->focus, global.x->root, geometry->x, geometry->y), nullptr);
     if (coordinates == nullptr) {
         LOG("Failed to translate coordinates.\n");
         goto free_resources;
@@ -414,7 +414,7 @@ static void draw_nagbar(i3String *prompt,
     //sn_display_unref(sndisplay);
 
     root_screen = xcb_aux_get_screen(conn, screens);
-    root = root_screen->root;
+    global.x->root = root_screen->root;
 
     if (bar_type == TYPE_ERROR) {
         /* Red theme for error messages */
@@ -475,7 +475,7 @@ static void draw_nagbar(i3String *prompt,
             conn,
             XCB_COPY_FROM_PARENT,
             win,                                                 /* the window id */
-            root,                                                /* parent == root */
+            global.x->root,                                                /* parent == root */
             win_pos.x, win_pos.y, win_pos.width, win_pos.height, /* dimensions */
             0,                                                   /* x11 border = 0, we draw our own */
             XCB_WINDOW_CLASS_INPUT_OUTPUT,

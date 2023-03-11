@@ -746,7 +746,7 @@ namespace cmd {
             return 0;
         }
         if (border_width >= 0) {
-            return logical_px(global.root_screen, border_width);
+            return logical_px(global.x->root_screen, border_width);
         }
 
         const bool is_floating = con->con_inside_floating() != nullptr;
@@ -757,7 +757,7 @@ namespace cmd {
             return config.default_border_width;
         } else {
             /* Use some hardcoded values. */
-            return logical_px(global.root_screen, border_style == BS_NORMAL ? 2 : 1);
+            return logical_px(global.x->root_screen, border_style == BS_NORMAL ? 2 : 1);
         }
     }
 

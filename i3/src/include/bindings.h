@@ -14,6 +14,7 @@
 
 #include "commands_parser.h"
 #include "con.h"
+#include "global.h"
 
 struct CommandResult;
 
@@ -157,20 +158,20 @@ void configure_binding(const std::string_view &bindtype, const std::string_view 
  * mapping_notify event or a configuration file reload
  *
  */
-void ungrab_all_keys(xcb_connection_t *conn);
+void ungrab_all_keys(x_connection *conn);
 
 /**
  * Grab the bound keys (tell X to send us keypress events for those keycodes)
  *
  */
-void grab_all_keys(xcb_connection_t *conn);
+void grab_all_keys(x_connection *conn);
 
 /**
  * Release the button grabs on all managed windows and regrab them,
  * reevaluating which buttons need to be grabbed.
  *
  */
-void regrab_all_buttons(xcb_connection_t *conn);
+void regrab_all_buttons(x_connection *conn);
 
 /**
  * Returns a pointer to the Binding that matches the given xcb event or NULL if

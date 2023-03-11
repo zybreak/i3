@@ -140,7 +140,7 @@ static bool binding_in_current_group(const Binding *bind) {
     }
 }
 
-static void grab_keycode_for_binding(xcb_connection_t *conn, Binding *bind, uint32_t keycode) {
+static void grab_keycode_for_binding(x_connection *conn, Binding *bind, uint32_t keycode) {
     /* Grab the key in all combinations */
     auto mods = (bind->event_state_mask & 0xFFFF);
     DLOG(fmt::sprintf("Binding %p Grabbing keycode %d with event state mask 0x%x (mods 0x%x)\n", (void*)bind, keycode, bind->event_state_mask, mods));
@@ -151,9 +151,9 @@ static void grab_keycode_for_binding(xcb_connection_t *conn, Binding *bind, uint
     uint32_t mod_list[] = {mods, mods | xcb_numlock_mask, mods | XCB_MOD_MASK_LOCK, mods | xcb_numlock_mask | XCB_MOD_MASK_LOCK};
 
     std::ranges::for_each(mod_list, [&](uint32_t mod) {
-        xcb_grab_key(conn,
+        conn->grab_key(
                      0,
-                     root,
+                     global.x->root,
                      mod,
                      keycode,
                      XCB_GRAB_MODE_SYNC,
@@ -166,16 +166,17 @@ static void grab_keycode_for_binding(xcb_connection_t *conn, Binding *bind, uint
  * mapping_notify event or a configuration file reload
  *
  */
-void ungrab_all_keys(xcb_connection_t *conn) {
+void ungrab_all_keys(x_connection *conn) {
     DLOG("Ungrabbing all keys\n");
-    xcb_ungrab_key(conn, XCB_GRAB_ANY, root, XCB_BUTTON_MASK_ANY);
+
+    conn->ungrab_key(XCB_GRAB_ANY, global.x->root, XCB_BUTTON_MASK_ANY);
 }
 
 /*
  * Grab the bound keys (tell X to send us keypress events for those keycodes)
  *
  */
-void grab_all_keys(xcb_connection_t *conn) {
+void grab_all_keys(x_connection *conn) {
     for (auto &bind : current_mode->bindings) {
         if (bind->input_type != B_KEYBOARD)
             continue;
@@ -193,7 +194,7 @@ void grab_all_keys(xcb_connection_t *conn) {
             const int keycode = binding_keycode->keycode;
             auto mods = (binding_keycode->modifiers & 0xFFFF);
             DLOG(fmt::sprintf("Binding %p Grabbing keycode %d with mods %d\n",  (void*)bind.get(), keycode, mods));
-            xcb_grab_key(conn, 0, root, mods, keycode, XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_ASYNC);
+            conn->grab_key(0, global.x->root, mods, keycode, XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_ASYNC);
         }
     }
 }
@@ -203,19 +204,19 @@ void grab_all_keys(xcb_connection_t *conn) {
  * reevaluating which buttons need to be grabbed.
  *
  */
-void regrab_all_buttons(xcb_connection_t *conn) {
+void regrab_all_buttons(x_connection *conn) {
     auto buttons = bindings_get_buttons_to_grab();
-    xcb_grab_server(conn);
+    conn->grab_server();
 
     for (const auto &con : all_cons) {
         if (con->window == nullptr)
             continue;
 
-        xcb_ungrab_button(conn, XCB_BUTTON_INDEX_ANY, con->window->id, XCB_BUTTON_MASK_ANY);
+        conn->ungrab_button(XCB_BUTTON_INDEX_ANY, con->window->id, XCB_BUTTON_MASK_ANY);
         xcb_grab_buttons(con->window->id, buttons);
     }
 
-    xcb_ungrab_server(conn);
+    conn->ungrab_server();
 }
 
 /*
@@ -642,10 +643,10 @@ void switch_mode(const char *new_mode) {
         if (strcmp(mode->name.c_str(), new_mode) != 0)
             continue;
 
-        ungrab_all_keys(*global.a);
+        ungrab_all_keys(*global.x);
         current_mode = mode.get();
         translate_keysyms();
-        grab_all_keys(*global.a);
+        grab_all_keys(*global.x);
 
         /* Reset all B_UPON_KEYRELEASE_IGNORE_MODS bindings to avoid possibly
          * activating one of them. */
@@ -853,15 +854,15 @@ static int fill_rmlvo_from_root(struct xkb_rule_names *xkb_names) {
     size_t content_max_words = 256;
 
     atom_reply = xcb_intern_atom_reply(
-        *global.a, xcb_intern_atom(*global.a, 0, strlen("_XKB_RULES_NAMES"), "_XKB_RULES_NAMES"), nullptr);
+        **global.x, xcb_intern_atom(**global.x, 0, strlen("_XKB_RULES_NAMES"), "_XKB_RULES_NAMES"), nullptr);
     if (atom_reply == nullptr)
         return -1;
 
     xcb_get_property_cookie_t prop_cookie;
     xcb_get_property_reply_t *prop_reply;
-    prop_cookie = xcb_get_property_unchecked(*global.a, false, root, atom_reply->atom,
+    prop_cookie = xcb_get_property_unchecked(**global.x, false, global.x->root, atom_reply->atom,
                                              XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
-    prop_reply = xcb_get_property_reply(*global.a, prop_cookie, nullptr);
+    prop_reply = xcb_get_property_reply(**global.x, prop_cookie, nullptr);
     if (prop_reply == nullptr) {
         free(atom_reply);
         return -1;
@@ -872,9 +873,9 @@ static int fill_rmlvo_from_root(struct xkb_rule_names *xkb_names) {
         content_max_words += ceil(prop_reply->bytes_after / 4.0);
         /* Repeat the request, with adjusted size */
         free(prop_reply);
-        prop_cookie = xcb_get_property_unchecked(*global.a, false, root, atom_reply->atom,
+        prop_cookie = xcb_get_property_unchecked(**global.x, false, global.x->root, atom_reply->atom,
                                                  XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
-        prop_reply = xcb_get_property_reply(*global.a, prop_cookie, nullptr);
+        prop_reply = xcb_get_property_reply(**global.x, prop_cookie, nullptr);
         if (prop_reply == nullptr) {
             free(atom_reply);
             return -1;
@@ -931,8 +932,8 @@ bool load_keymap() {
 
     struct xkb_keymap *new_keymap = nullptr;
     int32_t device_id;
-    if (xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(*global.a)) > -1) {
-        if ((new_keymap = xkb_x11_keymap_new_from_device(xkb_context, *global.a, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
+    if (xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(**global.x)) > -1) {
+        if ((new_keymap = xkb_x11_keymap_new_from_device(xkb_context, **global.x, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
             ELOG("xkb_x11_keymap_new_from_device failed\n");
             return false;
         }

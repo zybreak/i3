@@ -367,32 +367,6 @@ static Con *_get_sticky(Con *con, const char *sticky_group, Con *exclude) {
 }
 
 
-/*
- * Moves a child window from Container src to Container dest.
- *
- */
-static void x_move_win(Con *src, Con *dest) {
-    struct con_state *state_src, *state_dest;
-
-    if ((state_src = state_for_frame(src->frame.id)) == nullptr) {
-        ELOG("window state for src not found\n");
-        return;
-    }
-
-    if ((state_dest = state_for_frame(dest->frame.id)) == nullptr) {
-        ELOG("window state for dest not found\n");
-        return;
-    }
-
-    state_dest->con = state_src->con;
-    state_src->con = nullptr;
-
-    if (state_dest->window_rect == (Rect){0, 0, 0, 0}) {
-        memcpy(&(state_dest->window_rect), &(state_src->window_rect), sizeof(Rect));
-        DLOG("COPYING RECT\n");
-    }
-}
-
 
 /*
  * Reassigns all child windows in sticky containers. Called when the user

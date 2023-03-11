@@ -45,7 +45,7 @@ bool event_is_ignored(const int sequence, const int response_type);
  * event type.
  *
  */
-void handle_event(int type, xcb_generic_event_t *event);
+void handle_event(x_connection *conn, int type, xcb_generic_event_t *event);
 
 /**
  * Sets the appropriate atoms for the property handlers after the atoms were

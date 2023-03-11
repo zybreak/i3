@@ -364,7 +364,7 @@ void handle_button_press(xcb_button_press_event_t *event) {
     const bool mod_pressed = (mod != 0 && (event->state & mod) == mod);
     DLOG(fmt::sprintf("floating_mod = %d, detail = %d\n",  mod_pressed, event->detail));
     if ((con = con_by_window_id(event->event))) {
-        route_click(*global.a, con, event, mod_pressed, CLICK_INSIDE);
+        route_click(**global.x, con, event, mod_pressed, CLICK_INSIDE);
         return;
     }
 
@@ -372,7 +372,7 @@ void handle_button_press(xcb_button_press_event_t *event) {
         /* Run bindings on the root window as well, see #2097. We only run it
          * if --whole-window was set as that's the equivalent for a normal
          * window. */
-        if (event->event == root) {
+        if (event->event == global.x->root) {
             Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event);
             if (bind != nullptr && bind->whole_window) {
                 run_binding(bind, nullptr);
@@ -381,7 +381,7 @@ void handle_button_press(xcb_button_press_event_t *event) {
 
         /* If the root window is clicked, find the relevant output from the
          * click coordinates and focus the output's active workspace. */
-        if (event->event == root && event->response_type == XCB_BUTTON_PRESS) {
+        if (event->event == global.x->root && event->response_type == XCB_BUTTON_PRESS) {
             Con *output, *ws;
             for (auto &c : croot->nodes_head) {
                 output = c;
@@ -400,8 +400,8 @@ void handle_button_press(xcb_button_press_event_t *event) {
         }
 
         ELOG("Clicked into unknown window?!\n");
-        xcb_allow_events(*global.a, XCB_ALLOW_REPLAY_POINTER, event->time);
-        xcb_flush(*global.a);
+        xcb_allow_events(**global.x, XCB_ALLOW_REPLAY_POINTER, event->time);
+        xcb_flush(**global.x);
         return;
     }
 
@@ -410,15 +410,15 @@ void handle_button_press(xcb_button_press_event_t *event) {
         if (!child->deco_rect.rect_contains(event->event_x, event->event_y))
             continue;
 
-        route_click(*global.a, child, event, mod_pressed, CLICK_DECORATION);
+        route_click(**global.x, child, event, mod_pressed, CLICK_DECORATION);
         return;
     }
 
     if (event->child != XCB_NONE) {
         DLOG("event->child not XCB_NONE, so this is an event which originated from a click into the application, but the application did not handle it.\n");
-        route_click(*global.a, con, event, mod_pressed, CLICK_INSIDE);
+        route_click(**global.x, con, event, mod_pressed, CLICK_INSIDE);
         return;
     }
 
-    route_click(*global.a, con, event, mod_pressed, CLICK_BORDER);
+    route_click(**global.x, con, event, mod_pressed, CLICK_BORDER);
 }

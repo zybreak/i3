@@ -75,13 +75,13 @@ static void floating_set_hint_atom(Con *con, bool floating) {
 
     if (floating) {
         uint32_t val = 1;
-        xcb_change_property(*global.a, XCB_PROP_MODE_REPLACE, con->window->id,
+        xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->window->id,
                             A_I3_FLOATING_WINDOW, XCB_ATOM_CARDINAL, 32, 1, &val);
     } else {
-        xcb_delete_property(*global.a, con->window->id, A_I3_FLOATING_WINDOW);
+        xcb_delete_property(**global.x, con->window->id, A_I3_FLOATING_WINDOW);
     }
 
-    xcb_flush(*global.a);
+    xcb_flush(**global.x);
 }
 
 /*
@@ -224,7 +224,7 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
     /* Unless user requests otherwise (-1), ensure width/height do not exceed
      * configured maxima or, if unconfigured, limit to combined width of all
      * outputs */
-    floating_sane_max_dimensions = total_outputs_dimensions(global.root_screen);
+    floating_sane_max_dimensions = total_outputs_dimensions(global.x->root_screen);
     if (config.floating_maximum_height != -1) {
         floating_con->rect.height -= border_rect.height;
         if (config.floating_maximum_height == 0) {
@@ -567,7 +567,7 @@ void floating_center(Con *con, Rect rect) {
 void floating_move_to_pointer(Con *con) {
     assert(con->type == CT_FLOATING_CON);
 
-    xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(*global.a, xcb_query_pointer(*global.a, root), nullptr);
+    xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(**global.x, xcb_query_pointer(**global.x, global.x->root), nullptr);
     if (reply == nullptr) {
         ELOG("could not query pointer position, not moving this container\n");
         return;
@@ -604,7 +604,7 @@ static void drag_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uint3
 
     render_con(con);
     x_push_node(con);
-    xcb_flush(*global.a);
+    xcb_flush(**global.x);
 
     /* Check if we cross workspace boundaries while moving */
     if (!floating_maybe_reassign_ws(con))

@@ -19,7 +19,7 @@ std::array<xcb_atom_t, 35> supported_atoms[] = {
 void setup_atoms() {
 #define xmacro(name) \
     try {                 \
-        A_##name = xpp::x::intern_atom(*global.a, false, #name).atom(); \
+        A_##name = xpp::x::intern_atom(**global.x, false, #name).atom(); \
     } catch (std::exception &e) { \
         ELOG("Could not get atom " #name "\n");                                        \
         exit(-1);                                                                      \

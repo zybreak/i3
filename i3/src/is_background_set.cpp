@@ -7,6 +7,7 @@
  */
 #include "i3string.h"
 #include "dpi.h"
+#include "global.h"
 
 #include <algorithm>
 #include <xcb/xcb_aux.h>
@@ -15,7 +16,7 @@
  * Find the region in the given window that is not covered by a mapped child
  * window.
  */
-static cairo_region_t *unobscured_region(xcb_connection_t *conn, xcb_window_t window,
+static cairo_region_t *unobscured_region(x_connection *conn, xcb_window_t window,
                                          uint16_t window_width, uint16_t window_height) {
     cairo_rectangle_int_t rectangle;
     cairo_region_t *region;
@@ -26,7 +27,7 @@ static cairo_region_t *unobscured_region(xcb_connection_t *conn, xcb_window_t wi
     rectangle.height = window_height;
     region = cairo_region_create_rectangle(&rectangle);
 
-    xcb_query_tree_reply_t *tree = xcb_query_tree_reply(conn, xcb_query_tree_unchecked(conn, window), nullptr);
+    xcb_query_tree_reply_t *tree = xcb_query_tree_reply(*conn, xcb_query_tree_unchecked(*conn, window), nullptr);
     if (!tree) {
         return region;
     }
@@ -39,14 +40,14 @@ static cairo_region_t *unobscured_region(xcb_connection_t *conn, xcb_window_t wi
     xcb_get_window_attributes_cookie_t attributes[n_children];
 
     for (int i = 0; i < n_children; i++) {
-        geometries[i] = xcb_get_geometry_unchecked(conn, children[i]);
-        attributes[i] = xcb_get_window_attributes_unchecked(conn, children[i]);
+        geometries[i] = xcb_get_geometry_unchecked(*conn, children[i]);
+        attributes[i] = xcb_get_window_attributes_unchecked(*conn, children[i]);
     }
 
     /* Remove every visible child from the region */
     for (int i = 0; i < n_children; i++) {
-        xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(conn, geometries[i], nullptr);
-        xcb_get_window_attributes_reply_t *attr = xcb_get_window_attributes_reply(conn, attributes[i], nullptr);
+        xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(*conn, geometries[i], nullptr);
+        xcb_get_window_attributes_reply_t *attr = xcb_get_window_attributes_reply(*conn, attributes[i], nullptr);
 
         if (geom && attr && attr->map_state == XCB_MAP_STATE_VIEWABLE) {
             rectangle.x = geom->x;
@@ -64,7 +65,7 @@ static cairo_region_t *unobscured_region(xcb_connection_t *conn, xcb_window_t wi
     return region;
 }
 
-static void find_unobscured_pixel(xcb_connection_t *conn, xcb_window_t window,
+static void find_unobscured_pixel(x_connection *conn, xcb_window_t window,
                                   uint16_t window_width, uint16_t window_height,
                                   uint16_t *x, uint16_t *y) {
     cairo_region_t *region = unobscured_region(conn, window, window_width, window_height);
@@ -82,37 +83,34 @@ static void find_unobscured_pixel(xcb_connection_t *conn, xcb_window_t window,
     cairo_region_destroy(region);
 }
 
-static uint32_t flicker_window_at(xcb_connection_t *conn, xcb_screen_t *screen, int16_t x, int16_t y, xcb_window_t window,
+static uint32_t flicker_window_at(x_connection *conn, xcb_screen_t *screen, uint16_t x, uint16_t y, xcb_window_t window,
                                   uint32_t pixel) {
     uint32_t value_list[]{pixel, 1};
-    xcb_create_window(conn, XCB_COPY_FROM_PARENT, window, screen->root, x, y, 10, 10,
+    conn->create_window(XCB_COPY_FROM_PARENT, window, screen->root, x, y, 10, 10,
                       0, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
                       XCB_CW_BACK_PIXEL | XCB_CW_OVERRIDE_REDIRECT, value_list);
-    xcb_map_window(conn, window);
-    xcb_clear_area(conn, 0, window, 0, 0, 0, 0);
-    xcb_aux_sync(conn);
-    xcb_destroy_window(conn, window);
+    conn->map_window(window);
+    conn->clear_area(0, window, 0, 0, 0, 0);
+    xcb_aux_sync(*conn);
+    conn->destroy_window(window);
 
-    xcb_get_image_reply_t *img = xcb_get_image_reply(conn,
-                                                     xcb_get_image_unchecked(conn, XCB_IMAGE_FORMAT_Z_PIXMAP, screen->root, x, y, 1, 1, ~0),
-                                                     nullptr);
+    auto img = conn->get_image_unchecked(XCB_IMAGE_FORMAT_Z_PIXMAP, screen->root, x, y, 1, 1, ~0);
     uint32_t result = 0;
     if (img) {
-        uint8_t *data = xcb_get_image_data(img);
+        uint8_t *data = xcb_get_image_data(img.get().get());
         uint8_t depth = img->depth;
         for (int i = 0; i < std::min(depth, (uint8_t)4); i++) {
             result = (result << 8) | data[i];
         }
-        free(img);
     }
     return result;
 }
 
-bool is_background_set(xcb_connection_t *conn, xcb_screen_t *screen) {
+bool is_background_set(x_connection *conn, xcb_screen_t *screen) {
     uint16_t x, y;
     find_unobscured_pixel(conn, screen->root, screen->width_in_pixels, screen->height_in_pixels, &x, &y);
 
-    xcb_window_t window = xcb_generate_id(conn);
+    xcb_window_t window = conn->generate_id();
 
     uint32_t pixel1 = flicker_window_at(conn, screen, x, y, window, screen->black_pixel);
     uint32_t pixel2 = flicker_window_at(conn, screen, x, y, window, screen->white_pixel);

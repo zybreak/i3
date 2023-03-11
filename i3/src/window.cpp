@@ -255,7 +255,7 @@ bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_g
     if (reply != nullptr) {
         success = xcb_icccm_get_wm_size_hints_from_reply(&size_hints, reply);
     } else {
-        success = xcb_icccm_get_wm_normal_hints_reply(*global.a, xcb_icccm_get_wm_normal_hints_unchecked(*global.a, this->id), &size_hints, nullptr);
+        success = xcb_icccm_get_wm_normal_hints_reply(**global.x, xcb_icccm_get_wm_normal_hints_unchecked(**global.x, this->id), &size_hints, nullptr);
     }
     if (!success) {
         DLOG("Could not get WM_NORMAL_HINTS\n");
@@ -457,7 +457,7 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
     uint32_t *data = nullptr;
     uint32_t width = 0, height = 0;
     uint64_t len = 0;
-    const auto pref_size = (uint32_t)(render_deco_height() - logical_px(global.root_screen, 2));
+    const auto pref_size = (uint32_t)(render_deco_height() - logical_px(global.x->root_screen, 2));
 
     if (!prop || prop->type != XCB_ATOM_CARDINAL || prop->format != 32) {
         DLOG("_NET_WM_ICON is not set\n");

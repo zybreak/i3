@@ -74,10 +74,10 @@ static void _remove_matches(Con *con) {
 void manage_existing_windows(xcb_window_t root) {
     /* Get the tree of windows whose parent is the root window (= all) */
     try {
-        auto reply = global.a->query_tree(root);
+        auto reply = global.x->conn->query_tree(root);
 
         for (auto child : reply.children()) {
-            auto attr = global.a->get_window_attributes(child);
+            auto attr = global.x->conn->get_window_attributes(child);
             manage_window(child, attr.get().get(), true);
         }
     } catch (...) {
@@ -101,9 +101,9 @@ void restore_geometry() {
             DLOG(fmt::sprintf("Re-adding X11 border of %d px\n",  con->border_width));
             con->window_rect.width += (2 * con->border_width);
             con->window_rect.height += (2 * con->border_width);
-            xcb_set_window_rect(*global.a, con->window->id, con->window_rect);
+            xcb_set_window_rect(**global.x, con->window->id, con->window_rect);
             DLOG(fmt::sprintf("placing window %08x at %d %d\n",  con->window->id, con->rect.x, con->rect.y));
-            xcb_reparent_window(*global.a, con->window->id, root,
+            xcb_reparent_window(**global.x, con->window->id, global.x->root,
                                 con->rect.x, con->rect.y);
         }
     }
@@ -111,10 +111,10 @@ void restore_geometry() {
     /* Strictly speaking, this line doesn’t really belong here, but since we
      * are syncing, let’s un-register as a window manager first */
     uint32_t value_list[]{XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT};
-    xcb_change_window_attributes(*global.a, root, XCB_CW_EVENT_MASK, value_list);
+    xcb_change_window_attributes(**global.x, global.x->root, XCB_CW_EVENT_MASK, value_list);
 
     /* Make sure our changes reach the X server, we restart/exit now */
-    xcb_aux_sync(*global.a);
+    xcb_aux_sync(**global.x);
 }
 
 struct free_delete
@@ -170,28 +170,6 @@ void con_merge_into(Con *old, Con *new_con) {
     tree_close_internal(old, DONT_KILL_WINDOW, false);
 }
 
-
-/*
- * Re-initializes the associated X window state for this container. You have
- * to call this when you assign a client to an empty container to ensure that
- * its state gets updated correctly.
- *
- */
-static void x_reinit(Con *con) {
-    con_state *state;
-
-    if ((state = state_for_frame(con->frame.id)) == nullptr) {
-        ELOG("window state not found\n");
-        return;
-    }
-
-    DLOG(fmt::sprintf("resetting state %p to initial\n",  (void*)state));
-    state->initial = true;
-    state->child_mapped = false;
-    state->con = con;
-    state->window_rect = Rect{};
-}
-
 /*
  * Do some sanity checks and then reparent the window.
  *
@@ -203,35 +181,35 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     xcb_drawable_t d = {window};
     xcb_get_geometry_cookie_t geomc;
 
-    geomc = xcb_get_geometry(*global.a, d);
+    geomc = xcb_get_geometry(**global.x, d);
 
     /* Check if the window is mapped (it could be not mapped when intializing and
        calling manage_window() for every window) */
     if (attr == nullptr) {
         DLOG("Could not get attributes\n");
-        xcb_discard_reply(*global.a, geomc.sequence);
+        xcb_discard_reply(**global.x, geomc.sequence);
         return;
     }
 
     if (needs_to_be_mapped && attr->map_state != XCB_MAP_STATE_VIEWABLE) {
-        xcb_discard_reply(*global.a, geomc.sequence);
+        xcb_discard_reply(**global.x, geomc.sequence);
         return;
     }
 
     /* Don’t manage clients with the override_redirect flag */
     if (attr->override_redirect) {
-        xcb_discard_reply(*global.a, geomc.sequence);
+        xcb_discard_reply(**global.x, geomc.sequence);
         return;
     }
 
     /* Check if the window is already managed */
     if (con_by_window_id(window) != nullptr) {
         DLOG(fmt::sprintf("already managed (by con %p)\n",  (void*)con_by_window_id(window)));
-        xcb_discard_reply(*global.a, geomc.sequence);
+        xcb_discard_reply(**global.x, geomc.sequence);
         return;
     }
 
-    xcb_get_geometry_reply_t *raw_geom = xcb_get_geometry_reply(*global.a, geomc, nullptr);
+    xcb_get_geometry_reply_t *raw_geom = xcb_get_geometry_reply(**global.x, geomc, nullptr);
     /* Get the initial geometry (position, size, …) */
     if (raw_geom == nullptr) {
         DLOG("could not get geometry\n");
@@ -254,29 +232,29 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     values[0] = XCB_EVENT_MASK_PROPERTY_CHANGE |
                 XCB_EVENT_MASK_STRUCTURE_NOTIFY;
     xcb_void_cookie_t event_mask_cookie =
-        xcb_change_window_attributes_checked(*global.a, window, XCB_CW_EVENT_MASK, values);
-    if (xcb_request_check(*global.a, event_mask_cookie) != nullptr) {
+        xcb_change_window_attributes_checked(**global.x, window, XCB_CW_EVENT_MASK, values);
+    if (xcb_request_check(**global.x, event_mask_cookie) != nullptr) {
         LOG("Could not change event mask, the window probably already disappeared.\n");
         return;
     }
 
-    auto wm_type_cookie = global.a->get_property(false, window, A__NET_WM_WINDOW_TYPE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto strut_cookie = global.a->get_property(false, window, A__NET_WM_STRUT_PARTIAL, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto state_cookie = global.a->get_property(false, window, A__NET_WM_STATE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto utf8_title_cookie = global.a->get_property(false, window, A__NET_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
-    auto leader_cookie = global.a->get_property(false, window, A_WM_CLIENT_LEADER, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto transient_cookie = global.a->get_property(false, window, XCB_ATOM_WM_TRANSIENT_FOR, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto title_cookie = global.a->get_property(false, window, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
-    auto class_cookie = global.a->get_property(false, window, XCB_ATOM_WM_CLASS, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
-    auto role_cookie = global.a->get_property(false, window, A_WM_WINDOW_ROLE, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
-    auto startup_id_cookie = global.a->get_property(false, window, A__NET_STARTUP_ID, XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
-    auto wm_hints_cookie = global.a->get_property(false, window, XCB_ATOM_WM_HINTS, XCB_ATOM_WM_HINTS, 0L, XCB_ICCCM_NUM_WM_HINTS_ELEMENTS);
-    auto wm_normal_hints_cookie = global.a->get_property(false, window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS, 0L, XCB_ICCCM_NUM_WM_SIZE_HINTS_ELEMENTS);
-    auto motif_wm_hints_cookie = global.a->get_property(false, window, A__MOTIF_WM_HINTS, XCB_GET_PROPERTY_TYPE_ANY, 0, 5 * sizeof(uint64_t));
-    auto wm_user_time_cookie = global.a->get_property(false, window, A__NET_WM_USER_TIME, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto wm_desktop_cookie = global.a->get_property(false, window, A__NET_WM_DESKTOP, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto wm_machine_cookie = global.a->get_property(false, window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto wm_icon_cookie = global.a->get_property(false, window, A__NET_WM_ICON, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto wm_type_cookie = global.x->conn->get_property(false, window, A__NET_WM_WINDOW_TYPE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto strut_cookie = global.x->conn->get_property(false, window, A__NET_WM_STRUT_PARTIAL, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto state_cookie = global.x->conn->get_property(false, window, A__NET_WM_STATE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto utf8_title_cookie = global.x->conn->get_property(false, window, A__NET_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
+    auto leader_cookie = global.x->conn->get_property(false, window, A_WM_CLIENT_LEADER, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto transient_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_TRANSIENT_FOR, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto title_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
+    auto class_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLASS, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
+    auto role_cookie = global.x->conn->get_property(false, window, A_WM_WINDOW_ROLE, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
+    auto startup_id_cookie = global.x->conn->get_property(false, window, A__NET_STARTUP_ID, XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
+    auto wm_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_HINTS, XCB_ATOM_WM_HINTS, 0L, XCB_ICCCM_NUM_WM_HINTS_ELEMENTS);
+    auto wm_normal_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS, 0L, XCB_ICCCM_NUM_WM_SIZE_HINTS_ELEMENTS);
+    auto motif_wm_hints_cookie = global.x->conn->get_property(false, window, A__MOTIF_WM_HINTS, XCB_GET_PROPERTY_TYPE_ANY, 0, 5 * sizeof(uint64_t));
+    auto wm_user_time_cookie = global.x->conn->get_property(false, window, A__NET_WM_USER_TIME, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto wm_desktop_cookie = global.x->conn->get_property(false, window, A__NET_WM_DESKTOP, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto wm_machine_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto wm_icon_cookie = global.x->conn->get_property(false, window, A__NET_WM_ICON, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
 
     auto *cwindow = new i3Window();
     cwindow->id = window;
@@ -631,35 +609,35 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     /* to avoid getting an UnmapNotify event due to reparenting, we temporarily
      * declare no interest in any state change event of this window */
     values[0] = XCB_NONE;
-    xcb_change_window_attributes(*global.a, window, XCB_CW_EVENT_MASK, values);
+    xcb_change_window_attributes(**global.x, window, XCB_CW_EVENT_MASK, values);
 
-    xcb_void_cookie_t rcookie = xcb_reparent_window_checked(*global.a, window, nc->frame.id, 0, 0);
-    if (xcb_request_check(*global.a, rcookie) != nullptr) {
+    xcb_void_cookie_t rcookie = xcb_reparent_window_checked(**global.x, window, nc->frame.id, 0, 0);
+    if (xcb_request_check(**global.x, rcookie) != nullptr) {
         LOG("Could not reparent the window, aborting\n");
         return;
     }
 
     values[0] = CHILD_EVENT_MASK & ~XCB_EVENT_MASK_ENTER_WINDOW;
-    xcb_change_window_attributes(*global.a, window, XCB_CW_EVENT_MASK, values);
-    xcb_flush(*global.a);
+    xcb_change_window_attributes(**global.x, window, XCB_CW_EVENT_MASK, values);
+    xcb_flush(**global.x);
 
     /* Put the client inside the save set. Upon termination (whether killed or
      * normal exit does not matter) of the window manager, these clients will
      * be correctly reparented to their most closest living ancestor (=
      * cleanup) */
-    xcb_change_save_set(*global.a, XCB_SET_MODE_INSERT, window);
+    xcb_change_save_set(**global.x, XCB_SET_MODE_INSERT, window);
 
     if (shape_supported) {
         /* Receive ShapeNotify events whenever the client altered its window
          * shape. */
-        xcb_shape_select_input(*global.a, window, true);
+        xcb_shape_select_input(**global.x, window, true);
 
         /* Check if the window is shaped. Sadly, we can check only for the
          * bounding shape, not for the input shape. */
         xcb_shape_query_extents_cookie_t cookie =
-            xcb_shape_query_extents(*global.a, window);
+            xcb_shape_query_extents(**global.x, window);
         xcb_shape_query_extents_reply_t *reply =
-            xcb_shape_query_extents_reply(*global.a, cookie, nullptr);
+            xcb_shape_query_extents_reply(**global.x, cookie, nullptr);
         if (reply != nullptr && reply->bounding_shaped) {
             cwindow->shaped = true;
         }
@@ -724,7 +702,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             set_focus = false;
         }
     } else {
-        xcb_discard_reply(*global.a, wm_user_time_cookie->sequence);
+        xcb_discard_reply(**global.x, wm_user_time_cookie->sequence);
     }
 
     if (set_focus) {
@@ -750,7 +728,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     /* Destroy the old frame if we had to reframe the container. This needs to be done
      * after rendering in order to prevent the background from flickering in its place. */
     if (old_frame != XCB_NONE) {
-        xcb_destroy_window(*global.a, old_frame);
+        xcb_destroy_window(**global.x, old_frame);
     }
 
     /* Windows might get managed with the urgency hint already set (Pidgin is
@@ -810,7 +788,7 @@ Con *remanage_window(Con *con) {
     /* Destroy the old frame if we had to reframe the container. This needs to be done
      * after rendering in order to prevent the background from flickering in its place. */
     if (old_frame != XCB_NONE) {
-        xcb_destroy_window(*global.a, old_frame);
+        xcb_destroy_window(**global.x, old_frame);
     }
 
     run_assignments(nc->window);
