@@ -65,7 +65,6 @@ add_executable(i3
   src/x.cpp)
 
 find_package(PkgConfig REQUIRED)
-find_package(Iconv)
 include(CheckLibraryExists)
 
 check_library_exists(m pow "" LIBM)

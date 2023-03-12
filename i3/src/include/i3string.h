@@ -32,8 +32,6 @@
  */
 struct i3String {
     char *utf8{nullptr};
-    xcb_char2b_t *ucs2{nullptr};
-    size_t num_glyphs;
     size_t num_bytes;
     bool pango_markup;
     explicit i3String(const std::string &str);
@@ -51,7 +49,6 @@ struct i3Font {
     /** The type of font */
     enum {
         FONT_TYPE_NONE = 0,
-        FONT_TYPE_XCB,
         FONT_TYPE_PANGO
     } type;
 
@@ -92,12 +89,6 @@ i3String *i3string_from_utf8(const std::string &from_utf8);
 const char *i3string_as_utf8(i3String *str);
 
 /**
- * Returns the UCS-2 encoded version of the i3String.
- *
- */
-const xcb_char2b_t *i3string_as_ucs2(i3String *str);
-
-/**
  * Returns the number of bytes (UTF-8 encoded) in an i3String.
  *
  */
@@ -112,9 +103,3 @@ bool i3string_is_markup(i3String *str);
  * Set whether the i3String should use Pango markup.
  */
 void i3string_set_markup(i3String *str, bool pango_markup);
-
-/**
- * Returns the number of glyphs in an i3String.
- *
- */
-size_t i3string_get_num_glyphs(i3String *str);

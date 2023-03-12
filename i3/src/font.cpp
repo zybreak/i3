@@ -161,7 +161,7 @@ i3Font load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *
     /* if any font was previously loaded, free it now */
     free_font(conn);
 
-    i3Font font;
+    i3Font font{};
     font.type = i3Font::FONT_TYPE_NONE;
     font.pattern = nullptr;
 
@@ -184,67 +184,13 @@ i3Font load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *
             font.pattern = sstrdup(pattern);
             return font;
         }
-    }
-
-    /* Send all our requests first */
-    font.specific.xcb.id = xcb_generate_id(conn);
-    xcb_void_cookie_t font_cookie = xcb_open_font_checked(conn, font.specific.xcb.id,
-                                                          strlen(pattern), pattern);
-    xcb_query_font_cookie_t info_cookie = xcb_query_font(conn, font.specific.xcb.id);
-
-    /* Check for errors. If errors, fall back to default font. */
-    xcb_generic_error_t *error;
-    error = xcb_request_check(conn, font_cookie);
-
-    /* If we fail to open font, fall back to 'fixed' */
-    if (fallback && error != nullptr) {
-        ELOG(fmt::sprintf("Could not open font %s (X error %d). Trying fallback to 'fixed'.\n",
-             pattern, error->error_code));
-        pattern = "fixed";
-        font_cookie = xcb_open_font_checked(conn, font.specific.xcb.id,
-                                            strlen(pattern), pattern);
-        info_cookie = xcb_query_font(conn, font.specific.xcb.id);
-
-        /* Check if we managed to open 'fixed' */
-        free(error);
-        error = xcb_request_check(conn, font_cookie);
-
-        /* Fall back to '-misc-*' if opening 'fixed' fails. */
-        if (error != nullptr) {
-            ELOG("Could not open fallback font 'fixed', trying with '-misc-*'.\n");
-            pattern = "-misc-*";
-            font_cookie = xcb_open_font_checked(conn, font.specific.xcb.id,
-                                                strlen(pattern), pattern);
-            info_cookie = xcb_query_font(conn, font.specific.xcb.id);
-
-            free(error);
-            if ((error = xcb_request_check(conn, font_cookie)) != nullptr)
-                errx(EXIT_FAILURE, "Could open neither requested font nor fallbacks "
-                                   "(fixed or -misc-*): X11 error %d",
-                     error->error_code);
+    } else {
+        const char *font_pattern = pattern;
+        if (load_pango_font(conn, root_screen, &font, font_pattern)) {
+            font.pattern = sstrdup(pattern);
+            return font;
         }
     }
-    free(error);
-
-    font.pattern = sstrdup(pattern);
-    LOG(fmt::sprintf("Using X font %s\n",  pattern));
-
-    /* Get information (height/name) for this font */
-    if (!(font.specific.xcb.info = xcb_query_font_reply(conn, info_cookie, nullptr)))
-        errx(EXIT_FAILURE, "Could not load font \"%s\"", pattern);
-
-    /* Get the font table, if possible */
-    if (xcb_query_font_char_infos_length(font.specific.xcb.info) == 0)
-        font.specific.xcb.table = nullptr;
-    else
-        font.specific.xcb.table = xcb_query_font_char_infos(font.specific.xcb.info);
-
-    /* Calculate the font height */
-    font.height = font.specific.xcb.info->font_ascent + font.specific.xcb.info->font_descent;
-
-    /* Set the font type and return successfully */
-    font.type = i3Font::FONT_TYPE_XCB;
-    return font;
 }
 
 /*
@@ -270,12 +216,6 @@ void free_font(xcb_connection_t *conn) {
         case i3Font::FONT_TYPE_NONE:
             /* Nothing to do */
             break;
-        case i3Font::FONT_TYPE_XCB: {
-            /* Close the font and free the info */
-            xcb_close_font(conn, savedFont->specific.xcb.id);
-            free(savedFont->specific.xcb.info);
-            break;
-        }
         case i3Font::FONT_TYPE_PANGO:
             /* Free the font description */
             pango_font_description_free(savedFont->specific.pango_desc);
@@ -296,13 +236,6 @@ void set_font_colors(xcb_connection_t *conn, xcb_gcontext_t gc, color_t foregrou
         case i3Font::FONT_TYPE_NONE:
             /* Nothing to do */
             break;
-        case i3Font::FONT_TYPE_XCB: {
-            /* Change the font and colors in the GC */
-            uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND | XCB_GC_FONT;
-            uint32_t values[] = {foreground.colorpixel, background.colorpixel, savedFont->specific.xcb.id};
-            xcb_change_gc(conn, gc, mask, values);
-            break;
-        }
         case i3Font::FONT_TYPE_PANGO:
             /* Save the foreground font */
             pango_font_red = foreground.red;
@@ -318,37 +251,6 @@ void set_font_colors(xcb_connection_t *conn, xcb_gcontext_t gc, color_t foregrou
  */
 bool font_is_pango() {
     return savedFont->type == i3Font::FONT_TYPE_PANGO;
-}
-
-static int predict_text_width_xcb(xcb_connection_t *conn, const xcb_char2b_t *text, size_t text_len);
-
-static void draw_text_xcb(xcb_connection_t *conn, const xcb_char2b_t *text, size_t text_len, xcb_drawable_t drawable,
-                          xcb_gcontext_t gc, int x, int y) {
-    /* X11 coordinates for fonts start at the baseline */
-    int pos_y = y + savedFont->specific.xcb.info->font_ascent;
-
-    /* The X11 protocol limits text drawing to 255 chars, so we may need
-     * multiple calls */
-    size_t offset = 0;
-    for (;;) {
-        /* Calculate the size of this chunk */
-        size_t chunk_size = (text_len > 255 ? 255 : text_len);
-        const xcb_char2b_t *chunk = text + offset;
-
-        /* Draw it */
-        xcb_image_text_16(conn, chunk_size, drawable, gc, x, pos_y, chunk);
-
-        /* Advance the offset and length of the text to draw */
-        offset += chunk_size;
-        text_len -= chunk_size;
-
-        /* Check if we're done */
-        if (text_len == 0)
-            break;
-
-        /* Advance pos_x based on the predicted text width */
-        x += predict_text_width_xcb(conn, chunk, chunk_size);
-    }
 }
 
 /*
@@ -367,88 +269,12 @@ void draw_text(xcb_connection_t *conn, i3String *text, xcb_drawable_t drawable, 
         case i3Font::FONT_TYPE_NONE:
             /* Nothing to do */
             return;
-        case i3Font::FONT_TYPE_XCB:
-            draw_text_xcb(conn, i3string_as_ucs2(text), i3string_get_num_glyphs(text),
-                          drawable, gc, x, y);
-            break;
         case i3Font::FONT_TYPE_PANGO:
             /* Render the text using Pango */
             draw_text_pango(i3string_as_utf8(text), i3string_get_num_bytes(text),
                             drawable, surface, x, y, max_width, i3string_is_markup(text));
             return;
     }
-}
-
-static int xcb_query_text_width(xcb_connection_t *conn, const xcb_char2b_t *text, size_t text_len) {
-    /* Make the user know we’re using the slow path, but only once. */
-    static bool first_invocation = true;
-    if (first_invocation) {
-        fprintf(stderr, "Using slow code path for text extents\n");
-        first_invocation = false;
-    }
-
-    /* Query the text width */
-    xcb_generic_error_t *error;
-    xcb_query_text_extents_cookie_t cookie = xcb_query_text_extents(conn,
-                                                                    savedFont->specific.xcb.id, text_len, (xcb_char2b_t *)text);
-    xcb_query_text_extents_reply_t *reply = xcb_query_text_extents_reply(conn,
-                                                                         cookie, &error);
-    if (reply == nullptr) {
-        /* We return a safe estimate because a rendering error is better than
-         * a crash. Plus, the user will see the error in their log. */
-        fprintf(stderr, "Could not get text extents (X error code %d)\n",
-                error->error_code);
-        free(error);
-        return savedFont->specific.xcb.info->max_bounds.character_width * text_len;
-    }
-
-    int width = reply->overall_width;
-    free(reply);
-    return width;
-}
-
-static int predict_text_width_xcb(xcb_connection_t *conn, const xcb_char2b_t *input, size_t text_len) {
-    if (text_len == 0)
-        return 0;
-
-    int width;
-    if (savedFont->specific.xcb.table == nullptr) {
-        /* If we don't have a font table, fall back to querying the server */
-        width = xcb_query_text_width(conn, input, text_len);
-    } else {
-        /* Save some pointers for convenience */
-        xcb_query_font_reply_t *font_info = savedFont->specific.xcb.info;
-        xcb_charinfo_t *font_table = savedFont->specific.xcb.table;
-
-        /* Calculate the width using the font table */
-        width = 0;
-        for (size_t i = 0; i < text_len; i++) {
-            xcb_charinfo_t *info;
-            int row = input[i].byte1;
-            int col = input[i].byte2;
-
-            if (row < font_info->min_byte1 ||
-                row > font_info->max_byte1 ||
-                col < font_info->min_char_or_byte2 ||
-                col > font_info->max_char_or_byte2)
-                continue;
-
-            /* Don't you ask me, how this one works… (Merovius) */
-            info = &font_table[((row - font_info->min_byte1) *
-                                (font_info->max_char_or_byte2 - font_info->min_char_or_byte2 + 1)) +
-                               (col - font_info->min_char_or_byte2)];
-
-            if (info->character_width != 0 ||
-                (info->right_side_bearing |
-                 info->left_side_bearing |
-                 info->ascent |
-                 info->descent) != 0) {
-                width += info->character_width;
-            }
-        }
-    }
-
-    return width;
 }
 
 /*
@@ -463,8 +289,6 @@ int predict_text_width(xcb_connection_t *conn, xcb_screen_t *root_screen, i3Stri
         case i3Font::FONT_TYPE_NONE:
             /* Nothing to do */
             return 0;
-        case i3Font::FONT_TYPE_XCB:
-            return predict_text_width_xcb(conn, i3string_as_ucs2(text), i3string_get_num_glyphs(text));
         case i3Font::FONT_TYPE_PANGO:
             /* Calculate extents using Pango */
             return predict_text_width_pango(conn, root_screen, i3string_as_utf8(text), i3string_get_num_bytes(text),
