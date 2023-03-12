@@ -11,6 +11,7 @@
 #include "draw.h"
 #include "font.h"
 #include "wrapper.h"
+#include "global.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -18,28 +19,15 @@
 #include <xcb/xcb.h>
 #include <deque>
 
-/* The default visual_type to use if none is specified when creating the surface. Must be defined globally. */
-extern xcb_visualtype_t *visual_type;
-
 /* Forward declarations */
 static void draw_util_set_source_color(surface_t *surface, color_t color);
 
 /* We need to flush cairo surfaces twice to avoid an assertion bug. See #1989
  * and https://bugs.freedesktop.org/show_bug.cgi?id=92455. */
-#define CAIRO_SURFACE_FLUSH(surface)  \
-    do {                              \
-        cairo_surface_flush(surface); \
-        cairo_surface_flush(surface); \
-    } while (0)
-
-#define RETURN_UNLESS_SURFACE_INITIALIZED(surface)                               \
-    do {                                                                         \
-        if ((surface)->id == XCB_NONE) {                                         \
-            ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n",  (void*)surface)); \
-            return;                                                              \
-        }                                                                        \
-    } while (0)
-
+static void CAIRO_SURFACE_FLUSH(_cairo_surface *surface) {
+    cairo_surface_flush(surface);
+    cairo_surface_flush(surface);
+}
 
 struct Colorpixel {
     char hex[8];
@@ -47,6 +35,10 @@ struct Colorpixel {
 };
 
 std::deque<Colorpixel*> colorpixels{};
+
+uint8_t RGB_8_TO_16(uint8_t i) {
+    return (65535 * ((i)&0xFF) / 255);
+}
 
 /*
  * Returns the colorpixel to use for the given hex color (think of HTML).
@@ -77,7 +69,6 @@ static uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen
             return colorpixel->pixel;
     }
 
-#define RGB_8_TO_16(i) (65535 * ((i)&0xFF) / 255)
     int r16 = RGB_8_TO_16(r);
     int g16 = RGB_8_TO_16(g);
     int b16 = RGB_8_TO_16(b);
@@ -119,7 +110,7 @@ void draw_util_surface_init(xcb_connection_t *conn, surface_t *surface, xcb_draw
     surface->height = height;
 
     if (visual == nullptr)
-        visual = visual_type;
+        visual = global.x->visual_type;
 
     surface->gc = xcb_generate_id(conn);
     xcb_void_cookie_t gc_cookie = xcb_create_gc_checked(conn, surface->gc, surface->id, 0, nullptr);
@@ -197,7 +188,10 @@ color_t draw_util_hex_to_color(xcb_connection_t *conn, xcb_screen_t *root_screen
  *
  */
 static void draw_util_set_source_color(surface_t *surface, color_t color) {
-    RETURN_UNLESS_SURFACE_INITIALIZED(surface);
+    if ((surface)->id == 0L) {
+        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
+        return;
+    };
 
     cairo_set_source_rgba(surface->cr, color.red, color.green, color.blue, color.alpha);
 }
@@ -209,7 +203,10 @@ static void draw_util_set_source_color(surface_t *surface, color_t color) {
  *
  */
 void draw_util_text(xcb_connection_t *conn, i3String *text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width) {
-    RETURN_UNLESS_SURFACE_INITIALIZED(surface);
+    if ((surface)->id == 0L) {
+        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
+        return;
+    };
 
     /* Flush any changes before we draw the text as this might use XCB directly. */
     CAIRO_SURFACE_FLUSH(surface->surface);
@@ -228,7 +225,10 @@ void draw_util_text(xcb_connection_t *conn, i3String *text, surface_t *surface, 
  *
  */
 void draw_util_rectangle(surface_t *surface, color_t color, double x, double y, double w, double h) {
-    RETURN_UNLESS_SURFACE_INITIALIZED(surface);
+    if ((surface)->id == 0L) {
+        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
+        return;
+    };
 
     cairo_save(surface->cr);
 
@@ -253,7 +253,10 @@ void draw_util_rectangle(surface_t *surface, color_t color, double x, double y, 
  *
  */
 void draw_util_clear_surface(surface_t *surface, color_t color) {
-    RETURN_UNLESS_SURFACE_INITIALIZED(surface);
+    if ((surface)->id == 0L) {
+        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
+        return;
+    };
 
     cairo_save(surface->cr);
 
@@ -278,8 +281,14 @@ void draw_util_clear_surface(surface_t *surface, color_t color) {
  */
 void draw_util_copy_surface(surface_t *src, surface_t *dest, double src_x, double src_y,
                             double dest_x, double dest_y, double width, double height) {
-    RETURN_UNLESS_SURFACE_INITIALIZED(src);
-    RETURN_UNLESS_SURFACE_INITIALIZED(dest);
+    if ((src)->id == 0L) {
+        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)src));
+        return;
+    };
+    if ((dest)->id == 0L) {
+        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)dest));
+        return;
+    };
 
     cairo_save(dest->cr);
 

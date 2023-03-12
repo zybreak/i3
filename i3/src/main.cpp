@@ -41,7 +41,6 @@
 #include "handlers.h"
 #include "randr.h"
 #include "con.h"
-#include "xcursor.h"
 #include "sighandler.h"
 #include "output.h"
 #include "ewmh.h"
@@ -89,13 +88,6 @@ char **start_argv;
 
 /* Display handle for libstartup-notification */
 SnDisplay *sndisplay;
-
-/* Color depth, visual id and colormap to use when creating windows and
- * pixmaps. Will use 32 bit depth and an appropriate visual, if available,
- * otherwise the root window’s default (usually 24 bit TrueColor). */
-uint8_t root_depth;
-xcb_visualtype_t *visual_type;
-xcb_colormap_t colormap;
 
 struct ev_loop *main_loop;
 
@@ -398,29 +390,7 @@ static void set_screenshot_as_wallpaper(x_connection *conn, xcb_screen_t *screen
     conn->flush();
 }
 
-static xcb_visualtype_t* get_visualtype_for_root() {
-    auto visual_type = xcb_aux_find_visual_by_attrs(global.x->root_screen, -1, 32);
-    if (visual_type != nullptr) {
-        root_depth = xcb_aux_get_depth_of_visual(global.x->root_screen, visual_type->visual_id);
-        colormap = global.x->conn->generate_id();
 
-        try {
-            xpp::x::create_colormap_checked(**global.x,
-                    XCB_COLORMAP_ALLOC_NONE,
-                    colormap,
-                    global.x->root,
-                    visual_type->visual_id);
-
-        } catch (std::exception &e) {
-            ELOG(fmt::sprintf("Could not create colormap. Error: %s\n",  e.what()));
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        visual_type = get_visualtype(global.x->root_screen);
-    }
-
-    return visual_type;
-}
 
 static void init_xkb(x_connection *conn) {
     auto xkb_ext = conn->extension<xpp::xkb::extension>();
@@ -489,7 +459,7 @@ static void init_shape(x_connection *conn) {
 static void force_disable_output(const program_arguments &args) {
     if (!args.layout_path.empty() && randr_base > -1) {
         for (auto &con : croot->nodes_head) {
-            for (Output *output : outputs) {
+            for (Output *output : global.randr->outputs) {
                 if (output->active || strcmp(con->name.c_str(), output->output_primary_name().c_str()) != 0)
                     continue;
 
@@ -516,14 +486,14 @@ static Output *get_focused_output() {
         ELOG("Could not query pointer position, using first screen\n");
     } else {
         DLOG(fmt::sprintf("Pointer at %d, %d\n",  pointerreply->root_x, pointerreply->root_y));
-        output = get_output_containing(pointerreply->root_x, pointerreply->root_y);
+        output = global.randr->get_output_containing(pointerreply->root_x, pointerreply->root_y);
         if (!output) {
             ELOG(fmt::sprintf("ERROR: No screen at (%d, %d), starting on the first screen\n",
                  pointerreply->root_x, pointerreply->root_y));
         }
     }
     if (!output) {
-        output = get_first_output();
+        output = global.randr->get_first_output();
     }
     return output;
 }
@@ -664,8 +634,9 @@ int main(int argc, char *argv[]) {
 
     /* Prefetch X11 extensions that we are interested in. */
     global.x = new X();
-    if (global.x->conn->connection_has_error())
+    if (global.x->conn->connection_has_error()) {
         errx(EXIT_FAILURE, "Cannot open display");
+    }
 
     sndisplay = sn_xcb_display_new(**global.x, nullptr, nullptr);
 
@@ -679,18 +650,9 @@ int main(int argc, char *argv[]) {
     /* Place requests for the atoms we need as soon as possible */
     setup_atoms();
 
-    root_depth = global.x->root_screen->root_depth;
-    colormap = global.x->root_screen->default_colormap;
-    visual_type = get_visualtype_for_root();
-
     global.x->conn->prefetch_maximum_request_length();
 
     init_dpi(**global.x, global.x->root_screen);
-
-    DLOG(fmt::sprintf("root_depth = %d, visual_id = 0x%08x.\n",  root_depth, visual_type->visual_id));
-    DLOG(fmt::sprintf("root_screen->height_in_pixels = %d, root_screen->height_in_millimeters = %d\n",
-         global.x->root_screen->height_in_pixels, global.x->root_screen->height_in_millimeters));
-    DLOG(fmt::sprintf("One logical pixel corresponds to %ld physical pixels on this display.\n",  logical_px(global.x->root_screen, 1)));
 
     load_configuration(&args.override_configpath, config_load_t::C_LOAD);
 
@@ -717,11 +679,11 @@ int main(int argc, char *argv[]) {
     }
     DLOG(fmt::sprintf("root geometry reply: (%d, %d) %d x %d\n",  greply->x, greply->y, greply->width, greply->height));
 
-    xcursor_load_cursors();
+    global.x->xcursor_load_cursors();
 
     /* Set a cursor for the root window (otherwise the root window will show no
        cursor until the first client is launched). */
-    xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
+    global.x->xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
 
     init_xkb(*global.x);
 
@@ -737,18 +699,18 @@ int main(int argc, char *argv[]) {
 
     keysyms = xcb_key_symbols_alloc(**global.x);
 
-    xcb_numlock_mask = aio_get_mod_mask_for(XCB_NUM_LOCK, keysyms);
+    global.x->xcb_numlock_mask = aio_get_mod_mask_for(XCB_NUM_LOCK, keysyms);
 
-    if (!load_keymap())
-        errx(EXIT_FAILURE, "Could not load keymap\n");;
+    if (!load_keymap()) {
+        errx(EXIT_FAILURE, "Could not load keymap\n");
+    };
 
     translate_keysyms();
     grab_all_keys(*global.x);
 
     do_tree_init(args, greply.get());
 
-    DLOG("Checking for XRandR...\n");
-    randr_init(&randr_base);
+    global.randr = new RandR(global.x, &randr_base);
 
     /* We need to force disabling outputs which have been loaded from the
      * layout file but are no longer active. This can happen if the output has

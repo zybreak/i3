@@ -20,14 +20,115 @@
 #undef explicit
 #include <xpp/proto/shape.hpp>
 #include <xpp/proto/bigreq.hpp>
-
+#include <xcb/xcb_cursor.h>
+#include <xcb/xcb_aux.h>
+#include "get_visualtype.h"
+#include <xpp/xpp.hpp>
 
 using x_connection = xpp::connection<xpp::xkb::extension, xpp::shape::extension, xpp::big_requests::extension, xpp::randr::extension>;
 
-/** Stores the X11 window ID of the currently focused window */
-extern xcb_window_t focused_id;
+/*
+ * Describes the X11 state we may modify (map state, position, window stack).
+ * There is one entry per container. The state represents the current situation
+ * as X11 sees it (with the exception of the order in the state_head CIRCLEQ,
+ * which represents the order that will be pushed to X11, while old_state_head
+ * represents the current order). It will be updated in x_push_changes().
+ *
+ */
+struct con_state {
+    xcb_window_t id{};
+    bool mapped{};
+    bool unmap_now{};
+    bool child_mapped{};
+    bool is_hidden{};
 
-struct X {
+    /* The con for which this state is. */
+    Con *con{};
+
+    /* For reparenting, we have a flag (need_reparent) and the X ID of the old
+     * frame this window was in. The latter is necessary because we need to
+     * ignore UnmapNotify events (by changing the window event mask). */
+    bool need_reparent{};
+    xcb_window_t old_frame{};
+
+    /* The container was child of floating container during the previous call of
+     * x_push_node(). This is used to remove the shape when the container is no
+     * longer floating. */
+    bool was_floating{};
+
+    Rect rect;
+    Rect window_rect;
+
+    bool initial{};
+
+    std::string name{};
+};
+
+enum xcursor_cursor_t {
+    XCURSOR_CURSOR_POINTER = 0,
+    XCURSOR_CURSOR_RESIZE_HORIZONTAL,
+    XCURSOR_CURSOR_RESIZE_VERTICAL,
+    XCURSOR_CURSOR_TOP_LEFT_CORNER,
+    XCURSOR_CURSOR_TOP_RIGHT_CORNER,
+    XCURSOR_CURSOR_BOTTOM_LEFT_CORNER,
+    XCURSOR_CURSOR_BOTTOM_RIGHT_CORNER,
+    XCURSOR_CURSOR_WATCH,
+    XCURSOR_CURSOR_MOVE,
+};
+
+class X {
+   private:
+    xcb_cursor_context_t *ctx;
+    std::map<xcursor_cursor_t, xcb_cursor_t> cursors{};
+
+    xcb_visualtype_t* get_visualtype_for_root() {
+        auto visual_type = xcb_aux_find_visual_by_attrs(root_screen, -1, 32);
+        if (visual_type != nullptr) {
+            root_depth = xcb_aux_get_depth_of_visual(root_screen, visual_type->visual_id);
+            colormap = conn->generate_id();
+
+            try {
+                xpp::x::create_colormap_checked(*this->conn,
+                                                XCB_COLORMAP_ALLOC_NONE,
+                                                colormap,
+                                                root,
+                                                visual_type->visual_id);
+
+            } catch (std::exception &e) {
+                ELOG(fmt::sprintf("Could not create colormap. Error: %s\n",  e.what()));
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            visual_type = get_visualtype(root_screen);
+        }
+
+        return visual_type;
+    }
+
+   public:
+
+    /* Color depth, visual id and colormap to use when creating windows and
+     * pixmaps. Will use 32 bit depth and an appropriate visual, if available,
+     * otherwise the root window’s default (usually 24 bit TrueColor). */
+    uint8_t root_depth;
+    /* The default visual_type to use if none is specified when creating the surface. Must be defined globally. */
+    xcb_visualtype_t *visual_type;
+    xcb_colormap_t colormap;
+
+    unsigned int xcb_numlock_mask;
+    /* Stores coordinates to warp mouse pointer to if set */
+    Rect *warp_to;
+
+    std::deque<con_state*> state_head{};
+    std::deque<con_state*> old_state_head{};
+    std::deque<con_state*> initial_mapping_head{};
+
+    /* Because 'focused_id' might be reset to force input focus, we separately keep
+     * track of the X11 window ID to be able to always tell whether the focused
+     * window actually changed. */
+    xcb_window_t last_focused{XCB_NONE};
+    /** Stores the X11 window ID of the currently focused window */
+    xcb_window_t focused_id{XCB_NONE};
     x_connection *conn;
     xcb_screen_t *root_screen;
     /* The screen (0 when you are using DISPLAY=:0) of the connection 'conn' */
@@ -38,11 +139,36 @@ struct X {
         this->conn_screen = conn->default_screen();
         this->root_screen = conn->screen_of_display(this->conn_screen);
         this->root = conn->root();
+
+        root_depth = root_screen->root_depth;
+        colormap = root_screen->default_colormap;
+        visual_type = get_visualtype_for_root();
+
+        DLOG(fmt::sprintf("root_depth = %d, visual_id = 0x%08x.\n", root_depth, visual_type->visual_id));
+        DLOG(fmt::sprintf("root_screen->height_in_pixels = %d, root_screen->height_in_millimeters = %d\n",
+            root_screen->height_in_pixels, root_screen->height_in_millimeters));
+        DLOG(fmt::sprintf("One logical pixel corresponds to %ld physical pixels on this display.\n",  logical_px(root_screen, 1)));
     };
 
     operator x_connection *() {
         return conn;
     }
+
+    void xcursor_load_cursors();
+    xcb_cursor_t xcursor_get_cursor(xcursor_cursor_t c);
+
+    /**
+     * Sets the cursor of the root window to the 'pointer' cursor.
+     *
+     * This function is called when i3 is initialized, because with some login
+     * managers, the root window will not have a cursor otherwise.
+     *
+     * We have a separate xcursor function to use the same X11 connection as the
+     * xcursor_load_cursors() function. If we mix the Xlib and the XCB connection,
+     * races might occur (even though we flush the Xlib connection).
+     *
+     */
+    void xcursor_set_root_cursor(xcursor_cursor_t cursor_id);
 };
 
 /*

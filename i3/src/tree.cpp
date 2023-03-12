@@ -500,13 +500,13 @@ static Con *get_tree_next_workspace(Con *con, direction_t direction) {
         return nullptr;
     }
 
-    Output *current_output = get_output_containing(con->rect.x, con->rect.y);
+    Output *current_output = global.randr->get_output_containing(con->rect.x, con->rect.y);
     if (!current_output) {
         return nullptr;
     }
     DLOG(fmt::sprintf("Current output is %s\n",  current_output->output_primary_name()));
 
-    Output *next_output = get_output_next(direction, current_output, CLOSEST_OUTPUT);
+    Output *next_output = global.randr->get_output_next(direction, current_output, CLOSEST_OUTPUT);
     if (!next_output) {
         return nullptr;
     }

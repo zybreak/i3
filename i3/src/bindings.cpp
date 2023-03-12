@@ -148,7 +148,7 @@ static void grab_keycode_for_binding(x_connection *conn, Binding *bind, uint32_t
     /* Also bind the key with active NumLock */
     /* Also bind the key with active CapsLock */
     /* Also bind the key with active NumLock+CapsLock */
-    uint32_t mod_list[] = {mods, mods | xcb_numlock_mask, mods | XCB_MOD_MASK_LOCK, mods | xcb_numlock_mask | XCB_MOD_MASK_LOCK};
+    uint32_t mod_list[] = {mods, mods | global.x->xcb_numlock_mask, mods | XCB_MOD_MASK_LOCK, mods | global.x->xcb_numlock_mask | XCB_MOD_MASK_LOCK};
 
     std::ranges::for_each(mod_list, [&](uint32_t mod) {
         conn->grab_key(
@@ -430,7 +430,7 @@ static void add_keycode_if_matches(struct xkb_keymap *keymap, xkb_keycode_t key,
 
     /* If this binding is not explicitly for NumLock, check whether we need to
      * add a fallback. */
-    if ((bind->event_state_mask & xcb_numlock_mask) != xcb_numlock_mask) {
+    if ((bind->event_state_mask & global.x->xcb_numlock_mask) != global.x->xcb_numlock_mask) {
         /* Check whether the keycode results in the same keysym when NumLock is
          * active. If so, grab the key with NumLock as well, so that users don’t
          * need to duplicate every key binding with an additional Mod2 specified.
@@ -438,10 +438,10 @@ static void add_keycode_if_matches(struct xkb_keymap *keymap, xkb_keycode_t key,
         xkb_keysym_t sym_numlock = xkb_state_key_get_one_sym(numlock_state, key);
         if (sym_numlock == resolving->keysym) {
             /* Also bind the key with active NumLock */
-            ADD_TRANSLATED_KEY(bind, key, bind->event_state_mask | xcb_numlock_mask);
+            ADD_TRANSLATED_KEY(bind, key, bind->event_state_mask | global.x->xcb_numlock_mask);
 
             /* Also bind the key with active NumLock+CapsLock */
-            ADD_TRANSLATED_KEY(bind, key, bind->event_state_mask | xcb_numlock_mask | XCB_MOD_MASK_LOCK);
+            ADD_TRANSLATED_KEY(bind, key, bind->event_state_mask | global.x->xcb_numlock_mask | XCB_MOD_MASK_LOCK);
         } else {
             DLOG(fmt::sprintf("Skipping automatic numlock fallback, key %d resolves to 0x%x with numlock\n",
                  key, sym_numlock));
@@ -515,7 +515,7 @@ void translate_keysyms() {
 
         (void)xkb_state_update_mask(
             dummy_state_numlock,
-            (bind->event_state_mask & 0x1FFF) | xcb_numlock_mask /* xkb_mod_mask_t base_mods, */,
+            (bind->event_state_mask & 0x1FFF) | global.x->xcb_numlock_mask /* xkb_mod_mask_t base_mods, */,
             0 /* xkb_mod_mask_t latched_mods, */,
             0 /* xkb_mod_mask_t locked_mods, */,
             0 /* xkb_layout_index_t base_group, */,
@@ -524,7 +524,7 @@ void translate_keysyms() {
 
         (void)xkb_state_update_mask(
             dummy_state_numlock_no_shift,
-            ((bind->event_state_mask & 0x1FFF) | xcb_numlock_mask) ^ XCB_KEY_BUT_MASK_SHIFT /* xkb_mod_mask_t base_mods, */,
+            ((bind->event_state_mask & 0x1FFF) | global.x->xcb_numlock_mask) ^ XCB_KEY_BUT_MASK_SHIFT /* xkb_mod_mask_t base_mods, */,
             0 /* xkb_mod_mask_t latched_mods, */,
             0 /* xkb_mod_mask_t locked_mods, */,
             0 /* xkb_layout_index_t base_group, */,
@@ -547,7 +547,7 @@ void translate_keysyms() {
 
             /* If this binding is not explicitly for NumLock, check whether we need to
              * add a fallback. */
-            if ((bind->event_state_mask & xcb_numlock_mask) != xcb_numlock_mask) {
+            if ((bind->event_state_mask & global.x->xcb_numlock_mask) != global.x->xcb_numlock_mask) {
                 /* Check whether the keycode results in the same keysym when NumLock is
                  * active. If so, grab the key with NumLock as well, so that users don’t
                  * need to duplicate every key binding with an additional Mod2 specified.
@@ -556,10 +556,10 @@ void translate_keysyms() {
                 xkb_keysym_t sym_numlock = xkb_state_key_get_one_sym(dummy_state_numlock, bind->keycode);
                 if (sym == sym_numlock) {
                     /* Also bind the key with active NumLock */
-                    ADD_TRANSLATED_KEY(bind.get(), bind->keycode, bind->event_state_mask | xcb_numlock_mask);
+                    ADD_TRANSLATED_KEY(bind.get(), bind->keycode, bind->event_state_mask | global.x->xcb_numlock_mask);
 
                     /* Also bind the key with active NumLock+CapsLock */
-                    ADD_TRANSLATED_KEY(bind.get(), bind->keycode, bind->event_state_mask | xcb_numlock_mask | XCB_MOD_MASK_LOCK);
+                    ADD_TRANSLATED_KEY(bind.get(), bind->keycode, bind->event_state_mask | global.x->xcb_numlock_mask | XCB_MOD_MASK_LOCK);
                 } else {
                     DLOG(fmt::sprintf("Skipping automatic numlock fallback, key %d resolves to 0x%x with numlock\n",
                          bind->keycode, sym_numlock));
@@ -850,45 +850,34 @@ CommandResult run_binding(Binding *bind, Con *con) {
 }
 
 static int fill_rmlvo_from_root(struct xkb_rule_names *xkb_names) {
-    xcb_intern_atom_reply_t *atom_reply;
     size_t content_max_words = 256;
 
-    atom_reply = xcb_intern_atom_reply(
-        **global.x, xcb_intern_atom(**global.x, 0, strlen("_XKB_RULES_NAMES"), "_XKB_RULES_NAMES"), nullptr);
-    if (atom_reply == nullptr)
+    auto atom_reply = global.x->conn->intern_atom(0, strlen("_XKB_RULES_NAMES"), "_XKB_RULES_NAMES");
+    if (atom_reply->length == 0)
         return -1;
 
-    xcb_get_property_cookie_t prop_cookie;
-    xcb_get_property_reply_t *prop_reply;
-    prop_cookie = xcb_get_property_unchecked(**global.x, false, global.x->root, atom_reply->atom,
-                                             XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
-    prop_reply = xcb_get_property_reply(**global.x, prop_cookie, nullptr);
-    if (prop_reply == nullptr) {
-        free(atom_reply);
+    auto prop_reply = global.x->conn->get_property(false, global.x->root, atom_reply->atom,
+                                                        XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
+    if (prop_reply->length == 0) {
         return -1;
     }
-    if (xcb_get_property_value_length(prop_reply) > 0 && prop_reply->bytes_after > 0) {
+    if (prop_reply->value_len > 0 && prop_reply->bytes_after > 0) {
         /* We received an incomplete value. Ask again but with a properly
          * adjusted size. */
         content_max_words += ceil(prop_reply->bytes_after / 4.0);
         /* Repeat the request, with adjusted size */
-        free(prop_reply);
-        prop_cookie = xcb_get_property_unchecked(**global.x, false, global.x->root, atom_reply->atom,
-                                                 XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
-        prop_reply = xcb_get_property_reply(**global.x, prop_cookie, nullptr);
-        if (prop_reply == nullptr) {
-            free(atom_reply);
+        prop_reply = global.x->conn->get_property(false, global.x->root, atom_reply->atom,
+                                                      XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
+        if (prop_reply->length == 0) {
             return -1;
         }
     }
-    if (xcb_get_property_value_length(prop_reply) == 0) {
-        free(atom_reply);
-        free(prop_reply);
+    if (prop_reply->value_len == 0) {
         return -1;
     }
 
-    const char *walk = (const char *)xcb_get_property_value(prop_reply);
-    size_t remaining = xcb_get_property_value_length(prop_reply);
+    const char *walk = (const char *)xcb_get_property_value(prop_reply.get().get());
+    size_t remaining = prop_reply->value_len;
     for (int i = 0; i < 5 && remaining > 0; i++) {
         auto len = strnlen(walk, remaining);
         switch (i) {
@@ -913,8 +902,6 @@ static int fill_rmlvo_from_root(struct xkb_rule_names *xkb_names) {
         remaining -= (len + 1);
     }
 
-    free(atom_reply);
-    free(prop_reply);
     return 0;
 }
 

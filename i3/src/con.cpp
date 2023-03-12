@@ -95,7 +95,7 @@ Con::Con(Con *parent, i3Window *window, bool skeleton) {
     if (window) {
         this->depth = window->depth;
     } else {
-        this->depth = root_depth;
+        this->depth = global.x->root_depth;
     }
 
     ::all_cons.push_back(this);

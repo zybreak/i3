@@ -1005,7 +1005,7 @@ namespace cmd {
             if (strcmp(name, "next") == 0) {
                 /* "next" here works like a wildcard: It "expands" to all available
                  * outputs. */
-                for (Output *output: outputs) {
+                for (Output *output: global.randr->outputs) {
                     user_output_names.push_back(std::string(output->output_primary_name()));
                 }
                 return;

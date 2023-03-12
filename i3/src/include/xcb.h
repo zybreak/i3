@@ -12,7 +12,7 @@
 #include <config.h>
 #include <set>
 
-#include "xcursor.h"
+#include "x.h"
 
 #define _NET_WM_STATE_REMOVE 0
 #define _NET_WM_STATE_ADD 1
@@ -51,7 +51,6 @@
 
 #include "atoms.h"
 
-extern unsigned int xcb_numlock_mask;
 struct Rect;
 class Con;
 

@@ -117,12 +117,6 @@ void restore_geometry() {
     xcb_aux_sync(**global.x);
 }
 
-struct free_delete
-{
-    void operator()(void* x) { free(x); }
-};
-
-
 /*
  * Moves the given container to the currently focused container on the
  * visible workspace on the output specified by the given name.
@@ -179,44 +173,40 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     DLOG(fmt::sprintf("window 0x%08x\n",  window));
 
     xcb_drawable_t d = {window};
-    xcb_get_geometry_cookie_t geomc;
 
-    geomc = xcb_get_geometry(**global.x, d);
+    auto geom = global.x->conn->get_geometry_unchecked(d);
 
     /* Check if the window is mapped (it could be not mapped when intializing and
        calling manage_window() for every window) */
     if (attr == nullptr) {
         DLOG("Could not get attributes\n");
-        xcb_discard_reply(**global.x, geomc.sequence);
+        xcb_discard_reply(**global.x, geom->sequence);
         return;
     }
 
     if (needs_to_be_mapped && attr->map_state != XCB_MAP_STATE_VIEWABLE) {
-        xcb_discard_reply(**global.x, geomc.sequence);
+        xcb_discard_reply(**global.x, geom->sequence);
         return;
     }
 
     /* Don’t manage clients with the override_redirect flag */
     if (attr->override_redirect) {
-        xcb_discard_reply(**global.x, geomc.sequence);
+        xcb_discard_reply(**global.x, geom->sequence);
         return;
     }
 
     /* Check if the window is already managed */
     if (con_by_window_id(window) != nullptr) {
         DLOG(fmt::sprintf("already managed (by con %p)\n",  (void*)con_by_window_id(window)));
-        xcb_discard_reply(**global.x, geomc.sequence);
+        xcb_discard_reply(**global.x, geom->sequence);
         return;
     }
 
-    xcb_get_geometry_reply_t *raw_geom = xcb_get_geometry_reply(**global.x, geomc, nullptr);
     /* Get the initial geometry (position, size, …) */
-    if (raw_geom == nullptr) {
+    if (geom.get() == nullptr) {
         DLOG("could not get geometry\n");
         return;
     }
-
-    std::unique_ptr<xcb_get_geometry_reply_t, free_delete> geom{raw_geom};
 
     uint32_t values[1];
 
@@ -276,7 +266,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     cwindow->window_update_hints((wm_hints_cookie.get() != nullptr) ? wm_hints_cookie.get().get() : nullptr, &urgency_hint);
     border_style_t motif_border_style = BS_NORMAL;
     update_motif_hints((motif_wm_hints_cookie.get() != nullptr ? motif_wm_hints_cookie.get().get() : nullptr), &motif_border_style);
-    cwindow->window_update_normal_hints((wm_normal_hints_cookie.get() != nullptr) ? wm_normal_hints_cookie.get().get() :  nullptr, geom.get());
+    cwindow->window_update_normal_hints((wm_normal_hints_cookie.get() != nullptr) ? wm_normal_hints_cookie.get().get() :  nullptr, geom.get().get());
     cwindow->window_update_machine((wm_machine_cookie.get() != nullptr ? wm_machine_cookie.get().get() : nullptr));
     xcb_get_property_reply_t *type_reply = (wm_type_cookie.get() != nullptr ? wm_type_cookie.get().get() : nullptr);
     xcb_get_property_reply_t *state_reply = (state_cookie.get() != nullptr ? state_cookie.get().get() : nullptr);
@@ -304,7 +294,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
 
     if (xcb_reply_contains_atom(type_reply, A__NET_WM_WINDOW_TYPE_DOCK)) {
         LOG("This window is of type dock\n");
-        Output *output = get_output_containing(geom->x, geom->y);
+        Output *output = global.randr->get_output_containing(geom->x, geom->y);
         if (output != nullptr) {
             DLOG(fmt::sprintf("Starting search at output %s\n",  output->output_primary_name()));
             search_at = output->con;
@@ -458,7 +448,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         /* If this window is already fullscreen (after restarting!), skip
          * toggling fullscreen, that would drop it out of fullscreen mode. */
         if (fs != nc) {
-            Output *output = get_output_with_dimensions((Rect){(uint32_t)geom->x, (uint32_t)geom->y, geom->width, geom->height});
+            Output *output = global.randr->get_output_with_dimensions((Rect){(uint32_t)geom->x, (uint32_t)geom->y, geom->width, geom->height});
             /* If the requested window geometry spans the whole area
              * of an output, move the window to that output. This is
              * needed e.g. for LibreOffice Impress multi-monitor

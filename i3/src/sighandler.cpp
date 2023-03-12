@@ -25,7 +25,6 @@
 #include "i3.h"
 #include "configuration.h"
 #include "randr.h"
-#include "xcursor.h"
 #include "sighandler.h"
 #include "global.h"
 
@@ -168,7 +167,7 @@ static void sighandler_setup() {
 }
 
 static void sighandler_create_dialogs() {
-    for (Output *output : outputs) {
+    for (Output *output : global.randr->outputs) {
         if (!output->active) {
             continue;
         }
@@ -176,7 +175,7 @@ static void sighandler_create_dialogs() {
         auto *dialog = (struct dialog_t *)scalloc(1, sizeof(struct dialog_t));
         dialogs.push_back(dialog);
 
-        xcb_visualid_t visual = get_visualid_by_depth(root_depth);
+        xcb_visualid_t visual = get_visualid_by_depth(global.x->root_depth);
         dialog->colormap = xcb_generate_id(**global.x);
         xcb_create_colormap(**global.x, XCB_COLORMAP_ALLOC_NONE, dialog->colormap, global.x->root, visual);
 
@@ -208,7 +207,7 @@ static void sighandler_create_dialogs() {
         dialog->dims.x -= dialog->dims.width / 2;
         dialog->dims.y -= dialog->dims.height / 2;
 
-        dialog->id = create_window((xcb_connection_t*)**global.x, dialog->dims, root_depth, visual,
+        dialog->id = create_window((xcb_connection_t*)**global.x, dialog->dims, global.x->root_depth, visual,
                                    XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER,
                                    true, mask, values);
 
@@ -291,7 +290,7 @@ static void sighandler_handle_key_press(xcb_key_press_event_t *event) {
     /* Apparently, after activating numlock once, the numlock modifier
      * stays turned on (use xev(1) to verify). So, to resolve useful
      * keysyms, we remove the numlock flag from the event state */
-    state &= ~xcb_numlock_mask;
+    state &= ~global.x->xcb_numlock_mask;
 
     xcb_keysym_t sym = xcb_key_press_lookup_keysym(keysyms, event, state);
 

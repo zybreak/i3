@@ -14,6 +14,7 @@ struct global {
     pid_t config_error_nagbar_pid = -1;
     pid_t command_error_nagbar_pid = -1;
     X *x;
+    RandR *randr;
 
     /* The original value of RLIMIT_CORE when i3 was started. We need to restore
      * this before starting any other process, since we set RLIMIT_CORE to

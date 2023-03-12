@@ -24,17 +24,15 @@
 void sync_respond(xcb_window_t window, uint32_t rnd) {
     DLOG(fmt::sprintf("[i3 sync protocol] Sending random value %d back to X11 window 0x%08x\n",  rnd, window));
 
-    void *reply = scalloc(32, 1);
-    auto *ev = (xcb_client_message_event_t*)reply;
+    xcb_client_message_event_t ev{};
 
-    ev->response_type = XCB_CLIENT_MESSAGE;
-    ev->window = window;
-    ev->type = A_I3_SYNC;
-    ev->format = 32;
-    ev->data.data32[0] = window;
-    ev->data.data32[1] = rnd;
+    ev.response_type = XCB_CLIENT_MESSAGE;
+    ev.window = window;
+    ev.type = A_I3_SYNC;
+    ev.format = 32;
+    ev.data.data32[0] = window;
+    ev.data.data32[1] = rnd;
 
-    xcb_send_event(**global.x, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)ev);
+    xcb_send_event(**global.x, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)&ev);
     xcb_flush(**global.x);
-    free(reply);
 }

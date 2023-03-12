@@ -61,12 +61,6 @@ extern xcb_key_symbols_t *keysyms;
 extern char **start_argv;
 extern int xkb_current_group;
 
-/* Color depth, visual id and colormap to use when creating windows and
- * pixmaps. Will use 32 bit depth and an appropriate visual, if available,
- * otherwise the root window’s default (usually 24 bit TrueColor). */
-extern uint8_t root_depth;
-extern xcb_colormap_t colormap;
-
 extern bool xkb_supported, shape_supported;
 extern struct ev_loop *main_loop;
 

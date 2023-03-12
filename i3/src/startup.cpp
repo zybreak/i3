@@ -30,7 +30,6 @@
 #include "xcb.h"
 #include "i3.h"
 #include "con.h"
-#include "xcursor.h"
 #include "startup.h"
 
 #include <paths.h>
@@ -202,7 +201,7 @@ void start_application(const std::string_view &command, bool no_startup_id) {
 
     if (!no_startup_id) {
         /* Change the pointer of the root window to indicate progress */
-        xcursor_set_root_cursor(XCURSOR_CURSOR_WATCH);
+        global.x->xcursor_set_root_cursor(XCURSOR_CURSOR_WATCH);
     }
 }
 
@@ -245,7 +244,7 @@ void startup_monitor_event(SnMonitorEvent *event, void *userdata) {
             if (_prune_startup_sequences() == 0) {
                 DLOG("No more startup sequences running, changing root window cursor to default pointer.\n");
                 /* Change the pointer of the root window to indicate progress */
-                xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
+                global.x->xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
             }
             break;
     }
@@ -271,7 +270,7 @@ void startup_sequence_rename_workspace(const char *old_name, const char *new_nam
  *
  */
 std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3Window *cwindow,
-                                              xcb_get_property_reply_t *startup_id_reply, bool ignore_mapped_leader) {
+                                              xcb_get_property_reply_t* startup_id_reply, bool ignore_mapped_leader) {
     /* The _NET_STARTUP_ID is only needed during this function, so we get it
      * here and don’t save it in the 'cwindow'. */
     if (startup_id_reply == nullptr || xcb_get_property_value_length(startup_id_reply) == 0) {
@@ -293,11 +292,9 @@ std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3
 
         DLOG(fmt::sprintf("Checking leader window 0x%08x\n",  cwindow->leader));
 
-        xcb_get_property_cookie_t cookie;
-
-        cookie = xcb_get_property(**global.x, false, cwindow->leader,
+        auto property = global.x->conn->get_property_unchecked(false, cwindow->leader,
                                   A__NET_STARTUP_ID, XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
-        startup_id_reply = xcb_get_property_reply(**global.x, cookie, nullptr);
+        startup_id_reply = property.get().get();
 
         if (startup_id_reply == nullptr ||
             xcb_get_property_value_length(startup_id_reply) == 0) {
@@ -315,7 +312,6 @@ std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3
 
     if (seq_ptr == startup_sequences.end()) {
         DLOG(fmt::sprintf("WARNING: This sequence (ID %s) was not found\n",  startup_id));
-        free(startup_id_reply);
         return startup_sequences.end();
     }
 

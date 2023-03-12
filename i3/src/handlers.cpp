@@ -34,7 +34,6 @@
 #include "i3.h"
 #include "x.h"
 #include "click.h"
-#include "key_press.h"
 #include "floating.h"
 #include "configuration.h"
 #include "handlers.h"
@@ -123,7 +122,7 @@ static void check_crossing_screen_boundary(uint32_t x, uint32_t y) {
     if (config.disable_focus_follows_mouse)
         return;
 
-    if ((output = get_output_containing(x, y)) == nullptr) {
+    if ((output = global.randr->get_output_containing(x, y)) == nullptr) {
         ELOG("ERROR: No such screen\n");
         return;
     }
@@ -211,7 +210,7 @@ static void handle_enter_notify(xcb_enter_notify_event_t *event) {
     if (ws != focused->con_get_workspace())
         workspace_show(ws);
 
-    focused_id = XCB_NONE;
+    global.x->focused_id = XCB_NONE;
     con_descend_focused(con)->con_focus();
     tree_render();
 }
@@ -271,7 +270,7 @@ static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
     DLOG("Received mapping_notify for keyboard or modifier mapping, re-grabbing keys\n");
     xcb_refresh_keyboard_mapping(keysyms, event);
 
-    xcb_numlock_mask = aio_get_mod_mask_for(XCB_NUM_LOCK, keysyms);
+    global.x->xcb_numlock_mask = aio_get_mod_mask_for(XCB_NUM_LOCK, keysyms);
 
     ungrab_all_keys(*global.x);
     translate_keysyms();
@@ -400,7 +399,7 @@ static void handle_configure_request(xcb_configure_request_event_t *event) {
             int16_t y = event->value_mask & XCB_CONFIG_WINDOW_Y ? event->y : (int16_t)con->geometry.y;
 
             Con *current_output = con->con_get_output();
-            Output *target = get_output_containing(x, y);
+            Output *target = global.randr->get_output_containing(x, y);
             if (target != nullptr && current_output != target->con) {
                 DLOG(fmt::sprintf("Dock client is requested to be moved to output %s, moving it there.\n",  target->output_primary_name()));
                 Match *match;
@@ -476,7 +475,7 @@ static void handle_screen_change(xcb_generic_event_t *e) {
     croot->rect.width = reply->width;
     croot->rect.height = reply->height;
 
-    randr_query_outputs();
+    global.randr->randr_query_outputs();
 
     scratchpad_fix_resolution();
 
@@ -661,23 +660,25 @@ static void handle_expose_event(xcb_expose_event_t *event) {
     xcb_flush(**global.x);
 }
 
-#define _NET_WM_MOVERESIZE_SIZE_TOPLEFT 0
-#define _NET_WM_MOVERESIZE_SIZE_TOP 1
-#define _NET_WM_MOVERESIZE_SIZE_TOPRIGHT 2
-#define _NET_WM_MOVERESIZE_SIZE_RIGHT 3
-#define _NET_WM_MOVERESIZE_SIZE_BOTTOMRIGHT 4
-#define _NET_WM_MOVERESIZE_SIZE_BOTTOM 5
-#define _NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT 6
-#define _NET_WM_MOVERESIZE_SIZE_LEFT 7
-#define _NET_WM_MOVERESIZE_MOVE 8           /* movement only */
-#define _NET_WM_MOVERESIZE_SIZE_KEYBOARD 9  /* size via keyboard */
-#define _NET_WM_MOVERESIZE_MOVE_KEYBOARD 10 /* move via keyboard */
-#define _NET_WM_MOVERESIZE_CANCEL 11        /* cancel operation */
+enum NET_WM {
+    _NET_WM_MOVERESIZE_SIZE_TOPLEFT = 0,
+    _NET_WM_MOVERESIZE_SIZE_TOP,
+    _NET_WM_MOVERESIZE_SIZE_TOPRIGHT,
+    _NET_WM_MOVERESIZE_SIZE_RIGHT,
+    _NET_WM_MOVERESIZE_SIZE_BOTTOMRIGHT,
+    _NET_WM_MOVERESIZE_SIZE_BOTTOM,
+    _NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT,
+    _NET_WM_MOVERESIZE_SIZE_LEFT,
+    _NET_WM_MOVERESIZE_MOVE,           /* movement only */
+    _NET_WM_MOVERESIZE_SIZE_KEYBOARD,  /* size via keyboard */
+    _NET_WM_MOVERESIZE_MOVE_KEYBOARD,  /* move via keyboard */
+    _NET_WM_MOVERESIZE_CANCEL          /* cancel operation */
+};
 
-#define _NET_MOVERESIZE_WINDOW_X (1 << 8)
-#define _NET_MOVERESIZE_WINDOW_Y (1 << 9)
-#define _NET_MOVERESIZE_WINDOW_WIDTH (1 << 10)
-#define _NET_MOVERESIZE_WINDOW_HEIGHT (1 << 11)
+const int _NET_MOVERESIZE_WINDOW_X = (1 << 8);
+const int _NET_MOVERESIZE_WINDOW_Y = (1 << 9);
+const int _NET_MOVERESIZE_WINDOW_WIDTH = (1 << 10);
+const int _NET_MOVERESIZE_WINDOW_HEIGHT = (1 << 11);
 
 /*
  * Handle client messages (EWMH)
@@ -774,7 +775,7 @@ static void handle_client_message(xcb_client_message_event_t *event) {
             } else {
                 workspace_show(ws);
                 /* Re-set focus, even if unchanged from i3’s perspective. */
-                focused_id = XCB_NONE;
+                global.x->focused_id = XCB_NONE;
                 con->con_activate_unblock();
             }
         } else {
@@ -1044,7 +1045,7 @@ static void handle_focus_in(xcb_focus_in_event_t *event) {
     if (event->event == global.x->root) {
         DLOG("Received focus in for root window, refocusing the focused window.\n");
         focused->con_focus();
-        focused_id = XCB_NONE;
+        global.x->focused_id = XCB_NONE;
         x_push_changes(croot);
     }
 
@@ -1066,7 +1067,7 @@ static void handle_focus_in(xcb_focus_in_event_t *event) {
 
     /* Floating windows should be refocused to ensure that they are on top of
      * other windows. */
-    if (focused_id == event->event && !con->con_inside_floating()) {
+    if (global.x->focused_id == event->event && !con->con_inside_floating()) {
         DLOG("focus matches the currently focused window, not doing anything\n");
         return;
     }
@@ -1082,7 +1083,7 @@ static void handle_focus_in(xcb_focus_in_event_t *event) {
     con->con_activate_unblock();
 
     /* We update focused_id because we don’t need to set focus again */
-    focused_id = event->event;
+    global.x->focused_id = event->event;
     tree_render();
 }
 
@@ -1098,7 +1099,7 @@ static void handle_configure_notify(xcb_configure_notify_event_t *event) {
     }
     DLOG(fmt::sprintf("ConfigureNotify for root window 0x%08x\n",  event->event));
 
-    randr_query_outputs();
+    global.randr->randr_query_outputs();
 }
 
 /*
@@ -1295,6 +1296,28 @@ static void property_notify(xcb_property_notify_event_t *event) {
     } else {
         handler.cb(con, nullptr);
     }
+}
+
+/*
+ * There was a KeyPress or KeyRelease (both events have the same fields). We
+ * compare this key code with our bindings table and pass the bound action to
+ * parse_command().
+ *
+ */
+static void handle_key_press(xcb_key_press_event_t *event) {
+    const bool key_release = (event->response_type == XCB_KEY_RELEASE);
+
+    global.last_timestamp = event->time;
+
+    DLOG(fmt::sprintf("%s %d, state raw = 0x%x\n",  (key_release ? "KeyRelease" : "KeyPress"), event->detail, event->state));
+
+    Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event);
+
+    /* if we couldn't find a binding, we are done */
+    if (bind == nullptr)
+        return;
+
+    run_binding(bind, nullptr);
 }
 
 /*

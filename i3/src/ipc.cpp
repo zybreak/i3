@@ -634,7 +634,7 @@ static std::string canonicalize_output_name(const std::string &name) {
     if (strcasecmp(name.c_str(), "primary") == 0) {
         return name;
     }
-    Output *output = get_output_by_name(name, false);
+    Output *output = global.randr->get_output_by_name(name, false);
     return output ? output->output_primary_name() : name;
 }
 
@@ -798,7 +798,7 @@ static void handle_get_outputs(ipc_client *client, uint8_t *message, int size, u
 
     auto a = nlohmann::json::array();
 
-    for (Output *output : outputs) {
+    for (Output *output : global.randr->outputs) {
 
         auto o = nlohmann::json::object();
 

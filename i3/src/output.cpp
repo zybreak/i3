@@ -41,7 +41,7 @@ Output* Output::get_output_from_string(const std::string &output_str) {
         return get_output_next_wrap(D_DOWN, this);
     }
 
-    return get_output_by_name(output_str, true);
+    return global.randr->get_output_by_name(output_str, true);
 }
 
 /*
@@ -54,7 +54,7 @@ std::string Output::output_primary_name() const {
 
 Output *get_output_for_con(Con *con) {
     Con *output_con = con->con_get_output();
-    Output *output = get_output_by_name(output_con->name, true);
+    Output *output = global.randr->get_output_by_name(output_con->name, true);
     assert(output != nullptr);
 
     return output;

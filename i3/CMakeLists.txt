@@ -5,8 +5,8 @@ add_executable(i3
   src/bindings.cpp
   src/boolstr.cpp
   src/click.cpp
-  src/commands.cpp
-  src/commands_parser.cpp
+  src/commands/commands.cpp
+  src/commands/commands_parser.cpp
   src/con.cpp
   src/config/old/config_directives.cpp
   src/config/old/config_parser.cpp
@@ -26,7 +26,6 @@ add_executable(i3
   src/handlers.cpp
   src/ipc.cpp
   src/is_background_set.cpp
-  src/key_press.cpp
   src/load_layout.cpp
   src/nagbar.cpp
   src/main.cpp
@@ -63,8 +62,7 @@ add_executable(i3
   src/window.cpp
   src/workspace.cpp
   src/xcb.cpp
-  src/x.cpp
-  src/xcursor.cpp)
+  src/x.cpp)
 
 find_package(PkgConfig REQUIRED)
 find_package(Iconv)

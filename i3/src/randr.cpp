@@ -41,23 +41,13 @@
 #include <algorithm>
 #include <fmt/core.h>
 
-/* Pointer to the result of the query for primary output */
-xcb_randr_get_output_primary_reply_t *primary;
-
-/* Stores all outputs available in your current session. */
-std::deque<Output*> outputs{};
-
-/* This is the output covering the root window */
-static Output *root_output;
-static bool has_randr_1_5 = false;
-
 /*
  * Get a specific output by its internal X11 id. Used by randr_query_outputs
  * to check if the output is new (only in the first scan) or if we are
  * re-scanning.
  *
  */
-static Output *get_output_by_id(xcb_randr_output_t id) {
+Output* RandR::get_output_by_id(xcb_randr_output_t id) {
     for (Output *output : outputs) {
         if (output->id == id) {
             return output;
@@ -72,7 +62,7 @@ static Output *get_output_by_id(xcb_randr_output_t id) {
  * If require_active is true, only active outputs are considered.
  *
  */
-Output *get_output_by_name(const std::string &name, const bool require_active) {
+Output* RandR::get_output_by_name(const std::string &name, const bool require_active) {
     bool get_primary = (strcasecmp("primary", name.c_str()) == 0);
     for (Output *output : outputs) {
         if (require_active && !output->active) {
@@ -95,7 +85,7 @@ Output *get_output_by_name(const std::string &name, const bool require_active) {
  * Returns the first output which is active.
  *
  */
-Output *get_first_output() {
+Output* RandR::get_first_output() {
     Output *result = nullptr;
 
     for (Output *output : outputs) {
@@ -120,8 +110,9 @@ Output *get_first_output() {
  * Check whether there are any active outputs (excluding the root output).
  *
  */
-static bool any_randr_output_active() {
-    return std::any_of(outputs.begin(), outputs.end(), [](auto &output) { return output != root_output && !output->to_be_disabled && output->active; });
+bool RandR::any_randr_output_active() {
+    Output *root_output = this->root_output;
+    return std::any_of(outputs.begin(), outputs.end(), [&root_output](auto &output) { return output != root_output && !output->to_be_disabled && output->active; });
 }
 
 /*
@@ -129,7 +120,7 @@ static bool any_randr_output_active() {
  * if there is no output which contains these coordinates.
  *
  */
-Output *get_output_containing(unsigned int x, unsigned int y) {
+Output* RandR::get_output_containing(unsigned int x, unsigned int y) {
     for (Output *output : outputs) {
         if (!output->active)
             continue;
@@ -152,9 +143,9 @@ Output *get_output_containing(unsigned int x, unsigned int y) {
 Output *get_output_from_rect(Rect rect) {
     unsigned int mid_x = rect.x + rect.width / 2;
     unsigned int mid_y = rect.y + rect.height / 2;
-    Output *output = get_output_containing(mid_x, mid_y);
+    Output *output = global.randr->get_output_containing(mid_x, mid_y);
 
-    return output ? output : output_containing_rect(rect);
+    return output ? output : global.randr->output_containing_rect(rect);
 }
 
 /*
@@ -162,7 +153,7 @@ Output *get_output_from_rect(Rect rect) {
  * rect or NULL if there is no output like this.
  *
  */
-Output *get_output_with_dimensions(Rect rect) {
+Output* RandR::get_output_with_dimensions(Rect rect) {
     for (Output *output : outputs) {
         if (!output->active)
             continue;
@@ -184,7 +175,7 @@ Output *get_output_with_dimensions(Rect rect) {
  * Returns the output with the maximum intersecting area.
  *
  */
-Output *output_containing_rect(Rect rect) {
+Output* RandR::output_containing_rect(Rect rect) {
     int lx = rect.x, uy = rect.y;
     int rx = rect.x + rect.width, by = rect.y + rect.height;
     long max_area = 0;
@@ -221,7 +212,7 @@ Output *output_containing_rect(Rect rect) {
  *
  */
 Output *get_output_next_wrap(direction_t direction, Output *current) {
-    Output *best = get_output_next(direction, current, CLOSEST_OUTPUT);
+    Output *best = global.randr->get_output_next(direction, current, CLOSEST_OUTPUT);
     /* If no output can be found, wrap */
     if (!best) {
         direction_t opposite;
@@ -233,7 +224,7 @@ Output *get_output_next_wrap(direction_t direction, Output *current) {
             opposite = D_UP;
         else
             opposite = D_DOWN;
-        best = get_output_next(opposite, current, FARTHEST_OUTPUT);
+        best = global.randr->get_output_next(opposite, current, FARTHEST_OUTPUT);
     }
     if (!best)
         best = current;
@@ -252,7 +243,7 @@ Output *get_output_next_wrap(direction_t direction, Output *current) {
  * specified (note that “current” counts as such an output).
  *
  */
-Output *get_output_next(direction_t direction, Output *current, output_close_far_t close_far) {
+Output* RandR::get_output_next(direction_t direction, Output *current, output_close_far_t close_far) {
     Rect *cur = &(current->rect),
          *other;
     Output *best = nullptr;
@@ -507,7 +498,7 @@ restore_focus:
  * It is necessary to call render_layout() afterwards.
  *
  */
-static void output_change_mode(xcb_connection_t *conn, Output *output) {
+void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
     DLOG("Output mode changed, updating rect\n");
     assert(output->con != nullptr);
     output->con->rect = output->rect;
@@ -551,7 +542,7 @@ static void output_change_mode(xcb_connection_t *conn, Output *output) {
  * randr_query_outputs_15 uses RandR ≥ 1.5 to update outputs.
  *
  */
-static bool randr_query_outputs_15() {
+bool RandR::randr_query_outputs_15() {
 #if XCB_RANDR_MINOR_VERSION < 5
     return false;
 #else
@@ -676,7 +667,7 @@ static bool randr_query_outputs_15() {
  * appropriate.
  *
  */
-static void handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
+void RandR::handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
                           xcb_randr_get_output_info_reply_t *output,
                           xcb_timestamp_t cts,
                           xcb_randr_get_screen_resources_current_reply_t *res) {
@@ -689,7 +680,7 @@ static void handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
         new_output = new Output();
     }
     new_output->id = id;
-    new_output->primary = (primary && primary->output == id);
+    new_output->primary = (primary == id);
     while (!new_output->names.empty()) {
         auto first = new_output->names.begin();
         new_output->names.erase(first);
@@ -760,23 +751,20 @@ static void handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
  * randr_query_outputs_14 uses RandR ≤ 1.4 to update outputs.
  *
  */
-static void randr_query_outputs_14() {
+void RandR::randr_query_outputs_14() {
     DLOG("Querying outputs using RandR ≤ 1.4\n");
 
-    /* Get screen resources (primary output, crtcs, outputs, modes) */
-    xcb_randr_get_screen_resources_current_cookie_t rcookie;
-    rcookie = xcb_randr_get_screen_resources_current(**global.x, global.x->root);
-    xcb_randr_get_output_primary_cookie_t pcookie;
-    pcookie = xcb_randr_get_output_primary(**global.x, global.x->root);
-
-    if ((primary = xcb_randr_get_output_primary_reply(**global.x, pcookie, nullptr)) == nullptr)
+    auto primary_res = global.x->conn->randr().get_output_primary_unchecked(global.x->root);
+    if (primary_res->length == 0)
         ELOG("Could not get RandR primary output\n");
     else
-        DLOG(fmt::sprintf("primary output is %08x\n",  primary->output));
+        DLOG(fmt::sprintf("primary output is %08x\n", primary_res->output));
 
-    xcb_randr_get_screen_resources_current_reply_t *res =
-        xcb_randr_get_screen_resources_current_reply(**global.x, rcookie, nullptr);
-    if (res == nullptr) {
+    primary = primary_res->output;
+
+    /* Get screen resources (primary output, crtcs, outputs, modes) */
+    auto res = global.x->conn->randr().get_screen_resources_current_unchecked(global.x->root);
+    if (res->length == 0) {
         ELOG("Could not query screen resources.\n");
         return;
     }
@@ -785,28 +773,22 @@ static void randr_query_outputs_14() {
      * requests (if the configuration changes between our different calls) */
     const xcb_timestamp_t cts = res->config_timestamp;
 
-    const int len = xcb_randr_get_screen_resources_current_outputs_length(res);
+    const int len = res->num_outputs;
 
     /* an output is VGA-1, LVDS-1, etc. (usually physical video outputs) */
-    xcb_randr_output_t *randr_outputs = xcb_randr_get_screen_resources_current_outputs(res);
-
-    /* Request information for each output */
-    xcb_randr_get_output_info_cookie_t ocookie[len];
-    for (int i = 0; i < len; i++)
-        ocookie[i] = xcb_randr_get_output_info(**global.x, randr_outputs[i], cts);
+    xcb_randr_output_t *randr_outputs = xcb_randr_get_screen_resources_current_outputs(res.get().get());
 
     /* Loop through all outputs available for this X11 screen */
+    /* Request information for each output */
     for (int i = 0; i < len; i++) {
-        xcb_randr_get_output_info_reply_t *output;
 
-        if ((output = xcb_randr_get_output_info_reply(**global.x, ocookie[i], nullptr)) == nullptr)
+        auto output = global.x->conn->randr().get_output_info_unchecked(randr_outputs[i], cts);
+
+        if (output->length == 0)
             continue;
 
-        handle_output(**global.x, randr_outputs[i], output, cts, res);
-        free(output);
+        handle_output(**global.x, randr_outputs[i], output.get().get(), cts, res.get().get());
     }
-
-    FREE(res);
 }
 
 /*
@@ -817,7 +799,7 @@ static void randr_query_outputs_14() {
  *
  */
 static void move_content(Con *con) {
-    Con *first = get_first_output()->con;
+    Con *first = global.randr->get_first_output()->con;
     Con *first_content = first->output_get_content();
 
     /* We need to move the workspaces from the disappearing output to the first output */
@@ -883,7 +865,7 @@ static void move_content(Con *con) {
  * If no outputs are found use the root window.
  *
  */
-void randr_query_outputs() {
+void RandR::randr_query_outputs() {
     if (!randr_query_outputs_15()) {
         randr_query_outputs_14();
     }
@@ -957,7 +939,7 @@ void randr_query_outputs() {
      * restart's layout but the output is disabled by a randr query happening
      * at the same time. */
     for (auto &con : croot->nodes_head) {
-        if (!con->con_is_internal() && get_output_by_name(con->name, true) == nullptr) {
+        if (!con->con_is_internal() && this->get_output_by_name(con->name, true) == nullptr) {
             DLOG(fmt::sprintf("No output %s found, moving its old content to first output\n",  con->name));
             move_content(con);
         }
@@ -1001,8 +983,6 @@ void randr_query_outputs() {
     /* render_layout flushes */
     ewmh_update_desktop_properties();
     tree_render();
-
-    FREE(primary);
 }
 
 /*
@@ -1026,7 +1006,7 @@ void randr_disable_output(Output *output) {
     output->changed = false;
 }
 
-static void fallback_to_root_output() {
+void RandR::fallback_to_root_output() {
     root_output->active = true;
     output_init_con(root_output);
     init_ws_for_output(root_output);
@@ -1037,13 +1017,15 @@ static void fallback_to_root_output() {
  * XRandR information to setup workspaces for each screen.
  *
  */
-void randr_init(int *event_base) {
+RandR::RandR(const X *x, int *event_base) {
+    DLOG("Checking for XRandR...\n");
+
     const xcb_query_extension_reply_t *extreply;
 
-    root_output = create_root_output(**global.x);
+    root_output = create_root_output(*x->conn);
     outputs.push_back(root_output);
 
-    extreply = xcb_get_extension_data(**global.x, &xcb_randr_id);
+    extreply = xcb_get_extension_data(*x->conn, &xcb_randr_id);
     if (!extreply->present) {
         DLOG("RandR is not present, activating root output.\n");
         fallback_to_root_output();
@@ -1053,7 +1035,7 @@ void randr_init(int *event_base) {
     xcb_generic_error_t *err;
     xcb_randr_query_version_reply_t *randr_version =
         xcb_randr_query_version_reply(
-            **global.x, xcb_randr_query_version(**global.x, XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION), &err);
+            *x->conn, xcb_randr_query_version(*x->conn, XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION), &err);
     if (err != nullptr) {
         ELOG(fmt::sprintf("Could not query RandR version: X11 error code %d\n",  err->error_code));
         free(err);
@@ -1071,11 +1053,11 @@ void randr_init(int *event_base) {
     if (event_base != nullptr)
         *event_base = extreply->first_event;
 
-    xcb_randr_select_input(**global.x, global.x->root,
+    xcb_randr_select_input(*x->conn, x->root,
                            XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE |
                                XCB_RANDR_NOTIFY_MASK_OUTPUT_CHANGE |
                                XCB_RANDR_NOTIFY_MASK_CRTC_CHANGE |
                                XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY);
 
-    xcb_flush(**global.x);
+    xcb_flush(*x->conn);
 }

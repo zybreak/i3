@@ -118,7 +118,7 @@ Con *get_assigned_output(const char *name, long parsed_num) {
         if (name && strcmp(assignment->name.c_str(), name) == 0) {
              DLOG(fmt::sprintf("Found workspace name=\"%s\" assignment to output \"%s\"\n",
                  name, assignment->output));
-            Output *assigned_by_name = get_output_by_name(assignment->output, true);
+            Output *assigned_by_name = global.randr->get_output_by_name(assignment->output, true);
             if (assigned_by_name) {
                 /* When the name matches exactly, skip numbered assignments. */
                 return assigned_by_name->con;
@@ -129,7 +129,7 @@ Con *get_assigned_output(const char *name, long parsed_num) {
                    ws_name_to_number(assignment->name) == parsed_num) {
              DLOG(fmt::sprintf("Found workspace number=%ld assignment to output \"%s\"\n",
                  parsed_num, assignment->output));
-            Output *assigned_by_num = get_output_by_name(assignment->output, true);
+            Output *assigned_by_num = global.randr->get_output_by_name(assignment->output, true);
             if (assigned_by_num) {
                 output = assigned_by_num->con;
             }

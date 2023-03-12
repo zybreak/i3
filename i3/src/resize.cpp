@@ -23,7 +23,6 @@
 #include "drag.h"
 #include "configuration.h"
 #include "con.h"
-#include "xcursor.h"
 #include "resize.h"
 #include "global.h"
 

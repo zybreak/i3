@@ -223,7 +223,7 @@ static void attach_to_workspace(Con *con, Con *ws, direction_t direction) {
  */
 static void move_to_output_directed(Con *con, direction_t direction) {
     Output *current_output = get_output_for_con(con);
-    Output *output = get_output_next(direction, current_output, CLOSEST_OUTPUT);
+    Output *output = global.randr->get_output_next(direction, current_output, CLOSEST_OUTPUT);
 
     if (!output) {
         DLOG("No output in this direction found. Not moving.\n");

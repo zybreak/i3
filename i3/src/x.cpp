@@ -37,66 +37,45 @@
 #include "configuration.h"
 #include "randr.h"
 #include "con.h"
-#include "xcursor.h"
 #include "ewmh.h"
 #include "global.h"
 
 #include <unistd.h>
 #include <ranges>
 
-/*
- * Describes the X11 state we may modify (map state, position, window stack).
- * There is one entry per container. The state represents the current situation
- * as X11 sees it (with the exception of the order in the state_head CIRCLEQ,
- * which represents the order that will be pushed to X11, while old_state_head
- * represents the current order). It will be updated in x_push_changes().
- *
- */
-struct con_state {
-    xcb_window_t id{};
-    bool mapped{};
-    bool unmap_now{};
-    bool child_mapped{};
-    bool is_hidden{};
-
-    /* The con for which this state is. */
-    Con *con{};
-
-    /* For reparenting, we have a flag (need_reparent) and the X ID of the old
-     * frame this window was in. The latter is necessary because we need to
-     * ignore UnmapNotify events (by changing the window event mask). */
-    bool need_reparent{};
-    xcb_window_t old_frame{};
-
-    /* The container was child of floating container during the previous call of
-     * x_push_node(). This is used to remove the shape when the container is no
-     * longer floating. */
-    bool was_floating{};
-
-    Rect rect;
-    Rect window_rect;
-
-    bool initial{};
-
-    std::string name{};
-};
-
 #define COLOR_TRANSPARENT ((color_t){.red = 0.0, .green = 0.0, .blue = 0.0, .colorpixel = 0})
 
-/* Stores the X11 window ID of the currently focused window */
-xcb_window_t focused_id = XCB_NONE;
+void X::xcursor_load_cursors() {
+    if (xcb_cursor_context_new(**global.x, global.x->root_screen, &ctx) < 0) {
+        errx(EXIT_FAILURE, "Cannot allocate xcursor context");
+    }
+    cursors[XCURSOR_CURSOR_POINTER] = xcb_cursor_load_cursor(ctx, "left_ptr");;
+    cursors[XCURSOR_CURSOR_RESIZE_HORIZONTAL] = xcb_cursor_load_cursor(ctx, "sb_h_double_arrow");;
+    cursors[XCURSOR_CURSOR_RESIZE_VERTICAL] = xcb_cursor_load_cursor(ctx, "sb_v_double_arrow");;
+    cursors[XCURSOR_CURSOR_WATCH] = xcb_cursor_load_cursor(ctx, "watch");;
+    cursors[XCURSOR_CURSOR_MOVE] = xcb_cursor_load_cursor(ctx, "fleur");;
+    cursors[XCURSOR_CURSOR_TOP_LEFT_CORNER] = xcb_cursor_load_cursor(ctx, "top_left_corner");;
+    cursors[XCURSOR_CURSOR_TOP_RIGHT_CORNER] = xcb_cursor_load_cursor(ctx, "top_right_corner");;
+    cursors[XCURSOR_CURSOR_BOTTOM_LEFT_CORNER] = xcb_cursor_load_cursor(ctx, "bottom_left_corner");;
+    cursors[XCURSOR_CURSOR_BOTTOM_RIGHT_CORNER] = xcb_cursor_load_cursor(ctx, "bottom_right_corner");;
+}
 
-/* Because 'focused_id' might be reset to force input focus, we separately keep
- * track of the X11 window ID to be able to always tell whether the focused
- * window actually changed. */
-static xcb_window_t last_focused = XCB_NONE;
+/*
+ * Sets the cursor of the root window to the 'pointer' cursor.
+ *
+ * This function is called when i3 is initialized, because with some login
+ * managers, the root window will not have a cursor otherwise.
+ *
+ */
+void X::xcursor_set_root_cursor(xcursor_cursor_t cursor_id) {
+    uint32_t value_list[]{global.x->xcursor_get_cursor(cursor_id)};
+    xcb_change_window_attributes(**global.x, global.x->root, XCB_CW_CURSOR,
+                                 value_list);
+}
 
-/* Stores coordinates to warp mouse pointer to if set */
-static Rect *warp_to;
-
-std::deque<con_state*> state_head{};
-std::deque<con_state*> old_state_head{};
-std::deque<con_state*> initial_mapping_head{};
+xcb_cursor_t X::xcursor_get_cursor(xcursor_cursor_t c) {
+    return cursors.at(c);
+}
 
 /*
  * Returns the container state for the given frame. This function always
@@ -106,9 +85,9 @@ std::deque<con_state*> initial_mapping_head{};
  *
  */
 static con_state *state_for_frame(xcb_window_t window) {
-    auto it = std::ranges::find_if(state_head, [window](auto &state) { return state->id == window; });
+    auto it = std::ranges::find_if(global.x->state_head, [window](auto &state) { return state->id == window; });
 
-    if (it != state_head.end()) {
+    if (it != global.x->state_head.end()) {
         return *it;
     }
 
@@ -153,14 +132,14 @@ void x_con_init(Con *con) {
 
     xcb_visualid_t visual = get_visualid_by_depth(con->depth);
     xcb_colormap_t win_colormap;
-    if (con->depth != root_depth) {
+    if (con->depth != global.x->root_depth) {
         /* We need to create a custom colormap. */
         win_colormap = xcb_generate_id(**global.x);
         xcb_create_colormap(**global.x, XCB_COLORMAP_ALLOC_NONE, win_colormap, global.x->root, visual);
         con->colormap = win_colormap;
     } else {
         /* Use the default colormap. */
-        win_colormap = colormap;
+        win_colormap = global.x->colormap;
         con->colormap = XCB_NONE;
     }
 
@@ -203,9 +182,9 @@ void x_con_init(Con *con) {
     state->initial = true;
     DLOG(fmt::sprintf("Adding window 0x%08x to lists\n",  state->id));
 
-    state_head.push_front(state);
-    old_state_head.push_front(state);
-    initial_mapping_head.push_back(state);
+    global.x->state_head.push_front(state);
+    global.x->old_state_head.push_front(state);
+    global.x->initial_mapping_head.push_back(state);
     DLOG(fmt::sprintf("adding new state for window id 0x%08x\n",  state->id));
 }
 
@@ -237,17 +216,17 @@ static void _x_con_kill(Con *con) {
     xcb_free_pixmap(**global.x, con->frame_buffer.id);
     con->frame_buffer.id = XCB_NONE;
     state = state_for_frame(con->frame.id);
-    std::erase(state_head, state);
-    std::erase(old_state_head, state);
-    std::erase(initial_mapping_head, state);
+    std::erase(global.x->state_head, state);
+    std::erase(global.x->old_state_head, state);
+    std::erase(global.x->initial_mapping_head, state);
     delete state;
 
     /* Invalidate focused_id to correctly focus new windows with the same ID */
-    if (con->frame.id == focused_id) {
-        focused_id = XCB_NONE;
+    if (con->frame.id == global.x->focused_id) {
+        global.x->focused_id = XCB_NONE;
     }
-    if (con->frame.id == last_focused) {
-        last_focused = XCB_NONE;
+    if (con->frame.id == global.x->last_focused) {
+        global.x->last_focused = XCB_NONE;
     }
 }
 
@@ -957,7 +936,7 @@ void x_push_node(Con *con) {
                 xcb_free_pixmap(**global.x, con->frame_buffer.id);
             }
 
-            uint16_t win_depth = root_depth;
+            uint16_t win_depth = global.x->root_depth;
             if (con->window)
                 win_depth = con->window->depth;
 
@@ -1158,7 +1137,7 @@ void x_push_changes(Con *con) {
     xcb_query_pointer_cookie_t pointercookie;
 
     /* If we need to warp later, we request the pointer position as soon as possible */
-    if (warp_to) {
+    if (global.x->warp_to) {
         pointercookie = xcb_query_pointer(**global.x, global.x->root);
     }
 
@@ -1168,7 +1147,7 @@ void x_push_changes(Con *con) {
      * ConfigureWindow requests and get them applied directly instead of having
      * them become ConfigureRequests that i3 handles. */
     uint32_t values[1] = {XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT};
-    for (auto &state : state_head | std::views::reverse) {
+    for (auto &state : global.x->state_head | std::views::reverse) {
         if (state->mapped)
             xcb_change_window_attributes(**global.x, state->id, XCB_CW_EVENT_MASK, values);
     }
@@ -1179,7 +1158,7 @@ void x_push_changes(Con *con) {
     /* count first, necessary to (re)allocate memory for the bottom-to-top
      * stack afterwards */
     int cnt = 0;
-    for (auto &it : state_head | std::views::reverse) {
+    for (auto &it : global.x->state_head | std::views::reverse) {
         if (it->con && it->con->con_has_managed_window()) {
             cnt++;
         }
@@ -1198,21 +1177,21 @@ void x_push_changes(Con *con) {
     xcb_window_t *walk = client_list_windows;
 
     /* X11 correctly represents the stack if we push it from bottom to top */
-    for (auto it = state_head.rbegin(); it != state_head.rend(); ++it) {
+    for (auto it = global.x->state_head.rbegin(); it != global.x->state_head.rend(); ++it) {
         auto &state = *it;
         if ((state->con) && state->con->con_has_managed_window())
             memcpy(walk++, &(state->con->window->id), sizeof(xcb_window_t));
 
         // LOG(fmt::sprintf("stack: 0x%08x\n",  state->id));
         auto prev = std::next(it);
-        auto old_state_head_it = std::ranges::find(old_state_head, state);
-        if (old_state_head_it == old_state_head.begin()) {
-            old_state_head_it = old_state_head.end();
+        auto old_state_head_it = std::ranges::find(global.x->old_state_head, state);
+        if (old_state_head_it == global.x->old_state_head.begin()) {
+            old_state_head_it = global.x->old_state_head.end();
         }
         auto old_prev = std::prev(old_state_head_it);
-        if (prev != state_head.rend() && old_prev != old_state_head.end() && *prev != *old_prev)
+        if (prev != global.x->state_head.rend() && old_prev != global.x->old_state_head.end() && *prev != *old_prev)
             order_changed = true;
-        if ((state->initial || order_changed) && prev != state_head.rend()) {
+        if ((state->initial || order_changed) && prev != global.x->state_head.rend()) {
             stacking_changed = true;
             // LOG(fmt::sprintf("Stacking 0x%08x above 0x%08x\n",  prev->id, state->id));
             uint32_t mask = 0;
@@ -1234,7 +1213,7 @@ void x_push_changes(Con *con) {
         walk = client_list_windows;
 
         /* reorder by initial mapping */
-        for (auto &s : initial_mapping_head) {
+        for (auto &s : global.x->initial_mapping_head) {
             if (s->con && s->con->con_has_managed_window())
                 *walk++ = s->con->window->id;
         }
@@ -1245,16 +1224,16 @@ void x_push_changes(Con *con) {
     DLOG("PUSHING CHANGES\n");
     x_push_node(con);
 
-    if (warp_to) {
+    if (global.x->warp_to) {
         xcb_query_pointer_reply_t *pointerreply = xcb_query_pointer_reply(**global.x, pointercookie, nullptr);
         if (!pointerreply) {
             ELOG("Could not query pointer position, not warping pointer\n");
         } else {
-            int mid_x = warp_to->x + (warp_to->width / 2);
-            int mid_y = warp_to->y + (warp_to->height / 2);
+            int mid_x = global.x->warp_to->x + (global.x->warp_to->width / 2);
+            int mid_y = global.x->warp_to->y + (global.x->warp_to->height / 2);
 
-            Output *current = get_output_containing(pointerreply->root_x, pointerreply->root_y);
-            Output *target = get_output_containing(mid_x, mid_y);
+            Output *current = global.randr->get_output_containing(pointerreply->root_x, pointerreply->root_y);
+            Output *target = global.randr->get_output_containing(mid_x, mid_y);
             if (current != target) {
                 uint32_t value_list[]{ROOT_EVENT_MASK};
                 uint32_t event_mask_value_list[]{XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT};
@@ -1266,12 +1245,12 @@ void x_push_changes(Con *con) {
 
             free(pointerreply);
         }
-        warp_to = nullptr;
+        global.x->warp_to = nullptr;
     }
 
     //DLOG("Re-enabling EnterNotify\n");
     values[0] = FRAME_EVENT_MASK;
-    for (auto &state : state_head | std::views::reverse) {
+    for (auto &state : global.x->state_head | std::views::reverse) {
         if (state->mapped)
             xcb_change_window_attributes(**global.x, state->id, XCB_CW_EVENT_MASK, values);
     }
@@ -1283,11 +1262,11 @@ void x_push_changes(Con *con) {
     if (focused->window != nullptr)
         to_focus = focused->window->id;
 
-    if (focused_id != to_focus) {
+    if (global.x->focused_id != to_focus) {
         if (!focused->mapped) {
             DLOG(fmt::sprintf("Not updating focus (to %p / %s), focused window is not mapped.\n",  (void*)focused, focused->name));
             /* Invalidate focused_id to correctly focus new windows with the same ID */
-            focused_id = XCB_NONE;
+            global.x->focused_id = XCB_NONE;
         } else {
             if (focused->window != nullptr &&
                 focused->window->needs_take_focus &&
@@ -1296,9 +1275,9 @@ void x_push_changes(Con *con) {
                      to_focus, (void*)focused, focused->name));
                 send_take_focus(to_focus, global.last_timestamp);
 
-                change_ewmh_focus((focused->con_has_managed_window() ? focused->window->id : XCB_WINDOW_NONE), last_focused);
+                change_ewmh_focus((focused->con_has_managed_window() ? focused->window->id : XCB_WINDOW_NONE), global.x->last_focused);
 
-                if (to_focus != last_focused && is_con_attached(focused))
+                if (to_focus != global.x->last_focused && is_con_attached(focused))
                     ipc_send_window_event("focus", focused);
             } else {
                 DLOG(fmt::sprintf("Updating focus (focused: %p / %s) to X11 window 0x%08x\n",  (void*)focused, focused->name, to_focus));
@@ -1315,25 +1294,25 @@ void x_push_changes(Con *con) {
                     xcb_change_window_attributes(**global.x, focused->window->id, XCB_CW_EVENT_MASK, values);
                 }
 
-                change_ewmh_focus((focused->con_has_managed_window() ? focused->window->id : XCB_WINDOW_NONE), last_focused);
+                change_ewmh_focus((focused->con_has_managed_window() ? focused->window->id : XCB_WINDOW_NONE), global.x->last_focused);
 
-                if (to_focus != XCB_NONE && to_focus != last_focused && focused->window != nullptr && is_con_attached(focused))
+                if (to_focus != XCB_NONE && to_focus != global.x->last_focused && focused->window != nullptr && is_con_attached(focused))
                     ipc_send_window_event("focus", focused);
             }
 
-            focused_id = last_focused = to_focus;
+            global.x->focused_id = global.x->last_focused = to_focus;
         }
     }
 
-    if (focused_id == XCB_NONE) {
+    if (global.x->focused_id == XCB_NONE) {
         /* If we still have no window to focus, we focus the EWMH window instead. We use this rather than the
          * root window in order to avoid an X11 fallback mechanism causing a ghosting effect (see #1378). */
         DLOG(fmt::sprintf("Still no window focused, better set focus to the EWMH support window (%d)\n",  ewmh_window));
         xcb_set_input_focus(**global.x, XCB_INPUT_FOCUS_POINTER_ROOT, ewmh_window, global.last_timestamp);
-        change_ewmh_focus(XCB_WINDOW_NONE, last_focused);
+        change_ewmh_focus(XCB_WINDOW_NONE, global.x->last_focused);
 
-        focused_id = ewmh_window;
-        last_focused = XCB_NONE;
+        global.x->focused_id = ewmh_window;
+        global.x->last_focused = XCB_NONE;
     }
 
     xcb_flush(**global.x);
@@ -1347,7 +1326,7 @@ void x_push_changes(Con *con) {
      * unmapped, the second one appears under the cursor and therefore gets an
      * EnterNotify event. */
     values[0] = FRAME_EVENT_MASK & ~XCB_EVENT_MASK_ENTER_WINDOW;
-    for (auto &state : state_head | std::views::reverse) {
+    for (auto &state : global.x->state_head | std::views::reverse) {
         if (!state->unmap_now)
             continue;
         xcb_change_window_attributes(**global.x, state->id, XCB_CW_EVENT_MASK, values);
@@ -1357,9 +1336,9 @@ void x_push_changes(Con *con) {
     x_push_node_unmaps(con);
 
     /* save the current stack as old stack */
-    for (auto &state : state_head) {
-        std::erase(old_state_head, state);
-        old_state_head.push_back(state);
+    for (auto &state : global.x->state_head) {
+        std::erase(global.x->old_state_head, state);
+        global.x->old_state_head.push_back(state);
     }
     //CIRCLEQ_FOREACH(state, &old_state_head, old_state) {
     //    DLOG(fmt::sprintf("old stack: 0x%08x\n",  state->id));
@@ -1378,8 +1357,8 @@ void x_raise_con(Con *con) {
     state = state_for_frame(con->frame.id);
     // LOG(fmt::sprintf("raising in new stack: %p / %s / %s / xid %08x\n",  con, con->name, con->window ? con->window->name_json : "", state->id));
 
-    std::erase(state_head, state);
-    state_head.push_front(state);
+    std::erase(global.x->state_head, state);
+    global.x->state_head.push_front(state);
 }
 
 /*
@@ -1420,7 +1399,7 @@ void x_set_i3_atoms() {
  */
 void x_set_warp_to(Rect *rect) {
     if (config.mouse_warping != POINTER_WARPING_NONE)
-        warp_to = rect;
+        global.x->warp_to = rect;
 }
 
 /*
@@ -1432,7 +1411,7 @@ void x_set_warp_to(Rect *rect) {
 void x_mask_event_mask(uint32_t mask) {
     uint32_t values[] = {FRAME_EVENT_MASK & mask};
 
-    for (auto &state : std::ranges::reverse_view(state_head)) {
+    for (auto &state : std::ranges::reverse_view(global.x->state_head)) {
         if (state->mapped)
             xcb_change_window_attributes(**global.x, state->id, XCB_CW_EVENT_MASK, values);
     }

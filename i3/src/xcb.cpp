@@ -24,10 +24,7 @@
 #include "i3.h"
 #include "configuration.h"
 #include "handlers.h"
-#include "xcursor.h"
 #include "global.h"
-
-unsigned int xcb_numlock_mask;
 
 /*
  * Convenience wrapper around xcb_create_window which takes care of depth, generating an ID and checking
@@ -63,7 +60,7 @@ xcb_window_t create_window(xcb_connection_t *conn, Rect dims,
     }
 
     /* Set the cursor */
-    uint32_t cursor_values[] = {xcursor_get_cursor(cursor)};
+    uint32_t cursor_values[] = {global.x->xcursor_get_cursor(cursor)};
     xcb_change_window_attributes(conn, result, XCB_CW_CURSOR, cursor_values);
 
     /* Map the window (= make it visible) */

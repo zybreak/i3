@@ -32,7 +32,6 @@
 #include "randr.h"
 #include "con.h"
 #include "render.h"
-#include "xcursor.h"
 #include "move.h"
 #include "output.h"
 #include "global.h"
@@ -45,12 +44,12 @@
  *
  */
 static Rect total_outputs_dimensions(xcb_screen_t *root_screen) {
-    if (outputs.empty())
+    if (global.randr->outputs.empty())
         return (Rect){0, 0, root_screen->width_in_pixels, root_screen->height_in_pixels};
 
     /* Use Rect to encapsulate dimensions, ignoring x/y */
     Rect outputs_dimensions = {0, 0, 0, 0};
-    for (Output *output : outputs) {
+    for (Output *output : global.randr->outputs) {
         outputs_dimensions.height += output->rect.height;
         outputs_dimensions.width += output->rect.width;
     }
@@ -573,7 +572,7 @@ void floating_move_to_pointer(Con *con) {
         return;
     }
 
-    Output *output = get_output_containing(reply->root_x, reply->root_y);
+    Output *output = global.randr->get_output_containing(reply->root_x, reply->root_y);
     if (output == nullptr) {
         ELOG("The pointer is not on any output, cannot move the container here.\n");
         return;
@@ -771,7 +770,7 @@ void floating_resize_window(Con *con, const bool proportional,
 bool floating_reposition(Con *con, Rect newrect) {
     /* Sanity check: Are the new coordinates on any output? If not, we
      * ignore that request. */
-    if (!output_containing_rect(newrect)) {
+    if (!global.randr->output_containing_rect(newrect)) {
         ELOG("No output found at destination coordinates. Not repositioning.\n");
         return false;
     }

@@ -26,7 +26,6 @@
 #include "configuration.h"
 #include "handlers.h"
 #include "con.h"
-#include "xcursor.h"
 #include "main.h"
 #include "global.h"
 
@@ -196,7 +195,7 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
                            xcb_window_t confine_to, int cursor,
                            bool use_threshold, callback_t callback,
                            const void *extra) {
-    xcb_cursor_t xcursor = cursor ? xcursor_get_cursor((xcursor_cursor_t)cursor) : XCB_NONE;
+    xcb_cursor_t xcursor = cursor ? global.x->xcursor_get_cursor((xcursor_cursor_t)cursor) : XCB_NONE;
 
     /* Grab the pointer */
     xcb_grab_pointer_cookie_t cookie;

@@ -33,14 +33,11 @@
 #include "configuration.h"
 #include "con.h"
 #include "match.h"
-#include "xcursor.h"
 #include "restore_layout.h"
 
 #ifdef I3_ASAN_ENABLED
 #include <sanitizer/lsan_interface.h>
 #endif
-
-#define TEXT_PADDING logical_px(global.x->root_screen, 2)
 
 typedef struct placeholder_state {
     /** The X11 placeholder window. */
@@ -180,9 +177,9 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
 
         i3String *str = i3string_from_utf8(serialized);
         draw_util_text(*conn, str, &(state->surface), foreground, background,
-                       TEXT_PADDING,
-                       (n * (config.font.height + TEXT_PADDING)) + TEXT_PADDING,
-                       state->rect.width - 2 * TEXT_PADDING);
+                       logical_px(global.x->root_screen, 2),
+                       (n * (config.font.height + logical_px(global.x->root_screen, 2))) + logical_px(global.x->root_screen, 2),
+                       state->rect.width - 2 * logical_px(global.x->root_screen, 2));
         delete str;
         n++;
         free(serialized);

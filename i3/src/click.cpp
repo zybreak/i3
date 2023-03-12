@@ -169,15 +169,15 @@ static bool tiling_resize(Con *con, xcb_button_press_event_t *event, const click
  * functions for resizing/dragging.
  *
  */
-static void route_click(xcb_connection_t *conn, Con *con, xcb_button_press_event_t *event, const bool mod_pressed, const click_destination_t dest) {
+static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *event, const bool mod_pressed, const click_destination_t dest) {
     DLOG(fmt::sprintf("--> click properties: mod = %d, destination = %d\n",  mod_pressed, dest));
     DLOG(fmt::sprintf("--> OUTCOME = %p\n",  (void*)con));
     DLOG(fmt::sprintf("type = %d, name = %s\n",  con->type, con->name));
 
     /* don’t handle dockarea cons, they must not be focused */
     if (con->parent->type == CT_DOCKAREA) {
-        xcb_allow_events(conn, XCB_ALLOW_REPLAY_POINTER, event->time);
-        xcb_flush(conn);
+        conn->allow_events(XCB_ALLOW_REPLAY_POINTER, event->time);
+        conn->flush();
         tree_render();
         return;
     }
@@ -191,16 +191,16 @@ static void route_click(xcb_connection_t *conn, Con *con, xcb_button_press_event
         run_binding(bind, con);
 
         /* ASYNC_POINTER eats the event */
-        xcb_allow_events(conn, XCB_ALLOW_ASYNC_POINTER, event->time);
-        xcb_flush(conn);
+        conn->allow_events(XCB_ALLOW_ASYNC_POINTER, event->time);
+        conn->flush();
 
         return;
     }
 
     /* There is no default behavior for button release events so we are done. */
     if (event->response_type == XCB_BUTTON_RELEASE) {
-        xcb_allow_events(conn, XCB_ALLOW_REPLAY_POINTER, event->time);
-        xcb_flush(conn);
+        conn->allow_events(XCB_ALLOW_REPLAY_POINTER, event->time);
+        conn->flush();
         tree_render();
         return;
     }
@@ -214,8 +214,8 @@ static void route_click(xcb_connection_t *conn, Con *con, xcb_button_press_event
     if (!ws) {
         ws = con::first(con->con_get_output()->output_get_content()->focus_head);
         if (!ws) {
-            xcb_allow_events(conn, XCB_ALLOW_REPLAY_POINTER, event->time);
-            xcb_flush(conn);
+            conn->allow_events(XCB_ALLOW_REPLAY_POINTER, event->time);
+            conn->flush();
             tree_render();
             return;
         }
@@ -249,8 +249,8 @@ static void route_click(xcb_connection_t *conn, Con *con, xcb_button_press_event
         auto p = con_descend_focused(next ? next : current);
         p->con_activate();
 
-        xcb_allow_events(conn, XCB_ALLOW_REPLAY_POINTER, event->time);
-        xcb_flush(conn);
+        conn->allow_events(XCB_ALLOW_REPLAY_POINTER, event->time);
+        conn->flush();
         tree_render();
         return;
     }
@@ -326,8 +326,8 @@ static void route_click(xcb_connection_t *conn, Con *con, xcb_button_press_event
         }
         /* Avoid propagating events to clients, since the user expects
          * $mod+click to be handled by i3. */
-        xcb_allow_events(conn, XCB_ALLOW_ASYNC_POINTER, event->time);
-        xcb_flush(conn);
+        conn->allow_events(XCB_ALLOW_ASYNC_POINTER, event->time);
+        conn->flush();
         return;
     }
     /* 8: otherwise, check for border/decoration clicks and resize */
@@ -338,8 +338,8 @@ static void route_click(xcb_connection_t *conn, Con *con, xcb_button_press_event
     }
 
 done:
-    xcb_allow_events(conn, XCB_ALLOW_REPLAY_POINTER, event->time);
-    xcb_flush(conn);
+    conn->allow_events(XCB_ALLOW_REPLAY_POINTER, event->time);
+    conn->flush();
     tree_render();
 }
 
@@ -364,7 +364,7 @@ void handle_button_press(xcb_button_press_event_t *event) {
     const bool mod_pressed = (mod != 0 && (event->state & mod) == mod);
     DLOG(fmt::sprintf("floating_mod = %d, detail = %d\n",  mod_pressed, event->detail));
     if ((con = con_by_window_id(event->event))) {
-        route_click(**global.x, con, event, mod_pressed, CLICK_INSIDE);
+        route_click(*global.x, con, event, mod_pressed, CLICK_INSIDE);
         return;
     }
 
@@ -410,15 +410,15 @@ void handle_button_press(xcb_button_press_event_t *event) {
         if (!child->deco_rect.rect_contains(event->event_x, event->event_y))
             continue;
 
-        route_click(**global.x, child, event, mod_pressed, CLICK_DECORATION);
+        route_click(*global.x, child, event, mod_pressed, CLICK_DECORATION);
         return;
     }
 
     if (event->child != XCB_NONE) {
         DLOG("event->child not XCB_NONE, so this is an event which originated from a click into the application, but the application did not handle it.\n");
-        route_click(**global.x, con, event, mod_pressed, CLICK_INSIDE);
+        route_click(*global.x, con, event, mod_pressed, CLICK_INSIDE);
         return;
     }
 
-    route_click(**global.x, con, event, mod_pressed, CLICK_BORDER);
+    route_click(*global.x, con, event, mod_pressed, CLICK_BORDER);
 }
