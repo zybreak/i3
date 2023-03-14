@@ -841,7 +841,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
 
     if (result.parse_error) {
         std::vector<button_t> buttons{};
-        start_nagbar(&global.command_error_nagbar_pid, buttons, "The configured command for this shortcut could not be run successfully.", config.font.pattern);
+        start_nagbar(&global.command_error_nagbar_pid, buttons, "The configured command for this shortcut could not be run successfully.", config.font->pattern);
     }
 
     ipc_send_binding_event("run", &bind_cp);

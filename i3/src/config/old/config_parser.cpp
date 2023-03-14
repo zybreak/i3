@@ -454,7 +454,7 @@ bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *
  * Launch nagbar to indicate errors in the configuration file.
  */
 void start_config_error_nagbar(bool has_errors) {
-    const char *font_pattern = config.font.pattern ? config.font.pattern : "fixed";
+    const char *font_pattern = config.font->pattern ? config.font->pattern : "fixed";
     auto type = has_errors ? TYPE_ERROR : TYPE_WARNING;
     const char *text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
 

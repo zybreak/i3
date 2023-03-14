@@ -163,7 +163,7 @@ static void sighandler_setup() {
     int width_longest_message = predict_text_width(**global.x, global.x->root_screen, message_intro2);
 
     dialog_width = width_longest_message + 2 * border_width + 2 * margin;
-    dialog_height = num_lines * config.font.height + 2 * border_width + 2 * margin;
+    dialog_height = num_lines * config.font->height + 2 * border_width + 2 * margin;
 }
 
 static void sighandler_create_dialogs() {
@@ -263,10 +263,10 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     const int max_width = dialog->dims.width - 2 * x;
 
     draw_util_text(**global.x, message_intro, &(dialog->surface), white, black, x, y, max_width);
-    y += config.font.height;
+    y += config.font->height;
 
     draw_util_text(**global.x, message_intro2, &(dialog->surface), white, black, x, y, max_width);
-    y += config.font.height;
+    y += config.font->height;
 
     char *bt_color = (char*)"#FFFFFF";
     if (backtrace_done < 0) {
@@ -275,13 +275,13 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
         bt_color = (char*)"#00AA00";
     }
     draw_util_text(**global.x, message_option_backtrace, &(dialog->surface), draw_util_hex_to_color(**global.x, global.x->root_screen, bt_color), black, x, y, max_width);
-    y += config.font.height;
+    y += config.font->height;
 
     draw_util_text(**global.x, message_option_restart, &(dialog->surface), white, black, x, y, max_width);
-    y += config.font.height;
+    y += config.font->height;
 
     draw_util_text(**global.x, message_option_forget, &(dialog->surface), white, black, x, y, max_width);
-    y += config.font.height;
+    y += config.font->height;
 }
 
 static void sighandler_handle_key_press(xcb_key_press_event_t *event) {

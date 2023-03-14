@@ -334,20 +334,6 @@ static void x_draw_decoration_after_title(Con *con, struct deco_render_params *p
 
     Rect *dr = &(con->deco_rect);
 
-    /* Redraw the right border to cut off any text that went past it.
-     * This is necessary when the text was drawn using XCB since cutting text off
-     * automatically does not work there. For pango rendering, this isn't necessary. */
-    if (!font_is_pango()) {
-        /* We actually only redraw the far right two pixels as that is the
-         * distance we keep from the edge (not the entire border width).
-         * Redrawing the entire border would cause text to be cut off. */
-        draw_util_rectangle(&(con->parent->frame_buffer), p->color->background,
-                            dr->x + dr->width - 2 * logical_px(global.x->root_screen, 1),
-                            dr->y,
-                            2 * logical_px(global.x->root_screen, 1),
-                            dr->height);
-    }
-
     /* Redraw the border. */
     x_draw_title_border(con, p);
 }
@@ -570,7 +556,7 @@ void x_draw_decoration(Con *con) {
     x_draw_title_border(con, p);
 
     /* 6: draw the icon and title */
-    int text_offset_y = (con->deco_rect.height - config.font.height) / 2;
+    int text_offset_y = (con->deco_rect.height - config.font->height) / 2;
     int text_offset_x = 0;
 
     i3Window *win = con->window;

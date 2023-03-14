@@ -1933,10 +1933,6 @@ i3String *con_parse_title_format(Con *con) {
 
     i3Window *win = con->window;
 
-    /* We need to ensure that we only escape the window title if pango
-     * is used by the current font. */
-    const bool pango_markup = font_is_pango();
-
     std::string title;
     std::string window_class;
     std::string instance;
@@ -1962,7 +1958,7 @@ i3String *con_parse_title_format(Con *con) {
 
     std::string formatted_str = format_placeholders(con->title_format, placeholders);
     i3String *formatted = i3string_from_utf8(formatted_str);
-    i3string_set_markup(formatted, pango_markup);
+    i3string_set_markup(formatted, true);
 
     return formatted;
 }

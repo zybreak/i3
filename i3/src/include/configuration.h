@@ -112,7 +112,7 @@ enum hide_edge_borders_mode_t { HEBM_NONE = adjacent_t::ADJ_NONE,
  */
 struct Config {
     const char *terminal;
-    i3Font font;
+    i3Font *font;
 
     char *ipc_socket_path;
     char *restart_state_path;

@@ -95,7 +95,7 @@ static xcb_connection_t *conn;
 static surface_t bar;
 static button_t btn_close;
 static xcb_screen_t *root_screen;
-static i3Font font;
+static i3Font *font;
 
 /* Result of get_colorpixel() for the various colors. */
 static color_t color_background;        /* background of the bar */
@@ -198,13 +198,13 @@ static int button_draw(button_t *button, int position) {
             position - button->width,
             MSG_PADDING - BTN_PADDING - BTN_BORDER,
             button->width,
-            font.height + 2 * BTN_PADDING + 2 * BTN_BORDER);
+            font->height + 2 * BTN_PADDING + 2 * BTN_BORDER);
     /* draw background */
     draw_util_rectangle(&bar, color_button_background,
             position - button->width + BTN_BORDER,
             MSG_PADDING - BTN_PADDING,
             text_width + 2 * BTN_PADDING,
-            font.height + 2 * BTN_PADDING);
+            font->height + 2 * BTN_PADDING);
     /* draw label */
     draw_util_text(conn, button->label, &bar, color_text, color_button_background,
             position - button->width + BTN_BORDER + BTN_PADDING,
@@ -434,7 +434,7 @@ static void draw_nagbar(i3String *prompt,
 
     init_dpi(conn, root_screen);
     font = load_font(conn, root_screen, pattern, true);
-    set_font(&font);
+    set_font(font);
 
 #if defined(__OpenBSD__)
     if (pledge("stdio rpath wpath cpath getpw proc exec", NULL) == -1)
@@ -443,7 +443,7 @@ static void draw_nagbar(i3String *prompt,
 
 
     /* Default values if we cannot determine the preferred window position. */
-    xcb_rectangle_t win_pos = (xcb_rectangle_t){50, 50, 500, static_cast<uint16_t>(font.height + 2 * MSG_PADDING + BAR_BORDER)};
+    xcb_rectangle_t win_pos = (xcb_rectangle_t){50, 50, 500, static_cast<uint16_t>(font->height + 2 * MSG_PADDING + BAR_BORDER)};
     if (position_on_primary) {
         set_window_position_primary(&win_pos);
     } else {
@@ -529,7 +529,7 @@ static void draw_nagbar(i3String *prompt,
     } __attribute__((__packed__)) strut_partial{};
     memset(&strut_partial, 0, sizeof(strut_partial));
 
-    strut_partial.top = font.height + logical_px(root_screen, 6);
+    strut_partial.top = font->height + logical_px(root_screen, 6);
     strut_partial.top_start_x = 0;
     strut_partial.top_end_x = 800;
 

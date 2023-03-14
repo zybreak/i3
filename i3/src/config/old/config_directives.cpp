@@ -151,7 +151,7 @@ namespace cfg {
 
     void font(struct criteria_state &criteria_state, struct ConfigResultIR &result, const char *font) {
         config.font = load_font(**global.x, global.x->root_screen, font, true);
-        set_font(&config.font);
+        set_font(config.font);
 
         /* Save the font pattern for using it as bar font later on */
         FREE(font_pattern);

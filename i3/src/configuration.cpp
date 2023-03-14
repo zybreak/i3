@@ -300,10 +300,10 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     extract_workspace_names_from_bindings();
     reorder_bindings();
 
-    if (config.font.type == i3Font::FONT_TYPE_NONE && load_type != config_load_t::C_VALIDATE) {
+    if (config.font == nullptr && load_type != config_load_t::C_VALIDATE) {
         ELOG("You did not specify required configuration option \"font\"\n");
         config.font = load_font(**global.x, global.x->root_screen, "fixed", true);
-        set_font(&config.font);
+        set_font(config.font);
     }
 
     if (load_type == config_load_t::C_RELOAD) {

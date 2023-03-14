@@ -43,7 +43,7 @@ using namespace std::literals;
 
 void ConfigApplier::font(const std::string &font) {
     config.font = load_font(**global.x, global.x->root_screen, font.c_str(), true);
-    set_font(&config.font);
+    set_font(config.font);
 }
 
 void ConfigApplier::binding(const std::string &bindtype, const std::string &modifiers,

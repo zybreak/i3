@@ -178,7 +178,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
         i3String *str = i3string_from_utf8(serialized);
         draw_util_text(*conn, str, &(state->surface), foreground, background,
                        logical_px(global.x->root_screen, 2),
-                       (n * (config.font.height + logical_px(global.x->root_screen, 2))) + logical_px(global.x->root_screen, 2),
+                       (n * (config.font->height + logical_px(global.x->root_screen, 2))) + logical_px(global.x->root_screen, 2),
                        state->rect.width - 2 * logical_px(global.x->root_screen, 2));
         delete str;
         n++;
@@ -189,7 +189,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
     i3String *line = i3string_from_utf8("⌚");
     int text_width = predict_text_width(*conn, global.x->root_screen, line);
     int x = (state->rect.width / 2) - (text_width / 2);
-    int y = (state->rect.height / 2) - (config.font.height / 2);
+    int y = (state->rect.height / 2) - (config.font->height / 2);
     draw_util_text(*conn, line, &(state->surface), foreground, background, x, y, text_width);
     delete line;
     xcb_aux_sync(restore_conn);

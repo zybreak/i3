@@ -19,18 +19,12 @@ int predict_text_width(xcb_connection_t *conn, xcb_screen_t *root_screen, i3Stri
 void set_font_colors(xcb_connection_t *conn, xcb_gcontext_t gc, color_t foreground, color_t background);
 
 /**
- * Returns true if and only if the current font is a pango font.
- *
- */
-bool font_is_pango();
-
-/**
  * Loads a font for usage, also getting its height. If fallback is true,
  * the fonts 'fixed' or '-misc-*' will be loaded instead of exiting. If any
  * font was previously loaded, it will be freed.
  *
  */
-i3Font load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *pattern, const bool fallback);
+i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *pattern, const bool fallback);
 
 /**
  * Defines the font to be used for the forthcoming calls.

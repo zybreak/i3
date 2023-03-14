@@ -316,9 +316,6 @@ void i3_restart(bool forget_layout) {
  *
  */
 std::string pango_escape_markup(std::string input) {
-    if (!font_is_pango())
-        return input;
-
     char *escaped = g_markup_escape_text(input.c_str(), -1);
 
     return escaped;
