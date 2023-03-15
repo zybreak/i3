@@ -422,7 +422,7 @@ static void workspace_defer_update_urgent_hint_cb(EV_P_ ev_timer *w, int revents
     Con *con = (Con*)w->data;
 
     ev_timer_stop(main_loop, con->urgency_timer);
-    FREE(con->urgency_timer);
+    delete con->urgency_timer;
 
     if (con->urgent) {
         DLOG(fmt::sprintf("Resetting urgency flag of con %p by timer\n",  (void*)con));
@@ -506,7 +506,7 @@ void workspace_show(Con *workspace) {
         if (focused->urgency_timer == nullptr) {
             DLOG(fmt::sprintf("Deferring reset of urgency flag of con %p on newly shown workspace %p\n",
                  (void*)focused, (void*)workspace));
-            focused->urgency_timer = (struct ev_timer*)scalloc(1, sizeof(struct ev_timer));
+            focused->urgency_timer = new ev_timer{};
             /* use a repeating timer to allow for easy resets */
             ev_timer_init(focused->urgency_timer, workspace_defer_update_urgent_hint_cb,
                           config.workspace_urgency_timer, config.workspace_urgency_timer);

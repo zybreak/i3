@@ -34,9 +34,9 @@ struct Colorpixel {
     uint32_t pixel;
 };
 
-std::deque<Colorpixel*> colorpixels{};
+static std::deque<std::unique_ptr<Colorpixel>> colorpixels{};
 
-uint8_t RGB_8_TO_16(uint8_t i) {
+static uint8_t RGB_8_TO_16(uint8_t i) {
     return (65535 * ((i)&0xFF) / 255);
 }
 
@@ -87,14 +87,14 @@ static uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen
     free(reply);
 
     /* Store the result in the cache */
-    auto *cache_pixel = (Colorpixel*)scalloc(1, sizeof(struct Colorpixel));
+    auto cache_pixel = std::make_unique<Colorpixel>();
 
     strncpy(cache_pixel->hex, hex, 7);
     cache_pixel->hex[7] = '\0';
 
     cache_pixel->pixel = pixel;
 
-    colorpixels.push_front(cache_pixel);
+    colorpixels.push_front(std::move(cache_pixel));
 
     return pixel;
 }

@@ -56,8 +56,8 @@ static std::deque<std::unique_ptr<placeholder_state>> states{};
 
 static xcb_connection_t *restore_conn;
 
-static struct ev_io *xcb_watcher;
-static struct ev_prepare *xcb_prepare;
+static ev_io *xcb_watcher;
+static ev_prepare *xcb_prepare;
 
 static void restore_handle_event(int type, xcb_generic_event_t *event);
 
@@ -115,8 +115,8 @@ void restore_connect() {
          * https://cgit.freedesktop.org/xcb/libxcb/commit/src/xcb_conn.c?id=4dcbfd77b
          */
         xcb_disconnect(restore_conn);
-        free(xcb_watcher);
-        free(xcb_prepare);
+        delete xcb_watcher;
+        delete xcb_prepare;
     }
 
     int screen;
@@ -131,8 +131,8 @@ void restore_connect() {
         errx(EXIT_FAILURE, "Cannot open display");
     }
 
-    xcb_watcher = (struct ev_io*)scalloc(1, sizeof(struct ev_io));
-    xcb_prepare = (struct ev_prepare*)scalloc(1, sizeof(struct ev_prepare));
+    xcb_watcher = new ev_io{};
+    xcb_prepare = new ev_prepare{};
 
     ev_io_init(xcb_watcher, restore_xcb_got_event, xcb_get_file_descriptor(restore_conn), EV_READ);
     ev_io_start(main_loop, xcb_watcher);

@@ -82,7 +82,7 @@ static void ipc_push_pending(ipc_client *client) {
         client->buffer_size = 0;
         if (client->timeout) {
             ev_timer_stop(main_loop, client->timeout);
-            FREE(client->timeout);
+            delete client->timeout;
         }
         ev_io_stop(main_loop, client->write_callback);
         return;
@@ -145,12 +145,12 @@ static void ipc_send_client_message(ipc_client *client, const uint32_t message_t
 
 ipc_client::~ipc_client() {
     ev_io_stop(main_loop, read_callback);
-    FREE(read_callback);
+    delete read_callback;
     ev_io_stop(main_loop, write_callback);
-    FREE(write_callback);
+    delete write_callback;
     if (timeout) {
         ev_timer_stop(main_loop, timeout);
-        FREE(timeout);
+        delete timeout;
     }
 
     free(buffer);
@@ -1212,12 +1212,12 @@ void ipc_new_client(EV_P_ struct ev_io *w, int revents) {
 ipc_client::ipc_client(EV_P_ int fd) {
     this->fd = fd;
 
-    read_callback = (ev_io*)scalloc(1, sizeof(struct ev_io));
+    read_callback = new ev_io{};
     read_callback->data = this;
     ev_io_init(read_callback, ipc_receive_message, fd, EV_READ);
     ev_io_start(EV_A_ read_callback);
 
-    write_callback = (ev_io*)scalloc(1, sizeof(struct ev_io));
+    write_callback = new ev_io{};
     write_callback->data = this;
     ev_io_init(write_callback, ipc_socket_writeable_cb, fd, EV_WRITE);
 }
