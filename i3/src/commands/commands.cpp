@@ -1842,7 +1842,7 @@ namespace cmd {
 
                 if (current->window != nullptr) {
                     i3String *formatted_title = con_parse_title_format(current);
-                    ewmh_update_visible_name(current->window->id, i3string_as_utf8(formatted_title));
+                    ewmh_update_visible_name(current->window->id, formatted_title->utf8);
                     delete formatted_title;
                     formatted_title = nullptr;
                 }

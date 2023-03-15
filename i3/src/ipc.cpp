@@ -500,9 +500,9 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
     j["window_rect"] = dump_rect(con->window_rect);
     j["geometry"] = dump_rect(con->geometry);
 
-    if (con->window && con->window->name)
-        j["name"] = i3string_as_utf8(con->window->name);
-    else if (!con->name.empty())
+    if (con->window && con->window->name) {
+        j["name"] = con->window->name->utf8;
+    } else if (!con->name.empty())
         j["name"] = con->name;
 
     if (!con->title_format.empty()) {
@@ -541,7 +541,7 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
         }
 
         if (con->window->name != nullptr) {
-            map["title"] = i3string_as_utf8(con->window->name);
+            map["title"] = con->window->name->utf8;
         }
 
         if (con->window->transient_for != XCB_NONE)

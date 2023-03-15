@@ -577,7 +577,7 @@ static bool window_name_changed(i3Window *window, char *old_name) {
     if ((old_name == nullptr) ^ (window->name == nullptr))
         return true;
 
-    return (strcmp(old_name, i3string_as_utf8(window->name)) != 0);
+    return (strcmp(old_name, window->name->utf8) != 0);
 }
 
 /*
@@ -585,7 +585,7 @@ static bool window_name_changed(i3Window *window, char *old_name) {
  *
  */
 static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
-    char *old_name = (con->window->name != nullptr ? sstrdup(i3string_as_utf8(con->window->name)) : nullptr);
+    char *old_name = (con->window->name != nullptr ? sstrdup(con->window->name->utf8) : nullptr);
 
     con->window->window_update_name(prop);
 
@@ -607,7 +607,7 @@ static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
  *
  */
 static bool handle_windowname_change_legacy(Con *con, xcb_get_property_reply_t *prop) {
-    char *old_name = (con->window->name != nullptr ? sstrdup(i3string_as_utf8(con->window->name)) : nullptr);
+    char *old_name = (con->window->name != nullptr ? sstrdup(con->window->name->utf8) : nullptr);
 
     con->window->window_update_name_legacy(prop);
 

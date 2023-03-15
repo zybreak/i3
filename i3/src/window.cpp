@@ -94,14 +94,14 @@ void i3Window::window_update_name(xcb_get_property_reply_t *prop) {
     this->name = i3string_from_utf8(name);
     free(name);
 
-    Con *con = con_by_window_id(this->id);
+    Con *con = con_by_window_id(id);
     if (con != nullptr && !con->title_format.empty()) {
         i3String *name = con_parse_title_format(con);
-        ewmh_update_visible_name(this->id, i3string_as_utf8(name));
+        ewmh_update_visible_name(this->id, name->utf8);
         delete name;
     }
     this->name_x_changed = true;
-     LOG(fmt::sprintf("_NET_WM_NAME changed to \"%s\"\n", i3string_as_utf8(this->name)));
+    LOG(fmt::sprintf("_NET_WM_NAME changed to \"%s\"\n", this->name->utf8));
 
     this->uses_net_wm_name = true;
 }
@@ -133,11 +133,11 @@ void i3Window::window_update_name_legacy(xcb_get_property_reply_t *prop) {
     Con *con = con_by_window_id(this->id);
     if (con != nullptr && !con->title_format.empty()) {
         i3String *name = con_parse_title_format(con);
-        ewmh_update_visible_name(this->id, i3string_as_utf8(name));
+        ewmh_update_visible_name(this->id, this->name->utf8);
         delete name;
     }
 
-    LOG(fmt::sprintf("WM_NAME changed to \"%s\"\n", i3string_as_utf8(this->name)));
+    LOG(fmt::sprintf("WM_NAME changed to \"%s\"\n", this->name->utf8));
     LOG("Using legacy window title. Note that in order to get Unicode window "
         "titles in i3, the application has to set _NET_WM_NAME (UTF-8)\n");
 
