@@ -630,7 +630,7 @@ int main(int argc, char *argv[]) {
         enable_coredumps();
     }
 
-    LOG(fmt::sprintf("i3 %s starting\n",  i3_version));
+    LOG(fmt::sprintf("i3 %s starting\n", I3_VERSION));
 
     /* Prefetch X11 extensions that we are interested in. */
     global.x = new X();

@@ -44,7 +44,7 @@ program_arguments parse_args(int argc, char *argv[]) {
                 args.only_check_config = true;
                 break;
             case 'v':
-                printf("i3 version %s © 2009 Michael Stapelberg and contributors\n", i3_version);
+                printf("i3 version %s © 2009 Michael Stapelberg and contributors\n", I3_VERSION);
                 exit(EXIT_SUCCESS);
                 break;
             case 'V':

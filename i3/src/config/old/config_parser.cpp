@@ -798,7 +798,7 @@ parse_file_result_t OldParser::parse_file() {
 
     if (use_nagbar && (has_errors || invalid_sets)) {
 #ifndef TEST_PARSER
-        ELOG(fmt::sprintf("FYI: You are using i3 version %s\n",  i3_version));
+        ELOG(fmt::sprintf("FYI: You are using i3 version %s\n", I3_VERSION));
 
         start_config_error_nagbar(has_errors || invalid_sets);
 #endif

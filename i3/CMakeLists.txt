@@ -58,7 +58,6 @@ add_executable(i3
   src/sync.cpp
   src/tree.cpp
   src/util.cpp
-  src/version.cpp
   src/window.cpp
   src/workspace.cpp
   src/xcb.cpp

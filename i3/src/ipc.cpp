@@ -827,7 +827,7 @@ static void handle_get_version(ipc_client *client, uint8_t *message, int size, u
     j["major"] = MAJOR_VERSION;
     j["minor"] = MINOR_VERSION;
     j["patch"] = PATCH_VERSION;
-    j["human_readable"] = i3_version;
+    j["human_readable"] = I3_VERSION;
     j["loaded_config_file_name"] = current_configpath;
 
     auto a = nlohmann::json::array();

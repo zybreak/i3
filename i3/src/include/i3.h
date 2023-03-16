@@ -44,9 +44,6 @@
 #define XCB_BUTTON_SCROLL_LEFT 6
 #define XCB_BUTTON_SCROLL_RIGHT 7
 
-/** Git commit identifier, from version.c */
-extern const char *i3_version;
-
 /**
  * The EWMH support window that is used to indicate that an EWMH-compliant
  * window manager is present. This window is created when i3 starts and
