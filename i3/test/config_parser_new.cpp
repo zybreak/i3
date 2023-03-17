@@ -10,8 +10,13 @@ bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *
  * by t/187-commands-parser.t.
  ******************************************************************************/
 int main(int argc, char *argv[]) {
-    ConfigApplierAdapter applier{};
+    std::stringbuf output;
+    ConfigApplierAdapter applier{&output};
 
-    NewParser parser{"<stdin>", config_load_t::C_LOAD, applier};
+    ResourceDatabase resourceDatabase{nullptr};
+
+    NewParser parser{resourceDatabase, &std::cin, config_load_t::C_LOAD, applier};
     parser.parse_file();
+
+    std::cout << output.str() << std::endl;
 }

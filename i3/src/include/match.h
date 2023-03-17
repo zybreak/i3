@@ -14,7 +14,7 @@
 #pragma once
 
 #include <config.h>
-#include "regex.h"
+#include "i3_regex.h"
 #include "window.h"
 
 class i3Window;

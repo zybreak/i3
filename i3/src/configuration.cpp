@@ -10,6 +10,7 @@
  */
 #include <config.h>
 
+#include <fstream>
 #include <cassert>
 #include <err.h>
 #include <cerrno>
@@ -38,6 +39,8 @@
 #include "global.h"
 #include "config/new/config_parser.h"
 #include "config/new/config_applier.h"
+
+using namespace std::literals;
 
 std::string current_configpath{};
 char *current_config = nullptr;
@@ -283,8 +286,19 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     parse_file_result_t result;
     try {
         if (global.new_parser) {
+            std::string filename = resolved_path;
+            std::istream *stream;
+            std::ifstream if_stream{};
+
+            if (filename == "<stdin>"s) {
+                stream = &std::cin;
+            } else {
+                if_stream.open(filename);
+                stream = &if_stream;
+            }
+
             ConfigApplier configListener{};
-            NewParser np{ resolved_path, load_type, configListener };
+            NewParser np{ stream, load_type, configListener };
             result = np.parse_file();
         } else {
             OldParser op = OldParser{ resolved_path, load_type };

@@ -132,10 +132,83 @@ list(APPEND include_dirs
         "${PROJECT_SOURCE_DIR}/lib"
         "src"
         "src/include"
-        "src/config/old"
         )
 
-add_dependencies(i3 libi3ipc)
+add_dependencies(i3 libi3ipc Commands Config)
 target_link_libraries(i3 PUBLIC ${libraries})
-target_include_directories(i3 PUBLIC ${include_dirs})
+target_include_directories(i3 PUBLIC ${include_dirs} "src/config/old")
 target_compile_options(i3 PUBLIC ${compile_options})
+
+find_package(GTest CONFIG)
+add_executable(FooTest test/foo_test.cpp)
+target_link_libraries(FooTest GTest::gtest_main)
+
+add_executable(test.config_parser_new_test
+        test/config_parser_new_test.cpp
+        src/config/new/config_parser.cpp
+        src/config/new/parser-specs/configBaseListener.cpp
+        src/config/new/parser-specs/configLexer.cpp
+        src/config/new/parser-specs/configParser.cpp
+        src/config/new/parser-specs/configListener.cpp
+        src/global.cpp
+        src/log.cpp
+        test/mock_new.cpp
+        )
+target_link_libraries(test.config_parser_new_test PUBLIC ${libraries} GTest::gtest_main)
+target_include_directories(test.config_parser_new_test PUBLIC ${include_dirs} "src/config/new")
+target_compile_options(test.config_parser_new_test PUBLIC ${compile_options} -DTEST_PARSER)
+
+add_executable(test.config_parser_new
+    test/config_parser_new.cpp
+    src/config/new/config_parser.cpp
+    src/config/new/parser-specs/configBaseListener.cpp
+    src/config/new/parser-specs/configLexer.cpp
+    src/config/new/parser-specs/configParser.cpp
+    src/config/new/parser-specs/configListener.cpp
+    src/global.cpp
+    src/log.cpp
+    test/mock_new.cpp
+)
+target_link_libraries(test.config_parser_new PUBLIC ${libraries})
+target_include_directories(test.config_parser_new PUBLIC ${include_dirs} "src/config/new")
+target_compile_options(test.config_parser_new PUBLIC ${compile_options} -DTEST_PARSER)
+
+add_executable(test.commands_parser
+    test/commands_parser.cpp
+    src/commands/commands_parser.cpp
+    src/parser_stack.cpp
+    src/global.cpp
+    src/log.cpp
+    src/safewrappers.cpp
+    test/mock.cpp
+)
+add_dependencies(test.commands_parser Commands)
+target_link_libraries(test.commands_parser PUBLIC ${libraries})
+target_include_directories(test.commands_parser PUBLIC ${include_dirs} "src/config/old")
+target_compile_options(test.commands_parser PUBLIC ${compile_options} -DTEST_PARSER)
+
+add_executable(test.config_parser
+    test/config_parser.cpp
+    src/config/old/config_parser.cpp
+    src/parser_stack.cpp
+    src/global.cpp
+    src/log.cpp
+    src/safewrappers.cpp
+    test/mock.cpp
+)
+add_dependencies(test.config_parser Config)
+target_link_libraries(test.config_parser PUBLIC ${libraries})
+target_include_directories(test.config_parser PUBLIC ${include_dirs} "src/config/old")
+target_compile_options(test.config_parser PUBLIC ${compile_options} -DTEST_PARSER)
+
+#gtest::gtest
+#include(CTest)
+include(GoogleTest)
+gtest_discover_tests(FooTest)
+#gtest_discover_tests(test.config_parser_new_test)
+
+enable_testing()
+
+add_test(NAME test.config_parser_new_test
+        COMMAND test.config_parser_new_test.py
+)

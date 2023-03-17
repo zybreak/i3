@@ -23,7 +23,7 @@
 #include "con.h"
 #include "load_layout.h"
 #include "match.h"
-#include "regex.h"
+#include "i3_regex.h"
 
 #include <clocale>
 

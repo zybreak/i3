@@ -17,7 +17,7 @@
 #include "wrapper.h"
 #include "dpi.h"
 #include "util.h"
-#include "regex.h"
+#include "i3_regex.h"
 
 /*
  * Creates a new 'regex' struct containing the given pattern and a PCRE

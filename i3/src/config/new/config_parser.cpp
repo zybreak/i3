@@ -8,6 +8,7 @@
 #include "config_parser.h"
 #include "fn.hpp"
 #include "config_applier.h"
+#include "resource_database.h"
 #include <ranges>
 #include <utility>
 #include <algorithm>
@@ -21,56 +22,13 @@ namespace fn = rangeless::fn;
 using fn::operators::operator%;   // arg % fn   equivalent to fn(std::forward<Arg>(arg))
 using fn::operators::operator%=;  // arg %= fn; equivalent to arg = fn( std::move(arg));
 
-class ResourceDatabase {
-    xcb_xrm_database_t *database = nullptr;
-    xcb_connection_t *conn;
-   public:
-
-    explicit ResourceDatabase(xcb_connection_t *conn) : conn(conn) {
-    }
-
-    std::string get_resource(std::string &name, std::string &fallback) {
-        /* Load the resource database lazily. */
-        if (database == nullptr) {
-            database = xcb_xrm_database_from_default(conn);
-
-            if (database == nullptr) {
-                ELOG("Failed to open the resource database.\n");
-
-                /* Load an empty database so we don't keep trying to load the
-                 * default database over and over again. */
-                database = xcb_xrm_database_from_string("");
-
-                return fallback;
-            }
-        }
-
-        char *resource;
-        xcb_xrm_resource_get_string(database, name.c_str(), nullptr, &resource);
-
-        if (resource == nullptr) {
-            DLOG(fmt::sprintf("Could not get resource '%s', using fallback '%s'.\n",  name, fallback));
-            return fallback;
-        }
-
-        return resource;
-    }
-
-    ~ResourceDatabase() {
-        if (database) {
-            xcb_xrm_database_free(database);
-        }
-    }
-};
-
-
 class VariableListener : public configBaseListener {
 private:
     ResourceDatabase resourceDatabase;
 public:
     std::map<std::string, std::string> variables{};
 
-    explicit VariableListener(xcb_connection_t *conn) : resourceDatabase{conn} {
+    explicit VariableListener(ResourceDatabase resourceDatabase) : resourceDatabase(resourceDatabase) {
     }
 
     void enterSet(configParser::SetContext *ctx) override {
@@ -383,7 +341,7 @@ public:
 
 };
 
-NewParser::NewParser(const char *filename, config_load_t load_type, BaseConfigApplier &applier) : applier(applier), filename(filename), load_type(load_type) {
+NewParser::NewParser(ResourceDatabase resourceDatabase, std::istream *stream, config_load_t load_type, BaseConfigApplier &applier) : applier(applier), stream(stream), load_type(load_type), resourceDatabase(resourceDatabase) {
 
 }
 
@@ -396,16 +354,6 @@ class ErrorListener : public BaseErrorListener {
 };
 
 parse_file_result_t NewParser::parse_file() {
-
-    istream *stream;
-    ifstream ifstream{};
-
-    if (filename == "<stdin>"s) {
-        stream = &cin;
-    } else {
-        ifstream.open(filename);
-        stream = &ifstream;
-    }
 
     ANTLRInputStream input{*stream};
     configLexer lexer{&input};
@@ -428,7 +376,7 @@ parse_file_result_t NewParser::parse_file() {
     //cout << tree->toStringTree(&parser, true) << endl << endl;
 
     // 1st pass, store all variables
-    VariableListener variableListener{**global.x};
+    VariableListener variableListener{resourceDatabase};
     tree::ParseTreeWalker::DEFAULT.walk(&variableListener, tree);
 
     // 2nd pass, execute instructions

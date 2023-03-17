@@ -45,7 +45,7 @@ char *previous_workspace_name = nullptr;
 
 /* NULL-terminated list of workspace names (in order) extracted from
  * keybindings. */
-static char **binding_workspace_names = nullptr;
+static std::deque<std::string> binding_workspace_names{};
 
 /*
  * Returns the workspace with the given name or NULL if such a workspace does
@@ -201,12 +201,7 @@ Con *workspace_get(const std::string &num) {
  */
 void extract_workspace_names_from_bindings() {
     int n = 0;
-    if (binding_workspace_names != nullptr) {
-        for (int i = 0; binding_workspace_names[i] != nullptr; i++) {
-            free(binding_workspace_names[i]);
-        }
-        FREE(binding_workspace_names);
-    }
+    binding_workspace_names.clear();
     for (auto &bind : current_mode->bindings) {
         DLOG(fmt::sprintf("binding with command %s\n",  bind->command));
         if (bind->command.length() < strlen("workspace ") ||
@@ -248,11 +243,8 @@ void extract_workspace_names_from_bindings() {
         }
          DLOG(fmt::sprintf("Saving workspace name \"%s\"\n", target_name));
 
-        binding_workspace_names = (char**)srealloc(binding_workspace_names, ++n * sizeof(char *));
-        binding_workspace_names[n - 1] = target_name;
+        binding_workspace_names.emplace_back(target_name);
     }
-    binding_workspace_names = (char**)srealloc(binding_workspace_names, ++n * sizeof(char *));
-    binding_workspace_names[n - 1] = nullptr;
 }
 
 /*
@@ -268,12 +260,11 @@ Con *create_workspace_on_output(Output *output, Con *content) {
     ws->type = CT_WORKSPACE;
 
     /* try the configured workspace bindings first to find a free name */
-    for (int n = 0; binding_workspace_names[n] != nullptr; n++) {
-        char *target_name = binding_workspace_names[n];
+    for (const auto &target_name : binding_workspace_names) {
         /* Ensure that this workspace is not assigned to a different output —
          * otherwise we would create it, then move it over to its output, then
          * find a new workspace, etc… */
-        Con *assigned = get_assigned_output(target_name, -1);
+        Con *assigned = get_assigned_output(target_name.c_str(), -1);
         if (assigned && assigned != output->con) {
             continue;
         }

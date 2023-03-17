@@ -29,7 +29,7 @@
 #include "configuration.h"
 #include "con.h"
 #include "match.h"
-#include "regex.h"
+#include "i3_regex.h"
 
 /* From sys/time.h, not sure if it’s available on all systems. */
 #define _i3_timercmp(a, b, CMP) \
