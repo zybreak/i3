@@ -26,7 +26,7 @@ import subprocess
 def parser_calls(command):
     process = subprocess.Popen(["./test.config_parser_new"], stdin=subprocess.PIPE, stderr=subprocess.PIPE,
                                stdout=subprocess.PIPE)
-    stdout, stderr = process.communicate(input=command.encode('utf-8'))
+    stdout, stderr = process.communicate(input=command.encode('utf-8').strip())
 
     return stdout.decode('utf-8')
 
@@ -39,8 +39,8 @@ def assert_is(actual, expected, name):
         print(f"OK {name}")
     else:
         print(f"FAILED {name}")
-        print(" expected-\n -> " + " -> ".join([s for s in expected.splitlines(True)]))
-        print(" actual-:\n -> " + " -> ".join([s for s in actual.splitlines(True)]))
+        print(" expected:\n -> " + " -> ".join([s for s in expected.splitlines(True)]))
+        print(" actual:\n -> " + " -> ".join([s for s in actual.splitlines(True)]))
 
 
 config = """
