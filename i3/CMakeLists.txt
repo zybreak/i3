@@ -209,6 +209,12 @@ gtest_discover_tests(FooTest)
 
 enable_testing()
 
-add_test(NAME test.config_parser_new_test
-        COMMAND test.config_parser_new_test.py
+add_test(NAME test.config_parser_new
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test/201-config-parser_new.py
+        WORKING_DIRECTORY $<TARGET_FILE_DIR:test.config_parser_new>
+)
+
+add_test(NAME test.config_parser
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test/201-config-parser.py
+        WORKING_DIRECTORY $<TARGET_FILE_DIR:test.config_parser>
 )

@@ -21,6 +21,7 @@
 import os
 import subprocess
 
+print("CWD: " + os.getcwd())
 
 def parser_calls(command):
     process = subprocess.Popen(["./test.config_parser"], stdin=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -42,7 +43,7 @@ def assert_is(actual, expected, name):
         print(f"FAILED {name}")
         print(" expected:\n -> " + " -> ".join([s for s in expected.splitlines(True)]))
         print(" actual:\n -> " + " -> ".join([s for s in actual.splitlines(True)]))
-
+        exit(1)
 
 config = """
 mode "meh" {
