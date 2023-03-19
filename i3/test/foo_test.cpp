@@ -1,17 +1,10 @@
 #include <gtest/gtest.h>
+#include "../src/include/configuration.h"
+#include "../src/config/old/config_parser.h"
 
-TEST(FooTest, ReferenceCheck){
+bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *filename);
 
-  const int NumberOfElements = 10;
-
-
-  EXPECT_EQ(
-      10,
-      NumberOfElements
-    );
-}
-
-TEST(FooTest, ReferenceCheck2){
+TEST(FooTest, ModeBindingsOk){
 
   std::string config = R"(
 mode "meh" {
@@ -27,10 +20,27 @@ mode "meh" {
 }
 )";
 
-  std::equal(config.begin(), config.end(), "hej");
+  std::string expected = R"(
+cfg::enter_mode((null), meh)
+cfg::mode_binding(bindsym, Mod1,Shift, x, (null), (null), (null), (null), resize grow)
+cfg::mode_binding(bindcode, Mod1, 44, (null), (null), (null), (null), resize shrink)
+cfg::mode_binding(bindsym, Mod1, x, --release, (null), (null), (null), exec foo)
+cfg::mode_binding(bindsym, (null), button3, (null), (null), --whole-window, (null), nop)
+cfg::mode_binding(bindsym, (null), button3, --release, (null), --whole-window, (null), nop)
+cfg::mode_binding(bindsym, (null), button3, (null), --border, (null), (null), nop)
+cfg::mode_binding(bindsym, (null), button3, --release, --border, (null), (null), nop)
+cfg::mode_binding(bindsym, (null), button3, (null), (null), (null), --exclude-titlebar, nop)
+cfg::mode_binding(bindsym, (null), button3, (null), --border, --whole-window, --exclude-titlebar, nop)
+)";
+
+  struct parser_ctx ctx = {
+      .load_type = config_load_t::C_LOAD,
+  };
+
+  parse_config(ctx, config, "<stdin>");
 
   EXPECT_EQ(
       config,
-      "hej"
+      expected
   );
 }

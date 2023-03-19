@@ -140,23 +140,19 @@ target_include_directories(i3 PUBLIC ${include_dirs} "src/config/old")
 target_compile_options(i3 PUBLIC ${compile_options})
 
 find_package(GTest CONFIG)
-add_executable(FooTest test/foo_test.cpp)
-target_link_libraries(FooTest GTest::gtest_main)
-
-add_executable(test.config_parser_new_test
-        test/config_parser_new_test.cpp
-        src/config/new/config_parser.cpp
-        src/config/new/parser-specs/configBaseListener.cpp
-        src/config/new/parser-specs/configLexer.cpp
-        src/config/new/parser-specs/configParser.cpp
-        src/config/new/parser-specs/configListener.cpp
+add_executable(FooTest
+        test/foo_test.cpp
+        src/config/old/config_parser.cpp
+        src/parser_stack.cpp
         src/global.cpp
         src/log.cpp
-        test/mock_new.cpp
-        )
-target_link_libraries(test.config_parser_new_test PUBLIC ${libraries} GTest::gtest_main)
-target_include_directories(test.config_parser_new_test PUBLIC ${include_dirs} "src/config/new")
-target_compile_options(test.config_parser_new_test PUBLIC ${compile_options} -DTEST_PARSER)
+        src/safewrappers.cpp
+        test/mock.cpp
+)
+add_dependencies(FooTest Config)
+target_link_libraries(FooTest PUBLIC ${libraries} GTest::gtest_main)
+target_include_directories(FooTest PUBLIC ${include_dirs} "src/config/old")
+target_compile_options(FooTest PUBLIC ${compile_options} -DTEST_PARSER)
 
 add_executable(test.config_parser_new
     test/config_parser_new.cpp
@@ -201,20 +197,22 @@ target_link_libraries(test.config_parser PUBLIC ${libraries})
 target_include_directories(test.config_parser PUBLIC ${include_dirs} "src/config/old")
 target_compile_options(test.config_parser PUBLIC ${compile_options} -DTEST_PARSER)
 
-#gtest::gtest
-#include(CTest)
+include(CTest)
 include(GoogleTest)
 gtest_discover_tests(FooTest)
-#gtest_discover_tests(test.config_parser_new_test)
 
 enable_testing()
 
+find_package(Python REQUIRED)
+
 add_test(NAME test.config_parser_new
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test/201-config-parser_new.py
+        COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/201-config-parser_new.py
         WORKING_DIRECTORY $<TARGET_FILE_DIR:test.config_parser_new>
 )
+add_dependencies(test.config_parser_new test.config_parser_new)
 
 add_test(NAME test.config_parser
-        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/test/201-config-parser.py
+        COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/201-config-parser.py
         WORKING_DIRECTORY $<TARGET_FILE_DIR:test.config_parser>
 )
+add_dependencies(test.config_parser test.config_parser)

@@ -283,6 +283,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     LOG(fmt::sprintf("Parsing configfile %s\n",  resolved_path));
     FREE(current_config);
 
+    ResourceDatabase resourceDatabase{*global.x->conn};
     parse_file_result_t result;
     try {
         if (global.new_parser) {
@@ -298,7 +299,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
             }
 
             ConfigApplier configListener{};
-            NewParser np{ stream, load_type, configListener };
+            NewParser np{ resourceDatabase, stream, load_type, configListener };
             result = np.parse_file();
         } else {
             OldParser op = OldParser{ resolved_path, load_type };
