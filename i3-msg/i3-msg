@@ -3,15 +3,16 @@
 import json
 
 from i3ipc import Connection
+from i3ipc.events import IpcBaseEvent
 from argparse import ArgumentParser
 
 
-def handle_event(self, event):
-    if not self.quiet:
+def handle_event(i3: Connection, event: IpcBaseEvent):
+    if not i3.quiet:
         print(json.dumps(event.ipc_data))
 
-    if not self.monitor:
-        self.main_quit()
+    if not i3.monitor:
+        i3.main_quit()
 
 
 def main():
@@ -48,8 +49,8 @@ def main():
 
     try:
         i3 = Connection(socket_path=args.socket)
-    except:
-        print("Could not connect to i3")
+    except Exception as e:
+        print("Could not connect to i3", e)
         exit()
 
     reply = None
