@@ -199,20 +199,28 @@ target_compile_options(test.config_parser PUBLIC ${compile_options} -DTEST_PARSE
 
 include(CTest)
 include(GoogleTest)
+include(Pytest.cmake)
 gtest_discover_tests(FooTest)
-
-enable_testing()
 
 find_package(Python REQUIRED)
 
-add_test(NAME test.config_parser_new
-        COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/201-config-parser_new.py
-        WORKING_DIRECTORY $<TARGET_FILE_DIR:test.config_parser_new>
+pytest_discover_tests(
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/test
+        COLLECTION_ARGS "-m not slow"
+        EXECUTION_ARGS "--cmd=$<TARGET_FILE_DIR:test.config_parser>"
+        #TEST_PREFIX "PYTEST_"
+        #TEST_SUFFIX "_${CMAKE_SYSTEM_PROCESSOR}"
+        XML_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/report
 )
-add_dependencies(test.config_parser_new test.config_parser_new)
 
-add_test(NAME test.config_parser
-        COMMAND ${Python_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test/201-config-parser.py
-        WORKING_DIRECTORY $<TARGET_FILE_DIR:test.config_parser>
-)
-add_dependencies(test.config_parser test.config_parser)
+enable_testing()
+
+#add_test(NAME config_parser_new
+#        COMMAND ${Python_EXECUTABLE} -m pytest ${CMAKE_CURRENT_SOURCE_DIR}/test/test_config-parser_new.py
+#        WORKING_DIRECTORY $<TARGET_FILE_DIR:test.config_parser_new>
+#)
+
+#add_test(NAME config_parser
+#        COMMAND ${Python_EXECUTABLE} -m pytest ${CMAKE_CURRENT_SOURCE_DIR}/test/test_config-parser.py
+#        WORKING_DIRECTORY $<TARGET_FILE_DIR:test.config_parser>
+#)
