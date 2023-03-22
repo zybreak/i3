@@ -10,6 +10,8 @@ set(CMAKE_TOOLCHAIN_FILE ${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
 
 configure_file(config.h.in config.h)
 
+include(CTest)
+
 find_package(Perl REQUIRED)
 
 add_custom_target(Commands ALL
