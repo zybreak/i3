@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <err.h>
 #include <string>
 #include "config_parser.h"
 #include "config_adapter.h"
@@ -16,7 +17,11 @@ int main(int argc, char *argv[]) {
     ResourceDatabase resourceDatabase{nullptr};
 
     NewParser parser{resourceDatabase, &std::cin, config_load_t::C_LOAD, applier};
-    parser.parse_file();
+    try {
+        parser.parse_file();
+    } catch (std::exception &e) {
+        errx(EXIT_FAILURE, "Error parsing configuration file: %s\n", e.what());
+    }
 
     std::cout << output.str() << std::endl;
 }

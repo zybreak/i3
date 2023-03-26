@@ -341,14 +341,14 @@ public:
 
 };
 
-NewParser::NewParser(ResourceDatabase resourceDatabase, std::istream *stream, config_load_t load_type, BaseConfigApplier &applier) : applier(applier), stream(stream), load_type(load_type), resourceDatabase(resourceDatabase) {
+NewParser::NewParser(const ResourceDatabase& resourceDatabase, std::istream *stream, config_load_t load_type, BaseConfigApplier &applier) : applier(applier), stream(stream), load_type(load_type), resourceDatabase(resourceDatabase) {
 
 }
 
 class ErrorListener : public BaseErrorListener {
     void syntaxError(Recognizer *recognizer, Token * offendingSymbol, size_t line, size_t charPositionInLine,
                              const std::string &msg, std::exception_ptr e) override {
-        std::cout << "ERROR" << std::endl;
+        std::cout << "ERROR " << fmt::sprintf("(%d:%d): ", line, charPositionInLine) << msg << std::endl;
     }
 
 };
@@ -359,15 +359,17 @@ parse_file_result_t NewParser::parse_file() {
     configLexer lexer{&input};
 
     lexer.removeErrorListeners();
-    lexer.addErrorListener(new ErrorListener());
+    ErrorListener pListener{};;
+    lexer.addErrorListener(&pListener);
 
     CommonTokenStream tokens{&lexer};
     configParser parser{&tokens};
-    auto tree = parser.file();
 
     //parser.setErrorHandler(new BailErrorStrategy());
     parser.removeErrorListeners();
-    parser.addErrorListener(new ErrorListener());
+    parser.addErrorListener(&pListener);
+
+    auto tree = parser.file();
 
     if (parser.getNumberOfSyntaxErrors() > 0) {
         throw std::runtime_error("we got a problem, sir");
