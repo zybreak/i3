@@ -76,7 +76,7 @@ list(APPEND libraries ${libsn_dep_LINK_LIBRARIES})
 list(APPEND include_dirs ${libsn_dep_INCLUDE_DIRS})
 list(APPEND compile_options ${libsn_dep_CFLAGS_OTHER})
 
-find_package(libev CONFIG REQUIRED 4.33)
+find_package(libev)
 list(APPEND libraries libev::libev)
 
 find_package(X11 REQUIRED COMPONENTS xcb xcb_xkb xcb_randr xcb_util xcb_keysyms xcb_icccm xkbcommon xkbcommon_X11)
@@ -97,7 +97,7 @@ list(APPEND libraries ${xcb_util_xrm_dep_LINK_LIBRARIES})
 list(APPEND include_dirs ${xcb_util_xrm_dep_INCLUDE_DIRS})
 list(APPEND compile_options ${xcb_util_xrm_dep_CFLAGS_OTHER})
 
-find_package(PCRE CONFIG REQUIRED 8.4)
+find_package(PCRE CONFIG)
 list(APPEND libraries pcre::libpcre)
 
 pkg_check_modules(cairo_dep REQUIRED cairo>=1.14.4)
@@ -110,7 +110,7 @@ list(APPEND libraries ${pangocairo_dep_LINK_LIBRARIES})
 list(APPEND include_dirs ${pangocairo_dep_INCLUDE_DIRS})
 list(APPEND compile_options ${pangocairo_dep_CFLAGS_OTHER})
 
-find_package(glib CONFIG COMPONENTS gobject-2.0 REQUIRED 2.52.0)
+find_package(glib CONFIG COMPONENTS gobject-2.0)
 list(APPEND libraries glib::glib)
 list(APPEND libraries glib::gobject-2.0)
 
