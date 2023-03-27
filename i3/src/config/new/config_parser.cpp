@@ -1,8 +1,8 @@
 #include <iostream>
 #include <antlr4-runtime.h>
 #include "parser-specs/configLexer.h"
-#include "parser-specs/configParser.h"
-#include "parser-specs/configBaseListener.h"
+#include "parser-specs/configGrammar.h"
+#include "parser-specs/configGrammarBaseListener.h"
 #include "base_config_applier.h"
 #include "criteria_state.h"
 #include "config_parser.h"
@@ -22,35 +22,25 @@ namespace fn = rangeless::fn;
 using fn::operators::operator%;   // arg % fn   equivalent to fn(std::forward<Arg>(arg))
 using fn::operators::operator%=;  // arg %= fn; equivalent to arg = fn( std::move(arg));
 
-class VariableListener : public configBaseListener {
+class VariableListener : public configGrammarBaseListener {
 private:
     ResourceDatabase resourceDatabase;
 public:
     std::map<std::string, std::string> variables{};
 
-    explicit VariableListener(ResourceDatabase resourceDatabase) : resourceDatabase(resourceDatabase) {
+    explicit VariableListener(const ResourceDatabase &resourceDatabase) : resourceDatabase(resourceDatabase) {
     }
 
-    void enterSet(configParser::SetContext *ctx) override {
-        auto variable = ctx->VARIABLE()->getText();
-        auto value = ctx->arguments()->children
-                     % fn::transform([](auto *x) { return x->getText(); })
-                     % fn::join(" ");
+    void enterSet(configGrammar::SetContext *ctx) override {
+        auto variable = ctx->VAR()->getText();
+        auto value = ctx->STRING()->getText();
 
         variables[variable] = value;
     }
 
-    void enterSet_from_resource(configParser::Set_from_resourceContext *ctx) override {
-        auto variable = ctx->VARIABLE()->getText();
-        auto key = ctx->STRING(0)->getText();
-        auto fallback = ctx->STRING(1) != nullptr ? ctx->STRING(1)->getText() : "";
-        std::string res_value = resourceDatabase.get_resource(key, fallback);
-        variables[variable] = res_value;
-    }
-
 };
 
-class StatementListener : public configBaseListener {
+class StatementListener : public configGrammarBaseListener {
 
 private:
     BaseConfigApplier &applier;
@@ -77,7 +67,7 @@ private:
         return replaced;
     }
 
-    Match handle_criteria(configParser::CriteriaContext *pContext) {
+    Match handle_criteria(configGrammar::CriteriaContext *pContext) {
         Match current_match{};
 
         for (auto &c : pContext->criterion()) {
@@ -100,106 +90,92 @@ public:
         }
     }
 
-    void enterColor_single(configParser::Color_singleContext *ctx) override {
-        auto colorclass = replace_var(ctx->children[0]->getText());
-        auto color = replace_var(ctx->STRING()->getText());
-        applier.color_single(colorclass, color);
-    }
-
-    void enterColor_multiple(configParser::Color_multipleContext *ctx) override {
-        auto colorclass = replace_var(ctx->children[0]->getText());
-        auto border = replace_var(ctx->STRING(0)->getText());
-        auto background = replace_var(ctx->STRING(1)->getText());
-        auto text = replace_var(ctx->STRING(2)->getText());
-        auto indicator = optional_str(ctx->STRING(3)).transform([](auto f) { return f.get(); }).value_or(""s);
-        auto child_border = optional_str(ctx->STRING(4)).transform([](auto f) { return f.get(); }).value_or(""s);
-        applier.color(colorclass, border, background, text, indicator, child_border);
-    }
-
-    void enterExec(configParser::ExecContext *ctx) override {
+    void enterExec(configGrammar::ExecContext *ctx) override {
         const string text = replace_var(ctx->children[0]->getText());
-        auto no_startup_id = ctx->exec_options()
+        auto options = ctx->OPTION();
+        auto no_startup_id = options
                        % fn::exists_where([](auto *x) { return x->getText() == "--no-startup-id"; });
 
-        auto arguments = replace_var(ctx->arguments()->children
+        auto arguments = replace_var(ctx->commands()->children
                          % fn::transform([](auto *x) { return x->getText(); })
                          % fn::join(" "));
 
         applier.exec(text, no_startup_id, arguments);
     }
 
-    void enterPopup_during_fullscreen(configParser::Popup_during_fullscreenContext *ctx) override {
-        const string value = replace_var(ctx->popup_during_fullscreen_value()->getText());
+    void enterPopup_during_fullscreen(configGrammar::Popup_during_fullscreenContext *ctx) override {
+        const string value = replace_var(ctx->STRING()->getText());
         applier.popup_during_fullscreen(value);
     }
 
-    void enterRestart_state(configParser::Restart_stateContext *ctx) override {
+    void enterRestart_state(configGrammar::Restart_stateContext *ctx) override {
         auto path = replace_var(ctx->STRING()->getText());
         applier.restart_state(path);
     }
 
-    void enterIpc_kill_timeout(configParser::Ipc_kill_timeoutContext *ctx) override {
+    void enterIpc_kill_timeout(configGrammar::Ipc_kill_timeoutContext *ctx) override {
         auto timeout = replace_var(ctx->NUMBER()->getText());
         applier.ipc_kill_timeout(std::stol(timeout));
     }
 
-    void enterIpc_socket(configParser::Ipc_socketContext *ctx) override {
+    void enterIpc_socket(configGrammar::Ipc_socketContext *ctx) override {
         auto path = replace_var(ctx->STRING()->getText());
         applier.ipc_socket(path);
     }
 
-    void enterWorkspace(configParser::WorkspaceContext *ctx) override {
-        auto workspace = replace_var(ctx->workspace_name()->getText());
-        auto output = replace_var(ctx->STRING(0)->getText());
+    void enterWorkspace(configGrammar::WorkspaceContext *ctx) override {
+        auto workspace = replace_var(ctx->STRING(0)->getText());
+        auto output = replace_var(ctx->STRING(1)->getText()); // TODO out of bounds
         applier.workspace(workspace, output);
     }
 
-    void enterTitle_align(configParser::Title_alignContext *ctx) override {
-        auto align = replace_var(ctx->title_align_value()->getText());
+    void enterTitle_align(configGrammar::Title_alignContext *ctx) override {
+        auto align = replace_var(ctx->STRING()->getText());
         applier.title_align(align);
     }
 
-    void enterFocus_on_window_activation(configParser::Focus_on_window_activationContext *ctx) override {
-        auto value = replace_var(ctx->focus_on_window_activation_value()->getText());
+    void enterFocus_on_window_activation(configGrammar::Focus_on_window_activationContext *ctx) override {
+        auto value = replace_var(ctx->STRING()->getText());
         applier.focus_on_window_activation(value);
     }
 
-    void enterForce_display_urgency_hint(configParser::Force_display_urgency_hintContext *ctx) override {
+    void enterForce_display_urgency_hint(configGrammar::Force_display_urgency_hintContext *ctx) override {
         auto value = replace_var(ctx->NUMBER()->getText());
         applier.force_display_urgency_hint(std::stol(value));
     }
 
-    void enterWorkspace_auto_back_and_forth(configParser::Workspace_auto_back_and_forthContext *ctx) override {
-        auto value = replace_var(ctx->BOOL()->getText());
+    void enterWorkspace_auto_back_and_forth(configGrammar::Workspace_auto_back_and_forthContext *ctx) override {
+        auto value = replace_var(ctx->STRING()->getText());
         applier.workspace_back_and_forth(value);
     }
 
-    void enterFocus_wrapping(configParser::Focus_wrappingContext *ctx) override {
-        auto value = replace_var(ctx->BOOL()->getText());
+    void enterFocus_wrapping(configGrammar::Focus_wrappingContext *ctx) override {
+        auto value = replace_var(ctx->STRING()->getText());
         applier.focus_wrapping(value);
     }
 
-    void enterForce_focus_wrapping(configParser::Force_focus_wrappingContext *ctx) override {
-        auto value = replace_var(ctx->BOOL()->getText());
+    void enterForce_focus_wrapping(configGrammar::Force_focus_wrappingContext *ctx) override {
+        auto value = replace_var(ctx->STRING()->getText());
         applier.force_focus_wrapping(value);
     }
 
-    void enterMouse_warping(configParser::Mouse_warpingContext *ctx) override {
-        auto value = replace_var(ctx->mouse_warping_value()->getText());
+    void enterMouse_warping(configGrammar::Mouse_warpingContext *ctx) override {
+        auto value = replace_var(ctx->STRING()->getText());
         applier.mouse_warping(value);
     }
 
-    void enterFocus_follows_mouse(configParser::Focus_follows_mouseContext *ctx) override {
-        auto value = replace_var(ctx->BOOL()->getText());
+    void enterFocus_follows_mouse(configGrammar::Focus_follows_mouseContext *ctx) override {
+        auto value = replace_var(ctx->STRING()->getText());
         applier.focus_follows_mouse(value);
     }
 
-    void enterNo_focus(configParser::No_focusContext *ctx) override {
+    void enterNo_focus(configGrammar::No_focusContext *ctx) override {
         Match match = handle_criteria(ctx->criteria());
         applier.no_focus(match);
     }
 
-    void enterAssign(configParser::AssignContext *ctx) override {
+    void enterAssign(configGrammar::AssignContext *ctx) override {
+        /*
         Match match = handle_criteria(ctx->criteria());
         if (ctx->assign_target()->assign_target_output() != nullptr) {
             string value = replace_var(ctx->assign_target()->assign_target_output()->children[1]->getText());
@@ -211,10 +187,11 @@ public:
             string value = replace_var(ctx->assign_target()->assign_target_number()->children[1]->getText());
             applier.assign(match, value, true);
         }
+         */
     }
 
-    void enterFor_window(configParser::For_windowContext *ctx) override {
-        auto arguments = replace_var(ctx->arguments()->children
+    void enterFor_window(configGrammar::For_windowContext *ctx) override {
+        auto arguments = replace_var(ctx->STRING()->children
                          % fn::transform([](auto *x) { return x->getText(); })
                          % fn::join(" "));
 
@@ -222,67 +199,62 @@ public:
         applier.for_window(match, arguments);
     }
 
-    void enterHide_edge_borders(configParser::Hide_edge_bordersContext *ctx) override {
-        auto border_type = replace_var(ctx->border_type()->getText());
+    void enterHide_edge_borders(configGrammar::Hide_edge_bordersContext *ctx) override {
+        auto border_type = replace_var(ctx->STRING()->getText());
         applier.hide_edge_borders(border_type);
     }
 
-    void enterDefault_border(configParser::Default_borderContext *ctx) override {
+    void enterDefault_border(configGrammar::Default_borderContext *ctx) override {
+        /*
         auto defaultBorderType = replace_var(ctx->default_border_type()->getText());
         auto width = replace_var(ctx->border_style()->NUMBER()->getText()); // TODO check for null?
         auto border = replace_var(ctx->border_style()->children[0]->getText());
         applier.default_border(defaultBorderType, border, std::stol(width));
+         */
     }
 
-    void enterWorkspace_layout(configParser::Workspace_layoutContext *ctx) override {
-        auto value = replace_var(ctx->workspace_layout_value()->getText());
+    void enterWorkspace_layout(configGrammar::Workspace_layoutContext *ctx) override {
+        auto value = replace_var(ctx->STRING()->getText());
         applier.workspace_layout(value);
     }
 
-    void enterDefault_orientation(configParser::Default_orientationContext *ctx) override {
-        auto value = replace_var(ctx->default_orientation_value()->getText());
+    void enterDefault_orientation(configGrammar::Default_orientationContext *ctx) override {
+        auto value = replace_var(ctx->STRING()->getText());
         applier.default_orientation(value);
     }
 
-    void enterFloating_modifier(configParser::Floating_modifierContext *ctx) override {
-        auto arguments = replace_var(ctx->modifier()
-                         % fn::transform([](auto *x) { return x->getText(); })
-                         % fn::join(" "));
+    void enterFloating_modifier(configGrammar::Floating_modifierContext *ctx) override {
+        auto arguments = replace_var(ctx->STRING()->getText());
 
         applier.floating_modifier(arguments);
     }
 
-    void enterFloating_minimum_size(configParser::Floating_minimum_sizeContext *ctx) override {
+    void enterFloating_minimum_size(configGrammar::Floating_minimum_sizeContext *ctx) override {
         auto w = replace_var(ctx->dimension()->NUMBER(0)->getText());
         auto h = replace_var(ctx->dimension()->NUMBER(1)->getText());
         applier.floating_minimum_size(std::stol(w), std::stol(h));
     }
 
-    void enterFloating_maximum_size(configParser::Floating_maximum_sizeContext *ctx) override {
+    void enterFloating_maximum_size(configGrammar::Floating_maximum_sizeContext *ctx) override {
         auto w = replace_var(ctx->dimension()->NUMBER(0)->getText());
         auto h = replace_var(ctx->dimension()->NUMBER(1)->getText());
         applier.floating_maximum_size(std::stol(w), std::stol(h));
     }
 
-    void enterFont(configParser::FontContext *ctx) override {
-        auto arguments = replace_var(ctx->arguments()->children
-                % fn::transform([](auto *x) { return x->getText(); })
-                % fn::join(" "));
+    void enterFont(configGrammar::FontContext *ctx) override {
+        auto arguments = replace_var(ctx->STRING()->getText());
         applier.font(arguments);
     }
 
-    void enterInclude(configParser::IncludeContext *ctx) override { }
-    void exitInclude(configParser::IncludeContext *ctx) override { }
-
-    void enterBinding(configParser::BindingContext *ctx) override {
+    void enterBinding(configGrammar::BindingContext *ctx) override {
         auto bindtype = replace_var(ctx->children[0]->getText());
 
-        auto options = ctx->binding_options()
+        auto options = ctx->OPTION()
                 % fn::transform([](auto opt) { return opt->getText(); })
                 % fn::unique_all()
                 % fn::to_vector();
 
-        auto command = replace_var(ctx->arguments()->children
+        auto command = replace_var(ctx->commands()->command()
                        % fn::transform([](auto opt) { return opt->getText(); })
                        % fn::join(" "));
 
@@ -298,7 +270,7 @@ public:
         std::string modifiers;
         std::string key;
 
-        std::string keybinding = replace_var(ctx->keybinding()->getText());
+        std::string keybinding = replace_var(ctx->STRING()->getText());
 
         auto pos = keybinding.find_last_of('+');
 
@@ -314,20 +286,6 @@ public:
         } else {
             applier.binding(bindtype, modifiers, key, release, border, whole_window, exclude_titlebar, command);
         }
-    }
-
-
-    void enterStmt_mode(configParser::Stmt_modeContext *ctx) override {
-        auto pango_markup = ctx->stmt_mode_options() % fn::exists_where([](auto text) { return text->getText() == "--pango_markup"; });
-
-        auto mode = replace_var(ctx->STRING()->getText());
-        applier.enter_mode(pango_markup, mode);
-
-        inMode = true;
-    }
-
-    void exitStmt_mode(configParser::Stmt_modeContext *ctx) override {
-        inMode = false;
     }
 
     void enterEveryRule(antlr4::ParserRuleContext *ctx) override {}
@@ -363,13 +321,13 @@ parse_file_result_t NewParser::parse_file() {
     lexer.addErrorListener(&pListener);
 
     CommonTokenStream tokens{&lexer};
-    configParser parser{&tokens};
+    configGrammar parser{&tokens};
 
     //parser.setErrorHandler(new BailErrorStrategy());
     parser.removeErrorListeners();
     parser.addErrorListener(&pListener);
 
-    auto tree = parser.file();
+    auto tree = parser.config();
 
     if (parser.getNumberOfSyntaxErrors() > 0) {
         throw std::runtime_error("we got a problem, sir");

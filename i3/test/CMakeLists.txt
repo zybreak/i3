@@ -17,10 +17,10 @@ add_executable(test.config_parser_new
     config_parser_new.cpp
     mock_new.cpp
     ../src/config/new/config_parser.cpp
-    ../src/config/new/parser-specs/configBaseListener.cpp
+    ../src/config/new/parser-specs/configGrammarBaseListener.cpp
     ../src/config/new/parser-specs/configLexer.cpp
-    ../src/config/new/parser-specs/configParser.cpp
-    ../src/config/new/parser-specs/configListener.cpp
+    ../src/config/new/parser-specs/configGrammar.cpp
+    ../src/config/new/parser-specs/configGrammarListener.cpp
     ../src/global.cpp
     ../src/log.cpp
 )

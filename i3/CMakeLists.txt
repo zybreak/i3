@@ -12,10 +12,10 @@ add_executable(i3
   src/config/old/config_parser.cpp
   src/config/new/config_parser.cpp
   src/config/new/config_applier.cpp
-  src/config/new/parser-specs/configBaseListener.cpp
+  src/config/new/parser-specs/configGrammarBaseListener.cpp
   src/config/new/parser-specs/configLexer.cpp
-  src/config/new/parser-specs/configParser.cpp
-  src/config/new/parser-specs/configListener.cpp
+  src/config/new/parser-specs/configGrammar.cpp
+  src/config/new/parser-specs/configGrammarListener.cpp
   src/configuration.cpp
   src/drag.cpp
   src/ewmh.cpp

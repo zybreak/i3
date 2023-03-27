@@ -1,8 +1,8 @@
 lexer grammar commandsLexer;
 
-OPEN_COMMAND : '['    -> pushMode(COMMAND);
+OPEN_COMMAND : '$('    -> pushMode(COMMAND);
 mode COMMAND;
-CLOSE_COMMAND : ']'    -> popMode;
+CLOSE_COMMAND : ')'    -> popMode;
 
 COMMAND_SEP: ';';
 COMMAND_MOVE: 'move';
@@ -28,6 +28,7 @@ COMMAND_TITLE_WINDOW_ICON: 'title_window_icon';
 
 COMMAND_WS: ' ' -> skip;
 COMMAND_OPTION: '--' [a-z0-9][a-z\-0-9]*;
+COMMAND_NUMBER: [0-9]+;
 COMMAND_STRING
    : '\u0022' ~'\u0022'* '\u0022'
    ;

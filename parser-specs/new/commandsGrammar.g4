@@ -7,12 +7,12 @@ options {
 command
     : COMMAND_MOVE
     | command_exec
-    | COMMAND_DEBUGLOG
-    | COMMAND_BORDER
-    | COMMAND_LAYOUT
-    | COMMAND_APPEND_LAYOUT
-    | COMMAND_WORKSPACE
-    | COMMAND_FOCUS
+    | command_debuglog
+    | command_border
+    | command_layout
+    | command_append_layout
+    | command_workspace
+    | command_focus
     | command_kill
     | COMMAND_OPEN
     | COMMAND_FULLSCREEN
@@ -28,28 +28,10 @@ command
 ;
 
 command_exec: COMMAND_EXEC COMMAND_OPTION* command;
-command_kill : COMMAND_KILL;
-
-/*
-criteria: '[' (criterion)+ ']';
-criterion
-    : value_criterion
-    | 'tiling'
-    | 'floating'
-    | 'all';
-
-value_criterion
-    : ('class'
-    | 'instance'
-    | 'window_role'
-    | 'con_id'
-    | 'id'
-    | 'window_type'
-    | 'title'
-    | 'urgent'
-    | 'workspace'
-    | 'machine'
-    | 'floating_from'
-    | 'tiling_from') '=' STRING
-    ;
-*/
+command_kill : COMMAND_KILL COMMAND_STRING;
+command_debuglog: COMMAND_DEBUGLOG COMMAND_STRING;
+command_border: COMMAND_BORDER COMMAND_STRING COMMAND_NUMBER?;
+command_layout: COMMAND_LAYOUT COMMAND_STRING COMMAND_STRING?;
+command_append_layout: COMMAND_APPEND_LAYOUT COMMAND_STRING;
+command_workspace: COMMAND_WORKSPACE COMMAND_OPTION* COMMAND_STRING;
+command_focus: COMMAND_FOCUS COMMAND_STRING COMMAND_STRING?;
