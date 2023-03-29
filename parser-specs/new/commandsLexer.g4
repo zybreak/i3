@@ -14,6 +14,8 @@ COMMAND_APPEND_LAYOUT: 'append_layout';
 COMMAND_WORKSPACE: 'workspace';
 COMMAND_FOCUS: 'focus';
 COMMAND_KILL: 'kill';
+COMMAND_RELOAD: 'reload';
+COMMAND_RESTART: 'restart';
 COMMAND_OPEN: 'open';
 COMMAND_FULLSCREEN: 'fullscreen';
 COMMAND_STICKY: 'sticky';
@@ -25,6 +27,7 @@ COMMAND_NOP: 'nop';
 COMMAND_SCRATCHPAD: 'scratchpad';
 COMMAND_TITLE_FORMAT: 'title_format';
 COMMAND_TITLE_WINDOW_ICON: 'title_window_icon';
+COMMAND_MODE: 'mode';
 
 COMMAND_WS: ' ' -> skip;
 COMMAND_OPTION: '--' [a-z0-9][a-z\-0-9]*;

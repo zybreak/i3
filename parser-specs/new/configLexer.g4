@@ -2,7 +2,7 @@ lexer grammar configLexer;
 
 import commandsLexer, criterionLexer;
 
-COMMENT: '#' ~[\r\n]+ -> channel(HIDDEN);
+COMMENT: '#' ~('\r' | '\n')* -> channel(HIDDEN);
 
 STRING
    : '\u0022' ~'\u0022'* '\u0022'
@@ -13,7 +13,7 @@ DIMENSION_SEP: 'x';
 
 OPTION: '--' [a-z0-9][a-z\-0-9]*;
 
-VAR: '$' [a-zA-Z][a-zA-Z0-9]*;
+VAR: '$' [a-zA-Z][a-zA-Z0-9_-]*;
 
 WS: ' ' -> skip;
 EOL : ('\r'|'\n')+;

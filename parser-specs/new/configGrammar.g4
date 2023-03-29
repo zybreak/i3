@@ -6,7 +6,7 @@ options {
 
 import commandsGrammar, criterionGrammar;
 
-config: EOL* ((stmt EOL)* stmt EOL*)? EOF;
+config: EOL* ((stmt EOL+)* stmt EOL*)? EOF;
 stmt
     : set
     | binding
@@ -49,7 +49,7 @@ default_orientation: DEFAULT_ORIENTATION STRING;
 workspace_layout: WORKSPACE_LAYOUT STRING;
 default_border: DEFAULT_BORDER STRING;
 hide_edge_borders: HIDE_EDGE_BORDERS STRING;
-for_window: FOR_WINDOW criteria STRING;
+for_window: FOR_WINDOW criteria commands;
 assign: ASSIGN criteria STRING;
 no_focus: NO_FOCUS criteria;
 focus_follows_mouse: FOCUS_FOLLOWS_MOUSE STRING;
@@ -65,6 +65,6 @@ ipc_socket: IPC_SOCKET STRING;
 ipc_kill_timeout: IPC_KILL_TIMEOUT NUMBER;
 restart_state: RESTART_STATE STRING;
 popup_during_fullscreen: POPUP_DURING_FULLSCREEN STRING;
-exec: EXEC OPTION* commands;
+exec: EXEC OPTION* STRING;
 
 dimension: NUMBER DIMENSION_SEP NUMBER;

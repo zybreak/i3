@@ -22,6 +22,10 @@ namespace fn = rangeless::fn;
 using fn::operators::operator%;   // arg % fn   equivalent to fn(std::forward<Arg>(arg))
 using fn::operators::operator%=;  // arg %= fn; equivalent to arg = fn( std::move(arg));
 
+static string unquote(std::string &&quoted) {
+    return quoted.substr(1, quoted.length()-2);
+}
+
 class VariableListener : public configGrammarBaseListener {
 private:
     ResourceDatabase resourceDatabase;
@@ -33,9 +37,9 @@ public:
 
     void enterSet(configGrammar::SetContext *ctx) override {
         auto variable = ctx->VAR()->getText();
-        auto value = ctx->STRING()->getText();
+        const string quoted = unquote(ctx->STRING()->getText());
 
-        variables[variable] = value;
+        variables[variable] = quoted;
     }
 
 };
@@ -86,7 +90,7 @@ private:
 public:
     StatementListener(BaseConfigApplier &listener, std::map<std::string, std::string> &&variables) : applier{listener}, variables{variables} {
         for (auto &v : variables) {
-            std::cout << "set " << v.first << " = " << v.second << std::endl;
+            std::cout << "set " << v.first << " = \"" << v.second << "\"" << std::endl;
         }
     }
 
@@ -96,20 +100,18 @@ public:
         auto no_startup_id = options
                        % fn::exists_where([](auto *x) { return x->getText() == "--no-startup-id"; });
 
-        auto arguments = replace_var(ctx->commands()->children
-                         % fn::transform([](auto *x) { return x->getText(); })
-                         % fn::join(" "));
+        auto arguments = replace_var(unquote(ctx->STRING()->getText()));
 
         applier.exec(text, no_startup_id, arguments);
     }
 
     void enterPopup_during_fullscreen(configGrammar::Popup_during_fullscreenContext *ctx) override {
-        const string value = replace_var(ctx->STRING()->getText());
+        const string value = replace_var(unquote(ctx->STRING()->getText()));
         applier.popup_during_fullscreen(value);
     }
 
     void enterRestart_state(configGrammar::Restart_stateContext *ctx) override {
-        auto path = replace_var(ctx->STRING()->getText());
+        auto path = replace_var(unquote(ctx->STRING()->getText()));
         applier.restart_state(path);
     }
 
@@ -119,23 +121,23 @@ public:
     }
 
     void enterIpc_socket(configGrammar::Ipc_socketContext *ctx) override {
-        auto path = replace_var(ctx->STRING()->getText());
+        auto path = replace_var(unquote(ctx->STRING()->getText()));
         applier.ipc_socket(path);
     }
 
     void enterWorkspace(configGrammar::WorkspaceContext *ctx) override {
-        auto workspace = replace_var(ctx->STRING(0)->getText());
-        auto output = replace_var(ctx->STRING(1)->getText()); // TODO out of bounds
+        auto workspace = replace_var(unquote(ctx->STRING(0)->getText()));
+        auto output = replace_var(unquote(ctx->STRING(1)->getText())); // TODO out of bounds
         applier.workspace(workspace, output);
     }
 
     void enterTitle_align(configGrammar::Title_alignContext *ctx) override {
-        auto align = replace_var(ctx->STRING()->getText());
+        auto align = replace_var(unquote(ctx->STRING()->getText()));
         applier.title_align(align);
     }
 
     void enterFocus_on_window_activation(configGrammar::Focus_on_window_activationContext *ctx) override {
-        auto value = replace_var(ctx->STRING()->getText());
+        auto value = replace_var(unquote(ctx->STRING()->getText()));
         applier.focus_on_window_activation(value);
     }
 
@@ -145,27 +147,27 @@ public:
     }
 
     void enterWorkspace_auto_back_and_forth(configGrammar::Workspace_auto_back_and_forthContext *ctx) override {
-        auto value = replace_var(ctx->STRING()->getText());
+        auto value = replace_var(unquote(ctx->STRING()->getText()));
         applier.workspace_back_and_forth(value);
     }
 
     void enterFocus_wrapping(configGrammar::Focus_wrappingContext *ctx) override {
-        auto value = replace_var(ctx->STRING()->getText());
+        auto value = replace_var(unquote(ctx->STRING()->getText()));
         applier.focus_wrapping(value);
     }
 
     void enterForce_focus_wrapping(configGrammar::Force_focus_wrappingContext *ctx) override {
-        auto value = replace_var(ctx->STRING()->getText());
+        auto value = replace_var(unquote(ctx->STRING()->getText()));
         applier.force_focus_wrapping(value);
     }
 
     void enterMouse_warping(configGrammar::Mouse_warpingContext *ctx) override {
-        auto value = replace_var(ctx->STRING()->getText());
+        auto value = replace_var(unquote(ctx->STRING()->getText()));
         applier.mouse_warping(value);
     }
 
     void enterFocus_follows_mouse(configGrammar::Focus_follows_mouseContext *ctx) override {
-        auto value = replace_var(ctx->STRING()->getText());
+        auto value = replace_var(unquote(ctx->STRING()->getText()));
         applier.focus_follows_mouse(value);
     }
 
@@ -191,16 +193,18 @@ public:
     }
 
     void enterFor_window(configGrammar::For_windowContext *ctx) override {
-        auto arguments = replace_var(ctx->STRING()->children
+        auto arguments = ctx->commands()->command()
                          % fn::transform([](auto *x) { return x->getText(); })
-                         % fn::join(" "));
+                         % fn::to_vector();
 
         Match match = handle_criteria(ctx->criteria());
-        applier.for_window(match, arguments);
+        for (auto argument : arguments) {
+            applier.for_window(match, replace_var(std::move(argument)));
+        }
     }
 
     void enterHide_edge_borders(configGrammar::Hide_edge_bordersContext *ctx) override {
-        auto border_type = replace_var(ctx->STRING()->getText());
+        auto border_type = replace_var(unquote(ctx->STRING()->getText()));
         applier.hide_edge_borders(border_type);
     }
 
@@ -214,17 +218,17 @@ public:
     }
 
     void enterWorkspace_layout(configGrammar::Workspace_layoutContext *ctx) override {
-        auto value = replace_var(ctx->STRING()->getText());
+        auto value = replace_var(unquote(ctx->STRING()->getText()));
         applier.workspace_layout(value);
     }
 
     void enterDefault_orientation(configGrammar::Default_orientationContext *ctx) override {
-        auto value = replace_var(ctx->STRING()->getText());
+        auto value = replace_var(unquote(ctx->STRING()->getText()));
         applier.default_orientation(value);
     }
 
     void enterFloating_modifier(configGrammar::Floating_modifierContext *ctx) override {
-        auto arguments = replace_var(ctx->STRING()->getText());
+        auto arguments = replace_var(unquote(ctx->STRING()->getText()));
 
         applier.floating_modifier(arguments);
     }
@@ -242,7 +246,7 @@ public:
     }
 
     void enterFont(configGrammar::FontContext *ctx) override {
-        auto arguments = replace_var(ctx->STRING()->getText());
+        auto arguments = replace_var(unquote(ctx->STRING()->getText()));
         applier.font(arguments);
     }
 
@@ -270,7 +274,7 @@ public:
         std::string modifiers;
         std::string key;
 
-        std::string keybinding = replace_var(ctx->STRING()->getText());
+        std::string keybinding = replace_var(unquote(ctx->STRING()->getText()));
 
         auto pos = keybinding.find_last_of('+');
 
@@ -293,7 +297,7 @@ public:
     void visitTerminal(antlr4::tree::TerminalNode *node) override {}
 
     void visitErrorNode(antlr4::tree::ErrorNode *node) override {
-        cout << "ERROR" << endl;
+        cout << "ERROR: " << node->getText() << endl;
         throw std::runtime_error("error");
     }
 
