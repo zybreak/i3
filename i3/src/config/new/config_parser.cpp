@@ -23,7 +23,27 @@ using fn::operators::operator%;   // arg % fn   equivalent to fn(std::forward<Ar
 using fn::operators::operator%=;  // arg %= fn; equivalent to arg = fn( std::move(arg));
 
 static string unquote(std::string &&quoted) {
-    return quoted.substr(1, quoted.length()-2);
+    if (quoted.starts_with("\"") && quoted.ends_with("\"")) {
+        return quoted.substr(1, quoted.length()-2);
+    } else {
+        return quoted;
+    }
+}
+
+static string toString(antlr4::tree::ParseTree *p) {
+    std::string str{};
+
+    if (p->children.empty()) {
+        str.append(unquote(p->getText()));
+        str.append(" ");
+    } else {
+        for (auto *c : p->children) {
+            str.append(toString(c));
+            str.append(" ");
+        }
+    }
+
+    return str.substr(0, std::max((int)str.size() - 1, 0));
 }
 
 class VariableListener : public configGrammarBaseListener {
@@ -194,7 +214,7 @@ public:
 
     void enterFor_window(configGrammar::For_windowContext *ctx) override {
         auto arguments = ctx->commands()->command()
-                         % fn::transform([](auto *x) { return x->getText(); })
+                         % fn::transform([](auto *x) { return toString(x); })
                          % fn::to_vector();
 
         Match match = handle_criteria(ctx->criteria());
@@ -258,9 +278,9 @@ public:
                 % fn::unique_all()
                 % fn::to_vector();
 
-        auto command = replace_var(ctx->commands()->command()
-                       % fn::transform([](auto opt) { return opt->getText(); })
-                       % fn::join(" "));
+        auto commands = ctx->commands()->command()
+                       % fn::transform([](auto *x) { return toString(x); })
+                       % fn::to_vector();
 
         auto release = options
                 % fn::exists_where([](auto text) { return text == "--release"; });
@@ -286,9 +306,13 @@ public:
         }
 
         if (inMode) {
-            applier.mode_binding(bindtype, modifiers, key, release, border, whole_window, exclude_titlebar, command);
+            for (auto command : commands) {
+                applier.mode_binding(bindtype, modifiers, key, release, border, whole_window, exclude_titlebar, replace_var(std::move(command)));
+            }
         } else {
-            applier.binding(bindtype, modifiers, key, release, border, whole_window, exclude_titlebar, command);
+            for (auto command : commands) {
+                applier.binding(bindtype, modifiers, key, release, border, whole_window, exclude_titlebar, replace_var(std::move(command)));
+            }
         }
     }
 
