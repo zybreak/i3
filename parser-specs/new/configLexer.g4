@@ -5,7 +5,7 @@ import commandsLexer, criterionLexer;
 COMMENT: '#' ~('\r' | '\n')* -> channel(HIDDEN);
 
 STRING
-   : '\u0022' ~'\u0022'* '\u0022'
+   : '"' ('\\"' | ~'"')* '"'
    ;
 
 NUMBER: [0-9]+;

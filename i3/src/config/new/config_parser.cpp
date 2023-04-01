@@ -13,6 +13,7 @@
 #include <utility>
 #include <algorithm>
 #include <xcb/xcb_xrm.h>
+#include <regex>
 
 using namespace std;
 using namespace antlr4;
@@ -34,11 +35,15 @@ static string toString(antlr4::tree::ParseTree *p) {
     std::string str{};
 
     if (p->children.empty()) {
-        str.append(unquote(p->getText()));
+        str.append(p->getText());
         str.append(" ");
     } else {
         for (auto *c : p->children) {
-            str.append(toString(c));
+            if (dynamic_cast<configGrammar::Command_execContext*>(p) != nullptr) {
+                str.append(toString(c));
+            } else {
+                str.append(unquote(toString(c)));
+            }
             str.append(" ");
         }
     }

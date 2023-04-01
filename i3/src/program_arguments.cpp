@@ -16,7 +16,7 @@ program_arguments parse_args(int argc, char *argv[]) {
             {"layout", required_argument, nullptr, 'L'},
             {"restart", required_argument, nullptr, 0},
             {"disable-signalhandler", no_argument, nullptr, 0},
-            {"get-socketpath", no_argument, nullptr, 0},
+            {"user-new-parser", no_argument, nullptr, 'p'},
             {"get_socketpath", no_argument, nullptr, 0},
             {nullptr, 0, nullptr, 0}};
     int option_index = 0, opt;

@@ -833,6 +833,9 @@ CommandResult run_binding(Binding *bind, Con *con) {
     else
         command = fmt::format("[con_id=\"{}\"] {}", (void*)con, bind->command);
 
+    //"exec i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3 exit'"
+    //"exec \"i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3 exit'\""
+
     Binding bind_cp = *bind;
     CommandResult result = parse_command(command, nullptr, nullptr);
 

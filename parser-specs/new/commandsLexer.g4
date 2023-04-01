@@ -33,5 +33,5 @@ COMMAND_WS: ' ' -> skip;
 COMMAND_OPTION: '--' [a-z0-9][a-z\-0-9]*;
 COMMAND_NUMBER: [0-9]+;
 COMMAND_STRING
-   : '\u0022' ~'\u0022'* '\u0022'
+   : '"' ('\\"' | ~'"')* '"'
    ;
