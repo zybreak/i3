@@ -30,34 +30,23 @@
  *
  */
 Regex::Regex(const char *pattern) {
-    const char *error;
-    int errorcode, offset;
+    int errorcode;
+    PCRE2_SIZE offset;
 
     this->pattern = sstrdup(pattern);
-    int options = PCRE_UTF8;
+    uint32_t options = PCRE2_UTF;
     /* We use PCRE_UCP so that \B, \b, \D, \d, \S, \s, \W, \w and some POSIX
      * character classes play nicely with Unicode */
-    options |= PCRE_UCP;
-    while (!(this->regex = pcre_compile2(pattern, options, &errorcode, &error, &offset, nullptr))) {
-        /* If the error is that PCRE was not compiled with UTF-8 support we
-         * disable it and try again */
-        if (errorcode == 32) {
-            options &= ~PCRE_UTF8;
-            continue;
-        }
-        ELOG(fmt::sprintf("PCRE regular expression compilation failed at %d: %s\n",
-             offset, error));
+    options |= PCRE2_UCP;
+    if (!(this->regex = pcre2_compile((PCRE2_SPTR)pattern, PCRE2_ZERO_TERMINATED, options, &errorcode, &offset, nullptr))) {
+        PCRE2_UCHAR buffer[256];
+        pcre2_get_error_message(errorcode, buffer, sizeof(buffer));
+        //ELOG(fmt::sprintf("PCRE regular expression compilation failed at %lu: %s\n",
+        //     offset, buffer));
+        this->valid = false;
         return;
     }
-    this->extra = pcre_study(this->regex, 0, &error);
-    /* If an error happened, we print the error message, but continue.
-     * Studying the regular expression leads to faster matching, but it’s not
-     * absolutely necessary. */
-    if (error) {
-        ELOG(fmt::sprintf("PCRE regular expression studying failed: %s\n",  error));
-    } else {
-        this->valid = true;
-    }
+    this->valid = true;
 }
 
 Regex::Regex(const Regex &other) : Regex(other.pattern) {
@@ -65,7 +54,6 @@ Regex::Regex(const Regex &other) : Regex(other.pattern) {
 
 Regex::Regex(Regex &&other) noexcept {
     std::swap(this->regex, other.regex);
-    std::swap(this->extra, other.extra);
     std::swap(this->valid, other.valid);
     std::swap(this->pattern, other.pattern);
 }
@@ -77,7 +65,6 @@ Regex::Regex(Regex &&other) noexcept {
 Regex::~Regex() {
     FREE(this->pattern);
     FREE(this->regex);
-    FREE(this->extra);
 }
 
 /*
@@ -87,21 +74,26 @@ Regex::~Regex() {
  *
  */
 bool Regex::regex_matches(const char *input) {
+    pcre2_match_data *match_data;
     int rc;
 
     if (!this->valid) {
         return false;
     }
 
+    match_data = pcre2_match_data_create_from_pattern(this->regex, nullptr);
+
     /* We use strlen() because pcre_exec() expects the length of the input
      * string in bytes */
-    if ((rc = pcre_exec(this->regex, this->extra, input, strlen(input), 0, 0, nullptr, 0)) == 0) {
+    rc = pcre2_match(this->regex, (PCRE2_SPTR)input, strlen(input), 0, 0, match_data, nullptr);
+    pcre2_match_data_free(match_data);
+    if (rc > 0) {
          LOG(fmt::sprintf("Regular expression \"%s\" matches \"%s\"\n",
             this->pattern, input));
         return true;
     }
 
-    if (rc == PCRE_ERROR_NOMATCH) {
+    if (rc == PCRE2_ERROR_NOMATCH) {
          LOG(fmt::sprintf("Regular expression \"%s\" does not match \"%s\"\n",
             this->pattern, input));
         return false;

@@ -98,7 +98,7 @@ list(APPEND include_dirs ${xcb_util_xrm_dep_INCLUDE_DIRS})
 list(APPEND compile_options ${xcb_util_xrm_dep_CFLAGS_OTHER})
 
 find_package(PCRE CONFIG)
-list(APPEND libraries pcre::libpcre)
+list(APPEND libraries pcre2::pcre2)
 
 pkg_check_modules(cairo_dep REQUIRED cairo>=1.14.4)
 list(APPEND libraries ${cairo_dep_LINK_LIBRARIES})

@@ -9,8 +9,10 @@
  */
 #pragma once
 
+#define PCRE2_CODE_UNIT_WIDTH 8
+
 #include <config.h>
-#include <pcre.h>
+#include <pcre2.h>
 
 /**
  * Regular expression wrapper. It contains the pattern itself as a string (like
@@ -22,8 +24,7 @@
  *
  */
 class Regex {
-    pcre *regex{nullptr};
-    pcre_extra *extra{nullptr};
+    pcre2_code *regex{nullptr};
 public:
     bool valid{false};
     char *pattern{nullptr};
