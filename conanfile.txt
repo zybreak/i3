@@ -4,7 +4,7 @@ libev/4.33
 pcre/8.44
 fmt/9.1.0
 antlr4-cppruntime/4.11.1
-glib/2.65.0
+glib/2.76.2
 gtest/1.13.0
 
 [generators]
