@@ -10,10 +10,7 @@
 
 #include <cstdlib>
 #include <cstring>
-#include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
 #include "wrapper.h"
 #include "dpi.h"
 #include "util.h"

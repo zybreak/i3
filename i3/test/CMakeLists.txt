@@ -13,6 +13,15 @@ target_link_libraries(FooTest PUBLIC ${libraries} GTest::gtest_main)
 target_include_directories(FooTest PUBLIC ${include_dirs} "../src/config/old")
 target_compile_options(FooTest PUBLIC ${compile_options} -DTEST_PARSER)
 
+add_executable(RegexTest
+        regex_test.cpp
+        ../src/regex.cpp
+        ../src/safewrappers.cpp
+        ../src/log.cpp
+)
+target_link_libraries(RegexTest PUBLIC ${libraries} GTest::gtest_main)
+target_include_directories(RegexTest PUBLIC ${include_dirs})
+
 add_executable(test.config_parser_new
     config_parser_new.cpp
     mock_new.cpp
@@ -56,11 +65,12 @@ target_link_libraries(test.config_parser PUBLIC ${libraries})
 target_include_directories(test.config_parser PUBLIC ${include_dirs} "../src/config/old")
 target_compile_options(test.config_parser PUBLIC ${compile_options} -DTEST_PARSER)
 
+find_package(Python REQUIRED)
+
 include(GoogleTest)
 include(Pytest.cmake)
 gtest_discover_tests(FooTest)
-
-find_package(Python REQUIRED)
+gtest_discover_tests(RegexTest)
 
 pytest_discover_tests(
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
