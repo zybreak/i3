@@ -79,23 +79,8 @@ list(APPEND compile_options ${libsn_dep_CFLAGS_OTHER})
 find_package(libev)
 list(APPEND libraries libev::libev)
 
-find_package(X11 REQUIRED COMPONENTS xcb xcb_xkb xcb_randr xcb_util xcb_keysyms xcb_icccm xkbcommon xkbcommon_X11)
-list(APPEND libraries X11 X11::xcb X11::xcb_xkb X11::xcb_randr X11::xcb_util X11::xcb_keysyms X11::xcb_icccm X11::xkbcommon X11::xkbcommon_X11)
-
-pkg_check_modules(xcb_shape_dep REQUIRED xcb-shape)
-list(APPEND libraries ${xcb_shape_dep_LINK_LIBRARIES})
-list(APPEND include_dirs ${xcb_shape_dep_INCLUDE_DIRS})
-list(APPEND compile_options ${xcb_shape_dep_CFLAGS_OTHER})
-
-pkg_check_modules(xcb_util_cursor_dep REQUIRED xcb-cursor)
-list(APPEND libraries ${xcb_util_cursor_dep_LINK_LIBRARIES})
-list(APPEND include_dirs ${xcb_util_cursor_dep_INCLUDE_DIRS})
-list(APPEND compile_options ${xcb_util_cursor_dep_CFLAGS_OTHER})
-
-pkg_check_modules(xcb_util_xrm_dep REQUIRED xcb-xrm)
-list(APPEND libraries ${xcb_util_xrm_dep_LINK_LIBRARIES})
-list(APPEND include_dirs ${xcb_util_xrm_dep_INCLUDE_DIRS})
-list(APPEND compile_options ${xcb_util_xrm_dep_CFLAGS_OTHER})
+find_package(X11 REQUIRED COMPONENTS xcb xcb_cursor xcb_shape xcb_xrm xcb_xkb xcb_randr xcb_util xcb_keysyms xcb_icccm xkbcommon xkbcommon_X11)
+list(APPEND libraries X11 X11::xcb X11::xcb_cursor X11::xcb_shape X11::xcb_xrm X11::xcb_xkb X11::xcb_randr X11::xcb_util X11::xcb_keysyms X11::xcb_icccm X11::xkbcommon X11::xkbcommon_X11)
 
 find_package(PCRE CONFIG)
 list(APPEND libraries pcre2::pcre2)
