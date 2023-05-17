@@ -6,9 +6,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/cmake)
 
-#include (${CMAKE_BINARY_DIR}/conan_paths.cmake)
-set(CMAKE_TOOLCHAIN_FILE ${CMAKE_BINARY_DIR}/conan_toolchain.cmake)
-
 configure_file(config.h.in config.h)
 
 include(CTest)
@@ -43,5 +40,4 @@ add_subdirectory(i3)
 #add_subdirectory(utils)
 #add_subdirectory(docs)
 #add_subdirectory(man)
-add_subdirectory(AnyEvent-I3)
 add_subdirectory(testcases)
