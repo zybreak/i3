@@ -15,8 +15,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    std::string cmd{};
+
+    for (int i = 1; i < argc; i++) {
+        cmd.append(" ").append(argv[i]);
+    }
+
     try {
-        CommandResult result = parse_command_new(argv[1], nullptr, nullptr);
+        CommandResult result = parse_command_new(cmd, nullptr, nullptr);
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
     }

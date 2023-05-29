@@ -15,5 +15,11 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    CommandResult result = parse_command_old(argv[1], nullptr, nullptr);
+    std::string cmd{};
+
+    for (int i = 1; i < argc; i++) {
+        cmd.append(" ").append(argv[i]);
+    }
+
+    CommandResult result = parse_command_old(cmd, nullptr, nullptr);
 }
