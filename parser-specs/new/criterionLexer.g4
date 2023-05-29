@@ -24,5 +24,3 @@ FLOATING_FROM: 'floating_from';
 TILING_FROM: 'tiling_from';
 CRITERION_EQ: '=';
 CRITERION_SEP: ',';
-
-COMMAND_WS: ' ' -> skip;

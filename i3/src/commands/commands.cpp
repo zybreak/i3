@@ -55,17 +55,17 @@
 #include <ranges>
 #include <algorithm>
 
-static void ysuccess(struct CommandResultIR &cmd_output, bool success) {
-    if (cmd_output.json_gen != nullptr) {
-        cmd_output.json_gen->push_back({
+static void ysuccess(nlohmann::json *json_gen, bool success) {
+    if (json_gen != nullptr) {
+        json_gen->push_back({
                 { "success", success }
         });
     }
 }
 
-static void yerror(struct CommandResultIR &cmd_output, std::string message) {
-    if (cmd_output.json_gen != nullptr) {
-        cmd_output.json_gen->push_back({
+static void yerror(nlohmann::json *json_gen, std::string message) {
+    if (json_gen != nullptr) {
+        json_gen->push_back({
                 { "success", false },
                 { "error", message }
         });
@@ -368,7 +368,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -387,7 +387,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -413,7 +413,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output,  true);
+        ysuccess(cmd_output.json_gen,  true);
     }
 
 /*
@@ -444,7 +444,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output,  true);
+        ysuccess(cmd_output.json_gen,  true);
     }
 
 /*
@@ -532,7 +532,7 @@ namespace cmd {
 
         bool res = resize_find_tiling_participants(&first, &second, search_direction, false);
         if (!res) {
-            yerror(cmd_output, "No second container found in this direction.");
+            yerror(cmd_output.json_gen, "No second container found in this direction.");
             return false;
         }
 
@@ -552,7 +552,7 @@ namespace cmd {
         direction_t search_direction = (strcmp(direction, "width") == 0 ? D_LEFT : D_DOWN);
         bool search_result = resize_find_tiling_participants(&current, &dummy, search_direction, true);
         if (search_result == false) {
-            yerror(cmd_output, "Failed to find appropriate tiling containers for resize operation");
+            yerror(cmd_output.json_gen, "Failed to find appropriate tiling containers for resize operation");
             return false;
         }
 
@@ -580,7 +580,7 @@ namespace cmd {
         }
         subtract_percent = ppt / (children - 1);
         if (ppt < 0.0 && new_current_percent < percent_for_1px(current)) {
-            yerror(cmd_output, "Not resizing, container would end with less than 1px");
+            yerror(cmd_output.json_gen, "Not resizing, container would end with less than 1px");
             return false;
         }
 
@@ -593,7 +593,7 @@ namespace cmd {
                     continue;
                 }
                 if (child->percent - subtract_percent < percent_for_1px(child)) {
-                    yerror(cmd_output, fmt::sprintf("Not resizing, already at minimum size (child %p would end up with a size of %.f", (void*)child,
+                    yerror(cmd_output.json_gen, fmt::sprintf("Not resizing, already at minimum size (child %p would end up with a size of %.f", (void*)child,
                            child->percent - subtract_percent));
                     return false;
                 }
@@ -657,7 +657,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output,  true);
+        ysuccess(cmd_output.json_gen,  true);
     }
 
     static bool
@@ -738,7 +738,7 @@ namespace cmd {
         }
 
         cmd_output.needs_tree_render = true;
-        ysuccess(cmd_output,  success);
+        ysuccess(cmd_output.json_gen,  success);
     }
 
     static int border_width_from_style(border_style_t border_style, long border_width, Con *con) {
@@ -791,7 +791,7 @@ namespace cmd {
         }
 
         cmd_output.needs_tree_render = true;
-        ysuccess(cmd_output,  true);
+        ysuccess(cmd_output.json_gen,  true);
     }
 
 /*
@@ -802,7 +802,7 @@ namespace cmd {
         LOG("-------------------------------------------------\n");
         LOG(fmt::sprintf("  NOP: %.4000s\n",  (comment != nullptr) ? comment : ""));
         LOG("-------------------------------------------------\n");
-        ysuccess(cmd_output,  true);
+        ysuccess(cmd_output.json_gen,  true);
     }
 
 /*
@@ -843,14 +843,14 @@ namespace cmd {
         char *errormsg = nullptr;
         tree_append_json(parent, buf, &errormsg);
         if (errormsg != nullptr) {
-            yerror(cmd_output, errormsg);
+            yerror(cmd_output.json_gen, errormsg);
             free(errormsg);
             /* Note that we continue executing since tree_append_json() has
              * side-effects — user-provided layouts can be partly valid, partly
              * invalid, leading to half of the placeholder containers being
              * created. */
         } else {
-            ysuccess(cmd_output,  true);
+            ysuccess(cmd_output.json_gen,  true);
         }
 
         // XXX: This is a bit of a kludge. Theoretically, render_con(parent,
@@ -898,7 +898,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output,  true);
+        ysuccess(cmd_output.json_gen,  true);
     }
 
 /*
@@ -920,20 +920,20 @@ namespace cmd {
         Con *workspace = get_existing_workspace_by_num(parsed_num);
         if (!workspace) {
             LOG(fmt::sprintf("There is no workspace with number %ld, creating a new one.\n",  parsed_num));
-            ysuccess(cmd_output,  true);
+            ysuccess(cmd_output.json_gen,  true);
             workspace_show_by_name(which);
             cmd_output.needs_tree_render = true;
             return;
         }
         if (!no_auto_back_and_forth && maybe_back_and_forth(cmd_output, workspace->name.c_str())) {
-            ysuccess(cmd_output,  true);
+            ysuccess(cmd_output.json_gen,  true);
             return;
         }
         workspace_show(workspace);
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output,  true);
+        ysuccess(cmd_output.json_gen,  true);
     }
 
 /*
@@ -949,7 +949,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output,  true);
+        ysuccess(cmd_output.json_gen,  true);
     }
 
 /*
@@ -969,14 +969,14 @@ namespace cmd {
 
         DLOG(fmt::sprintf("should switch to workspace %s\n",  name));
         if (!no_auto_back_and_forth && maybe_back_and_forth(cmd_output, name)) {
-            ysuccess(cmd_output,  true);
+            ysuccess(cmd_output.json_gen,  true);
             return;
         }
         workspace_show_by_name(name);
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -988,7 +988,7 @@ namespace cmd {
         switch_mode(mode);
 
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1076,9 +1076,9 @@ namespace cmd {
 
         cmd_output.needs_tree_render = success;
         if (success) {
-            ysuccess(cmd_output, true);
+            ysuccess(cmd_output.json_gen, true);
         } else {
-            yerror(cmd_output, "No output matched");
+            yerror(cmd_output.json_gen, "No output matched");
         }
     }
 
@@ -1108,7 +1108,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1146,7 +1146,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1176,7 +1176,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1201,7 +1201,7 @@ namespace cmd {
             start_application(command, no_startup_id);
         }
 
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
     static void CMD_FOCUS_WARN_CHILDREN(struct criteria_state &criteria_state) {
@@ -1248,7 +1248,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1282,7 +1282,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1315,7 +1315,7 @@ namespace cmd {
 
         if (success) {
             cmd_output.needs_tree_render = true;
-            ysuccess(cmd_output, true);
+            ysuccess(cmd_output.json_gen, true);
         } else {
             throw std::runtime_error(fmt::sprintf("Failed to find a %s container in workspace.", to_floating ? "floating" : "tiling"));
         }
@@ -1346,7 +1346,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = success;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, success);
+        ysuccess(cmd_output.json_gen, success);
     }
 
 /*
@@ -1389,7 +1389,7 @@ namespace cmd {
         }
 
         cmd_output.needs_tree_render = true;
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1416,7 +1416,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1453,7 +1453,7 @@ namespace cmd {
         ewmh_update_wm_desktop();
 
         cmd_output.needs_tree_render = true;
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1504,7 +1504,7 @@ namespace cmd {
         }
 
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1533,7 +1533,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1558,7 +1558,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1598,7 +1598,7 @@ namespace cmd {
         }
 
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1655,7 +1655,7 @@ namespace cmd {
         HANDLE_EMPTY_MATCH(criteria_state);
 
         if (criteria_state.owindows.empty()) {
-            ysuccess(cmd_output, true);
+            ysuccess(cmd_output.json_gen, true);
             return;
         }
 
@@ -1675,7 +1675,7 @@ namespace cmd {
         workspace_show(*ws);
 
         cmd_output.needs_tree_render = true;
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1692,7 +1692,7 @@ namespace cmd {
                 ELOG("Cannot change position. The window/container is not floating\n");
 
                 if (!has_error) {
-                    yerror(cmd_output, "Cannot change position of a window/container because it is not floating.");
+                    yerror(cmd_output.json_gen, "Cannot change position of a window/container because it is not floating.");
                     has_error = true;
                 }
 
@@ -1707,13 +1707,13 @@ namespace cmd {
             DLOG(fmt::sprintf("moving to position %d %s %d %s\n",  newrect.x, mode_x, newrect.y, mode_y));
 
             if (!floating_reposition(current->parent, newrect)) {
-                yerror(cmd_output, "Cannot move window/container out of bounds.");
+                yerror(cmd_output.json_gen, "Cannot move window/container out of bounds.");
                 has_error = true;
             }
         }
 
         if (!has_error)
-            ysuccess(cmd_output, true);
+            ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1731,7 +1731,7 @@ namespace cmd {
                      (void*)current, current->name));
 
                 if (!has_error) {
-                    yerror(cmd_output, "Cannot change position of a window/container because it is not floating.");
+                    yerror(cmd_output.json_gen, "Cannot change position of a window/container because it is not floating.");
                     has_error = true;
                 }
 
@@ -1756,7 +1756,7 @@ namespace cmd {
 
         // XXX: default reply for now, make this a better reply
         if (!has_error)
-            ysuccess(cmd_output, true);
+            ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1779,7 +1779,7 @@ namespace cmd {
         }
 
         cmd_output.needs_tree_render = true;
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1798,7 +1798,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1820,7 +1820,7 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
 
-        ysuccess(cmd_output, result);
+        ysuccess(cmd_output.json_gen, result);
     }
 
 /*
@@ -1864,7 +1864,7 @@ namespace cmd {
         }
 
         cmd_output.needs_tree_render = true;
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1893,7 +1893,7 @@ namespace cmd {
         }
 
         cmd_output.needs_tree_render = true;
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -1976,7 +1976,7 @@ namespace cmd {
         }
 
         cmd_output.needs_tree_render = true;
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
 
         ewmh_update_desktop_properties();
 
@@ -2026,7 +2026,7 @@ namespace cmd {
 
             if (bar_id) {
                 /* We are looking for a specific bar and we found it */
-                ysuccess(cmd_output, true);
+                ysuccess(cmd_output.json_gen, true);
                 return;
             }
         }
@@ -2037,7 +2037,7 @@ namespace cmd {
         } else {
             /* We have already handled the case of no bars, so we must have
              * updated all active bars now. */
-            ysuccess(cmd_output, true);
+            ysuccess(cmd_output.json_gen, true);
         }
     }
 
@@ -2081,7 +2081,7 @@ namespace cmd {
 
             if (bar_id) {
                 /* We are looking for a specific bar and we found it */
-                ysuccess(cmd_output, true);
+                ysuccess(cmd_output.json_gen, true);
                 return;
             }
         }
@@ -2092,7 +2092,7 @@ namespace cmd {
         } else {
             /* We have already handled the case of no bars, so we must have
              * updated all active bars now. */
-            ysuccess(cmd_output, true);
+            ysuccess(cmd_output.json_gen, true);
         }
     }
 
@@ -2113,7 +2113,7 @@ namespace cmd {
             set_debug_logging(false);
         }
         // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 /*
@@ -2132,7 +2132,7 @@ namespace cmd {
         }
 
         start_nagbar(nullptr, buttons, message, font, strcmp(type, "warning") == 0 ? TYPE_WARNING : TYPE_ERROR, strcmp(primary, "true") == 0);
-        ysuccess(cmd_output, true);
+        ysuccess(cmd_output.json_gen, true);
     }
 
 }

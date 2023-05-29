@@ -1,5 +1,5 @@
 
-// Generated from configGrammar.g4 by ANTLR 4.11.1
+// Generated from configGrammar.g4 by ANTLR 4.12.0
 
 #pragma once
 
@@ -118,11 +118,17 @@ public:
   virtual void enterCommand_exec(configGrammar::Command_execContext * /*ctx*/) override { }
   virtual void exitCommand_exec(configGrammar::Command_execContext * /*ctx*/) override { }
 
+  virtual void enterCommand_exit(configGrammar::Command_exitContext * /*ctx*/) override { }
+  virtual void exitCommand_exit(configGrammar::Command_exitContext * /*ctx*/) override { }
+
   virtual void enterCommand_kill(configGrammar::Command_killContext * /*ctx*/) override { }
   virtual void exitCommand_kill(configGrammar::Command_killContext * /*ctx*/) override { }
 
   virtual void enterCommand_fullscreen(configGrammar::Command_fullscreenContext * /*ctx*/) override { }
   virtual void exitCommand_fullscreen(configGrammar::Command_fullscreenContext * /*ctx*/) override { }
+
+  virtual void enterCommand_sticky(configGrammar::Command_stickyContext * /*ctx*/) override { }
+  virtual void exitCommand_sticky(configGrammar::Command_stickyContext * /*ctx*/) override { }
 
   virtual void enterCommand_debuglog(configGrammar::Command_debuglogContext * /*ctx*/) override { }
   virtual void exitCommand_debuglog(configGrammar::Command_debuglogContext * /*ctx*/) override { }
@@ -148,11 +154,35 @@ public:
   virtual void enterCommand_floating(configGrammar::Command_floatingContext * /*ctx*/) override { }
   virtual void exitCommand_floating(configGrammar::Command_floatingContext * /*ctx*/) override { }
 
+  virtual void enterCommand_resize(configGrammar::Command_resizeContext * /*ctx*/) override { }
+  virtual void exitCommand_resize(configGrammar::Command_resizeContext * /*ctx*/) override { }
+
+  virtual void enterCommand_rename(configGrammar::Command_renameContext * /*ctx*/) override { }
+  virtual void exitCommand_rename(configGrammar::Command_renameContext * /*ctx*/) override { }
+
+  virtual void enterCommand_nop(configGrammar::Command_nopContext * /*ctx*/) override { }
+  virtual void exitCommand_nop(configGrammar::Command_nopContext * /*ctx*/) override { }
+
+  virtual void enterCommand_reload(configGrammar::Command_reloadContext * /*ctx*/) override { }
+  virtual void exitCommand_reload(configGrammar::Command_reloadContext * /*ctx*/) override { }
+
+  virtual void enterCommand_restart(configGrammar::Command_restartContext * /*ctx*/) override { }
+  virtual void exitCommand_restart(configGrammar::Command_restartContext * /*ctx*/) override { }
+
   virtual void enterCommand_mode(configGrammar::Command_modeContext * /*ctx*/) override { }
   virtual void exitCommand_mode(configGrammar::Command_modeContext * /*ctx*/) override { }
 
+  virtual void enterCommand_open(configGrammar::Command_openContext * /*ctx*/) override { }
+  virtual void exitCommand_open(configGrammar::Command_openContext * /*ctx*/) override { }
+
   virtual void enterCommand_scratchpad(configGrammar::Command_scratchpadContext * /*ctx*/) override { }
   virtual void exitCommand_scratchpad(configGrammar::Command_scratchpadContext * /*ctx*/) override { }
+
+  virtual void enterCommand_title_format(configGrammar::Command_title_formatContext * /*ctx*/) override { }
+  virtual void exitCommand_title_format(configGrammar::Command_title_formatContext * /*ctx*/) override { }
+
+  virtual void enterCommand_title_window_icon(configGrammar::Command_title_window_iconContext * /*ctx*/) override { }
+  virtual void exitCommand_title_window_icon(configGrammar::Command_title_window_iconContext * /*ctx*/) override { }
 
   virtual void enterCriteria(configGrammar::CriteriaContext * /*ctx*/) override { }
   virtual void exitCriteria(configGrammar::CriteriaContext * /*ctx*/) override { }

@@ -1,5 +1,5 @@
 
-// Generated from configGrammar.g4 by ANTLR 4.11.1
+// Generated from configGrammar.g4 by ANTLR 4.12.0
 
 #pragma once
 
@@ -116,11 +116,17 @@ public:
   virtual void enterCommand_exec(configGrammar::Command_execContext *ctx) = 0;
   virtual void exitCommand_exec(configGrammar::Command_execContext *ctx) = 0;
 
+  virtual void enterCommand_exit(configGrammar::Command_exitContext *ctx) = 0;
+  virtual void exitCommand_exit(configGrammar::Command_exitContext *ctx) = 0;
+
   virtual void enterCommand_kill(configGrammar::Command_killContext *ctx) = 0;
   virtual void exitCommand_kill(configGrammar::Command_killContext *ctx) = 0;
 
   virtual void enterCommand_fullscreen(configGrammar::Command_fullscreenContext *ctx) = 0;
   virtual void exitCommand_fullscreen(configGrammar::Command_fullscreenContext *ctx) = 0;
+
+  virtual void enterCommand_sticky(configGrammar::Command_stickyContext *ctx) = 0;
+  virtual void exitCommand_sticky(configGrammar::Command_stickyContext *ctx) = 0;
 
   virtual void enterCommand_debuglog(configGrammar::Command_debuglogContext *ctx) = 0;
   virtual void exitCommand_debuglog(configGrammar::Command_debuglogContext *ctx) = 0;
@@ -146,11 +152,35 @@ public:
   virtual void enterCommand_floating(configGrammar::Command_floatingContext *ctx) = 0;
   virtual void exitCommand_floating(configGrammar::Command_floatingContext *ctx) = 0;
 
+  virtual void enterCommand_resize(configGrammar::Command_resizeContext *ctx) = 0;
+  virtual void exitCommand_resize(configGrammar::Command_resizeContext *ctx) = 0;
+
+  virtual void enterCommand_rename(configGrammar::Command_renameContext *ctx) = 0;
+  virtual void exitCommand_rename(configGrammar::Command_renameContext *ctx) = 0;
+
+  virtual void enterCommand_nop(configGrammar::Command_nopContext *ctx) = 0;
+  virtual void exitCommand_nop(configGrammar::Command_nopContext *ctx) = 0;
+
+  virtual void enterCommand_reload(configGrammar::Command_reloadContext *ctx) = 0;
+  virtual void exitCommand_reload(configGrammar::Command_reloadContext *ctx) = 0;
+
+  virtual void enterCommand_restart(configGrammar::Command_restartContext *ctx) = 0;
+  virtual void exitCommand_restart(configGrammar::Command_restartContext *ctx) = 0;
+
   virtual void enterCommand_mode(configGrammar::Command_modeContext *ctx) = 0;
   virtual void exitCommand_mode(configGrammar::Command_modeContext *ctx) = 0;
 
+  virtual void enterCommand_open(configGrammar::Command_openContext *ctx) = 0;
+  virtual void exitCommand_open(configGrammar::Command_openContext *ctx) = 0;
+
   virtual void enterCommand_scratchpad(configGrammar::Command_scratchpadContext *ctx) = 0;
   virtual void exitCommand_scratchpad(configGrammar::Command_scratchpadContext *ctx) = 0;
+
+  virtual void enterCommand_title_format(configGrammar::Command_title_formatContext *ctx) = 0;
+  virtual void exitCommand_title_format(configGrammar::Command_title_formatContext *ctx) = 0;
+
+  virtual void enterCommand_title_window_icon(configGrammar::Command_title_window_iconContext *ctx) = 0;
+  virtual void exitCommand_title_window_icon(configGrammar::Command_title_window_iconContext *ctx) = 0;
 
   virtual void enterCriteria(configGrammar::CriteriaContext *ctx) = 0;
   virtual void exitCriteria(configGrammar::CriteriaContext *ctx) = 0;

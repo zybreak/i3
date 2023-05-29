@@ -2,6 +2,8 @@
 #include "parser_stack.h"
 #include <stdio.h>
 
+CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, ipc_client *client);
+
 /*******************************************************************************
  * Code for building the stand-alone binary test.commands_parser which is used
  * by t/187-commands-parser.t.
@@ -13,5 +15,5 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    CommandResult result = parse_command(argv[1], nullptr, nullptr);
+    CommandResult result = parse_command_old(argv[1], nullptr, nullptr);
 }

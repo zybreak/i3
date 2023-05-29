@@ -6,6 +6,12 @@ add_executable(i3
   src/boolstr.cpp
   src/click.cpp
   src/commands/commands.cpp
+  src/commands/old/commands_parser.cpp
+  src/commands/new/commands_parser.cpp
+  src/commands/new/parser-specs/commandsGrammarBaseListener.cpp
+  src/commands/new/parser-specs/commandsLexer.cpp
+  src/commands/new/parser-specs/commandsGrammar.cpp
+  src/commands/new/parser-specs/commandsGrammarListener.cpp
   src/commands/commands_parser.cpp
   src/con.cpp
   src/config/old/config_directives.cpp

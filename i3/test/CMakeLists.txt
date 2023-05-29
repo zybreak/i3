@@ -1,4 +1,5 @@
 find_package(GTest CONFIG)
+
 add_executable(FooTest
         foo_test.cpp
         mock.cpp
@@ -38,9 +39,9 @@ target_include_directories(test.config_parser_new PUBLIC ${include_dirs} "../src
 target_compile_options(test.config_parser_new PUBLIC ${compile_options} -DTEST_PARSER)
 
 add_executable(test.commands_parser
-    commands_parser.cpp
+    commands_parser_old.cpp
     mock.cpp
-    ../src/commands/commands_parser.cpp
+    ../src/commands/old/commands_parser.cpp
     ../src/parser_stack.cpp
     ../src/global.cpp
     ../src/log.cpp
@@ -50,6 +51,20 @@ add_dependencies(test.commands_parser Commands)
 target_link_libraries(test.commands_parser PUBLIC ${libraries})
 target_include_directories(test.commands_parser PUBLIC ${include_dirs} "../src/config/old")
 target_compile_options(test.commands_parser PUBLIC ${compile_options} -DTEST_PARSER)
+
+add_executable(test.commands_parser_new
+        commands_parser_new.cpp
+        mock_new.cpp
+        commands_mock.cpp
+        ../src/log.cpp
+        ../src/commands/new/commands_parser.cpp
+        ../src/commands/new/parser-specs/commandsGrammarBaseListener.cpp
+        ../src/commands/new/parser-specs/commandsLexer.cpp
+        ../src/commands/new/parser-specs/commandsGrammar.cpp
+        ../src/commands/new/parser-specs/commandsGrammarListener.cpp
+        )
+target_link_libraries(test.commands_parser_new PUBLIC ${libraries})
+target_include_directories(test.commands_parser_new PUBLIC ${include_dirs} "../src/config/new")
 
 add_executable(test.config_parser
     config_parser.cpp

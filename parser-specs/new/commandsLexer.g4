@@ -1,5 +1,7 @@
 lexer grammar commandsLexer;
 
+//import criterionLexer;
+
 OPEN_COMMAND : '$('    -> pushMode(COMMAND);
 mode COMMAND;
 CLOSE_COMMAND : ')'    -> popMode;
@@ -7,6 +9,7 @@ CLOSE_COMMAND : ')'    -> popMode;
 COMMAND_SEP: ';';
 COMMAND_MOVE: 'move';
 COMMAND_EXEC: 'exec';
+COMMAND_EXIT: 'exit';
 COMMAND_DEBUGLOG: 'debuglog';
 COMMAND_BORDER: 'border';
 COMMAND_LAYOUT: 'layout';
