@@ -278,7 +278,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
             xcb_change_save_set(**global.x, XCB_SET_MODE_DELETE, con->window->id);
 
             /* Stop receiving ShapeNotify events. */
-            if (shape_supported) {
+            if (global.shape_supported) {
                 xcb_shape_select_input(**global.x, con->window->id, false);
             }
 

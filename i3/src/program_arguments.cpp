@@ -21,7 +21,7 @@ program_arguments parse_args(int argc, char *argv[]) {
             {nullptr, 0, nullptr, 0}};
     int option_index = 0, opt;
 
-    start_argv = argv;
+    global.start_argv = argv;
 
     while ((opt = getopt_long(argc, argv, "pc:CvmaL:hld:V", long_options, &option_index)) != -1) {
         switch (opt) {

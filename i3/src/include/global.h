@@ -8,8 +8,15 @@
 #include "assignments.h"
 #include "workspace.h"
 #include "x.h"
+#include "keysyms.h"
 
 struct global {
+    Keysyms *keysyms;
+
+    char **start_argv;
+
+    bool xkb_supported{true};
+    bool shape_supported{true};
     bool run_atexit{true};
     pid_t config_error_nagbar_pid = -1;
     pid_t command_error_nagbar_pid = -1;

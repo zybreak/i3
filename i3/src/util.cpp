@@ -143,7 +143,7 @@ void exec_i3_utility(char *name, char *argv[]) {
     /* if the script is not in path, maybe the user installed to a strange
      * location and runs the i3 binary with an absolute path. We use
      * argv[0]’s dirname */
-    char *pathbuf = sstrdup(start_argv[0]);
+    char *pathbuf = sstrdup(global.start_argv[0]);
     char *dir = dirname(pathbuf);
     sasprintf(&migratepath, "%s/%s", dir, name);
     argv[0] = migratepath;
@@ -287,13 +287,13 @@ void i3_restart(bool forget_layout) {
 
     ipc_shutdown(SHUTDOWN_REASON_RESTART, -1);
 
-     LOG(fmt::sprintf("restarting \"%s\"...\n", start_argv[0]));
+     LOG(fmt::sprintf("restarting \"%s\"...\n", global.start_argv[0]));
     /* make sure -a is in the argument list or add it */
-    start_argv = add_argument(start_argv, "-a", nullptr, nullptr);
+    global.start_argv = add_argument(global.start_argv, "-a", nullptr, nullptr);
 
     /* make debuglog-on persist */
     if (get_debug_logging()) {
-        start_argv = add_argument(start_argv, "-d", "all", nullptr);
+        global.start_argv = add_argument(global.start_argv, "-d", "all", nullptr);
     }
 
     /* replace -r <file> so that the layout is restored */
@@ -301,11 +301,11 @@ void i3_restart(bool forget_layout) {
         std::string restart_filename = store_restart_layout();
 
         if (!restart_filename.empty()) {
-            start_argv = add_argument(start_argv, "--restart", restart_filename.c_str(), "-r");
+            global.start_argv = add_argument(global.start_argv, "--restart", restart_filename.c_str(), "-r");
         }
     }
 
-    execvp(start_argv[0], start_argv);
+    execvp(global.start_argv[0], start_argv);
 
     /* not reached */
 }

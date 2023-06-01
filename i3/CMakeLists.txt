@@ -67,7 +67,8 @@ add_executable(i3
   src/window.cpp
   src/workspace.cpp
   src/xcb.cpp
-  src/x.cpp)
+  src/x.cpp
+  src/keysyms.cpp)
 
 find_package(PkgConfig REQUIRED)
 include(CheckLibraryExists)

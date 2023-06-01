@@ -76,6 +76,7 @@
 #endif
 
 #include "atoms.h"
+#include "keysyms.h"
 
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;
@@ -84,18 +85,10 @@ int listen_fds;
  * temporarily for drag_pointer(). */
 static struct ev_prepare *xcb_prepare;
 
-char **start_argv;
-
 /* Display handle for libstartup-notification */
 SnDisplay *sndisplay;
 
 struct ev_loop *main_loop;
-
-xcb_key_symbols_t *keysyms;
-
-/* We hope that those are supported and set them to true */
-bool xkb_supported = true;
-bool shape_supported = true;
 
 bool is_background_set(x_connection *conn, xcb_screen_t *screen);
 
@@ -394,8 +387,8 @@ static void set_screenshot_as_wallpaper(x_connection *conn, xcb_screen_t *screen
 
 static void init_xkb(x_connection *conn) {
     auto xkb_ext = conn->extension<xpp::xkb::extension>();
-    xkb_supported = xkb_ext->present;
-    if (!xkb_supported) {
+    global.xkb_supported = xkb_ext->present;
+    if (!global.xkb_supported) {
         DLOG("xkb is not present on this server\n");
     } else {
         DLOG("initializing xcb-xkb\n");
@@ -447,11 +440,11 @@ static void init_shape(x_connection *conn) {
     if (shape_ext->present) {
         shape_base = shape_ext->first_event;
         auto version = global.x->conn->shape().query_version();
-        shape_supported = version && version->minor_version >= 1;
+        global.shape_supported = version && version->minor_version >= 1;
     } else {
-        shape_supported = false;
+        global.shape_supported = false;
     }
-    if (!shape_supported) {
+    if (!global.shape_supported) {
         DLOG("shape 1.1 is not present on this server\n");
     }
 }
@@ -697,9 +690,9 @@ int main(int argc, char *argv[]) {
 
     ewmh_setup_hints();
 
-    keysyms = xcb_key_symbols_alloc(**global.x);
+    global.keysyms = new Keysyms(global.x);
 
-    global.x->xcb_numlock_mask = aio_get_mod_mask_for(XCB_NUM_LOCK, keysyms);
+    global.x->xcb_numlock_mask = global.keysyms->get_numlock_mask();
 
     if (!load_keymap()) {
         errx(EXIT_FAILURE, "Could not load keymap\n");

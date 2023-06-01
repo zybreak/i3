@@ -617,7 +617,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
      * cleanup) */
     xcb_change_save_set(**global.x, XCB_SET_MODE_INSERT, window);
 
-    if (shape_supported) {
+    if (global.shape_supported) {
         /* Receive ShapeNotify events whenever the client altered its window
          * shape. */
         xcb_shape_select_input(**global.x, window, true);

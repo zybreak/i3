@@ -922,7 +922,7 @@ bool load_keymap() {
 
     struct xkb_keymap *new_keymap = nullptr;
     int32_t device_id;
-    if (xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(**global.x)) > -1) {
+    if (global.xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(**global.x)) > -1) {
         if ((new_keymap = xkb_x11_keymap_new_from_device(xkb_context, **global.x, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
             ELOG("xkb_x11_keymap_new_from_device failed\n");
             return false;

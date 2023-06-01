@@ -54,11 +54,8 @@
  */
 extern xcb_window_t ewmh_window;
 extern SnDisplay *sndisplay;
-extern xcb_key_symbols_t *keysyms;
-extern char **start_argv;
 extern int xkb_current_group;
 
-extern bool xkb_supported, shape_supported;
 extern struct ev_loop *main_loop;
 
 /**

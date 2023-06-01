@@ -268,9 +268,9 @@ static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
         return;
 
     DLOG("Received mapping_notify for keyboard or modifier mapping, re-grabbing keys\n");
-    xcb_refresh_keyboard_mapping(keysyms, event);
+    global.keysyms->refresh_keyboard_mapping(event);
 
-    global.x->xcb_numlock_mask = aio_get_mod_mask_for(XCB_NUM_LOCK, keysyms);
+    global.x->xcb_numlock_mask = global.keysyms->get_numlock_mask();
 
     ungrab_all_keys(*global.x);
     translate_keysyms();
@@ -1341,8 +1341,7 @@ void handle_event(x_connection *conn, int type, xcb_generic_event_t *event) {
         auto *state = (xcb_xkb_state_notify_event_t *)event;
         if (state->xkbType == XCB_XKB_NEW_KEYBOARD_NOTIFY) {
             DLOG(fmt::sprintf("xkb new keyboard notify, sequence %d, time %d\n",  state->sequence, state->time));
-            xcb_key_symbols_free(keysyms);
-            keysyms = xcb_key_symbols_alloc(*conn);
+            global.keysyms->key_symbols_alloc();
             if (((xcb_xkb_new_keyboard_notify_event_t *)event)->changed & XCB_XKB_NKN_DETAIL_KEYCODES) {
                 load_keymap();
             }
@@ -1355,8 +1354,7 @@ void handle_event(x_connection *conn, int type, xcb_generic_event_t *event) {
             } else {
                 DLOG(fmt::sprintf("xkb map notify, sequence %d, time %d\n",  state->sequence, state->time));
                 add_ignore_event(event->sequence, type);
-                xcb_key_symbols_free(keysyms);
-                keysyms = xcb_key_symbols_alloc(*conn);
+                global.keysyms->key_symbols_alloc();
                 ungrab_all_keys(conn);
                 translate_keysyms();
                 grab_all_keys(conn);
@@ -1375,7 +1373,7 @@ void handle_event(x_connection *conn, int type, xcb_generic_event_t *event) {
         return;
     }
 
-    if (shape_supported && type == shape_base + XCB_SHAPE_NOTIFY) {
+    if (global.shape_supported && type == shape_base + XCB_SHAPE_NOTIFY) {
         auto *shape = (xcb_shape_notify_event_t *)event;
 
         DLOG(fmt::sprintf("shape_notify_event for window 0x%08x, shape_kind = %d, shaped = %d\n",

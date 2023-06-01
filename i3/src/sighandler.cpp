@@ -120,7 +120,7 @@ static int sighandler_backtrace() {
 
         char *args[] = {
                 (char*)"gdb",
-            start_argv[0],
+            global.start_argv[0],
                 (char*)"-p",
             pid_s,
                 (char*)"-batch",
@@ -292,7 +292,7 @@ static void sighandler_handle_key_press(xcb_key_press_event_t *event) {
      * keysyms, we remove the numlock flag from the event state */
     state &= ~global.x->xcb_numlock_mask;
 
-    xcb_keysym_t sym = xcb_key_press_lookup_keysym(keysyms, event, state);
+    xcb_keysym_t sym = global.keysyms->key_press_lookup_keysym(event, state);
 
     if (sym == 'b') {
         DLOG("User issued core-dump command.\n");
