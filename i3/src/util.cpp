@@ -305,7 +305,7 @@ void i3_restart(bool forget_layout) {
         }
     }
 
-    execvp(global.start_argv[0], start_argv);
+    execvp(global.start_argv[0], global.start_argv);
 
     /* not reached */
 }

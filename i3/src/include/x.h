@@ -24,6 +24,8 @@
 #include <xcb/xcb_aux.h>
 #include "get_visualtype.h"
 #include <xpp/xpp.hpp>
+#include "con.h"
+#include "rect.h"
 
 using x_connection = xpp::connection<xpp::xkb::extension, xpp::shape::extension, xpp::big_requests::extension, xpp::randr::extension>;
 
