@@ -174,12 +174,7 @@ static void i3_exit() {
     kill_nagbar(global.config_error_nagbar_pid, false);
     kill_nagbar(global.command_error_nagbar_pid, false);
 
-/* We need ev >= 4 for the following code. Since it is not *that* important (it
- * only makes sure that there are no i3-nagbar instances left behind) we still
- * support old systems with libev 3. */
-#if EV_VERSION_MAJOR >= 4
     ev_loop_destroy(main_loop);
-#endif
 
 #ifdef I3_ASAN_ENABLED
     __lsan_do_leak_check();
