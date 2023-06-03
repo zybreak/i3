@@ -1017,7 +1017,7 @@ void RandR::fallback_to_root_output() {
  * XRandR information to setup workspaces for each screen.
  *
  */
-RandR::RandR(const X *x, int *event_base) {
+RandR::RandR(const X *x) {
     DLOG("Checking for XRandR...\n");
 
     const xcb_query_extension_reply_t *extreply;
@@ -1050,8 +1050,7 @@ RandR::RandR(const X *x, int *event_base) {
 
     randr_query_outputs();
 
-    if (event_base != nullptr)
-        *event_base = extreply->first_event;
+    randr_base = extreply->first_event;
 
     xcb_randr_select_input(*x->conn, x->root,
                            XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE |

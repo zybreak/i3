@@ -22,6 +22,8 @@
 
 #include "i3string.h"
 #include "log.h"
+#include "shape.h"
+#include "xkb.h"
 #include "draw.h"
 #include "wrapper.h"
 #include "dpi.h"
@@ -114,7 +116,7 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
 
     while ((event = xcb_poll_for_event(**global.x)) != nullptr) {
         if (event->response_type == 0) {
-            if (event_is_ignored(event->sequence, 0))
+            if (global.handlers->event_is_ignored(event->sequence, 0))
                 DLOG(fmt::sprintf("Expected X11 Error received for sequence %x\n",  event->sequence));
             else {
                 auto *error = (xcb_generic_error_t *)event;
@@ -128,7 +130,7 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
 
-        handle_event(*global.x, type, event);
+        global.handlers->handle_event(type, event);
 
         free(event);
     }
@@ -383,74 +385,8 @@ static void set_screenshot_as_wallpaper(x_connection *conn, xcb_screen_t *screen
     conn->flush();
 }
 
-
-
-static void init_xkb(x_connection *conn) {
-    auto xkb_ext = conn->extension<xpp::xkb::extension>();
-    global.xkb_supported = xkb_ext->present;
-    if (!global.xkb_supported) {
-        DLOG("xkb is not present on this server\n");
-    } else {
-        DLOG("initializing xcb-xkb\n");
-        conn->xkb().use_extension(XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
-        conn->xkb().select_events(
-                              XCB_XKB_ID_USE_CORE_KBD,
-                              XCB_XKB_EVENT_TYPE_STATE_NOTIFY | XCB_XKB_EVENT_TYPE_MAP_NOTIFY | XCB_XKB_EVENT_TYPE_NEW_KEYBOARD_NOTIFY,
-                              0,
-                              XCB_XKB_EVENT_TYPE_STATE_NOTIFY | XCB_XKB_EVENT_TYPE_MAP_NOTIFY | XCB_XKB_EVENT_TYPE_NEW_KEYBOARD_NOTIFY,
-                              0xff,
-                              0xff,
-                              nullptr);
-
-        /* Setting both, XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE and
-         * XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED, will lead to the
-         * X server sending us the full XKB state in KeyPress and KeyRelease:
-         * https://cgit.freedesktop.org/xorg/xserver/tree/xkb/xkbEvents.c?h=xorg-server-1.20.0#n927
-         *
-         * XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT enable detectable autorepeat:
-         * https://www.x.org/releases/current/doc/kbproto/xkbproto.html#Detectable_Autorepeat
-         * This affects bindings using the --release flag: instead of getting multiple KeyRelease
-         * events we get only one event when the key is physically released by the user.
-         */
-        const uint32_t mask = XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE |
-                              XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED |
-                              XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT;
-        /* The last three parameters are unset because they are only relevant
-         * when using a feature called “automatic reset of boolean controls”:
-         * https://www.x.org/releases/X11R7.7/doc/kbproto/xkbproto.html#Automatic_Reset_of_Boolean_Controls
-         * */
-        auto pcf_reply = conn->xkb().per_client_flags(XCB_XKB_ID_USE_CORE_KBD, mask, mask, 0, 0, 0);
-
-        if (pcf_reply.get() == nullptr || !(pcf_reply->value & (XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE))) {
-            ELOG("Could not set " "XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE" "\n");
-        }
-        if (pcf_reply.get() == nullptr || !(pcf_reply->value & (XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED))) {
-            ELOG("Could not set " "XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED" "\n");
-        }
-        if (pcf_reply.get() == nullptr || !(pcf_reply->value & (XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT))) {
-            ELOG("Could not set " "XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT" "\n");
-        }
-
-        xkb_base = xkb_ext->first_event;
-    }
-}
-
-static void init_shape(x_connection *conn) {
-    auto shape_ext = conn->extension<xpp::shape::extension>();
-    if (shape_ext->present) {
-        shape_base = shape_ext->first_event;
-        auto version = global.x->conn->shape().query_version();
-        global.shape_supported = version && version->minor_version >= 1;
-    } else {
-        global.shape_supported = false;
-    }
-    if (!global.shape_supported) {
-        DLOG("shape 1.1 is not present on this server\n");
-    }
-}
-
 static void force_disable_output(const program_arguments &args) {
-    if (!args.layout_path.empty() && randr_base > -1) {
+    if (!args.layout_path.empty() && global.randr->randr_base > -1) {
         for (auto &con : croot->nodes_head) {
             for (Output *output : global.randr->outputs) {
                 if (output->active || strcmp(con->name.c_str(), output->output_primary_name().c_str()) != 0)
@@ -545,7 +481,7 @@ static void ignore_restart_events(x_connection *conn) {
              * timespan starting from when we register as a window manager and
              * this piece of code which drops events. */
             if (type == XCB_MAP_REQUEST)
-                handle_event(conn, type, event.get());
+                global.handlers->handle_event(type, event.get());
         }
         manage_existing_windows(global.x->root);
     }
@@ -626,12 +562,13 @@ int main(int argc, char *argv[]) {
     LOG(fmt::sprintf("i3 %s starting\n", I3_VERSION));
 
     /* Prefetch X11 extensions that we are interested in. */
-    global.x = new X();
-    if (global.x->conn->connection_has_error()) {
+    X *x = new X();
+    global.x = x;
+    if (x->conn->connection_has_error()) {
         errx(EXIT_FAILURE, "Cannot open display");
     }
 
-    sndisplay = sn_xcb_display_new(**global.x, nullptr, nullptr);
+    sndisplay = sn_xcb_display_new(**x, nullptr, nullptr);
 
     /* Initialize the libev event loop. This needs to be done before loading
      * the config file because the parser will install an ev_child watcher
@@ -643,9 +580,9 @@ int main(int argc, char *argv[]) {
     /* Place requests for the atoms we need as soon as possible */
     setup_atoms();
 
-    global.x->conn->prefetch_maximum_request_length();
+    x->conn->prefetch_maximum_request_length();
 
-    init_dpi(**global.x, global.x->root_screen);
+    init_dpi(**x, x->root_screen);
 
     load_configuration(&args.override_configpath, config_load_t::C_LOAD);
 
@@ -659,51 +596,51 @@ int main(int argc, char *argv[]) {
 
     try {
         uint32_t valueList[]{ROOT_EVENT_MASK};
-        global.x->conn->change_window_attributes_checked(global.x->root, XCB_CW_EVENT_MASK, valueList);
+        x->conn->change_window_attributes_checked(x->root, XCB_CW_EVENT_MASK, valueList);
     } catch (std::exception &e) {
         ELOG(fmt::sprintf("Another window manager seems to be running (X error %s)\n",  e.what()));
         exit(EXIT_FAILURE);
     }
 
-    auto greply = global.x->conn->get_geometry(global.x->root).get();
+    auto greply = x->conn->get_geometry(x->root).get();
     if (greply == nullptr) {
         ELOG("Could not get geometry of the root window, exiting\n");
         return 1;
     }
     DLOG(fmt::sprintf("root geometry reply: (%d, %d) %d x %d\n",  greply->x, greply->y, greply->width, greply->height));
 
-    global.x->xcursor_load_cursors();
+    x->xcursor_load_cursors();
 
     /* Set a cursor for the root window (otherwise the root window will show no
        cursor until the first client is launched). */
-    global.x->xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
+    x->xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
 
-    init_xkb(*global.x);
+    global.xkb = new Xkb(x);
 
     /* Check for Shape extension. We want to handle input shapes which is
      * introduced in 1.1. */
-    init_shape(*global.x);
+    global.shape = new Shape(x);
 
     restore_connect();
 
-    property_handlers_init();
+    global.handlers = new PropertyHandlers(x);
 
     ewmh_setup_hints();
 
-    global.keysyms = new Keysyms(global.x);
+    global.keysyms = new Keysyms(x);
 
-    global.x->xcb_numlock_mask = global.keysyms->get_numlock_mask();
+    x->xcb_numlock_mask = global.keysyms->get_numlock_mask();
 
     if (!load_keymap()) {
         errx(EXIT_FAILURE, "Could not load keymap\n");
     };
 
     translate_keysyms();
-    grab_all_keys(*global.x);
+    grab_all_keys(*x);
 
     do_tree_init(args, greply.get());
 
-    global.randr = new RandR(global.x, &randr_base);
+    global.randr = new RandR(x);
 
     /* We need to force disabling outputs which have been loaded from the
      * layout file but are no longer active. This can happen if the output has
@@ -733,18 +670,18 @@ int main(int argc, char *argv[]) {
     auto *xcb_watcher = new ev_io();
     xcb_prepare = new ev_prepare;
 
-    ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(**global.x), EV_READ);
+    ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(**x), EV_READ);
     ev_io_start(main_loop, xcb_watcher);
 
     ev_prepare_init(xcb_prepare, xcb_prepare_cb);
     ev_prepare_start(main_loop, xcb_prepare);
 
-    global.x->conn->flush();
+    x->conn->flush();
 
-    ignore_restart_events(*global.x);
+    ignore_restart_events(*x);
 
     if (args.autostart) {
-        fix_empty_background(*global.x);
+        fix_empty_background(*x);
 
     }
 

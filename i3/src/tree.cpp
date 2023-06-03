@@ -262,7 +262,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
 
             /* Ignore X11 errors for the ReparentWindow request.
              * X11 Errors are returned when the window was already destroyed */
-            add_ignore_event(cookie.sequence, 0);
+            global.handlers->add_ignore_event(cookie.sequence, 0);
 
             /* We are no longer handling this window, thus set WM_STATE to
              * WM_STATE_WITHDRAWN (see ICCCM 4.1.3.1) */
@@ -278,13 +278,13 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
             xcb_change_save_set(**global.x, XCB_SET_MODE_DELETE, con->window->id);
 
             /* Stop receiving ShapeNotify events. */
-            if (global.shape_supported) {
+            if (global.shape->shape_supported) {
                 xcb_shape_select_input(**global.x, con->window->id, false);
             }
 
             /* Ignore X11 errors for the ReparentWindow request.
              * X11 Errors are returned when the window was already destroyed */
-            add_ignore_event(cookie.sequence, 0);
+            global.handlers->add_ignore_event(cookie.sequence, 0);
         }
         ipc_send_window_event("close", con);
         delete con->window;

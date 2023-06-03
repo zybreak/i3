@@ -125,7 +125,7 @@ static bool binding_in_current_group(const Binding *bind) {
     /* If no bits are set, the binding should be installed in every group. */
     if ((bind->event_state_mask >> 16) == I3_XKB_GROUP_MASK_ANY)
         return true;
-    switch (xkb_current_group) {
+    switch (global.xkb_current_group) {
         case XCB_XKB_GROUP_1:
             return ((bind->event_state_mask >> 16) & I3_XKB_GROUP_MASK_1);
         case XCB_XKB_GROUP_2:
@@ -135,7 +135,7 @@ static bool binding_in_current_group(const Binding *bind) {
         case XCB_XKB_GROUP_4:
             return ((bind->event_state_mask >> 16) & I3_XKB_GROUP_MASK_4);
         default:
-            ELOG(fmt::sprintf("BUG: xkb_current_group (= %d) outside of [XCB_XKB_GROUP_1..XCB_XKB_GROUP_4]\n",  xkb_current_group));
+            ELOG(fmt::sprintf("BUG: xkb_current_group (= %d) outside of [XCB_XKB_GROUP_1..XCB_XKB_GROUP_4]\n",  global.xkb_current_group));
             return false;
     }
 }
@@ -922,7 +922,7 @@ bool load_keymap() {
 
     struct xkb_keymap *new_keymap = nullptr;
     int32_t device_id;
-    if (global.xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(**global.x)) > -1) {
+    if (global.xkb->xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(**global.x)) > -1) {
         if ((new_keymap = xkb_x11_keymap_new_from_device(xkb_context, **global.x, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
             ELOG("xkb_x11_keymap_new_from_device failed\n");
             return false;

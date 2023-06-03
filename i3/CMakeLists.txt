@@ -29,7 +29,7 @@ add_executable(i3
   src/font.cpp
   src/format_placeholders.cpp
   src/global.cpp
-  src/handlers.cpp
+  src/property_handlers.cpp
   src/ipc.cpp
   src/is_background_set.cpp
   src/load_layout.cpp

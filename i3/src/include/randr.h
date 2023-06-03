@@ -77,6 +77,8 @@ class RandR {
     void fallback_to_root_output();
 
    public:
+    int randr_base{-1};
+
     /* Stores all outputs available in your current session. */
     std::deque<Output*> outputs{};
 
@@ -143,7 +145,7 @@ class RandR {
      * XRandR information to setup workspaces for each screen.
      *
      */
-    RandR(const X *x, int *event_base);
+    explicit RandR(const X *x);
 
 };
 

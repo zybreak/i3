@@ -14,42 +14,77 @@
 
 #include <xcb/randr.h>
 
-extern int randr_base;
-extern int xkb_base;
-extern int shape_base;
-
 struct Ignore_Event {
     int sequence;
     int response_type;
     time_t added;
 };
 
-/**
- * Adds the given sequence to the list of events which are ignored.
- * If this ignore should only affect a specific response_type, pass
- * response_type, otherwise, pass -1.
- *
- * Every ignored sequence number gets garbage collected after 5 seconds.
- *
- */
-void add_ignore_event(const int sequence, const int response_type);
+/* Returns false if the event could not be processed (e.g. the window could not
+ * be found), true otherwise */
+using cb_property_handler_t = bool (*)(Con *con, xcb_get_property_reply_t *property);
 
-/**
- * Checks if the given sequence is ignored and returns true if so.
- *
- */
-bool event_is_ignored(const int sequence, const int response_type);
+struct property_handler_t {
+    xcb_atom_t atom;
+    uint32_t long_len;
+    cb_property_handler_t cb;
 
-/**
- * Takes an xcb_generic_event_t and calls the appropriate handler, based on the
- * event type.
- *
- */
-void handle_event(x_connection *conn, int type, xcb_generic_event_t *event);
+    property_handler_t(
+        xcb_atom_t _atom,
+        uint32_t _long_len,
+        cb_property_handler_t _cb) : atom(_atom), long_len(_long_len), cb(_cb) {}
+};
 
-/**
- * Sets the appropriate atoms for the property handlers after the atoms were
- * received from X11
- *
- */
-void property_handlers_init();
+class PropertyHandlers {
+   private:
+    std::vector<property_handler_t> property_handlers{};
+    std::vector<std::unique_ptr<Ignore_Event>> ignore_events{};
+    void handle_enter_notify(xcb_enter_notify_event_t *event);
+    void handle_motion_notify(xcb_motion_notify_event_t *event);
+    void handle_mapping_notify(xcb_mapping_notify_event_t *event);
+    void handle_map_request(xcb_map_request_event_t *event);
+    void handle_configure_request(xcb_configure_request_event_t *event);
+    void handle_screen_change(xcb_generic_event_t *e);
+    void handle_unmap_notify_event(xcb_unmap_notify_event_t *event);
+    void handle_destroy_notify_event(xcb_destroy_notify_event_t *event);
+    void handle_expose_event(xcb_expose_event_t *event);
+    void handle_client_message(xcb_client_message_event_t *event);
+    void handle_focus_in(xcb_focus_in_event_t *event);
+    void handle_configure_notify(xcb_configure_notify_event_t *event);
+    void property_notify(xcb_property_notify_event_t *event);
+    void handle_key_press(xcb_key_press_event_t *event);
+
+   public:
+    X *x;
+
+    /**
+     * Sets the appropriate atoms for the property handlers after the atoms were
+     * received from X11
+     *
+     */
+    explicit PropertyHandlers(X *x);
+
+    /**
+     * Adds the given sequence to the list of events which are ignored.
+     * If this ignore should only affect a specific response_type, pass
+     * response_type, otherwise, pass -1.
+     *
+     * Every ignored sequence number gets garbage collected after 5 seconds.
+     *
+     */
+    void add_ignore_event(int sequence, int response_type);
+
+    /**
+     * Checks if the given sequence is ignored and returns true if so.
+     *
+     */
+    bool event_is_ignored(int sequence, int response_type);
+
+    /**
+     * Takes an xcb_generic_event_t and calls the appropriate handler, based on the
+     * event type.
+     *
+     */
+    void handle_event(int type, xcb_generic_event_t *event);
+
+};

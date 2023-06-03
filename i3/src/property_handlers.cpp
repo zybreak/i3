@@ -61,16 +61,10 @@
 #include "main.h"
 #include "global.h"
 
-int randr_base = -1;
-int xkb_base = -1;
-int xkb_current_group;
-int shape_base = -1;
-
 /* After mapping/unmapping windows, a notify event is generated. However, we don’t want it,
    since it’d trigger an infinite loop of switching between the different windows when
    changing workspaces */
 static std::mutex mtx;
-static std::vector<std::unique_ptr<Ignore_Event>> ignore_events{};
 
 /*
  * Adds the given sequence to the list of events which are ignored.
@@ -80,7 +74,7 @@ static std::vector<std::unique_ptr<Ignore_Event>> ignore_events{};
  * Every ignored sequence number gets garbage collected after 5 seconds.
  *
  */
-void add_ignore_event(const int sequence, const int response_type) {
+void PropertyHandlers::add_ignore_event(const int sequence, const int response_type) {
     std::lock_guard<std::mutex> guard(mtx);
     auto event = std::make_unique<Ignore_Event>();
 
@@ -95,7 +89,7 @@ void add_ignore_event(const int sequence, const int response_type) {
  * Checks if the given sequence is ignored and returns true if so.
  *
  */
-bool event_is_ignored(const int sequence, const int response_type) {
+bool PropertyHandlers::event_is_ignored(const int sequence, const int response_type) {
     std::lock_guard<std::mutex> guard(mtx);
 
     time_t now = time(nullptr);
@@ -149,7 +143,7 @@ static void check_crossing_screen_boundary(uint32_t x, uint32_t y) {
  * When the user moves the mouse pointer onto a window, this callback gets called.
  *
  */
-static void handle_enter_notify(xcb_enter_notify_event_t *event) {
+void PropertyHandlers::handle_enter_notify(xcb_enter_notify_event_t *event) {
     Con *con;
 
     global.last_timestamp = event->time;
@@ -221,7 +215,7 @@ static void handle_enter_notify(xcb_enter_notify_event_t *event) {
  * and crossing virtual screen boundaries), this callback gets called.
  *
  */
-static void handle_motion_notify(xcb_motion_notify_event_t *event) {
+void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
     global.last_timestamp = event->time;
 
     /* Skip events where the pointer was over a child window, we are only
@@ -262,7 +256,7 @@ static void handle_motion_notify(xcb_motion_notify_event_t *event) {
  * we need to update our key bindings then (re-translate symbols).
  *
  */
-static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
+void PropertyHandlers::handle_mapping_notify(xcb_mapping_notify_event_t *event) {
     if (event->request != XCB_MAPPING_KEYBOARD &&
         event->request != XCB_MAPPING_MODIFIER)
         return;
@@ -281,7 +275,7 @@ static void handle_mapping_notify(xcb_mapping_notify_event_t *event) {
  * A new window appeared on the screen (=was mapped), so let’s manage it.
  *
  */
-static void handle_map_request(xcb_map_request_event_t *event) {
+void PropertyHandlers::handle_map_request(xcb_map_request_event_t *event) {
 
     auto attr = global.x->conn->get_window_attributes_unchecked(event->window);
 
@@ -299,7 +293,7 @@ static void handle_map_request(xcb_map_request_event_t *event) {
  * "new" position.
  *
  */
-static void handle_configure_request(xcb_configure_request_event_t *event) {
+void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *event) {
     Con *con;
 
     DLOG(fmt::sprintf("window 0x%08x wants to be at %dx%d with %dx%d\n",
@@ -459,7 +453,7 @@ out:
  * changes the screen configuration in any way (mode, position, …)
  *
  */
-static void handle_screen_change(xcb_generic_event_t *e) {
+void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
     DLOG("RandR screen change\n");
 
     /* The geometry of the root window is used for “fullscreen global” and
@@ -487,7 +481,7 @@ static void handle_screen_change(xcb_generic_event_t *e) {
  * now, so we better clean up before.
  *
  */
-static void handle_unmap_notify_event(xcb_unmap_notify_event_t *event) {
+void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event) {
     DLOG(fmt::sprintf("UnmapNotify for 0x%08x (received from 0x%08x), serial %d\n",  event->window, event->event, event->sequence));
     xcb_get_input_focus_cookie_t cookie;
     Con *con = con_by_window_id(event->window);
@@ -558,7 +552,7 @@ ignore_end:
  * important fields in the event data structure).
  *
  */
-static void handle_destroy_notify_event(xcb_destroy_notify_event_t *event) {
+void PropertyHandlers::handle_destroy_notify_event(xcb_destroy_notify_event_t *event) {
     DLOG(fmt::sprintf("destroy notify for 0x%08x, 0x%08x\n",  event->event, event->window));
 
     xcb_unmap_notify_event_t unmap;
@@ -639,7 +633,7 @@ static bool handle_windowrole_change(Con *con, xcb_get_property_reply_t *prop) {
  * Expose event means we should redraw our windows (= title bar)
  *
  */
-static void handle_expose_event(xcb_expose_event_t *event) {
+void PropertyHandlers::handle_expose_event(xcb_expose_event_t *event) {
     if (event->count != 0) {
         return;
     }
@@ -684,7 +678,7 @@ const int _NET_MOVERESIZE_WINDOW_HEIGHT = (1 << 11);
  * Handle client messages (EWMH)
  *
  */
-static void handle_client_message(xcb_client_message_event_t *event) {
+void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) {
     /* If this is a startup notification ClientMessage, the library will handle
      * it and call our monitor_event() callback. */
     if (sn_xcb_display_process_event(sndisplay, (xcb_generic_event_t *)event))
@@ -1039,7 +1033,7 @@ static bool handle_clientleader_change(Con *con, xcb_get_property_reply_t *prop)
  * decorations accordingly.
  *
  */
-static void handle_focus_in(xcb_focus_in_event_t *event) {
+void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
     DLOG(fmt::sprintf("focus change in, for window 0x%08x\n",  event->event));
 
     if (event->event == global.x->root) {
@@ -1092,7 +1086,7 @@ static void handle_focus_in(xcb_focus_in_event_t *event) {
  * the monitor configuration changed.
  *
  */
-static void handle_configure_notify(xcb_configure_notify_event_t *event) {
+void PropertyHandlers::handle_configure_notify(xcb_configure_notify_event_t *event) {
     if (event->event != global.x->root) {
         DLOG(fmt::sprintf("ConfigureNotify for non-root window 0x%08x, ignoring\n",  event->event));
         return;
@@ -1220,31 +1214,13 @@ static bool handle_windowicon_change(Con *con, xcb_get_property_reply_t *prop) {
     return true;
 }
 
-/* Returns false if the event could not be processed (e.g. the window could not
- * be found), true otherwise */
-typedef bool (*cb_property_handler_t)(Con *con, xcb_get_property_reply_t *property);
-
-struct property_handler_t {
-    xcb_atom_t atom;
-    uint32_t long_len;
-    cb_property_handler_t cb;
-
-    property_handler_t(
-            xcb_atom_t _atom,
-            uint32_t _long_len,
-            cb_property_handler_t _cb
-            ) : atom(_atom), long_len(_long_len), cb(_cb) {}
-};
-
-static std::vector<property_handler_t> property_handlers{};
-
 /*
  * Sets the appropriate atoms for the property handlers after the atoms were
  * received from X11
  *
  */
-void property_handlers_init() {
-    sn_monitor_context_new(sndisplay, global.x->conn->default_screen(), startup_monitor_event, nullptr, nullptr);
+PropertyHandlers::PropertyHandlers(X *x): x{x} {
+    sn_monitor_context_new(sndisplay, x->conn->default_screen(), startup_monitor_event, nullptr, nullptr);
 
     property_handlers.emplace_back(A__NET_WM_NAME, 128, handle_windowname_change);
     property_handlers.emplace_back(XCB_ATOM_WM_HINTS, UINT_MAX, handle_hints);
@@ -1262,7 +1238,7 @@ void property_handlers_init() {
     property_handlers.emplace_back(A__NET_WM_ICON, UINT_MAX, handle_windowicon_change);
 }
 
-static void property_notify(xcb_property_notify_event_t *event) {
+void PropertyHandlers::property_notify(xcb_property_notify_event_t *event) {
     Con *con;
 
     global.last_timestamp = event->time;
@@ -1304,7 +1280,7 @@ static void property_notify(xcb_property_notify_event_t *event) {
  * parse_command().
  *
  */
-static void handle_key_press(xcb_key_press_event_t *event) {
+void PropertyHandlers::handle_key_press(xcb_key_press_event_t *event) {
     const bool key_release = (event->response_type == XCB_KEY_RELEASE);
 
     global.last_timestamp = event->time;
@@ -1325,17 +1301,18 @@ static void handle_key_press(xcb_key_press_event_t *event) {
  * event type.
  *
  */
-void handle_event(x_connection *conn, int type, xcb_generic_event_t *event) {
+void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
+    x_connection *conn = *x;
     if (type != XCB_MOTION_NOTIFY)
-        DLOG(fmt::sprintf("event type %d, xkb_base %d\n",  type, xkb_base));
+        DLOG(fmt::sprintf("event type %d, xkb_base %d\n",  type, global.xkb->xkb_base));
 
-    if (randr_base > -1 &&
-        type == randr_base + XCB_RANDR_SCREEN_CHANGE_NOTIFY) {
+    if (global.randr->randr_base > -1 &&
+        type == global.randr->randr_base + XCB_RANDR_SCREEN_CHANGE_NOTIFY) {
         handle_screen_change(event);
         return;
     }
 
-    if (xkb_base > -1 && type == xkb_base) {
+    if (global.xkb->xkb_base > -1 && type == global.xkb->xkb_base) {
         DLOG("xkb event, need to handle it.\n");
 
         auto *state = (xcb_xkb_state_notify_event_t *)event;
@@ -1362,10 +1339,10 @@ void handle_event(x_connection *conn, int type, xcb_generic_event_t *event) {
             }
         } else if (state->xkbType == XCB_XKB_STATE_NOTIFY) {
             DLOG(fmt::sprintf("xkb state group = %d\n",  state->group));
-            if (xkb_current_group == state->group) {
+            if (global.xkb_current_group == state->group) {
                 return;
             }
-            xkb_current_group = state->group;
+            global.xkb_current_group = state->group;
             ungrab_all_keys(conn);
             grab_all_keys(conn);
         }
@@ -1373,7 +1350,7 @@ void handle_event(x_connection *conn, int type, xcb_generic_event_t *event) {
         return;
     }
 
-    if (global.shape_supported && type == shape_base + XCB_SHAPE_NOTIFY) {
+    if (global.shape->shape_supported && type == global.shape->shape_base + XCB_SHAPE_NOTIFY) {
         auto *shape = (xcb_shape_notify_event_t *)event;
 
         DLOG(fmt::sprintf("shape_notify_event for window 0x%08x, shape_kind = %d, shaped = %d\n",

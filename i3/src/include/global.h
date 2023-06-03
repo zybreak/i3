@@ -9,19 +9,24 @@
 #include "workspace.h"
 #include "x.h"
 #include "keysyms.h"
+#include "shape.h"
+#include "xkb.h"
+#include "handlers.h"
 
 struct global {
-    Keysyms *keysyms;
-
     char **start_argv;
 
-    bool xkb_supported{true};
-    bool shape_supported{true};
+    int xkb_current_group;
+
     bool run_atexit{true};
     pid_t config_error_nagbar_pid = -1;
     pid_t command_error_nagbar_pid = -1;
+
+    Keysyms *keysyms;
     X *x;
     RandR *randr;
+    Shape *shape;
+    Xkb *xkb;
 
     /* The original value of RLIMIT_CORE when i3 was started. We need to restore
      * this before starting any other process, since we set RLIMIT_CORE to
@@ -41,6 +46,7 @@ struct global {
     xcb_timestamp_t last_timestamp = XCB_CURRENT_TIME;
 
     bool new_parser;
+    PropertyHandlers *handlers;
 };
 
 extern struct global global;

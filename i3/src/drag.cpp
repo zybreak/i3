@@ -90,7 +90,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
             case XCB_KEY_PRESS:
                 DLOG("A key was pressed during drag, reverting changes.\n");
                 dragloop->result = DRAG_REVERT;
-                handle_event(*global.x, type, event);
+                global.handlers->handle_event(type, event);
                 break;
 
             case XCB_UNMAP_NOTIFY: {
@@ -106,7 +106,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
                     }
                 }
 
-                handle_event(*global.x, type, event);
+                global.handlers->handle_event(type, event);
                 break;
             }
 
@@ -118,7 +118,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
 
             default:
                 DLOG("Passing to original handler\n");
-                handle_event(*global.x, type, event);
+                global.handlers->handle_event(type, event);
                 break;
         }
 

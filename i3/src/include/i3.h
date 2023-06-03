@@ -54,7 +54,6 @@
  */
 extern xcb_window_t ewmh_window;
 extern SnDisplay *sndisplay;
-extern int xkb_current_group;
 
 extern struct ev_loop *main_loop;
 
