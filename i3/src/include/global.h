@@ -3,8 +3,8 @@
 #include <sys/types.h>
 #include <sys/resource.h>
 #include <queue>
+#include <config.h>
 #include <memory>
-#include "main.h"
 #include "assignments.h"
 #include "workspace.h"
 #include "x.h"
@@ -12,6 +12,7 @@
 #include "shape.h"
 #include "xkb.h"
 #include "handlers.h"
+#include "event_handler.h"
 
 struct global {
     char **start_argv;
@@ -47,6 +48,7 @@ struct global {
 
     bool new_parser;
     PropertyHandlers *handlers;
+    EventHandler *eventHandler;
 };
 
 extern struct global global;

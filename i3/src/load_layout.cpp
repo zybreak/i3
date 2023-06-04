@@ -99,7 +99,7 @@ static void json_end_map(tree_append_ctx &ctx) {
             /* Ensure the workspace has a name. */
             DLOG(fmt::sprintf("Attaching workspace. name = %s\n",  ctx.json_node->name));
             if (ctx.json_node->name.empty()) {
-                ctx.json_node->name = sstrdup("unnamed");
+                ctx.json_node->name = "unnamed";
             }
 
             /* Prevent name clashes when appending a workspace, e.g. when the
@@ -251,8 +251,7 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
         } else if (ctx.last_key == "title_format") {
             ctx.json_node->title_format.assign(val);
         } else if (ctx.last_key == "sticky_group") {
-            ctx.json_node->sticky_group = (char*)scalloc(val.length() + 1, 1);
-            memcpy(ctx.json_node->sticky_group, val.c_str(), val.length());
+            ctx.json_node->sticky_group.assign(val);
             LOG(fmt::sprintf("sticky_group of this container is %s\n",  ctx.json_node->sticky_group));
         } else if (ctx.last_key == "orientation") {
             /* Upgrade path from older versions of i3 (doing an inplace restart
@@ -370,8 +369,7 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
                 ctx.json_node->scratchpad_state = SCRATCHPAD_CHANGED;
             free(buf);
         } else if (ctx.last_key == "previous_workspace_name") {
-            FREE(previous_workspace_name);
-            previous_workspace_name = sstrndup((const char *)val.c_str(), val.length());
+            previous_workspace_name.assign(val);
         }
     }
 }

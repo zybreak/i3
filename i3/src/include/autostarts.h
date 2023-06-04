@@ -20,10 +20,9 @@ struct Autostart {
     bool no_startup_id;
 };
 
-extern std::vector<std::unique_ptr<Autostart>> autostarts;
-extern std::vector<std::unique_ptr<Autostart>> autostarts_always;
-
 void autostart();
+void autostart_add(std::unique_ptr<Autostart> autostart);
+void autostart_always_add(std::unique_ptr<Autostart> autostart);
 void autostart_always();
 
 #endif //BUILD_AUTOSTARTS_H

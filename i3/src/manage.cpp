@@ -151,10 +151,9 @@ void con_merge_into(Con *old, Con *new_con) {
         old->title_format.clear();
     }
 
-    if (old->sticky_group) {
-        FREE(new_con->sticky_group);
+    if (!old->sticky_group.empty()) {
         new_con->sticky_group = old->sticky_group;
-        old->sticky_group = nullptr;
+        old->sticky_group = "";
     }
 
     new_con->sticky = old->sticky;

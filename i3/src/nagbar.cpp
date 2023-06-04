@@ -395,7 +395,7 @@ static void draw_nagbar(i3String *prompt,
     }
     */
 
-    btn_close.label = i3string_from_utf8("X");
+    btn_close.label = new i3String{"X"};
 
     int screens;
     if ((conn = xcb_connect(nullptr, &screens)) == nullptr ||
@@ -623,7 +623,7 @@ void start_nagbar(pid_t *nagbar_pid,
     if (pid == 0) {
         /* child */
         global.run_atexit = false;
-        draw_nagbar(i3string_from_utf8(prompt), buttons, bar_type, position_on_primary, pattern);
+        draw_nagbar(new i3String{prompt}, buttons, bar_type, position_on_primary, pattern);
     } else {
         /* parent */
         DLOG(fmt::sprintf("Starting i3-nagbar with PID %d\n",  pid));

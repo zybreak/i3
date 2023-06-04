@@ -1,9 +1,27 @@
 #pragma once
 
-struct i3Font;
 struct xcb_connection_t;
 struct xcb_screen_t;
 struct color_t;
+
+/**
+ * Data structure for cached font information:
+ * - font id in X11 (load it once)
+ * - font height (multiple calls needed to get it)
+ *
+ */
+class i3Font {
+   public:
+    /** The height of the font, built from font_ascent + font_descent */
+    int height;
+
+    /** The pattern/name used to load the font. */
+    char *pattern;
+
+    /** The pango font description */
+    PangoFontDescription *pango_desc;
+};
+
 
 /**
  * Predict the text width in pixels for the given text. Text must be
@@ -44,9 +62,3 @@ void free_font(xcb_connection_t *conn);
  *
  */
 void set_font_colors(xcb_connection_t *conn, xcb_gcontext_t gc, color_t foreground, color_t background);
-
-/**
- * Returns true if and only if the current font is a pango font.
- *
- */
-bool font_is_pango();

@@ -39,8 +39,8 @@
 
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-launcher.h>
-#include "main.h"
 #include "global.h"
+#include <config.h>
 
 static std::vector<std::unique_ptr<Startup_Sequence>> startup_sequences{};
 

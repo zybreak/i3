@@ -1943,7 +1943,7 @@ i3String *con_parse_title_format(Con *con) {
         instance = "i3-frame";
         machine = "";
     } else {
-        title = pango_escape_markup((win->name == nullptr) ? "" : win->name->utf8);
+        title = pango_escape_markup((win->name == nullptr) ? "" : win->name->get_utf8());
         window_class = pango_escape_markup((win->class_class == nullptr) ? "" : win->class_class);
         instance = pango_escape_markup((win->class_instance == nullptr) ? "" : win->class_instance);
         machine = pango_escape_markup((win->machine == nullptr) ? "" : win->machine);
@@ -1957,8 +1957,8 @@ i3String *con_parse_title_format(Con *con) {
     };
 
     std::string formatted_str = format_placeholders(con->title_format, placeholders);
-    i3String *formatted = i3string_from_utf8(formatted_str);
-    i3string_set_markup(formatted, true);
+    i3String *formatted = new i3String{formatted_str};
+    formatted->set_markup(true);
 
     return formatted;
 }

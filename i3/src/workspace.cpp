@@ -41,7 +41,7 @@
  * back-and-forth switching.
  *
  */
-char *previous_workspace_name = nullptr;
+std::string previous_workspace_name{};
 
 /* NULL-terminated list of workspace names (in order) extracted from
  * keybindings. */
@@ -329,25 +329,28 @@ bool workspace_is_visible(Con *ws) {
  * XXX: we need to clean up all this recursive walking code.
  *
  */
-static Con *_get_sticky(Con *con, const char *sticky_group, Con *exclude) {
+static Con *_get_sticky(Con *con, const std::string &sticky_group, Con *exclude) {
     for (auto &current : con->nodes_head) {
         if (current != exclude &&
-            current->sticky_group != nullptr &&
+            !current->sticky_group.empty() &&
             current->window != nullptr &&
-            strcmp(current->sticky_group, sticky_group) == 0)
+            current->sticky_group == sticky_group) {
             return current;
+        }
 
         Con *recurse = _get_sticky(current, sticky_group, exclude);
-        if (recurse != nullptr)
+        if (recurse != nullptr) {
             return recurse;
+        }
     }
 
     for (auto &current : con->floating_windows) {
         if (current != exclude &&
-            current->sticky_group != nullptr &&
+            !current->sticky_group.empty() &&
             current->window != nullptr &&
-            strcmp(current->sticky_group, sticky_group) == 0)
+            current->sticky_group == sticky_group) {
             return current;
+        }
 
         Con *recurse = _get_sticky(current, sticky_group, exclude);
         if (recurse != nullptr)
@@ -371,7 +374,7 @@ static void workspace_reassign_sticky(Con *con) {
 
     /* handle all children and floating windows of this node */
     for (auto &current : con->nodes_head) {
-        if (current->sticky_group == nullptr) {
+        if (current->sticky_group.empty()) {
             workspace_reassign_sticky(current);
             continue;
         }
@@ -468,8 +471,7 @@ void workspace_show(Con *workspace) {
      * NOTE: Internal cons such as __i3_scratch (when a scratchpad window is
      * focused) are skipped, see bug #868. */
     if (current && !current->con_is_internal()) {
-        FREE(previous_workspace_name);
-        previous_workspace_name = sstrdup(current->name.c_str());
+        previous_workspace_name.assign(current->name);
         DLOG(fmt::sprintf("Setting previous_workspace_name = %s\n",  previous_workspace_name));
     }
 
@@ -833,12 +835,12 @@ workspace_prev_on_output_end:
  *
  */
 void workspace_back_and_forth() {
-    if (!previous_workspace_name) {
+    if (previous_workspace_name.empty()) {
         DLOG("No previous workspace name set. Not switching.\n");
         return;
     }
 
-    workspace_show_by_name(previous_workspace_name);
+    workspace_show_by_name(previous_workspace_name.c_str());
 }
 
 /*
@@ -846,7 +848,7 @@ void workspace_back_and_forth() {
  *
  */
 Con *workspace_back_and_forth_get() {
-    if (!previous_workspace_name) {
+    if (previous_workspace_name.empty()) {
         DLOG("No previous workspace name set.\n");
         return nullptr;
     }

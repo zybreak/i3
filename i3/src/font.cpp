@@ -241,8 +241,8 @@ void draw_text(xcb_connection_t *conn, i3String *text, xcb_drawable_t drawable, 
     assert(savedFont != nullptr);
 
     /* Render the text using Pango */
-    draw_text_pango(i3string_as_utf8(text), i3string_get_num_bytes(text),
-                    drawable, surface, x, y, max_width, i3string_is_markup(text));
+    draw_text_pango(text->get_utf8(), text->get_num_bytes(),
+                    drawable, surface, x, y, max_width, text->is_pango_markup());
 }
 
 /*
@@ -254,6 +254,6 @@ int predict_text_width(xcb_connection_t *conn, xcb_screen_t *root_screen, i3Stri
     assert(savedFont != nullptr);
 
     /* Calculate extents using Pango */
-    return predict_text_width_pango(conn, root_screen, i3string_as_utf8(text), i3string_get_num_bytes(text),
-                                    i3string_is_markup(text));
+    return predict_text_width_pango(conn, root_screen, text->get_utf8(), text->get_num_bytes(),
+                                    text->is_pango_markup());
 }

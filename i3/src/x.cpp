@@ -77,6 +77,45 @@ xcb_cursor_t X::xcursor_get_cursor(xcursor_cursor_t c) {
     return cursors.at(c);
 }
 
+xcb_visualtype_t* X::get_visual_type_for_root() {
+    auto vt = xcb_aux_find_visual_by_attrs(root_screen, -1, 32);
+    if (vt != nullptr) {
+        root_depth = xcb_aux_get_depth_of_visual(root_screen, vt->visual_id);
+        colormap = conn->generate_id();
+
+        try {
+            xpp::x::create_colormap_checked(*this->conn,
+                XCB_COLORMAP_ALLOC_NONE,
+                colormap,
+                root,
+                vt->visual_id);
+
+        } catch (std::exception &e) {
+            ELOG(fmt::sprintf("Could not create colormap. Error: %s\n",  e.what()));
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        vt = get_visualtype(root_screen);
+    }
+
+    return vt;
+}
+
+X::X() : conn(new x_connection()) {
+    this->conn_screen = conn->default_screen();
+    this->root_screen = conn->screen_of_display(this->conn_screen);
+    this->root = conn->root();
+
+    root_depth = root_screen->root_depth;
+    colormap = root_screen->default_colormap;
+    visual_type = get_visual_type_for_root();
+
+    DLOG(fmt::sprintf("root_depth = %d, visual_id = 0x%08x.\n", root_depth, visual_type->visual_id));
+    DLOG(fmt::sprintf("root_screen->height_in_pixels = %d, root_screen->height_in_millimeters = %d\n",
+        root_screen->height_in_pixels, root_screen->height_in_millimeters));
+    DLOG(fmt::sprintf("One logical pixel corresponds to %ld physical pixels on this display.\n",  logical_px(root_screen, 1)));
+}
+
 /*
  * Returns the container state for the given frame. This function always
  * returns a container state (otherwise, there is a bug in the code and the
@@ -584,7 +623,7 @@ void x_draw_decoration(Con *con) {
     if (win == nullptr) {
         if (con->title_format.empty()) {
             std::string _title = fmt::format("i3: {}", con_get_tree_representation(con));
-            title = i3string_from_utf8(_title);
+            title = new i3String{_title};
         } else {
             title = con_parse_title_format(con);
         }

@@ -202,9 +202,9 @@ namespace cfg {
         n->command = std::string(command);
         n->no_startup_id = (no_startup_id != nullptr);
         if (strcmp(exectype, "exec") == 0) {
-            autostarts.push_back(std::move(n));
+            autostart_add(std::move(n));
         } else {
-            autostarts_always.push_back(std::move(n));
+            autostart_always_add(std::move(n));
         }
     }
 

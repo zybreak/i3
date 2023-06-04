@@ -32,14 +32,20 @@
 #include <unistd.h>
 #include <filesystem>
 
-struct dialog_t {
-    xcb_window_t id;
-    xcb_colormap_t colormap;
-    Rect dims;
-    surface_t surface;
+class dialog_t {
+   public:
+    xcb_window_t id{};
+    xcb_colormap_t colormap{};
+    Rect dims{};
+    surface_t surface{};
+    ~dialog_t() {
+        xcb_free_colormap(**global.x, colormap);
+        draw_util_surface_free(**global.x, &surface);
+        xcb_destroy_window(**global.x, id);
+    }
 };
 
-static std::vector<dialog_t*> dialogs{};
+static std::vector<std::unique_ptr<dialog_t>> dialogs{};
 static int raised_signal;
 static int backtrace_done = 0;
 
@@ -154,11 +160,11 @@ static void sighandler_setup() {
     margin = logical_px(global.x->root_screen, margin);
 
     int num_lines = 5;
-    message_intro = i3string_from_utf8("i3 has just crashed. Please report a bug for this.");
-    message_intro2 = i3string_from_utf8("To debug this problem, you can either attach gdb or choose from the following options:");
-    message_option_backtrace = i3string_from_utf8("- 'b' to save a backtrace (requires gdb)");
-    message_option_restart = i3string_from_utf8("- 'r' to restart i3 in-place");
-    message_option_forget = i3string_from_utf8("- 'f' to forget the previous layout and restart i3");
+    message_intro = new i3String{"i3 has just crashed. Please report a bug for this."};
+    message_intro2 = new i3String{"To debug this problem, you can either attach gdb or choose from the following options:"};
+    message_option_backtrace = new i3String{"- 'b' to save a backtrace (requires gdb)"};
+    message_option_restart = new i3String{"- 'r' to restart i3 in-place"};
+    message_option_forget = new i3String{"- 'f' to forget the previous layout and restart i3"};
 
     int width_longest_message = predict_text_width(**global.x, global.x->root_screen, message_intro2);
 
@@ -172,8 +178,7 @@ static void sighandler_create_dialogs() {
             continue;
         }
 
-        auto *dialog = (struct dialog_t *)scalloc(1, sizeof(struct dialog_t));
-        dialogs.push_back(dialog);
+        auto dialog = std::make_unique<dialog_t>();
 
         xcb_visualid_t visual = get_visualid_by_depth(global.x->root_depth);
         dialog->colormap = xcb_generate_id(**global.x);
@@ -219,6 +224,8 @@ static void sighandler_create_dialogs() {
         /* Confine the pointer to the crash dialog. */
         xcb_grab_pointer(**global.x, false, dialog->id, XCB_NONE, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, dialog->id,
                          XCB_NONE, XCB_CURRENT_TIME);
+
+        dialogs.push_back(std::move(dialog));
     }
 
     sighandler_handle_expose();
@@ -226,23 +233,14 @@ static void sighandler_create_dialogs() {
 }
 
 static void sighandler_destroy_dialogs() {
-    while (!dialogs.empty()) {
-        dialog_t *dialog = dialogs.front();
-
-        xcb_free_colormap(**global.x, dialog->colormap);
-        draw_util_surface_free(**global.x, &(dialog->surface));
-        xcb_destroy_window(**global.x, dialog->id);
-
-        dialogs.erase(dialogs.begin());
-        free(dialog);
-    }
+    dialogs.clear();
 
     xcb_flush(**global.x);
 }
 
 static void sighandler_handle_expose() {
     for (auto &current : dialogs) {
-        sighandler_draw_dialog(current);
+        sighandler_draw_dialog(current.get());
     }
 
     xcb_flush(**global.x);

@@ -501,7 +501,7 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
     j["geometry"] = dump_rect(con->geometry);
 
     if (con->window && con->window->name) {
-        j["name"] = con->window->name->utf8;
+        j["name"] = con->window->name->get_utf8();
     } else if (!con->name.empty())
         j["name"] = con->name;
 
@@ -541,7 +541,7 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
         }
 
         if (con->window->name != nullptr) {
-            map["title"] = con->window->name->utf8;
+            map["title"] = con->window->name->get_utf8();
         }
 
         if (con->window->transient_for != XCB_NONE)
@@ -605,8 +605,8 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
         j["depth"] = con->depth;
     }
 
-    if (inplace_restart && con->type == CT_ROOT && previous_workspace_name) {
-        j["previous_workspace_name"] = previous_workspace_name;
+    if (inplace_restart && con->type == CT_ROOT && !previous_workspace_name.empty()) {
+        j["previous_workspace_name"] = previous_workspace_name.c_str();
     }
 
     return j;

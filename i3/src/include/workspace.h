@@ -39,7 +39,7 @@ struct Workspace_Assignment {
  * back-and-forth switching.
  *
  */
-extern char *previous_workspace_name;
+extern std::string previous_workspace_name;
 
 /**
  * Returns the workspace with the given name or NULL if such a workspace does

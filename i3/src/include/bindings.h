@@ -190,7 +190,7 @@ void translate_keysyms();
  * Switches the key bindings to the given mode, if the mode exists
  *
  */
-void switch_mode(const char *new_mode);
+void switch_mode(const std::string_view &new_mode);
 
 /**
  * Reorders bindings by event_state_mask descendingly so that get_binding()

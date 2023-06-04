@@ -12,8 +12,8 @@
 #include <cstdlib>
 
 #include <xcb/xcb.h>
-#include <main.h>
 #include "i3string.h"
+#include <config.h>
 #include "log.h"
 #include "draw.h"
 #include "font.h"

@@ -175,7 +175,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
         sasprintf(&serialized, "%s]", serialized);
         DLOG(fmt::sprintf("con %p (placeholder 0x%08x) line %d: %s\n",  (void*)state->con, state->window, n, serialized));
 
-        i3String *str = i3string_from_utf8(serialized);
+        i3String *str = new i3String{serialized};
         draw_util_text(*conn, str, &(state->surface), foreground, background,
                        logical_px(global.x->root_screen, 2),
                        (n * (config.font->height + logical_px(global.x->root_screen, 2))) + logical_px(global.x->root_screen, 2),
@@ -186,7 +186,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
     }
 
     // TODO: render the watch symbol in a bigger font
-    i3String *line = i3string_from_utf8("⌚");
+    i3String *line = new i3String{"⌚"};
     int text_width = predict_text_width(*conn, global.x->root_screen, line);
     int x = (state->rect.width / 2) - (text_width / 2);
     int y = (state->rect.height / 2) - (config.font->height / 2);

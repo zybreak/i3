@@ -85,9 +85,9 @@ void ConfigApplier::exec(const std::string &exectype, bool no_startup_id,
     n->command = command;
     n->no_startup_id = no_startup_id;
     if (exectype == "exec"s) {
-        autostarts.push_back(std::move(n));
+        autostart_add(std::move(n));
     } else {
-        autostarts_always.push_back(std::move(n));
+        autostart_always_add(std::move(n));
     }
 }
 

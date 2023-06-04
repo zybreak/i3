@@ -5,10 +5,10 @@
 #include <startup.h>
 
 /* The list of exec-lines */
-std::vector<std::unique_ptr<Autostart>> autostarts{};
+static std::vector<std::unique_ptr<Autostart>> autostarts{};
 
 /* The list of exec_always lines */
-std::vector<std::unique_ptr<Autostart>> autostarts_always{};
+static std::vector<std::unique_ptr<Autostart>> autostarts_always{};
 
 void autostart() {
     while (!autostarts.empty()) {
@@ -19,6 +19,14 @@ void autostart() {
 
         autostarts.erase(autostarts.begin());
     }
+}
+
+void autostart_add(std::unique_ptr<Autostart> autostart) {
+    autostarts.push_back(std::move(autostart));
+}
+
+void autostart_always_add(std::unique_ptr<Autostart> autostart) {
+    autostarts_always.push_back(std::move(autostart));
 }
 
 void autostart_always() {

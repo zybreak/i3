@@ -591,13 +591,10 @@ void translate_keysyms() {
             delete first;
         }
         xkb_keymap_key_for_each(xkb_keymap, add_keycode_if_matches, &resolving);
-        char *keycodes = sstrdup("");
+        std::string keycodes{};
         int num_keycodes = 0;
         for (auto &binding_keycode : bind->keycodes_head) {
-            char *tmp;
-            sasprintf(&tmp, "%s %d", keycodes, binding_keycode->keycode);
-            free(keycodes);
-            keycodes = tmp;
+            keycodes.append(fmt::sprintf(" %d", binding_keycode->keycode));
             num_keycodes++;
 
             /* check for duplicate bindings */
@@ -616,7 +613,6 @@ void translate_keysyms() {
         }
          DLOG(fmt::sprintf("state=0x%x, cfg=\"%s\", sym=0x%x → keycodes%s (%d)\n",
              bind->event_state_mask, bind->symbol, keysym, keycodes, num_keycodes));
-        free(keycodes);
     }
 
 out:
@@ -636,11 +632,11 @@ out:
  * Switches the key bindings to the given mode, if the mode exists
  *
  */
-void switch_mode(const char *new_mode) {
+void switch_mode(const std::string_view &new_mode) {
     DLOG(fmt::sprintf("Switching to mode %s\n",  new_mode));
 
     for (auto &mode : modes) {
-        if (strcmp(mode->name.c_str(), new_mode) != 0)
+        if (mode->name != new_mode)
             continue;
 
         ungrab_all_keys(*global.x);
@@ -655,12 +651,9 @@ void switch_mode(const char *new_mode) {
                 bind->release = B_UPON_KEYRELEASE;
         }
 
-        char *event_msg;
-        sasprintf(&event_msg, R"({"change":"%s", "pango_markup":%s})",
-                  mode->name.c_str(), (mode->pango_markup ? "true" : "false"));
+        std::string event_msg = fmt::sprintf(R"({"change":"%s", "pango_markup":%s})", mode->name, (mode->pango_markup ? "true" : "false"));
 
         ipc_send_event("mode", I3_IPC_EVENT_MODE, event_msg);
-        FREE(event_msg);
 
         return;
     }

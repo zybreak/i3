@@ -123,7 +123,7 @@ bool match_matches_window(Match &match, i3Window *window) {
     LOG(fmt::sprintf("Checking window 0x%08x (class %s)\n",  window->id, window->class_class));
 
 #define GET_FIELD_str(field) (field)
-#define GET_FIELD_i3string(field) (i3string_as_utf8(field))
+#define GET_FIELD_i3string(field) (field->get_utf8())
 #define CHECK_WINDOW_FIELD(match_field, window_field, type)                                       \
     do {                                                                                          \
         if (is_initialized(match.match_field)) {                                                 \

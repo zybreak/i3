@@ -16,9 +16,9 @@ class Keysyms {
     explicit Keysyms(X *x);
     ~Keysyms();
 
-    unsigned int get_numlock_mask();
-    xcb_keysym_t key_press_lookup_keysym(xcb_key_press_event_t *event, uint16_t state);
-    void refresh_keyboard_mapping(xcb_mapping_notify_event_t *event);
+    unsigned int get_numlock_mask() const;
+    xcb_keysym_t key_press_lookup_keysym(xcb_key_press_event_t *event, uint16_t state) const;
+    void refresh_keyboard_mapping(xcb_mapping_notify_event_t *event) const;
     void key_symbols_alloc();
 };
 

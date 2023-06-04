@@ -1842,7 +1842,7 @@ namespace cmd {
 
                 if (current->window != nullptr) {
                     i3String *formatted_title = con_parse_title_format(current);
-                    ewmh_update_visible_name(current->window->id, formatted_title->utf8);
+                    ewmh_update_visible_name(current->window->id, formatted_title->get_utf8());
                     delete formatted_title;
                     formatted_title = nullptr;
                 }
@@ -1970,9 +1970,8 @@ namespace cmd {
 
         /* Let back-and-forth work after renaming the previous workspace.
          * See #3694. */
-        if (previous_workspace_name && !strcmp(previous_workspace_name, old_name_copy)) {
-            FREE(previous_workspace_name);
-            previous_workspace_name = sstrdup(new_name);
+        if (!previous_workspace_name.empty() && !strcmp(previous_workspace_name.c_str(), old_name_copy)) {
+            previous_workspace_name.assign(new_name);
         }
 
         cmd_output.needs_tree_render = true;
@@ -2125,7 +2124,7 @@ namespace cmd {
 
         if (labels != nullptr) {
             buttons.push_back((button_t) {
-                    .label = i3string_from_utf8(labels),
+                    .label = new i3String{labels},
                     .action = sstrdup(actions),
                     .terminal = strcmp(terminals, "true") == 0,
             });

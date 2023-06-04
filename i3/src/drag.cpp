@@ -26,8 +26,8 @@
 #include "configuration.h"
 #include "handlers.h"
 #include "con.h"
-#include "main.h"
 #include "global.h"
+#include "event_handler.h"
 
 /* Custom data structure used to track dragging-related events. */
 struct drag_x11_cb {
