@@ -246,7 +246,7 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
 }
 
 bool floating_enable(Con *con, bool automatic) {
-    bool set_focus = (con == focused);
+    bool set_focus = (con == global.focused);
 
     if (con->con_is_docked()) {
         LOG("Container is a dock window, not enabling floating mode.\n");
@@ -708,7 +708,7 @@ static void resize_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uin
     con->rect.y = dest_y;
 
     render_con(con);
-    x_push_changes(croot);
+    x_push_changes(global.croot);
 }
 
 /*

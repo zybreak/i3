@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 #include "match.h"
 
-extern std::deque<Con*> all_cons;
-
 TEST(MatchTest, IsNotInitialized){
     Match m{};
 

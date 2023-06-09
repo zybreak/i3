@@ -223,7 +223,7 @@ static ssize_t writeall(int fd, const void *buf, size_t count) {
 static std::string store_restart_layout() {
     setlocale(LC_NUMERIC, "C");
 
-    auto j = dump_node(croot, true);
+    auto j = dump_node(global.croot, true);
 
     setlocale(LC_NUMERIC, "");
 

@@ -45,11 +45,6 @@
 #include "restore_layout.h"
 #include "global.h"
 
-Con *croot;
-Con *focused;
-
-std::deque<Con*> all_cons{};
-
 /*
  * Create the pseudo-output __i3. Output-independent workspaces such as
  * __i3_scratch will live there.
@@ -115,24 +110,24 @@ bool tree_restore(const std::string_view &path, const xcb_get_geometry_reply_t *
     }
 
     /* TODO: refactor the following */
-    croot = new Con();
-    croot->rect = (Rect){
+    global.croot = new Con();
+    global.croot->rect = (Rect){
         (uint32_t)geometry->x,
         (uint32_t)geometry->y,
         geometry->width,
         geometry->height};
-    focused = croot;
+    global.focused = global.croot;
 
-    tree_append_json(focused, buf, nullptr);
+    tree_append_json(global.focused, buf, nullptr);
 
     DLOG("appended tree, using new root\n");
-    croot = con::first(croot->nodes_head);
-    if (!croot) {
+    global.croot = con::first(global.croot->nodes_head);
+    if (!global.croot) {
         /* tree_append_json failed. Continuing here would segfault. */
         return result;
     }
-    DLOG(fmt::sprintf("new root = %p\n",  (void*)croot));
-    Con *out = con::first(croot->nodes_head);
+    DLOG(fmt::sprintf("new root = %p\n",  (void*)global.croot));
+    Con *out = con::first(global.croot->nodes_head);
     DLOG(fmt::sprintf("out = %p\n",  (void*)out));
     Con *ws = con::first(out->nodes_head);
     DLOG(fmt::sprintf("ws = %p\n",  (void*)ws));
@@ -141,14 +136,14 @@ bool tree_restore(const std::string_view &path, const xcb_get_geometry_reply_t *
      * pseudo-output __i3 is present. */
     if (strcmp(out->name.c_str(), "__i3") != 0) {
         DLOG("Adding pseudo-output __i3 during inplace restart\n");
-        Con *__i3 = create_i3(croot);
+        Con *__i3 = create_i3(global.croot);
         /* Ensure that it is the first output, other places in the code make
          * that assumption. */
-        std::erase(croot->nodes_head, __i3);
-        croot->nodes_head.push_front(__i3);
+        std::erase(global.croot->nodes_head, __i3);
+        global.croot->nodes_head.push_front(__i3);
     }
 
-    restore_open_placeholder_windows(croot);
+    restore_open_placeholder_windows(global.croot);
     result = true;
 
     return result;
@@ -160,17 +155,17 @@ bool tree_restore(const std::string_view &path, const xcb_get_geometry_reply_t *
  *
  */
 void tree_init(const xcb_get_geometry_reply_t *geometry) {
-    croot = new Con();
-    croot->name.assign("root");
-    croot->type = CT_ROOT;
-    croot->layout = L_SPLITH;
-    croot->rect = (Rect){
+    global.croot = new Con();
+    global.croot->name.assign("root");
+    global.croot->type = CT_ROOT;
+    global.croot->layout = L_SPLITH;
+    global.croot->rect = (Rect){
         (uint32_t)geometry->x,
         (uint32_t)geometry->y,
         geometry->width,
         geometry->height};
 
-    create_i3(croot);
+    create_i3(global.croot);
 }
 
 /*
@@ -180,11 +175,11 @@ void tree_init(const xcb_get_geometry_reply_t *geometry) {
 Con *tree_open_con(Con *con, i3Window *window) {
     if (con == nullptr) {
         /* every focusable Con has a parent (outputs have parent root) */
-        con = focused->parent;
+        con = global.focused->parent;
         /* If the parent is an output, we are on a workspace. In this case,
          * the new container needs to be opened as a leaf of the workspace. */
         if (con->parent->type == CT_OUTPUT && con->type != CT_DOCKAREA) {
-            con = focused;
+            con = global.focused;
         }
 
         /* If the currently focused container is a floating container, we
@@ -294,8 +289,8 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
     Con *ws = con->con_get_workspace();
 
     /* Figure out which container to focus next before detaching 'con'. */
-    Con *next = (con == focused) ? con_next_focused(con) : nullptr;
-    DLOG(fmt::sprintf("next = %p, focused = %p\n",  (void*)next, (void*)focused));
+    Con *next = (con == global.focused) ? con_next_focused(con) : nullptr;
+    DLOG(fmt::sprintf("next = %p, focused = %p\n",  (void*)next, (void*)global.focused));
 
     /* Detach the container so that it will not be rendered anymore. */
     con->con_detach();
@@ -417,19 +412,19 @@ void tree_split(Con *con, orientation_t orientation) {
 bool level_up() {
     /* Skip over floating containers and go directly to the grandparent
      * (which should always be a workspace) */
-    if (focused->parent->type == CT_FLOATING_CON) {
-        focused->parent->parent->con_activate();
+    if (global.focused->parent->type == CT_FLOATING_CON) {
+        global.focused->parent->parent->con_activate();
         return true;
     }
 
     /* We can focus up to the workspace, but not any higher in the tree */
-    if ((focused->parent->type != CT_CON &&
-         focused->parent->type != CT_WORKSPACE) ||
-        focused->type == CT_WORKSPACE) {
+    if ((global.focused->parent->type != CT_CON &&
+         global.focused->parent->type != CT_WORKSPACE) ||
+        global.focused->type == CT_WORKSPACE) {
         ELOG("'focus parent': Focus is already on the workspace, cannot go higher than that.\n");
         return false;
     }
-    focused->parent->con_activate();
+    global.focused->parent->con_activate();
     return true;
 }
 
@@ -439,8 +434,8 @@ bool level_up() {
  */
 bool level_down() {
     /* Go down the focus stack of the current node */
-    Con *next = con::first(focused->focus_head);
-    if (next == con::last(focused->focus_head)) {
+    Con *next = con::first(global.focused->focus_head);
+    if (next == con::last(global.focused->focus_head)) {
         DLOG("cannot go down\n");
         return false;
     } else if (next->type == CT_FLOATING_CON) {
@@ -479,18 +474,18 @@ static void mark_unmapped(Con *con) {
  *
  */
 void tree_render() {
-    if (croot == nullptr)
+    if (global.croot == nullptr)
         return;
 
     DLOG("-- BEGIN RENDERING --\n");
     /* Reset map state for all nodes in tree */
     /* TODO: a nicer method to walk all nodes would be good, maybe? */
-    mark_unmapped(croot);
-    croot->mapped = true;
+    mark_unmapped(global.croot);
+    global.croot->mapped = true;
 
-    render_con(croot);
+    render_con(global.croot);
 
-    x_push_changes(croot);
+    x_push_changes(global.croot);
     DLOG("-- END RENDERING --\n");
 }
 

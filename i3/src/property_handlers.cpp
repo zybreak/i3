@@ -127,7 +127,7 @@ static void check_crossing_screen_boundary(uint32_t x, uint32_t y) {
     }
 
     /* Focus the output on which the user moved their cursor */
-    Con *old_focused = focused;
+    Con *old_focused = global.focused;
     Con *next = con_descend_focused(output->con->output_get_content());
     /* Since we are switching outputs, this *must* be a different workspace, so
      * call workspace_show() */
@@ -135,7 +135,7 @@ static void check_crossing_screen_boundary(uint32_t x, uint32_t y) {
     next->con_focus();
 
     /* If the focus changed, we re-render to get updated decorations */
-    if (old_focused != focused)
+    if (old_focused != global.focused)
         tree_render();
 }
 
@@ -194,14 +194,14 @@ void PropertyHandlers::handle_enter_notify(xcb_enter_notify_event_t *event) {
         return;
 
     /* if this container is already focused, there is nothing to do. */
-    if (con == focused)
+    if (con == global.focused)
         return;
 
     /* Get the currently focused workspace to check if the focus change also
      * involves changing workspaces. If so, we need to call workspace_show() to
      * correctly update state and send the IPC event. */
     Con *ws = con->con_get_workspace();
-    if (ws != focused->con_get_workspace())
+    if (ws != global.focused->con_get_workspace())
         workspace_show(ws);
 
     global.x->focused_id = XCB_NONE;
@@ -246,7 +246,7 @@ void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
             return;
 
         current->con_focus();
-        x_push_changes(croot);
+        x_push_changes(global.croot);
         return;
     }
 }
@@ -466,8 +466,8 @@ void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
     }
     DLOG(fmt::sprintf("root geometry reply: (%d, %d) %d x %d\n",  reply->x, reply->y, reply->width, reply->height));
 
-    croot->rect.width = reply->width;
-    croot->rect.height = reply->height;
+    global.croot->rect.width = reply->width;
+    global.croot->rect.height = reply->height;
 
     global.randr->randr_query_outputs();
 
@@ -585,7 +585,7 @@ static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
 
     con = remanage_window(con);
 
-    x_push_changes(croot);
+    x_push_changes(global.croot);
 
     if (window_name_changed(con->window, old_name))
         ipc_send_window_event("title", con);
@@ -607,7 +607,7 @@ static bool handle_windowname_change_legacy(Con *con, xcb_get_property_reply_t *
 
     con = remanage_window(con);
 
-    x_push_changes(croot);
+    x_push_changes(global.croot);
 
     if (window_name_changed(con->window, old_name))
         ipc_send_window_event("title", con);
@@ -730,7 +730,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
 
             DLOG(fmt::sprintf("New sticky status for con = %p is %i.\n",  (void*)con, con->sticky));
             ewmh_update_sticky(con->window->id, con->sticky);
-            output_push_sticky_windows(focused);
+            output_push_sticky_windows(global.focused);
             ewmh_update_wm_desktop();
         }
 
@@ -872,7 +872,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
 
                 con->sticky = true;
                 ewmh_update_sticky(con->window->id, true);
-                output_push_sticky_windows(focused);
+                output_push_sticky_windows(global.focused);
             }
         } else {
             Con *ws = ewmh_get_workspace_by_index(index);
@@ -1038,9 +1038,9 @@ void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
 
     if (event->event == global.x->root) {
         DLOG("Received focus in for root window, refocusing the focused window.\n");
-        focused->con_focus();
+        global.focused->con_focus();
         global.x->focused_id = XCB_NONE;
-        x_push_changes(croot);
+        x_push_changes(global.croot);
     }
 
     Con *con;
@@ -1129,7 +1129,7 @@ static bool handle_motif_hints_change(Con *con, xcb_get_property_reply_t *prop) 
         DLOG(fmt::sprintf("Update border style of con %p to %d\n",  (void*)con, motif_border_style));
         con_set_border_style(con, motif_border_style, con->current_border_width);
 
-        x_push_changes(croot);
+        x_push_changes(global.croot);
     }
 
     return true;
@@ -1147,7 +1147,7 @@ static bool handle_strut_partial_change(Con *con, xcb_get_property_reply_t *prop
         return true;
     }
 
-    Con *search_at = croot;
+    Con *search_at = global.croot;
     Con *output = con->con_get_output();
     if (output != nullptr) {
         DLOG(fmt::sprintf("Starting search at output %s\n",  output->name));
@@ -1209,7 +1209,7 @@ static bool handle_i3_floating(Con *con, xcb_get_property_reply_t *prop) {
 static bool handle_windowicon_change(Con *con, xcb_get_property_reply_t *prop) {
     con->window->window_update_icon(prop);
 
-    x_push_changes(croot);
+    x_push_changes(global.croot);
 
     return true;
 }

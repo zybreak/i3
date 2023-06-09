@@ -121,8 +121,8 @@ void checkWindowField(Regex *match_field, i3Window *window, char* (*window_field
     if (is_initialized(match_field)) {
         const char *window_field_str = window_field(window) == nullptr ? "" : window_field(window);
         if (strcmp(match_field->pattern, "__focused__") == 0 &&
-            focused && focused->window && window_field(focused->window) &&
-            strcmp(window_field_str, window_field(focused->window)) == 0) {
+            global.focused && global.focused->window && window_field(global.focused->window) &&
+            strcmp(window_field_str, window_field(global.focused->window)) == 0) {
             LOG("window match_field matches focused window\n");
         } else if (match_field->regex_matches(window_field_str)) {
              LOG(fmt::sprintf("window match_field matches (%s)\n", window_field_str));
@@ -175,7 +175,7 @@ bool match_matches_window(Match &match, i3Window *window) {
             return false;
         }
         /* if we find a window that is newer than this one, bail */
-        for (const auto &c : all_cons) {
+        for (const auto &c : global.all_cons) {
             con = c;
             if ((con->window != nullptr) && i3_timercmp(con->window->urgent, window->urgent, std::ranges::greater())) {
                 return false;
@@ -190,7 +190,7 @@ bool match_matches_window(Match &match, i3Window *window) {
             return false;
         }
         /* if we find a window that is older than this one (and not 0), bail */
-        for (const auto &c : all_cons) {
+        for (const auto &c : global.all_cons) {
             con = c;
             if ((con->window != nullptr) &&
                 (con->window->urgent.tv_sec != 0) &&
@@ -210,7 +210,7 @@ bool match_matches_window(Match &match, i3Window *window) {
             return false;
 
         if (strcmp(match.workspace->pattern, "__focused__") == 0 &&
-            strcmp(ws->name.c_str(), focused->con_get_workspace()->name.c_str()) == 0) {
+            strcmp(ws->name.c_str(), global.focused->con_get_workspace()->name.c_str()) == 0) {
             LOG("workspace matches focused workspace\n");
         } else if (match.workspace->regex_matches(ws->name.c_str())) {
             LOG(fmt::sprintf("workspace matches (%s)\n",  ws->name));
@@ -324,7 +324,7 @@ void Match::parse_property(const char *ctype, const char *cvalue) {
 
     if (strcmp(ctype, "con_id") == 0) {
         if (strcmp(cvalue, "__focused__") == 0) {
-            this->con_id = focused;
+            this->con_id = global.focused;
             return;
         }
 

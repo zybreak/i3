@@ -17,12 +17,6 @@ enum position_t {
     AFTER
 };
 
-
-extern Con *croot;
-/* TODO: i am not sure yet how much access to the focused container should
- * be permitted to source files */
-extern Con *focused;
-extern std::deque<Con*> all_cons;
 /**
  * Initializes the tree by creating the root node, adding all RandR outputs
  * to the tree (that means randr_init() has to be called before) and

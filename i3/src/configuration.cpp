@@ -152,7 +152,7 @@ static void free_configuration() {
     global.ws_assignments.clear();
     barconfigs.clear();
 
-    for (const auto &con : all_cons) {
+    for (const auto &con : global.all_cons) {
         /* Assignments changed, previously ran assignments are invalid. */
         if (con->window) {
             con->window->ran_assignments.clear();
@@ -328,7 +328,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
 
         /* Redraw the currently visible decorations on reload, so that the
          * possibly new drawing parameters changed. */
-        x_deco_recurse(croot);
+        x_deco_recurse(global.croot);
         xcb_flush(**global.x);
     }
 

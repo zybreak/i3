@@ -39,7 +39,7 @@ xcb_window_t ewmh_window;
  */
 void ewmh_update_current_desktop() {
     static uint32_t old_idx = NET_WM_DESKTOP_NONE;
-    const uint32_t idx = ewmh_get_workspace_index(focused);
+    const uint32_t idx = ewmh_get_workspace_index(global.focused);
 
     if (idx == old_idx || idx == NET_WM_DESKTOP_NONE) {
         return;
@@ -57,7 +57,7 @@ static void ewmh_update_number_of_desktops() {
     static uint32_t old_idx = 0;
     uint32_t idx = 0;
 
-    for (auto &output : croot->nodes_head) {
+    for (auto &output : global.croot->nodes_head) {
         for (auto &ws: output->output_get_content()->nodes_head) {
             if (!ws->con_is_internal()) {
                 idx++;
@@ -82,7 +82,7 @@ static void ewmh_update_desktop_names() {
     int msg_length = 0;
 
     /* count the size of the property message to set */
-    for (auto &output : croot->nodes_head) {
+    for (auto &output : global.croot->nodes_head) {
         for (auto &ws: output->output_get_content()->nodes_head) {
             if (!ws->con_is_internal()) {
                 msg_length += ws->name.length() + 1;
@@ -94,7 +94,7 @@ static void ewmh_update_desktop_names() {
     int current_position = 0;
 
     /* fill the buffer with the names of the i3 workspaces */
-    for (auto &output : croot->nodes_head) {
+    for (auto &output : global.croot->nodes_head) {
         for (auto &ws: output->output_get_content()->nodes_head) {
             if (!ws->con_is_internal()) {
                 for (size_t i = 0; i < ws->name.length() + 1; i++) {
@@ -115,7 +115,7 @@ static void ewmh_update_desktop_names() {
 static void ewmh_update_desktop_viewport() {
     int num_desktops = 0;
     /* count number of desktops */
-    for (auto &output : croot->nodes_head) {
+    for (auto &output : global.croot->nodes_head) {
         for (auto &ws: output->output_get_content()->nodes_head) {
             if (!ws->con_is_internal()) {
                 num_desktops++;
@@ -127,7 +127,7 @@ static void ewmh_update_desktop_viewport() {
 
     int current_position = 0;
     /* fill the viewport buffer */
-    for (auto &output : croot->nodes_head) {
+    for (auto &output : global.croot->nodes_head) {
         for (auto &ws: output->output_get_content()->nodes_head) {
             if (!ws->con_is_internal()) {
                 viewports[current_position++] = output->rect.x;
@@ -211,7 +211,7 @@ static void ewmh_update_wm_desktop_recursively(Con *con, const uint32_t desktop)
 void ewmh_update_wm_desktop() {
     uint32_t desktop = 0;
 
-    for (auto &output : croot->nodes_head) {
+    for (auto &output : global.croot->nodes_head) {
         for (auto &workspace : output->output_get_content()->nodes_head) {
             ewmh_update_wm_desktop_recursively(workspace, desktop);
 
@@ -377,7 +377,7 @@ Con *ewmh_get_workspace_by_index(uint32_t idx) {
 
     uint32_t current_index = 0;
 
-    for (auto &output : croot->nodes_head) {
+    for (auto &output : global.croot->nodes_head) {
         for (auto &ws: output->output_get_content()->nodes_head) {
             if (!ws->con_is_internal()) {
                 if (current_index == idx) {
@@ -402,7 +402,7 @@ uint32_t ewmh_get_workspace_index(Con *con) {
     uint32_t index = 0;
 
     Con *target_workspace = con->con_get_workspace();
-    for (auto &output : croot->nodes_head) {
+    for (auto &output : global.croot->nodes_head) {
         for (auto &ws: output->output_get_content()->nodes_head) {
             if (!ws->con_is_internal()) {
                 if (ws == target_workspace) {

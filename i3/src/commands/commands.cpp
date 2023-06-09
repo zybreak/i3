@@ -81,7 +81,7 @@ static void yerror(nlohmann::json *json_gen, std::string message) {
  *
  */
 static bool maybe_back_and_forth(struct CommandResultIR &cmd_output, const char *name) {
-    Con *ws = focused->con_get_workspace();
+    Con *ws = global.focused->con_get_workspace();
 
     /* If we switched to a different workspace, do nothing */
     if (strcmp(ws->name.c_str(), name) != 0)
@@ -105,7 +105,7 @@ static Con *maybe_auto_back_and_forth_workspace(Con *workspace) {
     if (!config.workspace_auto_back_and_forth)
         return workspace;
 
-    current = focused->con_get_workspace();
+    current = global.focused->con_get_workspace();
 
     if (current == workspace) {
         baf = workspace_back_and_forth_get();
@@ -134,7 +134,7 @@ static void HANDLE_EMPTY_MATCH(struct criteria_state &criteria_state) {
 
     if (match_is_empty(criteria_state.current_match)) {
         criteria_state.owindows.clear();
-        criteria_state.owindows.push_back(focused);
+        criteria_state.owindows.push_back(global.focused);
     }
 }
 
@@ -256,7 +256,7 @@ namespace cmd {
         /* copy the old list head to iterate through it and start with a fresh
          * list which will contain only matching windows */
         criteria_state.owindows.clear();
-        for (auto &current : all_cons) {
+        for (auto &current : global.all_cons) {
             /* make a copy of the next pointer and advance the pointer to the
              * next element as we are going to invalidate the element’s
              * next/prev pointers by calling TAILQ_INSERT_TAIL later */
@@ -359,7 +359,7 @@ namespace cmd {
         else if (strcmp(which, "prev_on_output") == 0)
             ws = workspace_prev_on_output();
         else if (strcmp(which, "current") == 0)
-            ws = focused->con_get_workspace();
+            ws = global.focused->con_get_workspace();
         else {
             throw std::runtime_error(fmt::sprintf("BUG: called with which=%s", which));
         }
@@ -828,7 +828,7 @@ namespace cmd {
             throw std::runtime_error(fmt::sprintf("Could not determine the contents of \"%s\".", path));
         }
 
-        Con *parent = focused;
+        Con *parent = global.focused;
         if (content == JSON_CONTENT_WORKSPACE) {
             parent = parent->con_get_output()->output_get_content();
         } else {
@@ -839,7 +839,7 @@ namespace cmd {
             while (parent->type != CT_WORKSPACE && !parent->con_accepts_window())
                 parent = parent->parent;
         }
-        DLOG(fmt::sprintf("Appending to parent=%p instead of focused=%p\n",  (void*)parent, (void*)focused));
+        DLOG(fmt::sprintf("Appending to parent=%p instead of focused=%p\n",  (void*)parent, (void*)global.focused));
         char *errormsg = nullptr;
         tree_append_json(parent, buf, &errormsg);
         if (errormsg != nullptr) {
@@ -859,7 +859,7 @@ namespace cmd {
         // is not executed yet and will be batched with append_layout’s
         // needs_tree_render after the parser finished. We should check if that is
         // necessary at all.
-        render_con(croot);
+        render_con(global.croot);
 
         restore_open_placeholder_windows(parent);
 
@@ -878,7 +878,7 @@ namespace cmd {
 
         DLOG(fmt::sprintf("which=%s\n",  which));
 
-        if (croot->con_get_fullscreen_con(CF_GLOBAL)) {
+        if (global.croot->con_get_fullscreen_con(CF_GLOBAL)) {
             throw std::runtime_error("Cannot switch workspace while in global fullscreen");
         }
 
@@ -908,7 +908,7 @@ namespace cmd {
     void workspace_number(struct criteria_state &criteria_state, struct CommandResultIR &cmd_output, const char *which, const char *_no_auto_back_and_forth) {
         const bool no_auto_back_and_forth = (_no_auto_back_and_forth != nullptr);
 
-        if (croot->con_get_fullscreen_con(CF_GLOBAL)) {
+        if (global.croot->con_get_fullscreen_con(CF_GLOBAL)) {
             throw std::runtime_error("Cannot switch workspace while in global fullscreen");
         }
 
@@ -941,7 +941,7 @@ namespace cmd {
  *
  */
     void workspace_back_and_forth(struct criteria_state &criteria_state, struct CommandResultIR &cmd_output) {
-        if (croot->con_get_fullscreen_con(CF_GLOBAL)) {
+        if (global.croot->con_get_fullscreen_con(CF_GLOBAL)) {
             throw std::runtime_error("Cannot switch workspace while in global fullscreen");
         }
 
@@ -963,7 +963,7 @@ namespace cmd {
             throw std::runtime_error(fmt::sprintf("You cannot switch to the i3-internal workspaces (\"%s\").", name));
         }
 
-        if (croot->con_get_fullscreen_con(CF_GLOBAL)) {
+        if (global.croot->con_get_fullscreen_con(CF_GLOBAL)) {
             throw std::runtime_error("Cannot switch workspace while in global fullscreen");
         }
 
@@ -1294,14 +1294,14 @@ namespace cmd {
 
         bool to_floating = false;
         if (strcmp(window_mode, "mode_toggle") == 0) {
-            to_floating = !focused->con_inside_floating();
+            to_floating = !global.focused->con_inside_floating();
         } else if (strcmp(window_mode, "floating") == 0) {
             to_floating = true;
         } else if (strcmp(window_mode, "tiling") == 0) {
             to_floating = false;
         }
 
-        Con *ws = focused->con_get_workspace();
+        Con *ws = global.focused->con_get_workspace();
         bool success = false;
         for (auto &current : ws->focus_head) {
             if ((to_floating && current->type != CT_FLOATING_CON) ||
@@ -1332,8 +1332,8 @@ namespace cmd {
         /* Focusing the parent can only be allowed if the newly
          * focused container won't escape the fullscreen container. */
         if (strcmp(level, "parent") == 0) {
-            if (focused && focused->parent) {
-                if (con_fullscreen_permits_focusing(focused->parent))
+            if (global.focused && global.focused->parent) {
+                if (con_fullscreen_permits_focusing(global.focused->parent))
                     success = level_up();
                 else
                     ELOG("'focus parent': Currently in fullscreen, not going up\n");
@@ -1448,7 +1448,7 @@ namespace cmd {
 
         /* A window we made sticky might not be on a visible workspace right now, so we need to make
          * sure it gets pushed to the front now. */
-        output_push_sticky_windows(focused);
+        output_push_sticky_windows(global.focused);
 
         ewmh_update_wm_desktop();
 
@@ -1463,7 +1463,7 @@ namespace cmd {
     void move_direction(struct criteria_state &criteria_state, struct CommandResultIR &cmd_output, const char *direction_str, long amount, const char *mode) {
         HANDLE_EMPTY_MATCH(criteria_state);
 
-        Con *initially_focused = focused;
+        Con *initially_focused = global.focused;
         direction_t direction = parse_direction(direction_str);
 
         const bool is_ppt = mode && strcmp(mode, "ppt") == 0;
@@ -1499,7 +1499,7 @@ namespace cmd {
 
         /* The move command should not disturb focus. con_exists is called because
          * tree_move calls tree_flatten. */
-        if (focused != initially_focused && initially_focused != nullptr && initially_focused->exists()) {
+        if (global.focused != initially_focused && initially_focused != nullptr && initially_focused->exists()) {
             initially_focused->con_activate();
         }
 
@@ -1548,7 +1548,7 @@ namespace cmd {
 
         /* check if the match is empty, not if the result is empty */
         if (match_is_empty(criteria_state.current_match))
-            con_toggle_layout(focused, toggle_mode);
+            con_toggle_layout(global.focused, toggle_mode);
         else {
             for (auto current: criteria_state.owindows) {
                 DLOG(fmt::sprintf("matching: %p / %s\n",  (void*)current, current->name));
@@ -1740,7 +1740,7 @@ namespace cmd {
 
             if (strcmp(method, "absolute") == 0) {
                 DLOG("moving to absolute center\n");
-                floating_center(floating_con, croot->rect);
+                floating_center(floating_con, global.croot->rect);
 
                 floating_maybe_reassign_ws(floating_con);
                 cmd_output.needs_tree_render = true;
@@ -1914,7 +1914,7 @@ namespace cmd {
         if (old_name) {
             workspace = get_existing_workspace_by_name(old_name);
         } else {
-            workspace = focused->con_get_workspace();
+            workspace = global.focused->con_get_workspace();
             old_name = workspace->name.c_str();
         }
 
@@ -1939,8 +1939,8 @@ namespace cmd {
         LOG(fmt::sprintf("num = %d\n",  workspace->num));
 
         /* By re-attaching, the sort order will be correct afterwards. */
-        Con *previously_focused = focused;
-        Con *previously_focused_content = focused->type == CT_WORKSPACE ? focused->parent : nullptr;
+        Con *previously_focused = global.focused;
+        Con *previously_focused_content = global.focused->type == CT_WORKSPACE ? global.focused->parent : nullptr;
         Con *parent = workspace->parent;
         workspace->con_detach();
         workspace->con_attach(parent, false);

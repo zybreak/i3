@@ -98,7 +98,7 @@ Con::Con(Con *parent, i3Window *window, bool skeleton) {
         this->depth = global.x->root_depth;
     }
 
-    ::all_cons.push_back(this);
+    global.all_cons.push_back(this);
 
     DLOG("opening window\n");
 
@@ -117,10 +117,10 @@ Con::Con(Con *parent, i3Window *window, bool skeleton) {
 Con::~Con() {
 
     delete this->deco_render_params;
-    auto it = std::ranges::find(::all_cons, this);
+    auto it = std::ranges::find(global.all_cons, this);
 
-    if (it != ::all_cons.end()) {
-        ::all_cons.erase(it);
+    if (it != global.all_cons.end()) {
+        global.all_cons.erase(it);
     }
 
     this->swallow.clear();
@@ -349,7 +349,7 @@ void Con::con_focus() {
     if (this->parent->parent != nullptr)
         this->parent->con_focus();
 
-    ::focused = this;
+    global.focused = this;
     /* We can't blindly reset non-leaf containers since they might have
      * other urgent children. Therefore we only reset leafs and propagate
      * the changes upwards via con_update_parents_urgency() which does proper
@@ -405,7 +405,7 @@ void Con::con_activate() {
  */
 void Con::con_activate_unblock() {
     Con *ws = this->con_get_workspace();
-    Con *previous_focus = ::focused;
+    Con *previous_focus = global.focused;
     Con *fullscreen_on_ws = (ws) ? ws->con_get_fullscreen_covering_ws() : nullptr;
 
     if (fullscreen_on_ws && fullscreen_on_ws != this && !this->con_has_parent(fullscreen_on_ws)) {
@@ -651,7 +651,7 @@ Con* Con::con_get_fullscreen_con(fullscreen_mode_t fullscreen_mode) {
  *
  */
 Con* Con::con_get_fullscreen_covering_ws() {
-    Con *fs = croot->con_get_fullscreen_con(CF_GLOBAL);
+    Con *fs = global.croot->con_get_fullscreen_con(CF_GLOBAL);
     if (!fs) {
         return this->con_get_fullscreen_con(CF_OUTPUT);
     }
@@ -711,7 +711,7 @@ Con* Con::con_inside_floating() {
  *
  */
 bool Con::con_inside_focused() {
-    if (this == ::focused)
+    if (this == global.focused)
         return true;
     if (!this->parent)
         return false;
@@ -741,7 +741,7 @@ bool Con::con_has_parent(Con *parent) const {
  *
  */
 Con *con_by_window_id(xcb_window_t window) {
-    for (const auto &con : all_cons) {
+    for (const auto &con : global.all_cons) {
         if (con->window != nullptr && con->window->id == window) {
             return con;
         }
@@ -755,7 +755,7 @@ Con *con_by_window_id(xcb_window_t window) {
  *
  */
 bool Con::exists() {
-    return std::ranges::find(all_cons, this) != all_cons.end();
+    return std::ranges::find(global.all_cons, this) != global.all_cons.end();
 }
 
 /*
@@ -764,7 +764,7 @@ bool Con::exists() {
  *
  */
 Con *con_by_frame_id(xcb_window_t frame) {
-    for (const auto &con : all_cons) {
+    for (const auto &con : global.all_cons) {
         if (con->frame.id == frame) {
             return con;
         }
@@ -1022,7 +1022,7 @@ void con_enable_fullscreen(Con *con, fullscreen_mode_t fullscreen_mode) {
     Con *con_ws = con->con_get_workspace();
 
     /* Disable any fullscreen container that would conflict the new one. */
-    Con *fullscreen = croot->con_get_fullscreen_con(CF_GLOBAL);
+    Con *fullscreen = global.croot->con_get_fullscreen_con(CF_GLOBAL);
     if (fullscreen == nullptr)
         fullscreen = con_ws->con_get_fullscreen_con(CF_OUTPUT);
     if (fullscreen != nullptr)
@@ -1031,8 +1031,8 @@ void con_enable_fullscreen(Con *con, fullscreen_mode_t fullscreen_mode) {
     /* Set focus to new fullscreen container. Unless in global fullscreen mode
      * and on another workspace restore focus afterwards.
      * Switch to the container’s workspace if mode is global. */
-    Con *cur_ws = focused->con_get_workspace();
-    Con *old_focused = focused;
+    Con *cur_ws = global.focused->con_get_workspace();
+    Con *old_focused = global.focused;
     if (fullscreen_mode == CF_GLOBAL && cur_ws != con_ws)
         workspace_show(con_ws);
     con->con_activate();
@@ -1104,7 +1104,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
 
     /* Save the current workspace. So we can call workspace_show() by the end
      * of this function. */
-    Con *current_ws = focused->con_get_workspace();
+    Con *current_ws = global.focused->con_get_workspace();
 
     Con *source_output = con->con_get_output(),
         *dest_output = target_ws->con_get_output();
@@ -1189,13 +1189,13 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
          * new workspace is hidden and it's necessary to immediately switch
          * back to the originally-focused workspace. */
         Con *old_focus_ws = con::first(dest_output->output_get_content()->focus_head);
-        Con *old_focus = focused;
+        Con *old_focus = global.focused;
         con_descend_focused(con)->con_activate();
 
         if (old_focus_ws == current_ws && old_focus->type != CT_WORKSPACE) {
             /* Restore focus to the currently focused container. */
             old_focus->con_activate();
-        } else if (focused->con_get_workspace() != old_focus_ws) {
+        } else if (global.focused->con_get_workspace() != old_focus_ws) {
             /* Restore focus if the output's focused workspace has changed. */
             con_descend_focused(old_focus_ws)->con_focus();
         }
@@ -1373,7 +1373,7 @@ Con *con_next_focused(Con *con) {
  */
 Con *con_descend_focused(Con *con) {
     Con *next = con;
-    while (next != focused && !next->focus_head.empty())
+    while (next != global.focused && !next->focus_head.empty())
         next = con::first(next->focus_head);
     return next;
 }
@@ -1389,7 +1389,7 @@ Con *con_descend_focused(Con *con) {
 Con *con_descend_tiling_focused(Con *con) {
     Con *next = con;
     Con *before;
-    if (next == focused)
+    if (next == global.focused)
         return next;
     do {
         before = next;
@@ -1400,7 +1400,7 @@ Con *con_descend_tiling_focused(Con *con) {
             next = child;
             break;
         }
-    } while (before != next && next != focused);
+    } while (before != next && next != global.focused);
     return next;
 }
 
@@ -1676,7 +1676,7 @@ void con_set_layout(Con *con, layout_t layout) {
             DLOG("Attaching new split to ws\n");
             new_con->con_attach(con, false);
 
-            tree_flatten(croot);
+            tree_flatten(global.croot);
             con_force_split_parents_redraw(con);
             return;
         }
@@ -1767,11 +1767,11 @@ void Con::on_remove_child() {
  */
 bool con_fullscreen_permits_focusing(Con *con) {
     /* No focus, no problem. */
-    if (!focused)
+    if (!global.focused)
         return true;
 
     /* Find the first fullscreen ascendent. */
-    Con *fs = focused;
+    Con *fs = global.focused;
     while (fs && fs->fullscreen_mode == CF_NONE)
         fs = fs->parent;
 
@@ -1834,7 +1834,7 @@ void con_update_parents_urgency(Con *con) {
  *
  */
 void con_set_urgency(Con *con, bool urgent) {
-    if (urgent && focused == con) {
+    if (urgent && global.focused == con) {
         DLOG("Ignoring urgency flag for current client\n");
         return;
     }

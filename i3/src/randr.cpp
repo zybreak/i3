@@ -334,7 +334,7 @@ void output_init_con(Output *output) {
 
     /* Search for a Con with that name directly below the root node. There
      * might be one from a restored layout. */
-    for (auto &current : croot->nodes_head) {
+    for (auto &current : global.croot->nodes_head) {
         if (strcmp(current->name.c_str(), output->output_primary_name().c_str()) != 0)
             continue;
 
@@ -345,11 +345,11 @@ void output_init_con(Output *output) {
     }
 
     if (con == nullptr) {
-        con = new Con(croot);
+        con = new Con(global.croot);
         con->name = output->output_primary_name();
         con->type = CT_OUTPUT;
         con->layout = L_OUTPUT;
-        croot->con_fix_percent();
+        global.croot->con_fix_percent();
     }
     con->rect = output->rect;
     output->con = con;
@@ -421,14 +421,14 @@ void output_init_con(Output *output) {
  */
 void init_ws_for_output(Output *output) {
     Con *content = output->con->output_get_content();
-    Con *previous_focus = focused->con_get_workspace();
+    Con *previous_focus = global.focused->con_get_workspace();
 
     /* Iterate over all workspaces and check if any of them should be assigned
      * to this output.
      * Note: in order to do that we iterate over all_cons and not using another
      * list that would be updated during iteration by the
      * workspace_move_to_output function. */
-    for (const auto &workspace : all_cons) {
+    for (const auto &workspace : global.all_cons) {
         if (workspace->type != CT_WORKSPACE || workspace->con_is_internal()) {
             continue;
         }
@@ -451,7 +451,7 @@ void init_ws_for_output(Output *output) {
     }
 
     /* Temporarily set the focused container, might not be initialized yet. */
-    focused = content;
+    global.focused = content;
 
     /* if a workspace exists, we are done now */
     if (!content->nodes_head.empty()) {
@@ -804,7 +804,7 @@ static void move_content(Con *con) {
 
     /* We need to move the workspaces from the disappearing output to the first output */
     /* 1: Get the con to focus next */
-    Con *next = focused;
+    Con *next = global.focused;
 
     /* 2: iterate through workspaces and re-assign them, fixing the coordinates
      * of floating containers as we go */
@@ -938,7 +938,7 @@ void RandR::randr_query_outputs() {
      * those mentioned #3767 e.g. when a CT_OUTPUT is created from an in-place
      * restart's layout but the output is disabled by a randr query happening
      * at the same time. */
-    for (auto &con : croot->nodes_head) {
+    for (auto &con : global.croot->nodes_head) {
         if (!con->con_is_internal() && this->get_output_by_name(con->name, true) == nullptr) {
             DLOG(fmt::sprintf("No output %s found, moving its old content to first output\n",  con->name));
             move_content(con);

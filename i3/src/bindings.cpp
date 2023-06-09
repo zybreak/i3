@@ -246,7 +246,7 @@ void regrab_all_buttons(x_connection *conn) {
     auto buttons = bindings_get_buttons_to_grab();
     conn->grab_server();
 
-    for (const auto &con : all_cons) {
+    for (const auto &con : global.all_cons) {
         if (con->window == nullptr)
             continue;
 

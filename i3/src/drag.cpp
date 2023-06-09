@@ -100,7 +100,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
                 if (con != nullptr) {
                     DLOG(fmt::sprintf("UnmapNotify for window 0x%08x (container %p)\n",  unmap_event->window, (void*)con));
 
-                    if (con->con_get_workspace() == focused->con_get_workspace()) {
+                    if (con->con_get_workspace() == global.focused->con_get_workspace()) {
                         DLOG("UnmapNotify for a managed window on the current workspace, aborting\n");
                         dragloop->result = DRAG_ABORT;
                     }

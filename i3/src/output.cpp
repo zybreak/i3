@@ -30,7 +30,7 @@
  */
 Output* Output::get_output_from_string(const std::string &output_str) {
     if (output_str == "current") {
-        return get_output_for_con(focused);
+        return get_output_for_con(global.focused);
     } else if (output_str == "left") {
         return get_output_next_wrap(D_LEFT, this);
     } else if (output_str == "right") {
@@ -73,7 +73,7 @@ Output *get_output_for_con(Con *con) {
  *
  */
 void output_push_sticky_windows(Con *old_focus) {
-    for (auto &output : croot->focus_head) {
+    for (auto &output : global.croot->focus_head) {
         auto visible_ws = std::ranges::find_if(output->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
 
         /* We use this loop instead of TAILQ_FOREACH to avoid problems if the
@@ -91,7 +91,7 @@ void output_push_sticky_windows(Con *old_focus) {
                 bool ignore_focus = (old_focus == nullptr) || (current != old_focus->parent);
                 con_move_to_workspace(current, *visible_ws, true, false, ignore_focus);
                 if (!ignore_focus) {
-                    Con *current_ws = focused->con_get_workspace();
+                    Con *current_ws = global.focused->con_get_workspace();
                     con_descend_focused(current)->con_activate();
                     /* Pushing sticky windows shouldn't change the focused workspace. */
                     con_descend_focused(current_ws)->con_activate();

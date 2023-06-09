@@ -270,7 +270,7 @@ static void set_screenshot_as_wallpaper(x_connection *conn, xcb_screen_t *screen
 
 static void force_disable_output(const program_arguments &args) {
     if (!args.layout_path.empty() && global.randr->randr_base > -1) {
-        for (auto &con : croot->nodes_head) {
+        for (auto &con : global.croot->nodes_head) {
             for (Output *output : global.randr->outputs) {
                 if (output->active || strcmp(con->name.c_str(), output->output_primary_name().c_str()) != 0)
                     continue;

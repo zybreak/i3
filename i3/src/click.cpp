@@ -209,7 +209,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
      * workspace is on another output we need to do a workspace_show in
      * order for i3bar (and others) to notice the change in workspace. */
     Con *ws = con->con_get_workspace();
-    Con *focused_workspace = focused->con_get_workspace();
+    Con *focused_workspace = global.focused->con_get_workspace();
 
     if (!ws) {
         ws = con::first(con->con_get_output()->output_get_content()->focus_head);
@@ -228,7 +228,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
     Con *floatingcon = con->con_inside_floating();
     const bool proportional = (event->state & XCB_KEY_BUT_MASK_SHIFT) == XCB_KEY_BUT_MASK_SHIFT;
     const bool in_stacked = (con->parent->layout == L_STACKED || con->parent->layout == L_TABBED);
-    const bool was_focused = focused == con;
+    const bool was_focused = global.focused == con;
     const bool is_left_click = (event->detail == XCB_BUTTON_CLICK_LEFT);
     const bool is_right_click = (event->detail == XCB_BUTTON_CLICK_RIGHT);
     const bool is_left_or_right_click = (is_left_click || is_right_click);
@@ -262,7 +262,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
          * on a tab, switch to the tab. If the tab contents were already
          * focused, focus the tab container itself. If the tab container was
          * already focused, cycle back to focusing the tab contents. */
-        if (was_focused || !focused->con_has_parent(con)) {
+        if (was_focused || !global.focused->con_has_parent(con)) {
             while (!con_to_focus->focus_head.empty()) {
                 con_to_focus = con::first(con_to_focus->focus_head);
             }
@@ -383,14 +383,14 @@ void handle_button_press(xcb_button_press_event_t *event) {
          * click coordinates and focus the output's active workspace. */
         if (event->event == global.x->root && event->response_type == XCB_BUTTON_PRESS) {
             Con *output, *ws;
-            for (auto &c : croot->nodes_head) {
+            for (auto &c : global.croot->nodes_head) {
                 output = c;
                 if (output->con_is_internal() ||
                     !output->rect.rect_contains(event->event_x, event->event_y))
                     continue;
 
                 ws = con::first(output->output_get_content()->focus_head);
-                if (ws != focused->con_get_workspace()) {
+                if (ws != global.focused->con_get_workspace()) {
                     workspace_show(ws);
                     tree_render();
                 }

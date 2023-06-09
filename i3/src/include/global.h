@@ -15,6 +15,11 @@
 #include "event_handler.h"
 
 struct global {
+    Con *focused;
+    Con *croot;
+
+    std::deque<Con*> all_cons{};
+
     char **start_argv;
 
     int xkb_current_group;

@@ -96,16 +96,16 @@ bool scratchpad_show(Con *con) {
      * currently focused window is a scratchpad window and should be hidden
      * again. */
     if (!con &&
-        (floating = focused->con_inside_floating()) &&
+        (floating = global.focused->con_inside_floating()) &&
         floating->scratchpad_state != SCRATCHPAD_NONE) {
         DLOG("Focused window is a scratchpad window, hiding it.\n");
-        scratchpad_move(focused);
+        scratchpad_move(global.focused);
         return true;
     }
 
     /* If the current con or any of its parents are in fullscreen mode, we
      * first need to disable it before showing the scratchpad con. */
-    Con *fs = focused;
+    Con *fs = global.focused;
     while (fs && fs->fullscreen_mode == CF_NONE)
         fs = fs->parent;
 
@@ -115,11 +115,11 @@ bool scratchpad_show(Con *con) {
 
     /* If this was 'scratchpad show' without criteria, we check if there is a
      * unfocused scratchpad on the current workspace and focus it */
-    Con *focused_ws = focused->con_get_workspace();
+    Con *focused_ws = global.focused->con_get_workspace();
     for (auto &walk_con : focused_ws->floating_windows) {
         if (!con && (floating = walk_con->con_inside_floating()) &&
             floating->scratchpad_state != SCRATCHPAD_NONE &&
-            floating != focused->con_inside_floating()) {
+            floating != global.focused->con_inside_floating()) {
             DLOG("Found an unfocused scratchpad window on this workspace\n");
             DLOG(fmt::sprintf("Focusing it: %p\n",  (void*)walk_con));
             /* use con_descend_tiling_focused to get the last focused
@@ -133,8 +133,8 @@ bool scratchpad_show(Con *con) {
     /* If this was 'scratchpad show' without criteria, we check if there is a
      * visible scratchpad window on another workspace. In this case we move it
      * to the current workspace. */
-    focused_ws = focused->con_get_workspace();
-    for (const auto &walk_con : all_cons) {
+    focused_ws = global.focused->con_get_workspace();
+    for (const auto &walk_con : global.all_cons) {
         Con *walk_ws = walk_con->con_get_workspace();
         if (!con && walk_ws &&
             !walk_ws->con_is_internal() && focused_ws != walk_ws &&
@@ -157,7 +157,7 @@ bool scratchpad_show(Con *con) {
 
     /* If this was 'scratchpad show' with criteria, we check if it matches a
      * currently visible scratchpad window and hide it. */
-    Con *active = focused->con_get_workspace();
+    Con *active = global.focused->con_get_workspace();
     Con *current = con->con_get_workspace();
     if (con &&
         (floating = con->con_inside_floating()) &&
@@ -256,7 +256,7 @@ void scratchpad_fix_resolution() {
          __i3_output->rect.width, __i3_output->rect.height));
     int new_width = -1,
         new_height = -1;
-    for (auto &output : croot->nodes_head) {
+    for (auto &output : global.croot->nodes_head) {
         if (output == __i3_output)
             continue;
         DLOG(fmt::sprintf("output %s's resolution: (%d, %d) %d x %d\n",

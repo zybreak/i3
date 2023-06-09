@@ -54,7 +54,7 @@ static std::deque<std::string> binding_workspace_names{};
  */
 Con *get_existing_workspace_by_name(const std::string &name) {
     Con *workspace = nullptr;
-    for (auto &output : croot->nodes_head) {
+    for (auto &output : global.croot->nodes_head) {
         auto ws = std::ranges::find_if(output->output_get_content()->nodes_head, [&name](auto &child) { return !strcasecmp(child->name.c_str(), name.c_str()); });
         if (ws != output->output_get_content()->nodes_head.end()) {
             workspace = *ws;
@@ -71,7 +71,7 @@ Con *get_existing_workspace_by_name(const std::string &name) {
  */
 Con *get_existing_workspace_by_num(int num) {
     Con *workspace = nullptr;
-    for (auto &output : croot->nodes_head) {
+    for (auto &output : global.croot->nodes_head) {
         auto ws = std::ranges::find_if(output->output_get_content()->nodes_head, [&num](auto &child) { return child->num == num; });
         if (ws != output->output_get_content()->nodes_head.end()) {
             workspace = *ws;
@@ -169,7 +169,7 @@ Con *workspace_get(const std::string &num) {
     Con *output = get_assigned_output(num.c_str(), parsed_num);
     /* if an assignment is not found, we create this workspace on the current output */
     if (!output) {
-        output = focused->con_get_output();
+        output = global.focused->con_get_output();
     }
 
     /* No parent because we need to attach this container after setting its
@@ -451,7 +451,7 @@ void workspace_show(Con *workspace) {
     /* enable fullscreen for the target workspace. If it happens to be the
      * same one we are currently on anyways, we can stop here. */
     workspace->fullscreen_mode = CF_OUTPUT;
-    current = focused->con_get_workspace();
+    current = global.focused->con_get_workspace();
     if (workspace == current) {
         DLOG("Not switching, already there.\n");
         return;
@@ -481,7 +481,7 @@ void workspace_show(Con *workspace) {
     Con *next = con_descend_focused(workspace);
 
     /* Memorize current output */
-    Con *old_output = focused->con_get_output();
+    Con *old_output = global.focused->con_get_output();
 
     /* Display urgency hint for a while if the newly visible workspace would
      * focus and thereby immediately destroy it */
@@ -493,22 +493,22 @@ void workspace_show(Con *workspace) {
         /* … but immediately reset urgency flags; they will be set to false by
          * the timer callback in case the container is focused at the time of
          * its expiration */
-        focused->urgent = true;
+        global.focused->urgent = true;
         workspace->urgent = true;
 
-        if (focused->urgency_timer == nullptr) {
+        if (global.focused->urgency_timer == nullptr) {
             DLOG(fmt::sprintf("Deferring reset of urgency flag of con %p on newly shown workspace %p\n",
-                 (void*)focused, (void*)workspace));
-            focused->urgency_timer = new ev_timer{};
+                 (void*)global.focused, (void*)workspace));
+            global.focused->urgency_timer = new ev_timer{};
             /* use a repeating timer to allow for easy resets */
-            ev_timer_init(focused->urgency_timer, workspace_defer_update_urgent_hint_cb,
+            ev_timer_init(global.focused->urgency_timer, workspace_defer_update_urgent_hint_cb,
                           config.workspace_urgency_timer, config.workspace_urgency_timer);
-            focused->urgency_timer->data = focused;
-            ev_timer_start(main_loop, focused->urgency_timer);
+            global.focused->urgency_timer->data = global.focused;
+            ev_timer_start(main_loop, global.focused->urgency_timer);
         } else {
             DLOG(fmt::sprintf("Resetting urgency timer of con %p on workspace %p\n",
-                 (void*)focused, (void*)workspace));
-            ev_timer_again(main_loop, focused->urgency_timer);
+                 (void*)global.focused, (void*)workspace));
+            ev_timer_again(main_loop, global.focused->urgency_timer);
         }
     } else
         next->con_focus();
@@ -541,10 +541,10 @@ void workspace_show(Con *workspace) {
     }
 
     workspace->fullscreen_mode = CF_OUTPUT;
-    LOG(fmt::sprintf("focused now = %p / %s\n",  (void*)focused, focused->name));
+    LOG(fmt::sprintf("focused now = %p / %s\n",  (void*)global.focused, global.focused->name));
 
     /* Set mouse pointer */
-    Con *new_output = focused->con_get_output();
+    Con *new_output = global.focused->con_get_output();
     if (old_output != new_output) {
         x_set_warp_to(&next->rect);
     }
@@ -569,7 +569,7 @@ void workspace_show_by_name(const char *num) {
  *
  */
 Con *workspace_next() {
-    Con *current = focused->con_get_workspace();
+    Con *current = global.focused->con_get_workspace();
     Con *next = nullptr, *first = nullptr, *first_opposite = nullptr;
 
     if (current->num == -1) {
@@ -578,7 +578,7 @@ Con *workspace_next() {
         if (std::next(it) == current->parent->nodes_head.end())
             return *(++it);
         bool found_current = false;
-        for (auto &output : croot->nodes_head) {
+        for (auto &output : global.croot->nodes_head) {
             /* Skip outputs starting with __, they are internal. */
             if (output->con_is_internal())
                 continue;
@@ -601,7 +601,7 @@ Con *workspace_next() {
         }
     } else {
         /* If currently a numbered workspace, find next numbered workspace. */
-        for (auto &output : croot->nodes_head) {
+        for (auto &output : global.croot->nodes_head) {
             /* Skip outputs starting with __, they are internal. */
             if (output->con_is_internal())
                 continue;
@@ -636,7 +636,7 @@ Con *workspace_next() {
  *
  */
 Con *workspace_prev() {
-    Con *current = focused->con_get_workspace();
+    Con *current = global.focused->con_get_workspace();
     Con *prev = nullptr, *first_opposite = nullptr, *last = nullptr;
 
     if (current->num == -1) {
@@ -647,7 +647,7 @@ Con *workspace_prev() {
             prev = nullptr;
         if (!prev) {
             bool found_current = false;
-            for (auto &output : croot->nodes_head | std::views::reverse) {
+            for (auto &output : global.croot->nodes_head | std::views::reverse) {
                 /* Skip outputs starting with __, they are internal. */
                 if (output->con_is_internal())
                     continue;
@@ -672,7 +672,7 @@ Con *workspace_prev() {
         }
     } else {
         /* If numbered workspace, find previous numbered workspace. */
-        for (auto &output : croot->nodes_head | std::views::reverse) {
+        for (auto &output : global.croot->nodes_head | std::views::reverse) {
             /* Skip outputs starting with __, they are internal. */
             if (output->con_is_internal())
                 continue;
@@ -708,9 +708,9 @@ Con *workspace_prev() {
  *
  */
 Con *workspace_next_on_output() {
-    Con *current = focused->con_get_workspace();
+    Con *current = global.focused->con_get_workspace();
     Con *next = nullptr;
-    Con *output = focused->con_get_output();
+    Con *output = global.focused->con_get_output();
 
     if (current->num == -1) {
         /* If currently a named workspace, find next named workspace. */
@@ -769,9 +769,9 @@ workspace_next_on_output_end:
  *
  */
 Con *workspace_prev_on_output() {
-    Con *current = focused->con_get_workspace();
+    Con *current = global.focused->con_get_workspace();
     Con *prev = nullptr;
-    Con *output = focused->con_get_output();
+    Con *output = global.focused->con_get_output();
     DLOG(fmt::sprintf("output = %s\n",  output->name));
 
     if (current->num == -1) {

@@ -483,7 +483,7 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
         j["percent"] = con->percent;
 
     j["urgent"] = con->urgent;
-    j["focused"] = (con == focused);
+    j["focused"] = (con == global.focused);
 
     if (con->type != CT_ROOT && con->type != CT_OUTPUT) {
         j["output"] = con->con_get_output()->name;
@@ -748,7 +748,7 @@ static nlohmann::json dump_bar_config(Barconfig *config) {
 
 static void handle_tree(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     setlocale(LC_NUMERIC, "C");
-    auto j = dump_node(croot, false);
+    auto j = dump_node(global.croot, false);
     setlocale(LC_NUMERIC, "");
 
     auto payload = j.dump();
@@ -764,9 +764,9 @@ static void handle_tree(ipc_client *client, uint8_t *message, int size, uint32_t
 static void handle_get_workspaces(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     auto a = nlohmann::json::array();
 
-    Con *focused_ws = focused->con_get_workspace();
+    Con *focused_ws = global.focused->con_get_workspace();
 
-    for (auto &output : croot->nodes_head) {
+    for (auto &output : global.croot->nodes_head) {
         if (output->con_is_internal())
             continue;
         for (auto &ws : output->output_get_content()->nodes_head) {

@@ -96,7 +96,7 @@ void manage_existing_windows(xcb_window_t root) {
 void restore_geometry() {
     DLOG("Restoring geometry\n");
 
-    for (const auto &con : all_cons) {
+    for (const auto &con : global.all_cons) {
         if (con->window) {
             DLOG(fmt::sprintf("Re-adding X11 border of %d px\n",  con->border_width));
             con->window_rect.width += (2 * con->border_width);
@@ -289,7 +289,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     cwindow->window_type = xcb_get_preferred_window_type(type_reply);
 
     /* Where to start searching for a container that swallows the new one? */
-    Con *search_at = croot;
+    Con *search_at = global.croot;
 
     if (xcb_reply_contains_atom(type_reply, A__NET_WM_WINDOW_TYPE_DOCK)) {
         LOG("This window is of type dock\n");
@@ -385,10 +385,10 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
                 nc = tree_open_con(nc->parent, cwindow);
         } else {
             /* If not, insert it at the currently focused position */
-            if (focused->type == CT_CON && focused->con_accepts_window()) {
+            if (global.focused->type == CT_CON && global.focused->con_accepts_window()) {
                 LOG(fmt::sprintf("using current container, focused = %p, focused->name = %s\n",
-                    (void*)focused, focused->name));
-                nc = focused;
+                    (void*)global.focused, global.focused->name));
+                nc = global.focused;
             } else
                 nc = tree_open_con(nullptr, cwindow);
         }
@@ -467,7 +467,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             /* Check that the workspace is visible and on the same output as
              * the current focused container. If the window was assigned to an
              * invisible workspace, we should not steal focus. */
-            Con *current_output = focused->con_get_output();
+            Con *current_output = global.focused->con_get_output();
             Con *target_output = ws->con_get_output();
 
             if (workspace_is_visible(ws) && current_output == target_output) {
@@ -660,7 +660,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
          * con_move_to_workspace). */
         set_focus = false;
     }
-    render_con(croot);
+    render_con(global.croot);
 
     cwindow->managed_since = time(nullptr);
 
@@ -731,7 +731,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     ewmh_update_wm_desktop();
 
     /* If a sticky window was mapped onto another workspace, make sure to pop it to the front. */
-    output_push_sticky_windows(focused);
+    output_push_sticky_windows(global.focused);
 }
 
 /*
@@ -746,7 +746,7 @@ Con *remanage_window(Con *con) {
         return con;
     }
     Match *match;
-    Con *nc = con_for_window(croot, con->window, &match);
+    Con *nc = con_for_window(global.croot, con->window, &match);
     if (nc == nullptr || nc->window == nullptr || nc->window == con->window) {
         run_assignments(con->window);
         return con;

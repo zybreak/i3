@@ -238,7 +238,7 @@ static void move_to_output_directed(Con *con, direction_t direction) {
     }
 
     Con *old_ws = con->con_get_workspace();
-    const bool moves_focus = (focused == con);
+    const bool moves_focus = (global.focused == con);
     attach_to_workspace(con, *ws, direction);
     if (moves_focus) {
         /* workspace_show will not correctly update the active workspace because
@@ -246,7 +246,7 @@ static void move_to_output_directed(Con *con, direction_t direction) {
          * and still produce the correct workspace focus events (see
          * 517-regress-move-direction-ipc.t) we need to temporarily set focused
          * to the old workspace. */
-        focused = old_ws;
+        global.focused = old_ws;
         workspace_show(*ws);
         con->con_focus();
     }
@@ -256,7 +256,7 @@ static void move_to_output_directed(Con *con, direction_t direction) {
     con->deco_render_params = nullptr;
 
     ipc_send_window_event("move", con);
-    tree_flatten(croot);
+    tree_flatten(global.croot);
     ewmh_update_wm_desktop();
 }
 
@@ -312,7 +312,7 @@ void tree_move(Con *con, direction_t direction) {
                 con->deco_render_params = nullptr;
 
                 ipc_send_window_event("move", con);
-                tree_flatten(croot);
+                tree_flatten(global.croot);
                 ewmh_update_wm_desktop();
                 return;
             }
@@ -341,7 +341,7 @@ void tree_move(Con *con, direction_t direction) {
                     con->deco_render_params = nullptr;
 
                     ipc_send_window_event("move", con);
-                    tree_flatten(croot);
+                    tree_flatten(global.croot);
                     ewmh_update_wm_desktop();
                     return;
                 }
@@ -425,6 +425,6 @@ void tree_move(Con *con, direction_t direction) {
     con->deco_render_params = nullptr;
 
     ipc_send_window_event("move", con);
-    tree_flatten(croot);
+    tree_flatten(global.croot);
     ewmh_update_wm_desktop();
 }
