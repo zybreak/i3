@@ -12,6 +12,8 @@
  */
 #pragma once
 
+#include <utility>
+
 #include "i3.h"
 #include "bindings.h"
 
@@ -69,8 +71,10 @@ struct Mode {
     bool pango_markup{};
     std::vector<std::unique_ptr<Binding>> bindings{};
 
-    Mode(const std::string &s) {
-        name = s;
+    explicit Mode(std::string s): name(std::move(s)) {
+    }
+
+    Mode(std::string s, const bool pango_markup): name(std::move(s)), pango_markup(pango_markup) {
     }
 
     ~Mode() = default;

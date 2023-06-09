@@ -35,7 +35,6 @@
 #include "i3.h"
 #include "configuration.h"
 #include "bindings.h"
-#include "config_parser.h"
 #include "nagbar.h"
 
 #include <cctype>

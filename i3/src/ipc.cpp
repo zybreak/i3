@@ -318,7 +318,7 @@ static nlohmann::json dump_binding(Binding *bind) {
     j["input_code"] = bind->keycode;
     j["input_type"] = bind->input_type == B_KEYBOARD ? "keyboard" : "mouse";
 
-    if (bind->symbol != nullptr)
+    if (!bind->symbol.empty())
         j["symbol"] = bind->symbol;
 
     j["command"] = bind->command;

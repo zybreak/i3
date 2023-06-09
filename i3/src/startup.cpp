@@ -42,6 +42,9 @@
 #include "global.h"
 #include <config.h>
 
+/* Display handle for libstartup-notification */
+SnDisplay *sndisplay;
+
 static std::vector<std::unique_ptr<Startup_Sequence>> startup_sequences{};
 
 /*

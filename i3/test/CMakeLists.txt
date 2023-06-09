@@ -14,14 +14,25 @@ target_link_libraries(FooTest PUBLIC ${libraries} GTest::gtest_main)
 target_include_directories(FooTest PUBLIC ${include_dirs} "../src/config/old")
 target_compile_options(FooTest PUBLIC ${compile_options} -DTEST_PARSER)
 
+# Unit tests
+
 add_executable(RegexTest
-        regex_test.cpp
+        unittests/regex_test.cpp
         ../src/regex.cpp
         ../src/safewrappers.cpp
         ../src/log.cpp
 )
 target_link_libraries(RegexTest PUBLIC ${libraries} GTest::gtest_main)
 target_include_directories(RegexTest PUBLIC ${include_dirs})
+
+add_executable(MatchTest
+        unittests/match_test.cpp
+        ${i3_src}
+        )
+target_link_libraries(MatchTest PUBLIC ${libraries} GTest::gtest_main)
+target_include_directories(MatchTest PUBLIC ${include_dirs} "../src/config/old")
+
+# End unit tests
 
 add_executable(test.config_parser_new
     config_parser_new.cpp

@@ -47,27 +47,66 @@ static struct xkb_keymap *xkb_keymap;
  */
 const char *DEFAULT_BINDING_MODE = "default";
 
+struct resolve {
+    /* The binding which we are resolving. */
+    Binding *bind;
+
+    /* |bind|’s keysym (translated to xkb_keysym_t), e.g. XKB_KEY_R. */
+    xkb_keysym_t keysym;
+
+    /* The xkb state built from the user-provided modifiers and group. */
+    struct xkb_state *xkb_state;
+
+    /* Like |xkb_state|, just without the shift modifier, if shift was specified. */
+    struct xkb_state *xkb_state_no_shift;
+
+    /* Like |xkb_state|, but with NumLock. */
+    struct xkb_state *xkb_state_numlock;
+
+    /* Like |xkb_state|, but with NumLock, just without the shift modifier, if shift was specified. */
+    struct xkb_state *xkb_state_numlock_no_shift;
+};
+
+/*
+ * Creates a dynamically allocated copy of bind.
+ */
+Binding::Binding(const Binding &bind) {
+    input_type = bind.input_type;
+    release = bind.release;
+    border = bind.border;
+    whole_window = bind.whole_window;
+    exclude_titlebar = bind.exclude_titlebar;
+    keycode = bind.keycode;
+    event_state_mask = bind.event_state_mask;
+
+    this->symbol = bind.symbol;
+
+    this->command = bind.command;
+
+    for (auto &binding_keycode : bind.keycodes_head) {
+        this->keycodes_head.push_back(binding_keycode);
+    }
+}
+
 /*
  * Returns the mode specified by `name` or creates a new mode and adds it to
  * the list of modes.
  *
  */
-static struct Mode *mode_from_name(const std::string &name, bool pango_markup) {
+static void mode_from_name(const std::string &name, bool pango_markup, std::unique_ptr<Binding> binding) {
     /* Try to find the mode in the list of modes and return it */
-    for (auto &mode : modes) {
-        if (strcmp(mode->name.c_str(), name.c_str()) == 0) {
-            return mode.get();
-        }
+    auto mode_it = std::ranges::find_if(modes, [&name](auto &it) { return it->name == name; });
+
+    if (mode_it != modes.end()) {
+        (*mode_it)->bindings.push_back(std::move(binding));
+        return;
     }
 
     /* If the mode was not found, create a new one */
-    Mode *ptr;
-    auto mode = std::make_unique<Mode>(name);
-    mode->pango_markup = pango_markup;
-    ptr = mode.get();
-    modes.insert(modes.begin(), std::move(mode));
+    auto mode = std::make_unique<Mode>(name, pango_markup);
+    mode->bindings.push_back(std::move(binding));
 
-    return ptr;
+    modes.insert(modes.begin(), std::move(mode));
 }
 
 /*
@@ -80,8 +119,9 @@ void configure_binding(const std::string_view &bindtype, const std::string_view 
                            bool release, bool border, bool whole_window,
                            bool exclude_titlebar, const std::string_view &command, const std::string_view &modename,
                            bool pango_markup) {
+    DLOG(fmt::sprintf("Binding bindtype %s, modifiers %s, input code %s, release %s\n", bindtype, modifiers, input_code, release));
+
     auto new_binding = std::make_unique<Binding>();
-    DLOG(fmt::sprintf("Binding %p bindtype %s, modifiers %s, input code %s, release %s\n",  (void*)new_binding.get(), bindtype, modifiers, input_code, release));
     new_binding->release = (release ? B_UPON_KEYRELEASE : B_UPON_KEYPRESS);
     new_binding->border = border;
     new_binding->whole_window = whole_window;
@@ -91,7 +131,7 @@ void configure_binding(const std::string_view &bindtype, const std::string_view 
                                        ? B_MOUSE
                                        : B_KEYBOARD);
 
-        new_binding->symbol = sstrdup(input_code.data());
+        new_binding->symbol = input_code.data();
     } else {
         long keycode;
         if (!parse_long(input_code.data(), &keycode, 10)) {
@@ -116,9 +156,7 @@ void configure_binding(const std::string_view &bindtype, const std::string_view 
     if (group_bits_set > 1)
         ELOG("Keybinding has more than one Group specified, but your X server is always in precisely one group. The keybinding can never trigger.\n");
 
-    struct Mode *mode = mode_from_name(modename.data(), pango_markup);
-
-    mode->bindings.push_back(std::move(new_binding));
+    mode_from_name(modename.data(), pango_markup, std::move(new_binding));
 }
 
 static bool binding_in_current_group(const Binding *bind) {
@@ -190,9 +228,9 @@ void grab_all_keys(x_connection *conn) {
             continue;
         }
 
-        for (auto &binding_keycode : bind->keycodes_head) {
-            const int keycode = binding_keycode->keycode;
-            auto mods = (binding_keycode->modifiers & 0xFFFF);
+        for (const auto& binding_keycode : bind->keycodes_head) {
+            const int keycode = binding_keycode.keycode;
+            auto mods = (binding_keycode.modifiers & 0xFFFF);
             DLOG(fmt::sprintf("Binding %p Grabbing keycode %d with mods %d\n",  (void*)bind.get(), keycode, mods));
             conn->grab_key(0, global.x->root, mods, keycode, XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_ASYNC);
         }
@@ -256,14 +294,14 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
          * need to look in the array of translated keycodes for the event’s
          * keycode */
         bool found_keycode = false;
-        if (input_type == B_KEYBOARD && bind->symbol != nullptr) {
+        if (input_type == B_KEYBOARD && !bind->symbol.empty()) {
             auto input_keycode = (xcb_keycode_t)input_code;
             for (auto &binding_keycode : bind->keycodes_head) {
-                const uint32_t modifiers_mask = (binding_keycode->modifiers & 0x0000FFFF);
+                const uint32_t modifiers_mask = (binding_keycode.modifiers & 0x0000FFFF);
                 const bool mods_match = (modifiers_mask == modifiers_state);
                 DLOG(fmt::sprintf("binding_keycode->modifiers = %d, modifiers_mask = %d, modifiers_state = %d, mods_match = %s\n",
-                     binding_keycode->modifiers, modifiers_mask, modifiers_state, (mods_match ? "yes" : "no")));
-                if (binding_keycode->keycode == input_keycode &&
+                     binding_keycode.modifiers, modifiers_mask, modifiers_state, (mods_match ? "yes" : "no")));
+                if (binding_keycode.keycode == input_keycode &&
                     (mods_match || (bind->release == B_UPON_KEYRELEASE_IGNORE_MODS && is_release))) {
                     found_keycode = true;
                     break;
@@ -276,10 +314,10 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
             }
 
             for (auto &binding_keycode : bind->keycodes_head) {
-                const uint32_t modifiers_mask = (binding_keycode->modifiers & 0x0000FFFF);
+                const uint32_t modifiers_mask = (binding_keycode.modifiers & 0x0000FFFF);
                 const bool mods_match = (modifiers_mask == modifiers_state);
                 DLOG(fmt::sprintf("binding_keycode->modifiers = %d, modifiers_mask = %d, modifiers_state = %d, mods_match = %s\n",
-                     binding_keycode->modifiers, modifiers_mask, modifiers_state, (mods_match ? "yes" : "no")));
+                     binding_keycode.modifiers, modifiers_mask, modifiers_state, (mods_match ? "yes" : "no")));
                 if (mods_match || (bind->release == B_UPON_KEYRELEASE_IGNORE_MODS && is_release)) {
                     found_keycode = true;
                     break;
@@ -367,33 +405,6 @@ Binding *get_binding_from_xcb_event(xcb_generic_event_t *event) {
     return get_binding(state_filtered, is_release, event_detail, input_type);
 }
 
-struct resolve {
-    /* The binding which we are resolving. */
-    Binding *bind;
-
-    /* |bind|’s keysym (translated to xkb_keysym_t), e.g. XKB_KEY_R. */
-    xkb_keysym_t keysym;
-
-    /* The xkb state built from the user-provided modifiers and group. */
-    struct xkb_state *xkb_state;
-
-    /* Like |xkb_state|, just without the shift modifier, if shift was specified. */
-    struct xkb_state *xkb_state_no_shift;
-
-    /* Like |xkb_state|, but with NumLock. */
-    struct xkb_state *xkb_state_numlock;
-
-    /* Like |xkb_state|, but with NumLock, just without the shift modifier, if shift was specified. */
-    struct xkb_state *xkb_state_numlock_no_shift;
-};
-
-void ADD_TRANSLATED_KEY(Binding *bind, xcb_keycode_t code, i3_event_state_mask_t mods) {
-    auto *binding_keycode = new Binding_Keycode();
-    binding_keycode->modifiers = (mods);
-    binding_keycode->keycode = (code);
-    bind->keycodes_head.push_back(binding_keycode);
-}
-
 /*
  * add_keycode_if_matches is called for each keycode in the keymap and will add
  * the keycode to |data->bind| if the keycode can result in the keysym
@@ -423,10 +434,14 @@ static void add_keycode_if_matches(struct xkb_keymap *keymap, xkb_keycode_t key,
     }
     Binding *bind = resolving->bind;
 
-    ADD_TRANSLATED_KEY(bind, key, bind->event_state_mask);
+    xcb_keycode_t code = key;
+    i3_event_state_mask_t mods = bind->event_state_mask;
+    bind->keycodes_head.emplace_back(code, mods);
 
     /* Also bind the key with active CapsLock */
-    ADD_TRANSLATED_KEY(bind, key, bind->event_state_mask | XCB_MOD_MASK_LOCK);
+    xcb_keycode_t code1 = key;
+    i3_event_state_mask_t mods1 = bind->event_state_mask | XCB_MOD_MASK_LOCK;
+    bind->keycodes_head.emplace_back(code1, mods1);
 
     /* If this binding is not explicitly for NumLock, check whether we need to
      * add a fallback. */
@@ -438,10 +453,14 @@ static void add_keycode_if_matches(struct xkb_keymap *keymap, xkb_keycode_t key,
         xkb_keysym_t sym_numlock = xkb_state_key_get_one_sym(numlock_state, key);
         if (sym_numlock == resolving->keysym) {
             /* Also bind the key with active NumLock */
-            ADD_TRANSLATED_KEY(bind, key, bind->event_state_mask | global.x->xcb_numlock_mask);
+            xcb_keycode_t code2 = key;
+            i3_event_state_mask_t mods2 = bind->event_state_mask | global.x->xcb_numlock_mask;
+            bind->keycodes_head.emplace_back(code2, mods2);
 
             /* Also bind the key with active NumLock+CapsLock */
-            ADD_TRANSLATED_KEY(bind, key, bind->event_state_mask | global.x->xcb_numlock_mask | XCB_MOD_MASK_LOCK);
+            xcb_keycode_t code3 = key;
+            i3_event_state_mask_t mods3 = bind->event_state_mask | global.x->xcb_numlock_mask | XCB_MOD_MASK_LOCK;
+            bind->keycodes_head.emplace_back(code3, mods3);
         } else {
             DLOG(fmt::sprintf("Skipping automatic numlock fallback, key %d resolves to 0x%x with numlock\n",
                  key, sym_numlock));
@@ -471,7 +490,7 @@ void translate_keysyms() {
     for (auto &bind : current_mode->bindings) {
         if (bind->input_type == B_MOUSE) {
             long button;
-            if (!parse_long(bind->symbol + (sizeof("button") - 1), &button, 10)) {
+            if (!parse_long(bind->symbol.c_str() + (sizeof("button") - 1), &button, 10)) {
                  ELOG(fmt::sprintf("Could not translate string to button: \"%s\"\n", bind->symbol));
             }
 
@@ -534,16 +553,18 @@ void translate_keysyms() {
         if (bind->keycode > 0) {
             /* We need to specify modifiers for the keycode binding (numlock
              * fallback). */
-            while (!bind->keycodes_head.empty()) {
-                auto *first = bind->keycodes_head.front();
-                bind->keycodes_head.pop_front();
-                delete first;
-            }
+            bind->keycodes_head.clear();
 
-            ADD_TRANSLATED_KEY(bind.get(), bind->keycode, bind->event_state_mask);
+            Binding *bind1 = bind.get();
+            xcb_keycode_t code = bind->keycode;
+            i3_event_state_mask_t mods = bind->event_state_mask;
+            bind1->keycodes_head.emplace_back(code, mods);
 
             /* Also bind the key with active CapsLock */
-            ADD_TRANSLATED_KEY(bind.get(), bind->keycode, bind->event_state_mask | XCB_MOD_MASK_LOCK);
+            Binding *bind2 = bind.get();
+            xcb_keycode_t code1 = bind->keycode;
+            i3_event_state_mask_t mods1 = bind->event_state_mask | XCB_MOD_MASK_LOCK;
+            bind2->keycodes_head.emplace_back(code1, mods1);
 
             /* If this binding is not explicitly for NumLock, check whether we need to
              * add a fallback. */
@@ -556,10 +577,16 @@ void translate_keysyms() {
                 xkb_keysym_t sym_numlock = xkb_state_key_get_one_sym(dummy_state_numlock, bind->keycode);
                 if (sym == sym_numlock) {
                     /* Also bind the key with active NumLock */
-                    ADD_TRANSLATED_KEY(bind.get(), bind->keycode, bind->event_state_mask | global.x->xcb_numlock_mask);
+                    Binding *bind3 = bind.get();
+                    xcb_keycode_t code2 = bind->keycode;
+                    i3_event_state_mask_t mods2 = bind->event_state_mask | global.x->xcb_numlock_mask;
+                    bind3->keycodes_head.emplace_back(code2, mods2);
 
                     /* Also bind the key with active NumLock+CapsLock */
-                    ADD_TRANSLATED_KEY(bind.get(), bind->keycode, bind->event_state_mask | global.x->xcb_numlock_mask | XCB_MOD_MASK_LOCK);
+                    Binding *bind4 = bind.get();
+                    xcb_keycode_t code3 = bind->keycode;
+                    i3_event_state_mask_t mods3 = bind->event_state_mask | global.x->xcb_numlock_mask | XCB_MOD_MASK_LOCK;
+                    bind4->keycodes_head.emplace_back(code3, mods3);
                 } else {
                     DLOG(fmt::sprintf("Skipping automatic numlock fallback, key %d resolves to 0x%x with numlock\n",
                          bind->keycode, sym_numlock));
@@ -570,7 +597,7 @@ void translate_keysyms() {
         }
 
         /* We need to translate the symbol to a keycode */
-        const xkb_keysym_t keysym = xkb_keysym_from_name(bind->symbol, XKB_KEYSYM_NO_FLAGS);
+        const xkb_keysym_t keysym = xkb_keysym_from_name(bind->symbol.c_str(), XKB_KEYSYM_NO_FLAGS);
         if (keysym == XKB_KEY_NoSymbol) {
              ELOG(fmt::sprintf("Could not translate string to key symbol: \"%s\"\n",
                  bind->symbol));
@@ -585,26 +612,24 @@ void translate_keysyms() {
             .xkb_state_numlock = dummy_state_numlock,
             .xkb_state_numlock_no_shift = dummy_state_numlock_no_shift,
         };
-        while (!bind->keycodes_head.empty()) {
-            auto *first = bind->keycodes_head.front();
-            bind->keycodes_head.pop_front();
-            delete first;
-        }
+
+        bind->keycodes_head.clear();
+
         xkb_keymap_key_for_each(xkb_keymap, add_keycode_if_matches, &resolving);
         std::string keycodes{};
         int num_keycodes = 0;
         for (auto &binding_keycode : bind->keycodes_head) {
-            keycodes.append(fmt::sprintf(" %d", binding_keycode->keycode));
+            keycodes.append(fmt::sprintf(" %d", binding_keycode.keycode));
             num_keycodes++;
 
             /* check for duplicate bindings */
             for (auto &check : current_mode->bindings) {
                 if (check == bind)
                     continue;
-                if (check->symbol != nullptr)
+                if (!check->symbol.empty())
                     continue;
-                if (check->keycode != binding_keycode->keycode ||
-                    check->event_state_mask != binding_keycode->modifiers ||
+                if (check->keycode != binding_keycode.keycode ||
+                    check->event_state_mask != binding_keycode.modifiers ||
                     check->release != bind->release)
                     continue;
                 has_errors = true;
@@ -625,8 +650,6 @@ out:
         start_config_error_nagbar(true);
     }
 }
-
-#undef ADD_TRANSLATED_KEY
 
 /*
  * Switches the key bindings to the given mode, if the mode exists
@@ -661,22 +684,6 @@ void switch_mode(const std::string_view &new_mode) {
     ELOG("Mode not found\n");
 }
 
-struct reorder_binding_cmp {
-    inline int operator()(const std::unique_ptr<Binding> &first, const std::unique_ptr<Binding> &second) {
-        if (first->event_state_mask < second->event_state_mask) {
-            return 1;
-        } else if (first->event_state_mask == second->event_state_mask) {
-            return 0;
-        } else {
-            return -1;
-        }
-    }
-};
-
-static void reorder_bindings_of_mode(struct Mode *mode) {
-    std::sort(mode->bindings.begin(), mode->bindings.end(), reorder_binding_cmp());
-}
-
 /*
  * Reorders bindings by event_state_mask descendingly so that get_binding()
  * correctly matches more specific bindings before more generic bindings. Take
@@ -691,9 +698,17 @@ static void reorder_bindings_of_mode(struct Mode *mode) {
  *
  */
 void reorder_bindings() {
-    for (auto &mode : modes) {
-        reorder_bindings_of_mode(mode.get());
-    }
+    std::ranges::for_each(modes, [](auto &mode) {
+        std::ranges::sort(mode.get()->bindings, [](const std::unique_ptr<Binding> &first, const std::unique_ptr<Binding> &second) {
+            if (first->event_state_mask < second->event_state_mask) {
+                return 1;
+            } else if (first->event_state_mask == second->event_state_mask) {
+                return 0;
+            } else {
+                return -1;
+            }
+        });
+    });
 }
 
 /*
@@ -707,15 +722,14 @@ static bool binding_same_key(Binding *a, Binding *b) {
     }
 
     /* Check if one is using keysym while the other is using bindsym. */
-    if ((a->symbol == nullptr && b->symbol != nullptr) ||
-        (a->symbol != nullptr && b->symbol == nullptr)) {
+    if ((a->symbol.empty() && !b->symbol.empty()) ||
+        (!a->symbol.empty() && b->symbol.empty())) {
         return false;
     }
 
     /* If a is NULL, b has to be NULL, too (see previous conditional).
      * If the keycodes differ, it can't be a duplicate. */
-    if (a->symbol != nullptr &&
-        strcasecmp(a->symbol, b->symbol) != 0) {
+    if (!a->symbol.empty() && a->symbol != b->symbol) {
         return false;
     }
 
@@ -766,49 +780,6 @@ bool has_duplicate_bindings() {
 }
 
 /*
- * Creates a dynamically allocated copy of bind.
- */
-Binding::Binding(const Binding &bind) {
-    input_type = bind.input_type;
-    release = bind.release;
-    border = bind.border;
-    whole_window = bind.whole_window;
-    exclude_titlebar = bind.exclude_titlebar;
-    keycode = bind.keycode;
-    event_state_mask = bind.event_state_mask;
-
-    if (bind.symbol != nullptr) {
-        this->symbol = sstrdup(bind.symbol);
-    }
-
-    this->command = bind.command;
-
-    for (auto &binding_keycode : bind.keycodes_head) {
-        auto *ret_binding_keycode = new Binding_Keycode();
-        *ret_binding_keycode = *binding_keycode;
-        this->keycodes_head.push_back(ret_binding_keycode);
-    }
-}
-
-/*
- * Frees the binding. If bind is null, it simply returns.
- */
-Binding::~Binding() {
-    auto bind = this;
-    if (bind == nullptr) {
-        return;
-    }
-
-    while (!bind->keycodes_head.empty()) {
-        auto *first = bind->keycodes_head.front();
-        bind->keycodes_head.pop_front();
-        delete first;
-    }
-
-    FREE(bind->symbol);
-}
-
-/*
  * Runs the given binding and handles parse errors. If con is passed, it will
  * execute the command binding with that container selected by criteria.
  * Returns a CommandResult for running the binding's command. Free with
@@ -821,10 +792,11 @@ CommandResult run_binding(Binding *bind, Con *con) {
     /* We need to copy the binding and command since “reload” may be part of
      * the command, and then the memory that bind points to may not contain the
      * same data anymore. */
-    if (con == nullptr)
+    if (con == nullptr) {
         command = bind->command;
-    else
-        command = fmt::format("[con_id=\"{}\"] {}", (void*)con, bind->command);
+    } else {
+        command = fmt::format("[con_id=\"{}\"] {}", (void *)con, bind->command);
+    }
 
     //"exec i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3 exit'"
     //"exec \"i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3 exit'\""
@@ -832,8 +804,9 @@ CommandResult run_binding(Binding *bind, Con *con) {
     Binding bind_cp = *bind;
     CommandResult result = parse_command(command, nullptr, nullptr);
 
-    if (result.needs_tree_render)
+    if (result.needs_tree_render) {
         tree_render();
+    }
 
     if (result.parse_error) {
         std::vector<button_t> buttons{};
@@ -968,7 +941,7 @@ std::set<int> bindings_get_buttons_to_grab() {
             continue;
 
         long button;
-        if (!parse_long(bind->symbol + (sizeof("button") - 1), &button, 10)) {
+        if (!parse_long(bind->symbol.c_str() + (sizeof("button") - 1), &button, 10)) {
             ELOG("Could not parse button number, skipping this binding. Please report this bug in i3.\n");
             continue;
         }

@@ -84,9 +84,6 @@
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;
 
-/* Display handle for libstartup-notification */
-SnDisplay *sndisplay;
-
 bool is_background_set(x_connection *conn, xcb_screen_t *screen);
 
 /*

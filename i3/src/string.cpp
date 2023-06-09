@@ -38,7 +38,7 @@ i3String::~i3String() {
  * Returns the UTF-8 encoded version of the i3String.
  *
  */
-const char *i3String::get_utf8() {
+char *i3String::get_utf8() {
     return utf8;
 }
 

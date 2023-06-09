@@ -32,8 +32,10 @@
 #include "i3_regex.h"
 
 /* From sys/time.h, not sure if it’s available on all systems. */
-#define _i3_timercmp(a, b, CMP) \
-    (((a).tv_sec == (b).tv_sec) ? ((a).tv_usec CMP(b).tv_usec) : ((a).tv_sec CMP(b).tv_sec))
+template<typename Comp = std::ranges::less>
+static bool i3_timercmp(timeval a, timeval b, Comp cmp) {
+    return a.tv_sec == b.tv_sec ? cmp(a.tv_usec, b.tv_usec) : cmp(a.tv_sec, b.tv_sec);
+}
 
 static bool is_initialized(const Regex *regex) {
     return regex != nullptr && regex->valid;
@@ -115,6 +117,21 @@ Match::Match(const Match &src) {
     if (is_initialized(src.workspace))          this->workspace = new Regex(*src.workspace);
 }
 
+void checkWindowField(Regex *match_field, i3Window *window, char* (*window_field)(i3Window*)) {
+    if (is_initialized(match_field)) {
+        const char *window_field_str = window_field(window) == nullptr ? "" : window_field(window);
+        if (strcmp(match_field->pattern, "__focused__") == 0 &&
+            focused && focused->window && window_field(focused->window) &&
+            strcmp(window_field_str, window_field(focused->window)) == 0) {
+            LOG("window match_field matches focused window\n");
+        } else if (match_field->regex_matches(window_field_str)) {
+             LOG(fmt::sprintf("window match_field matches (%s)\n", window_field_str));
+        } else {
+            throw std::logic_error("does not match");
+        }
+    }
+}
+
 /*
  * Check if a match data structure matches the given window.
  *
@@ -122,50 +139,34 @@ Match::Match(const Match &src) {
 bool match_matches_window(Match &match, i3Window *window) {
     LOG(fmt::sprintf("Checking window 0x%08x (class %s)\n",  window->id, window->class_class));
 
-#define GET_FIELD_str(field) (field)
-#define GET_FIELD_i3string(field) (field->get_utf8())
-#define CHECK_WINDOW_FIELD(match_field, window_field, type)                                       \
-    do {                                                                                          \
-        if (is_initialized(match.match_field)) {                                                 \
-            const char *window_field_str = window->window_field == NULL                           \
-                                               ? ""                                               \
-                                               : GET_FIELD_##type(window->window_field);          \
-            if (strcmp(match.match_field->pattern, "__focused__") == 0 &&                        \
-                focused && focused->window && focused->window->window_field &&                    \
-                strcmp(window_field_str, GET_FIELD_##type(focused->window->window_field)) == 0) { \
-                LOG("window " #match_field " matches focused window\n");                          \
-            } else if (match.match_field->regex_matches(window_field_str)) {                     \
-                 LOG(fmt::sprintf("window " #match_field " matches (%s)\n", window_field_str));   \
-            } else {                                                                              \
-                return false;                                                                     \
-            }                                                                                     \
-        }                                                                                         \
-    } while (0)
+    try {
+        checkWindowField(match.window_class, window, [](i3Window *window) { return window->class_class; });
+        checkWindowField(match.instance, window, [](i3Window *window) { return window->class_instance; });
 
-    CHECK_WINDOW_FIELD(window_class, class_class, str);
-    CHECK_WINDOW_FIELD(instance, class_instance, str);
-
-    if (match.id != XCB_NONE) {
-        if (window->id == match.id) {
-            LOG(fmt::sprintf("match made by window id (%d)\n",  window->id));
-        } else {
-            LOG("window id does not match\n");
-            return false;
+        if (match.id != XCB_NONE) {
+            if (window->id == match.id) {
+                LOG(fmt::sprintf("match made by window id (%d)\n", window->id));
+            } else {
+                LOG("window id does not match\n");
+                return false;
+            }
         }
-    }
 
-    CHECK_WINDOW_FIELD(title, name, i3string);
-    CHECK_WINDOW_FIELD(window_role, role, str);
+        checkWindowField(match.title, window, [](i3Window *window) { return window->name != nullptr ? window->name->get_utf8() : nullptr; });
+        checkWindowField(match.window_role, window, [](i3Window *window) { return window->role; });
 
-    if (match.window_type != UINT32_MAX) {
-        if (window->window_type == match.window_type) {
-            LOG(fmt::sprintf("window_type matches (%i)\n",  match.window_type));
-        } else {
-            return false;
+        if (match.window_type != UINT32_MAX) {
+            if (window->window_type == match.window_type) {
+                LOG(fmt::sprintf("window_type matches (%i)\n", match.window_type));
+            } else {
+                return false;
+            }
         }
-    }
 
-    CHECK_WINDOW_FIELD(machine, machine, str);
+        checkWindowField(match.machine, window, [](i3Window *window) { return window->machine; });
+    } catch (std::logic_error &e) {
+        return false;
+    }
 
     Con *con = nullptr;
     if (match.urgent == U_LATEST) {
@@ -176,8 +177,7 @@ bool match_matches_window(Match &match, i3Window *window) {
         /* if we find a window that is newer than this one, bail */
         for (const auto &c : all_cons) {
             con = c;
-            if ((con->window != nullptr) &&
-                _i3_timercmp(con->window->urgent, window->urgent, >)) {
+            if ((con->window != nullptr) && i3_timercmp(con->window->urgent, window->urgent, std::ranges::greater())) {
                 return false;
             }
         }
@@ -194,7 +194,7 @@ bool match_matches_window(Match &match, i3Window *window) {
             con = c;
             if ((con->window != nullptr) &&
                 (con->window->urgent.tv_sec != 0) &&
-                _i3_timercmp(con->window->urgent, window->urgent, <)) {
+                i3_timercmp(con->window->urgent, window->urgent, std::ranges::less())) {
                 return false;
             }
         }

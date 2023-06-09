@@ -43,7 +43,7 @@ class i3String {
      * Returns the UTF-8 encoded version of the i3String.
      *
      */
-    const char *get_utf8();
+    char *get_utf8();
 
     /**
      * Returns the number of bytes (UTF-8 encoded) in an i3String.

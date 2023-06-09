@@ -49,18 +49,16 @@ struct Binding_Keycode {
     xcb_keycode_t keycode{};
     i3_event_state_mask_t modifiers{};
 
-    Binding_Keycode() = default;
+    Binding_Keycode(xcb_keycode_t keycode, i3_event_state_mask_t modifiers): keycode(keycode), modifiers(modifiers) {
+
+    }
 
     Binding_Keycode(const Binding_Keycode &bind_keycode) {
         keycode = bind_keycode.keycode;
         modifiers = bind_keycode.modifiers;
     }
 
-    Binding_Keycode& operator=(const Binding_Keycode &bind_keycode) {
-        keycode = bind_keycode.keycode;
-        modifiers = bind_keycode.modifiers;
-        return *this;
-    }
+    Binding_Keycode& operator=(const Binding_Keycode &bind_keycode) = default;
 };
 
 enum binding_upon_t {
@@ -95,11 +93,11 @@ enum i3_xkb_group_mask_t {
 struct Binding {
     /* The type of input this binding is for. (Mouse bindings are not yet
      * implemented. All bindings are currently assumed to be keyboard bindings.) */
-    input_type_t input_type;
+    input_type_t input_type{};
 
     /** If true, the binding should be executed upon a KeyRelease event, not a
      * KeyPress (the default). */
-    enum binding_upon_t release;
+    enum binding_upon_t release{};
 
     /** If this is true for a mouse binding, the binding should be executed
      * when the button is pressed over the window border. */
@@ -125,12 +123,12 @@ struct Binding {
     /** Symbol the user specified in configfile, if any. This needs to be
      * stored with the binding to be able to re-convert it into a keycode
      * if the keyboard mapping changes (using Xmodmap for example) */
-    char *symbol{};
+    std::string symbol{};
 
     /** Only in use if symbol != NULL. Contains keycodes which generate the
      * specified symbol. Useful for unbinding and checking which binding was
      * used when a key press event comes in. */
-     std::deque<Binding_Keycode*> keycodes_head{};
+     std::deque<Binding_Keycode> keycodes_head{};
 
     /** Command, like in command mode */
     std::string command{};
@@ -139,7 +137,7 @@ struct Binding {
 
     Binding(const Binding &bind);
 
-    ~Binding();
+    ~Binding() = default;
 };
 
 /**
