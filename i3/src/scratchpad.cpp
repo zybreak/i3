@@ -89,7 +89,7 @@ void scratchpad_move(Con *con) {
  */
 bool scratchpad_show(Con *con) {
     DLOG(fmt::sprintf("should show scratchpad window %p\n",  (void*)con));
-    Con *__i3_scratch = workspace_get("__i3_scratch");
+    WorkspaceCon *__i3_scratch = workspace_get("__i3_scratch");
     Con *floating;
 
     /* If this was 'scratchpad show' without criteria, we check if the
@@ -115,7 +115,7 @@ bool scratchpad_show(Con *con) {
 
     /* If this was 'scratchpad show' without criteria, we check if there is a
      * unfocused scratchpad on the current workspace and focus it */
-    Con *focused_ws = global.focused->con_get_workspace();
+    WorkspaceCon *focused_ws = global.focused->con_get_workspace();
     for (auto &walk_con : focused_ws->floating_windows) {
         if (!con && (floating = walk_con->con_inside_floating()) &&
             floating->scratchpad_state != SCRATCHPAD_NONE &&
@@ -249,7 +249,7 @@ static int _lcm(const int m, const int n) {
  *
  */
 void scratchpad_fix_resolution() {
-    Con *__i3_scratch = workspace_get("__i3_scratch");
+    WorkspaceCon *__i3_scratch = workspace_get("__i3_scratch");
     Con *__i3_output = __i3_scratch->con_get_output();
     DLOG(fmt::sprintf("Current resolution: (%d, %d) %d x %d\n",
          __i3_output->rect.x, __i3_output->rect.y,

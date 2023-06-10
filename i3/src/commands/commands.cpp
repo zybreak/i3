@@ -1023,7 +1023,7 @@ namespace cmd {
 
         bool success = false;
         for (auto current: criteria_state.owindows) {
-            Con *ws = current->con_get_workspace();
+            WorkspaceCon *ws = current->con_get_workspace();
             if (ws->con_is_internal()) {
                 continue;
             }
@@ -1910,7 +1910,7 @@ namespace cmd {
              LOG(fmt::sprintf("Renaming current workspace to \"%s\"\n", new_name));
         }
 
-        Con *workspace;
+        WorkspaceCon *workspace;
         if (old_name) {
             workspace = get_existing_workspace_by_name(old_name);
         } else {

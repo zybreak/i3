@@ -248,8 +248,10 @@ static void open_placeholder_window(x_connection *conn, Con *con) {
     for (auto &child : con->nodes_head) {
         open_placeholder_window(conn, child);
     }
-    for (auto &child : con->floating_windows) {
-        open_placeholder_window(conn, child);
+    if (dynamic_cast<WorkspaceCon*>(con)) {
+        for (auto &child : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+            open_placeholder_window(conn, child);
+        }
     }
 }
 
@@ -264,8 +266,10 @@ void restore_open_placeholder_windows(Con *parent) {
     for (auto &child : parent->nodes_head) {
         open_placeholder_window(*global.x, child);
     }
-    for (auto &child : parent->floating_windows) {
-        open_placeholder_window(*global.x, child);
+    if (dynamic_cast<WorkspaceCon*>(parent)) {
+        for (auto &child : dynamic_cast<WorkspaceCon*>(parent)->floating_windows) {
+            open_placeholder_window(*global.x, child);
+        }
     }
 
     xcb_flush(restore_conn);

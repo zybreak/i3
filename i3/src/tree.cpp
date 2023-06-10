@@ -107,7 +107,7 @@ bool tree_restore(const std::string_view &path, const xcb_get_geometry_reply_t *
     }
 
     /* TODO: refactor the following */
-    global.croot = new ConCon();
+    global.croot = new RootCon();
     global.croot->rect = (Rect){
         (uint32_t)geometry->x,
         (uint32_t)geometry->y,
@@ -118,7 +118,7 @@ bool tree_restore(const std::string_view &path, const xcb_get_geometry_reply_t *
     tree_append_json(global.focused, buf, nullptr);
 
     DLOG("appended tree, using new root\n");
-    global.croot = con::first(global.croot->nodes_head);
+    global.croot = dynamic_cast<RootCon*>(con::first(global.croot->nodes_head));
     if (!global.croot) {
         /* tree_append_json failed. Continuing here would segfault. */
         return result;
@@ -153,7 +153,6 @@ bool tree_restore(const std::string_view &path, const xcb_get_geometry_reply_t *
  */
 void tree_init(const xcb_get_geometry_reply_t *geometry) {
     global.croot = new RootCon();
-    global.croot->name.assign("root");
     global.croot->layout = L_SPLITH;
     global.croot->rect = (Rect){
         (uint32_t)geometry->x,
@@ -458,7 +457,7 @@ static void mark_unmapped(Con *con) {
     if (con->type == CT_WORKSPACE) {
         /* We need to call mark_unmapped on floating nodes as well since we can
          * make containers floating. */
-        for (auto &current : con->floating_windows) {
+        for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
             mark_unmapped(current);
         }
     }
@@ -538,7 +537,7 @@ static Con *get_tree_next(Con *con, direction_t direction) {
             return first_wrap;
         }
 
-        Con *const parent = con->parent;
+        WorkspaceCon *const parent = dynamic_cast<WorkspaceCon*>(con->parent);
         if (con->type == CT_FLOATING_CON) {
             if (orientation != HORIZ) {
                 /* up/down does not change floating containers */
@@ -644,7 +643,7 @@ void tree_next(Con *con, direction_t direction) {
     } else if (next->type == CT_FLOATING_CON) {
         /* Raise the floating window on top of other windows preserving relative
          * stack order */
-        Con *parent = next->parent;
+        WorkspaceCon *parent = dynamic_cast<WorkspaceCon*>(next->parent);
         while (parent->floating_windows.back() != next) {
             Con *last = parent->floating_windows.back();
             parent->floating_windows.pop_back();
@@ -694,8 +693,10 @@ void tree_flatten(Con *con) {
             tree_flatten(current);
         }
 
-        for (auto &current : con->floating_windows) {
-            tree_flatten(current);
+        if (dynamic_cast<WorkspaceCon*>(con)) {
+            for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+                tree_flatten(current);
+            }
         }
         return;
     }
@@ -707,8 +708,10 @@ void tree_flatten(Con *con) {
             tree_flatten(current);
         }
 
-        for (auto &c : con->floating_windows) {
-            tree_flatten(c);
+        if (dynamic_cast<WorkspaceCon*>(con)) {
+            for (auto &c : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+                tree_flatten(c);
+            }
         }
         return;
     }
@@ -730,8 +733,10 @@ void tree_flatten(Con *con) {
             tree_flatten(current);
         }
 
-        for (auto &current : con->floating_windows) {
-            tree_flatten(current);
+        if (dynamic_cast<WorkspaceCon*>(con)) {
+            for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+                tree_flatten(current);
+            }
         }
         return;
     }

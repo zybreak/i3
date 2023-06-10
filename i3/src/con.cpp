@@ -216,7 +216,7 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
 
     if (this->type == CT_FLOATING_CON) {
         DLOG("Inserting into floating containers\n");
-        parent->floating_windows.push_back(this);
+        dynamic_cast<WorkspaceCon*>(parent)->floating_windows.push_back(this);
     } else {
         if (!ignore_focus) {
             /* Get the first tiling container in focus stack */
@@ -326,7 +326,7 @@ void Con::insert_after(Con *con) {
 void Con::con_detach() {
     con_force_split_parents_redraw(this);
     if (this->type == CT_FLOATING_CON) {
-        std::erase(this->parent->floating_windows, this);
+        std::erase(dynamic_cast<WorkspaceCon*>(this->parent)->floating_windows, this);
         std::erase(this->parent->focus_head, this);
     } else {
         std::erase(this->parent->nodes_head, this);
@@ -483,7 +483,7 @@ bool Con::con_has_managed_window() {
  *
  */
 bool Con::con_has_children() {
-    return (!this->con_is_leaf() || !this->floating_windows.empty());
+    return (!this->con_is_leaf() || (dynamic_cast<WorkspaceCon*>(this) != nullptr && !dynamic_cast<WorkspaceCon*>(this)->floating_windows.empty()));
 }
 
 /*
@@ -581,11 +581,16 @@ Con* Con::con_get_output() {
  * Gets the workspace container this node is on.
  *
  */
-Con* Con::con_get_workspace() {
+WorkspaceCon* Con::con_get_workspace() {
     Con *result = this;
-    while (result != nullptr && result->type != CT_WORKSPACE)
-        result = result->parent;
-    return result;
+    while (result != nullptr) {
+        if (result->type == CT_WORKSPACE) {
+            return dynamic_cast<WorkspaceCon*>(result);
+        } else {
+            result = result->parent;
+        }
+    }
+    return nullptr;
 }
 
 /*
@@ -636,8 +641,10 @@ Con* Con::con_get_fullscreen_con(fullscreen_mode_t fullscreen_mode) {
             bfs.push_back(child);
         }
 
-        for (auto &child : current->floating_windows) {
-            bfs.push_back(child);
+        if (dynamic_cast<WorkspaceCon*>(current) != nullptr) {
+            for (auto &child : dynamic_cast<WorkspaceCon*>(current)->floating_windows) {
+                bfs.push_back(child);
+            }
         }
     }
 
@@ -794,17 +801,19 @@ Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
             return result;
     }
 
-    for (auto &child : con->floating_windows) {
-        for (auto &match : child->swallow) {
-            if (!match_matches_window(*match, window))
-                continue;
-            if (store_match != nullptr)
-                *store_match = match.get();
-            return child;
+    if (dynamic_cast<WorkspaceCon*>(con)) {
+        for (auto &child : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
+            for (auto &match : child->swallow) {
+                if (!match_matches_window(*match, window))
+                    continue;
+                if (store_match != nullptr)
+                    *store_match = match.get();
+                return child;
+            }
+            Con *result = con_for_window(child, window, store_match);
+            if (result != nullptr)
+                return result;
         }
-        Con *result = con_for_window(child, window, store_match);
-        if (result != nullptr)
-            return result;
     }
 
     return nullptr;
@@ -887,8 +896,10 @@ int Con::con_num_windows() {
         num += current->con_num_windows();
     }
 
-    for (auto &current : this->floating_windows) {
-        num += current->con_num_windows();
+    if (dynamic_cast<WorkspaceCon*>(this) != nullptr) {
+        for (auto &current : dynamic_cast<WorkspaceCon*>(this)->floating_windows) {
+            num += current->con_num_windows();
+        }
     }
 
     return num;
@@ -1083,8 +1094,8 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
     if (con->type == CT_WORKSPACE) {
         /* Re-parent all of the old workspace's floating windows. */
         Con *child;
-        while (!source_ws->floating_windows.empty()) {
-            child = source_ws->floating_windows.front();
+        while (!dynamic_cast<WorkspaceCon*>(source_ws)->floating_windows.empty()) {
+            child = dynamic_cast<WorkspaceCon*>(source_ws)->floating_windows.front();
             con_move_to_workspace(child, target_ws, true, true, false);
         }
 

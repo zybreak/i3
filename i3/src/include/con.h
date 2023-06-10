@@ -139,6 +139,8 @@ struct deco_render_params {
     auto operator<=>(const deco_render_params &r) const = default;
 };
 
+class WorkspaceCon;
+
 /**
  * A 'Con' represents everything from the X11 root window down to a single X11 window.
  *
@@ -222,9 +224,6 @@ public:
 
     /** Cache for the decoration rendering */
     struct deco_render_params *deco_render_params{};
-
-    /* Only workspace-containers can have floating clients */
-    std::deque<Con*> floating_windows{};
 
     std::deque<Con*> nodes_head{};
     std::deque<Con*> focus_head{};
@@ -358,7 +357,7 @@ public:
      * Gets the workspace container this node is on.
      *
      */
-    Con *con_get_workspace();
+    WorkspaceCon *con_get_workspace();
 
     /**
      * Returns the fullscreen node that covers the given workspace if it exists.
@@ -515,6 +514,7 @@ class RootCon : public Con {
    public:
     RootCon() : Con(nullptr, nullptr, false) {
         this->type = CT_ROOT;
+        this->name = "root";
     }
 };
 
@@ -551,6 +551,9 @@ class DockCon : public Con {
 
 class WorkspaceCon : public Con {
    public:
+    /* Only workspace-containers can have floating clients */
+    std::deque<Con*> floating_windows{};
+
     WorkspaceCon() : Con(nullptr, nullptr, false) {
         this->type = CT_WORKSPACE;
     }

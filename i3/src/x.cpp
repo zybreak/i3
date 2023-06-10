@@ -679,7 +679,7 @@ void x_draw_decoration(Con *con) {
  *
  */
 void x_deco_recurse(Con *con) {
-    bool leaf = con->nodes_head.empty() && con->floating_windows.empty();
+    bool leaf = con->nodes_head.empty() && (dynamic_cast<WorkspaceCon*>(con) == nullptr || dynamic_cast<WorkspaceCon*>(con)->floating_windows.empty());
     con_state *state = state_for_frame(con->frame.id);
 
     if (!leaf) {
@@ -687,8 +687,10 @@ void x_deco_recurse(Con *con) {
             x_deco_recurse(current);
         }
 
-        for (auto &current : con->floating_windows) {
-            x_deco_recurse(current);
+        if (dynamic_cast<WorkspaceCon*>(con)) {
+            for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+                x_deco_recurse(current);
+            }
         }
 
         if (state->mapped) {
@@ -1125,8 +1127,10 @@ static void x_push_node_unmaps(Con *con) {
         x_push_node_unmaps(current);
     }
 
-    for (auto &current : con->floating_windows) {
-        x_push_node_unmaps(current);
+    if (dynamic_cast<WorkspaceCon*>(con)) {
+        for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+            x_push_node_unmaps(current);
+        }
     }
 }
 

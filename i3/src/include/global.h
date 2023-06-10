@@ -16,7 +16,7 @@
 
 struct global {
     Con *focused;
-    Con *croot;
+    RootCon *croot;
 
     std::deque<Con*> all_cons{};
 

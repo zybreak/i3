@@ -441,7 +441,7 @@ void init_ws_for_output(Output *output) {
          * can't call render_con here because render_output only proceeds
          * if a workspace exists. */
         content->rect = output->con->rect;
-        workspace_move_to_output(workspace, output);
+        workspace_move_to_output(dynamic_cast<WorkspaceCon*>(workspace), output);
     }
 
     /* Temporarily set the focused container, might not be initialized yet. */
@@ -505,8 +505,10 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
     /* Fix the position of all floating windows on this output.
      * The 'rect' of each workspace will be updated in src/render.c. */
     for (auto &workspace : content->nodes_head) {
-        for (auto &child : workspace->floating_windows) {
-            floating_fix_coordinates(child, &(workspace->rect), &(output->con->rect));
+        if (dynamic_cast<WorkspaceCon*>(workspace)) {
+            for (auto &child : dynamic_cast<WorkspaceCon*>(workspace)->floating_windows) {
+                floating_fix_coordinates(child, &(workspace->rect), &(output->con->rect));
+            }
         }
     }
 
@@ -817,8 +819,10 @@ static void move_content(Con *con) {
         DLOG(fmt::sprintf("Re-attaching current = %p / %s\n",  (void*)current, current->name));
         current->con_attach(first_content, false);
         DLOG("Fixing the coordinates of floating containers\n");
-        for (auto &floating_con : current->floating_windows) {
-            floating_fix_coordinates(floating_con, &(con->rect), &(first->rect));
+        if (dynamic_cast<WorkspaceCon*>(current)) {
+            for (auto &floating_con : dynamic_cast<WorkspaceCon*>(current)->floating_windows) {
+                floating_fix_coordinates(floating_con, &(con->rect), &(first->rect));
+            }
         }
     }
 

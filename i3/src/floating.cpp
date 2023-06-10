@@ -301,7 +301,7 @@ bool floating_enable(Con *con, bool automatic) {
     /* we need to set the parent afterwards instead of passing it as an
      * argument to new Con() because nc would be inserted into the tiling layer
      * otherwise. */
-    Con *ws = con->con_get_workspace();
+    WorkspaceCon *ws = con->con_get_workspace();
     nc->parent = ws;
     nc->layout = L_SPLITH;
     /* We insert nc already, even though its rect is not yet calculated. This
@@ -504,9 +504,14 @@ void toggle_floating_mode(Con *con, bool automatic) {
  */
 void floating_raise_con(Con *con) {
     DLOG(fmt::sprintf("Raising floating con %p / %s\n",  (void*)con, con->name));
-    auto con_ptr = std::ranges::find(con->parent->floating_windows, con);
-    if (con_ptr != con->parent->floating_windows.end()) con->parent->floating_windows.erase(con_ptr);
-    con->parent->floating_windows.push_back(con);
+    if (dynamic_cast<WorkspaceCon*>(con->parent)) {
+        WorkspaceCon *workspace = dynamic_cast<WorkspaceCon *>(con->parent);
+        auto con_ptr = std::ranges::find(workspace->floating_windows, con);
+        if (con_ptr != workspace->floating_windows.end()) {
+            workspace->floating_windows.erase(con_ptr);
+        }
+        workspace->floating_windows.push_back(con);
+    }
 }
 
 /*

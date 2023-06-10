@@ -556,9 +556,11 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
         j["nodes"] = a;
     }
 
-    auto floating_nodes_array = nlohmann::json::array();
-    std::ranges::transform(con->floating_windows, std::back_inserter(floating_nodes_array), [&inplace_restart](Con *node) { return dump_node(node, inplace_restart); });
-    j["floating_nodes"] = floating_nodes_array;
+    if (dynamic_cast<WorkspaceCon*>(con)) {
+        auto floating_nodes_array = nlohmann::json::array();
+        std::ranges::transform(dynamic_cast<WorkspaceCon*>(con)->floating_windows, std::back_inserter(floating_nodes_array), [&inplace_restart](Con *node) { return dump_node(node, inplace_restart); });
+        j["floating_nodes"] = floating_nodes_array;
+    }
 
     auto focus_nodes_array = nlohmann::json::array();
     std::ranges::transform(con->focus_head, std::back_inserter(focus_nodes_array), [](Con *node) { return (uintptr_t)node; });

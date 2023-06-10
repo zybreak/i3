@@ -160,7 +160,7 @@ static void ewmh_update_wm_desktop_recursively(Con *con, const uint32_t desktop)
 
     /* If con is a workspace, we also need to go through the floating windows on it. */
     if (con->type == CT_WORKSPACE) {
-        for (auto &child : con->floating_windows) {
+        for (auto &child : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
             ewmh_update_wm_desktop_recursively(child, desktop);
         }
     }

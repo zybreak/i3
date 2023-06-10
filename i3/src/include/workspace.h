@@ -46,14 +46,14 @@ extern std::string previous_workspace_name;
  * not exist.
  *
  */
-Con *get_existing_workspace_by_name(const std::string &name);
+WorkspaceCon *get_existing_workspace_by_name(const std::string &name);
 
 /**
  * Returns the workspace with the given number or NULL if such a workspace does
  * not exist.
  *
  */
-Con *get_existing_workspace_by_num(int num);
+WorkspaceCon *get_existing_workspace_by_num(int num);
 
 /**
  * Returns the first output that is assigned to a workspace specified by the
@@ -81,7 +81,7 @@ bool output_triggers_assignment(Output *output, const Workspace_Assignment *assi
  * memory and initializing the data structures correctly).
  *
  */
-Con *workspace_get(const std::string &num);
+WorkspaceCon *workspace_get(const std::string &num);
 
 /**
  * Extracts workspace names from keybindings (e.g. “web” from “bindsym $mod+1
@@ -98,7 +98,7 @@ void extract_workspace_names_from_bindings();
  * container.
  *
  */
-Con *create_workspace_on_output(Output *output, Con *content);
+WorkspaceCon *create_workspace_on_output(Output *output, Con *content);
 
 /**
  * Returns true if the workspace is currently visible. Especially important for
@@ -124,25 +124,25 @@ void workspace_show_by_name(const char *num);
  * Returns the next workspace.
  *
  */
-Con *workspace_next();
+WorkspaceCon *workspace_next();
 
 /**
  * Returns the previous workspace.
  *
  */
-Con *workspace_prev();
+WorkspaceCon *workspace_prev();
 
 /**
  * Returns the next workspace on the same output
  *
  */
-Con *workspace_next_on_output();
+WorkspaceCon *workspace_next_on_output();
 
 /**
  * Returns the previous workspace on the same output
  *
  */
-Con *workspace_prev_on_output();
+WorkspaceCon *workspace_prev_on_output();
 
 /**
  * Focuses the previously focused workspace.
@@ -154,7 +154,7 @@ void workspace_back_and_forth();
  * Returns the previously focused workspace con, or NULL if unavailable.
  *
  */
-Con *workspace_back_and_forth_get();
+WorkspaceCon *workspace_back_and_forth_get();
 
 /**
  * Goes through all clients on the given workspace and updates the workspace’s
@@ -195,4 +195,4 @@ Con *workspace_encapsulate(Con *ws);
  * Move the given workspace to the specified output.
  *
  */
-void workspace_move_to_output(Con *ws, Output *output);
+void workspace_move_to_output(WorkspaceCon *ws, Output *output);
