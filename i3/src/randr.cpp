@@ -345,10 +345,8 @@ void output_init_con(Output *output) {
     }
 
     if (con == nullptr) {
-        con = new Con(global.croot);
+        con = new OutputCon(global.croot);
         con->name = output->output_primary_name();
-        con->type = CT_OUTPUT;
-        con->layout = L_OUTPUT;
         global.croot->con_fix_percent();
     }
     con->rect = output->rect;
@@ -362,9 +360,7 @@ void output_init_con(Output *output) {
     }
 
     DLOG("Changing layout, adding top/bottom dockarea\n");
-    Con *topdock = new Con();
-    topdock->type = CT_DOCKAREA;
-    topdock->layout = L_DOCKAREA;
+    Con *topdock = new DockCon();
     /* this container swallows dock clients */
     auto match = std::make_unique<Match>();
     match->dock = M_DOCK_TOP;
@@ -380,7 +376,7 @@ void output_init_con(Output *output) {
     /* content container */
 
     DLOG("adding main content container\n");
-    Con *content = new Con();
+    Con *content = new ConCon();
     content->type = CT_CON;
     content->layout = L_SPLITH;
     content->name.assign("content");
@@ -389,9 +385,7 @@ void output_init_con(Output *output) {
     content->con_attach(con, false);
 
     /* bottom dock container */
-    Con *bottomdock = new Con();
-    bottomdock->type = CT_DOCKAREA;
-    bottomdock->layout = L_DOCKAREA;
+    Con *bottomdock = new DockCon();
     /* this container swallows dock clients */
     auto match2 = std::make_unique<Match>();
     match2->dock = M_DOCK_BOTTOM;

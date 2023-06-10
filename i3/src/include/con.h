@@ -508,7 +508,52 @@ public:
      * Frees the specified container.
      *
      */
-    ~Con();
+    virtual ~Con();
+};
+
+class RootCon : public Con {
+   public:
+    RootCon() : Con(nullptr, nullptr, false) {
+        this->type = CT_ROOT;
+    }
+};
+
+class OutputCon : public Con {
+   public:
+    OutputCon(Con *parent) : Con(parent, nullptr, false) {
+        this->type = CT_OUTPUT;
+        this->layout = L_OUTPUT;
+    }
+};
+
+class ConCon : public Con {
+   public:
+    ConCon(Con *parent = nullptr, i3Window *window = nullptr, bool skeleton = false) : Con(parent, window, skeleton) {
+        this->type = CT_CON;
+    }
+};
+
+/* Wrap a floating ConCon in a FloatingCon. */
+class FloatingCon : public Con {
+   public:
+    FloatingCon() : Con(nullptr, nullptr, false) {
+        this->type = CT_FLOATING_CON;
+    }
+};
+
+class DockCon : public Con {
+   public:
+    DockCon() : Con(nullptr, nullptr, false) {
+        this->type = CT_DOCKAREA;
+        this->layout = L_DOCKAREA;
+    }
+};
+
+class WorkspaceCon : public Con {
+   public:
+    WorkspaceCon() : Con(nullptr, nullptr, false) {
+        this->type = CT_WORKSPACE;
+    }
 };
 
 namespace con {

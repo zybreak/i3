@@ -62,13 +62,13 @@ static void json_start_map(tree_append_ctx &ctx) {
             if (ctx.last_key == "floating_nodes") {
                 DLOG("New floating_node\n");
                 Con *ws = ctx.json_node->con_get_workspace();
-                ctx.json_node = new Con(nullptr, nullptr, true);
+                ctx.json_node = new ConCon(nullptr, nullptr, true);
                 ctx.json_node->name.clear();
                 ctx.json_node->parent = ws;
                 DLOG(fmt::sprintf("Parent is workspace = %p\n",  (void*)ws));
             } else {
                 Con *parent = ctx.json_node;
-                ctx.json_node = new Con(nullptr, nullptr, true);
+                ctx.json_node = new ConCon(nullptr, nullptr, true);
                 ctx.json_node->name.clear();
                 ctx.json_node->parent = parent;
             }

@@ -297,13 +297,12 @@ bool floating_enable(Con *con, bool automatic) {
 
     /* 2: create a new container to render the decoration on, add
      * it as a floating window to the workspace */
-    Con *nc = new Con();
+    Con *nc = new FloatingCon();
     /* we need to set the parent afterwards instead of passing it as an
      * argument to new Con() because nc would be inserted into the tiling layer
      * otherwise. */
     Con *ws = con->con_get_workspace();
     nc->parent = ws;
-    nc->type = CT_FLOATING_CON;
     nc->layout = L_SPLITH;
     /* We insert nc already, even though its rect is not yet calculated. This
      * is necessary because otherwise the workspace might be empty (and get

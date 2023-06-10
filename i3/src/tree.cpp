@@ -51,10 +51,8 @@
  *
  */
 static Con* create_i3(Con *croot) {
-    auto con = new Con(croot, nullptr);
+    auto con = new OutputCon(croot);
     con->name.assign("__i3");
-    con->type = CT_OUTPUT;
-    con->layout = L_OUTPUT;
     croot->con_fix_percent();
     x_set_name(con, "[i3 con] pseudo-output __i3");
     /* For retaining the correct position/size of a scratchpad window, the
@@ -67,7 +65,7 @@ static Con* create_i3(Con *croot) {
 
     /* Add a content container. */
     DLOG("adding main content container\n");
-    auto content = new Con(nullptr, nullptr);
+    auto content = new ConCon(nullptr, nullptr);
     content->type = CT_CON;
     content->name.assign("content");
     content->layout = L_SPLITH;
@@ -76,8 +74,7 @@ static Con* create_i3(Con *croot) {
     content->con_attach(con, false);
 
     /* Attach the __i3_scratch workspace. */
-    auto ws = new Con(nullptr, nullptr);
-    ws->type = CT_WORKSPACE;
+    auto ws = new WorkspaceCon();
     ws->num = -1;
     ws->name.assign("__i3_scratch");
     ws->layout = L_SPLITH;
@@ -110,7 +107,7 @@ bool tree_restore(const std::string_view &path, const xcb_get_geometry_reply_t *
     }
 
     /* TODO: refactor the following */
-    global.croot = new Con();
+    global.croot = new ConCon();
     global.croot->rect = (Rect){
         (uint32_t)geometry->x,
         (uint32_t)geometry->y,
@@ -155,9 +152,8 @@ bool tree_restore(const std::string_view &path, const xcb_get_geometry_reply_t *
  *
  */
 void tree_init(const xcb_get_geometry_reply_t *geometry) {
-    global.croot = new Con();
+    global.croot = new RootCon();
     global.croot->name.assign("root");
-    global.croot->type = CT_ROOT;
     global.croot->layout = L_SPLITH;
     global.croot->rect = (Rect){
         (uint32_t)geometry->x,
@@ -196,7 +192,7 @@ Con *tree_open_con(Con *con, i3Window *window) {
     assert(con != nullptr);
 
     /* 3. create the container and attach it to its parent */
-    Con *new_con = new Con(con, window);
+    Con *new_con = new ConCon(con, window);
     new_con->layout = L_SPLITH;
 
     /* 4: re-calculate child->percent for each child */
@@ -389,7 +385,7 @@ void tree_split(Con *con, orientation_t orientation) {
     DLOG(fmt::sprintf("Splitting in orientation %d\n",  orientation));
 
     /* 2: replace it with a new Con */
-    Con *new_con = new Con();
+    Con *new_con = new ConCon();
     auto nodes_it = std::ranges::find(parent->nodes_head, con);
     *nodes_it = new_con;
     auto con_it = std::ranges::find(parent->focus_head, con);

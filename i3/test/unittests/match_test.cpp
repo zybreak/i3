@@ -49,7 +49,7 @@ TEST(MatchTest, MatchesUrgentLatest){
         .tv_usec = 7500000
     };
 
-    auto c = new Con(nullptr, &w2, true);
+    auto c = new ConCon(nullptr, &w2, true);
 
     ASSERT_FALSE(match_matches_window(m, &w));
 }
@@ -74,7 +74,7 @@ TEST(MatchTest, MatchesUrgentOldest){
         .tv_usec = 7500000
     };
 
-    auto c = new Con(nullptr, &w2, true);
+    auto c = new ConCon(nullptr, &w2, true);
 
     ASSERT_TRUE(match_matches_window(m, &w));
 }

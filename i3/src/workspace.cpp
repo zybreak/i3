@@ -174,14 +174,13 @@ Con *workspace_get(const std::string &num) {
 
     /* No parent because we need to attach this container after setting its
      * type. con_attach will handle CT_WORKSPACEs differently. */
-    workspace = new Con();
+    workspace = new WorkspaceCon();
 
     x_set_name(workspace, fmt::format("[i3 con] workspace {}", num));
 
     workspace->name = num;
     workspace->workspace_layout = config.default_layout;
     workspace->num = parsed_num;
-    workspace->type = CT_WORKSPACE;
 
     workspace->con_attach(output->output_get_content(), false);
     _workspace_apply_default_orientation(workspace);
@@ -256,8 +255,7 @@ void extract_workspace_names_from_bindings() {
 Con *create_workspace_on_output(Output *output, Con *content) {
     /* add a workspace to this output */
     bool exists = true;
-    Con *ws = new Con();
-    ws->type = CT_WORKSPACE;
+    Con *ws = new WorkspaceCon();
 
     /* try the configured workspace bindings first to find a free name */
     for (const auto &target_name : binding_workspace_names) {
@@ -887,7 +885,7 @@ void workspace_update_urgent_flag(Con *ws) {
  */
 void ws_force_orientation(Con *ws, orientation_t orientation) {
     /* 1: create a new split container */
-    Con *split = new Con();
+    Con *split = new ConCon();
     split->parent = ws;
 
     /* 2: copy layout from workspace */
@@ -938,7 +936,7 @@ Con *workspace_attach_to(Con *ws) {
 
     DLOG("Non-default layout, creating a new split container\n");
     /* 1: create a new split container */
-    Con *new_con = new Con();
+    Con *new_con = new ConCon();
     new_con->parent = ws;
 
     /* 2: set the requested layout on the split con */
@@ -966,7 +964,7 @@ Con *workspace_encapsulate(Con *ws) {
         return nullptr;
     }
 
-    Con *new_con = new Con();
+    Con *new_con = new ConCon();
     new_con->parent = ws;
     new_con->layout = ws->layout;
 
