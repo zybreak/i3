@@ -106,7 +106,7 @@ Con::Con(Con *parent, i3Window *window, bool skeleton) {
         this->con_attach(parent, false);
 
     if (!skeleton) {
-        x_con_init(this);
+        global.x->con_init(this);
     }
 }
 
@@ -145,6 +145,62 @@ static int strcasecmp_nullable(const char *a, const char *b) {
     return strcasecmp(a, b);
 }
 
+void WorkspaceCon::con_attach(Con *parent, bool ignore_focus, Con *previous) {
+    this->parent = parent;
+    Con *current = previous;
+    auto &nodes_head = parent->nodes_head;
+    auto &focus_head = parent->focus_head;
+
+    /* Workspaces are handled differently: they need to be inserted at the
+     * right position. */
+    DLOG(fmt::sprintf("it's a workspace. num = %d\n",  this->num));
+    if (this->num == -1 || nodes_head.empty()) {
+        nodes_head.push_back(this);
+    } else {
+        current = con::first(nodes_head);
+        if (this->num < current->num) {
+            /* we need to insert the container at the beginning */
+            nodes_head.push_front(this);
+        } else {
+            while (current && current->num != -1 && this->num > current->num) {
+                current = con::next(current, nodes_head);
+                if (current == con::last(nodes_head)) {
+                    current = nullptr;
+                    break;
+                }
+            }
+            /* we need to insert con after current, if current is not NULL */
+            if (current) {
+                current->insert_before(this);
+            } else {
+                nodes_head.push_back(this);
+            }
+        }
+    }
+
+    /* We insert to the TAIL because con_focus() will correct this.
+     * This way, we have the option to insert Cons without having
+     * to focus them. */
+    focus_head.push_back(this);
+    con_force_split_parents_redraw(this);
+}
+
+void FloatingCon::con_attach(Con *parent, bool ignore_focus, Con *previous) {
+    this->parent = parent;
+    Con *current = previous;
+    auto &nodes_head = parent->nodes_head;
+    auto &focus_head = parent->focus_head;
+
+    DLOG("Inserting into floating containers\n");
+    dynamic_cast<WorkspaceCon*>(parent)->floating_windows.push_back(this);
+
+    /* We insert to the TAIL because con_focus() will correct this.
+     * This way, we have the option to insert Cons without having
+     * to focus them. */
+    focus_head.push_back(this);
+    con_force_split_parents_redraw(this);
+}
+
 /*
  * Attaches the given container to the given parent. This happens when moving
  * a container or when inserting a new container at a specific place in the
@@ -160,35 +216,6 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
     Con *current = previous;
     auto &nodes_head = parent->nodes_head;
     auto &focus_head = parent->focus_head;
-
-    /* Workspaces are handled differently: they need to be inserted at the
-     * right position. */
-    if (this->type == CT_WORKSPACE) {
-        DLOG(fmt::sprintf("it's a workspace. num = %d\n",  this->num));
-        if (this->num == -1 || nodes_head.empty()) {
-            nodes_head.push_back(this);
-        } else {
-            current = con::first(nodes_head);
-            if (this->num < current->num) {
-                /* we need to insert the container at the beginning */
-                nodes_head.push_front(this);
-            } else {
-                while (current && current->num != -1 && this->num > current->num) {
-                    current = con::next(current, nodes_head);
-                    if (current == con::last(nodes_head)) {
-                        current = nullptr;
-                        break;
-                    }
-                }
-                /* we need to insert con after current, if current is not NULL */
-                if (current)
-                    current->insert_before(this);
-                else
-                    nodes_head.push_back(this);
-            }
-        }
-        goto add_to_focus_head;
-    }
 
     if (parent->type == CT_DOCKAREA) {
         /* Insert dock client, sorting alphanumerically by class and then
@@ -214,49 +241,45 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
         goto add_to_focus_head;
     }
 
-    if (this->type == CT_FLOATING_CON) {
-        DLOG("Inserting into floating containers\n");
-        dynamic_cast<WorkspaceCon*>(parent)->floating_windows.push_back(this);
+    if (!ignore_focus) {
+        /* Get the first tiling container in focus stack */
+        for (auto &loop : parent->focus_head) {
+            if (loop->type == CT_FLOATING_CON)
+                continue;
+            current = loop;
+            break;
+        }
+    }
+
+    /* When the container is not a split container (but contains a window)
+     * and is attached to a workspace, we check if the user configured a
+     * workspace_layout. This is done in workspace_attach_to, which will
+     * provide us with the container to which we should attach (either the
+     * workspace or a new split container with the configured
+     * workspace_layout).
+     */
+    if (this->window != nullptr &&
+        parent->type == CT_WORKSPACE &&
+        parent->workspace_layout != L_DEFAULT) {
+        DLOG("Parent is a workspace. Applying default layout...\n");
+        Con *target = workspace_attach_to(parent);
+
+        /* Attach the original con to this new split con instead */
+        nodes_head = target->nodes_head;
+        focus_head = target->focus_head;
+        this->parent = target;
+        current = nullptr;
+
+        DLOG("done\n");
+    }
+
+    /* Insert the container after the tiling container, if found.
+     * When adding to a CT_OUTPUT, just append one after another. */
+    if (current != nullptr && parent->type != CT_OUTPUT) {
+        DLOG(fmt::sprintf("Inserting con = %p after con %p\n", (void *)this, (void *)current));
+        current->insert_after(this);
     } else {
-        if (!ignore_focus) {
-            /* Get the first tiling container in focus stack */
-            for (auto &loop : parent->focus_head) {
-                if (loop->type == CT_FLOATING_CON)
-                    continue;
-                current = loop;
-                break;
-            }
-        }
-
-        /* When the container is not a split container (but contains a window)
-         * and is attached to a workspace, we check if the user configured a
-         * workspace_layout. This is done in workspace_attach_to, which will
-         * provide us with the container to which we should attach (either the
-         * workspace or a new split container with the configured
-         * workspace_layout).
-         */
-        if (this->window != nullptr &&
-            parent->type == CT_WORKSPACE &&
-            parent->workspace_layout != L_DEFAULT) {
-            DLOG("Parent is a workspace. Applying default layout...\n");
-            Con *target = workspace_attach_to(parent);
-
-            /* Attach the original con to this new split con instead */
-            nodes_head = target->nodes_head;
-            focus_head = target->focus_head;
-            this->parent = target;
-            current = nullptr;
-
-            DLOG("done\n");
-        }
-
-        /* Insert the container after the tiling container, if found.
-         * When adding to a CT_OUTPUT, just append one after another. */
-        if (current != nullptr && parent->type != CT_OUTPUT) {
-            DLOG(fmt::sprintf("Inserting con = %p after con %p\n",  (void*)this, (void*)current));
-            current->insert_after(this);
-        } else
-            nodes_head.push_back(this);
+        nodes_head.push_back(this);
     }
 
     add_to_focus_head:
@@ -319,19 +342,20 @@ void Con::insert_after(Con *con) {
     }
 }
 
+void FloatingCon::con_detach() {
+    con_force_split_parents_redraw(this);
+    std::erase(dynamic_cast<WorkspaceCon*>(this->parent)->floating_windows, this);
+    std::erase(this->parent->focus_head, this);
+}
+
 /*
  * Detaches the given container from its current parent
  *
  */
 void Con::con_detach() {
     con_force_split_parents_redraw(this);
-    if (this->type == CT_FLOATING_CON) {
-        std::erase(dynamic_cast<WorkspaceCon*>(this->parent)->floating_windows, this);
-        std::erase(this->parent->focus_head, this);
-    } else {
-        std::erase(this->parent->nodes_head, this);
-        std::erase(this->parent->focus_head, this);
-    }
+    std::erase(this->parent->nodes_head, this);
+    std::erase(this->parent->focus_head, this);
 }
 
 /*
@@ -549,10 +573,6 @@ bool Con::con_is_sticky() {
  *
  */
 bool Con::con_accepts_window() {
-    /* 1: workspaces never accept direct windows */
-    if (this->type == CT_WORKSPACE)
-        return false;
-
     if (this->con_is_split()) {
         DLOG(fmt::sprintf("container %p does not accept windows, it is a split container.\n",  (void*)this));
         return false;
@@ -562,19 +582,27 @@ bool Con::con_accepts_window() {
     return (this->window == nullptr);
 }
 
+bool WorkspaceCon::con_accepts_window() {
+    /* 1: workspaces never accept direct windows */
+    return false;
+}
+FloatingCon *WorkspaceCon::con_inside_floating() {
+    return nullptr;
+}
+
 /*
  * Gets the output container (first container with CT_OUTPUT in hierarchy) this
  * node is on.
  *
  */
-Con* Con::con_get_output() {
+OutputCon* Con::con_get_output() {
     Con *result = this;
     while (result != nullptr && result->type != CT_OUTPUT)
         result = result->parent;
     /* We must be able to get an output because focus can never be set higher
      * in the tree (root node cannot be focused). */
     assert(result != nullptr);
-    return result;
+    return dynamic_cast<OutputCon*>(result);
 }
 
 /*
@@ -695,20 +723,19 @@ bool Con::con_is_docked() const {
     return this->parent->con_is_docked();
 }
 
+FloatingCon* FloatingCon::con_inside_floating() {
+    return this;
+}
+
 /*
  * Checks if the given container is either floating or inside some floating
  * container. It returns the FLOATING_CON container.
  *
  */
-Con* Con::con_inside_floating() {
-    if (this->type == CT_FLOATING_CON)
-        return this;
-
-    if (this->floating >= FLOATING_AUTO_ON)
-        return this->parent;
-
-    if (this->type == CT_WORKSPACE || this->type == CT_OUTPUT)
-        return nullptr;
+FloatingCon* Con::con_inside_floating() {
+    if (this->floating >= FLOATING_AUTO_ON) {
+        return dynamic_cast<FloatingCon *>(this->parent);
+    }
 
     return this->parent->con_inside_floating();
 }
@@ -1573,14 +1600,17 @@ int con_border_style(Con *con) {
         return BS_NONE;
     }
 
-    if (con->parent->layout == L_STACKED)
+    if (con->parent->layout == L_STACKED) {
         return (con->parent->con_num_children() == 1 ? con->border_style : BS_NORMAL);
+    }
 
-    if (con->parent->layout == L_TABBED && con->border_style != BS_NORMAL)
+    if (con->parent->layout == L_TABBED && con->border_style != BS_NORMAL) {
         return (con->parent->con_num_children() == 1 ? con->border_style : BS_NORMAL);
+    }
 
-    if (con->parent->type == CT_DOCKAREA)
+    if (con->parent->type == CT_DOCKAREA) {
         return BS_NONE;
+    }
 
     return con->border_style;
 }
@@ -1980,4 +2010,7 @@ i3String *con_parse_title_format(Con *con) {
  */
 uint32_t con_rect_size_in_orientation(Con *con) {
     return (con_orientation(con) == HORIZ ? con->rect.width : con->rect.height);
+}
+FloatingCon *DockCon::con_inside_floating() {
+    return nullptr;
 }

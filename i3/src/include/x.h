@@ -85,6 +85,11 @@ class X {
 
     xcb_visualtype_t* get_visual_type_for_root();
 
+   protected:
+    explicit X(x_connection *conn) : conn(conn) {
+
+    }
+
    public:
 
     /* Color depth, visual id and colormap to use when creating windows and
@@ -136,6 +141,14 @@ class X {
      *
      */
     void xcursor_set_root_cursor(xcursor_cursor_t cursor_id);
+
+    /**
+     * Initializes the X11 part for the given container. Called exactly once for
+     * every container from con_new().
+     *
+     */
+    virtual void con_init(Con *con);
+
 };
 
 /*
@@ -151,13 +164,6 @@ void x_move_win(Con *src, Con *dest);
  *
  */
 void x_reinit(Con *con);
-
-/**
- * Initializes the X11 part for the given container. Called exactly once for
- * every container from con_new().
- *
- */
-void x_con_init(Con *con);
 
 /**
  * Reparents the child window of the given container (necessary for sticky

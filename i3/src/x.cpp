@@ -119,7 +119,7 @@ X::X() : conn(new x_connection()) {
 /*
  * Returns the container state for the given frame. This function always
  * returns a container state (otherwise, there is a bug in the code and the
- * container state of a container for which x_con_init() was not called was
+ * container state of a container for which con_init() was not called was
  * requested).
  *
  */
@@ -162,7 +162,7 @@ static void change_ewmh_focus(xcb_window_t new_focus, xcb_window_t old_focus) {
  * every container from new Con().
  *
  */
-void x_con_init(Con *con) {
+void X::con_init(Con *con) {
     /* TODO: maybe create the window when rendering first? we could then even
      * get the initial geometry right */
 
@@ -171,14 +171,14 @@ void x_con_init(Con *con) {
 
     xcb_visualid_t visual = get_visualid_by_depth(con->depth);
     xcb_colormap_t win_colormap;
-    if (con->depth != global.x->root_depth) {
+    if (con->depth != this->root_depth) {
         /* We need to create a custom colormap. */
-        win_colormap = xcb_generate_id(**global.x);
-        xcb_create_colormap(**global.x, XCB_COLORMAP_ALLOC_NONE, win_colormap, global.x->root, visual);
+        win_colormap = xcb_generate_id(**this);
+        xcb_create_colormap(**this, XCB_COLORMAP_ALLOC_NONE, win_colormap, this->root, visual);
         con->colormap = win_colormap;
     } else {
         /* Use the default colormap. */
-        win_colormap = global.x->colormap;
+        win_colormap = this->colormap;
         con->colormap = XCB_NONE;
     }
 
@@ -187,10 +187,10 @@ void x_con_init(Con *con) {
      * using 32 bit color depths, see
      * https://stackoverflow.com/questions/3645632 */
     mask |= XCB_CW_BACK_PIXEL;
-    values[0] = global.x->root_screen->black_pixel;
+    values[0] = this->root_screen->black_pixel;
 
     mask |= XCB_CW_BORDER_PIXEL;
-    values[1] = global.x->root_screen->black_pixel;
+    values[1] = this->root_screen->black_pixel;
 
     /* our own frames should not be managed */
     mask |= XCB_CW_OVERRIDE_REDIRECT;
@@ -204,9 +204,9 @@ void x_con_init(Con *con) {
     values[4] = win_colormap;
 
     Rect dims = {(uint32_t)-15, (uint32_t)-15, 10, 10};
-    xcb_window_t frame_id = create_window((xcb_connection_t*)**global.x, dims, con->depth, visual, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER, false, mask, values);
-    draw_util_surface_init(**global.x, &(con->frame), frame_id, get_visualtype_by_id(visual), dims.width, dims.height);
-    xcb_change_property(**global.x,
+    xcb_window_t frame_id = create_window((xcb_connection_t*)**this, dims, con->depth, visual, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER, false, mask, values);
+    draw_util_surface_init(**this, &(con->frame), frame_id, get_visualtype_by_id(visual), dims.width, dims.height);
+    xcb_change_property(**this,
                         XCB_PROP_MODE_REPLACE,
                         con->frame.id,
                         XCB_ATOM_WM_CLASS,
@@ -221,9 +221,9 @@ void x_con_init(Con *con) {
     state->initial = true;
     DLOG(fmt::sprintf("Adding window 0x%08x to lists\n",  state->id));
 
-    global.x->state_head.push_front(state);
-    global.x->old_state_head.push_front(state);
-    global.x->initial_mapping_head.push_back(state);
+    this->state_head.push_front(state);
+    this->old_state_head.push_front(state);
+    this->initial_mapping_head.push_back(state);
     DLOG(fmt::sprintf("adding new state for window id 0x%08x\n",  state->id));
 }
 
@@ -284,7 +284,7 @@ void x_con_kill(Con *con) {
  */
 void x_con_reframe(Con *con) {
     _x_con_kill(con);
-    x_con_init(con);
+    global.x->con_init(con);
 }
 
 /*

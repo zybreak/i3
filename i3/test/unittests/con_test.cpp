@@ -1,0 +1,26 @@
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include "con.h"
+#include "global.h"
+
+class MockX : public X {
+   public:
+    MockX() : X(nullptr) {
+        root_depth = 32;
+    };
+
+    MOCK_METHOD(void, con_init, (Con *con), (override));
+};
+
+TEST(ConTest, Floating) {
+    global.x = new MockX{};
+    Con x{nullptr, nullptr, true};
+    FloatingCon f{};
+
+    x.con_attach(&f, true, nullptr);
+    x.floating = FLOATING_USER_ON;
+
+    auto *floating = x.con_inside_floating();
+
+    ASSERT_EQ(floating, &f);
+}

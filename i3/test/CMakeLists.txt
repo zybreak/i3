@@ -32,6 +32,13 @@ add_executable(MatchTest
 target_link_libraries(MatchTest PUBLIC ${libraries} GTest::gtest_main)
 target_include_directories(MatchTest PUBLIC ${include_dirs} "../src/config/old")
 
+add_executable(ConTest
+        unittests/con_test.cpp
+        ${i3_src}
+        )
+target_link_libraries(ConTest PUBLIC ${libraries} GTest::gtest_main GTest::gmock)
+target_include_directories(ConTest PUBLIC ${include_dirs} "../src/config/old")
+
 # End unit tests
 
 add_executable(test.config_parser_new
@@ -97,6 +104,8 @@ include(GoogleTest)
 include(Pytest.cmake)
 gtest_discover_tests(FooTest)
 gtest_discover_tests(RegexTest)
+gtest_discover_tests(MatchTest)
+gtest_discover_tests(ConTest)
 
 pytest_discover_tests(
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}

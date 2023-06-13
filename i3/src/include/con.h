@@ -140,6 +140,8 @@ struct deco_render_params {
 };
 
 class WorkspaceCon;
+class FloatingCon;
+class OutputCon;
 
 /**
  * A 'Con' represents everything from the X11 root window down to a single X11 window.
@@ -344,14 +346,14 @@ public:
      * it might already have swallowed enough and cannot hold any more).
      *
      */
-    bool con_accepts_window();
+    virtual bool con_accepts_window();
 
     /**
      * Gets the output container (first container with CT_OUTPUT in hierarchy) this
      * node is on.
      *
      */
-    Con *con_get_output();
+    OutputCon *con_get_output();
 
     /**
      * Gets the workspace container this node is on.
@@ -390,7 +392,7 @@ public:
      * container. It returns the FLOATING_CON container.
      *
      */
-    Con *con_inside_floating();
+    virtual FloatingCon *con_inside_floating();
 
     /**
      * Checks if the given container is inside a focused container.
@@ -444,13 +446,13 @@ public:
      * attaching them in order without wanting to mess with the focus in between).
      *
      */
-    void con_attach(Con *parent, bool ignore_focus, Con *previous = nullptr);
+    virtual void con_attach(Con *parent, bool ignore_focus, Con *previous = nullptr);
 
     /**
      * Detaches the given container from its current parent
      *
      */
-    void con_detach();
+    virtual void con_detach();
 
     /**
      * Closes the given container.
@@ -539,6 +541,10 @@ class FloatingCon : public Con {
     FloatingCon() : Con(nullptr, nullptr, false) {
         this->type = CT_FLOATING_CON;
     }
+    void con_attach(Con *parent, bool ignore_focus, Con *previous = nullptr) override;
+    void con_detach() override;
+    FloatingCon *con_inside_floating() override;
+
 };
 
 class DockCon : public Con {
@@ -547,6 +553,7 @@ class DockCon : public Con {
         this->type = CT_DOCKAREA;
         this->layout = L_DOCKAREA;
     }
+    FloatingCon *con_inside_floating() override;
 };
 
 class WorkspaceCon : public Con {
@@ -557,6 +564,9 @@ class WorkspaceCon : public Con {
     WorkspaceCon() : Con(nullptr, nullptr, false) {
         this->type = CT_WORKSPACE;
     }
+    bool con_accepts_window() override;
+    void con_attach(Con *parent, bool ignore_focus, Con *previous = nullptr) override;
+    FloatingCon *con_inside_floating() override;
 };
 
 namespace con {

@@ -142,7 +142,7 @@ static void json_end_map(tree_append_ctx &ctx) {
         LOG("attaching\n");
         ctx.json_node->con_attach(ctx.json_node->parent, true);
         LOG("Creating window\n");
-        x_con_init(ctx.json_node);
+        global.x->con_init(ctx.json_node);
 
         /* Fix erroneous JSON input regarding floating containers to avoid
          * crashing, see #3901. */
