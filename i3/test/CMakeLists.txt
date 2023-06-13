@@ -1,18 +1,6 @@
 find_package(GTest CONFIG)
 
-add_executable(FooTest
-        foo_test.cpp
-        mock.cpp
-        ../src/config/old/config_parser.cpp
-        ../src/parser_stack.cpp
-        ../src/global.cpp
-        ../src/log.cpp
-        ../src/safewrappers.cpp
-)
-add_dependencies(FooTest Config)
-target_link_libraries(FooTest PUBLIC ${libraries} GTest::gtest_main)
-target_include_directories(FooTest PUBLIC ${include_dirs} "../src/config/old")
-target_compile_options(FooTest PUBLIC ${compile_options} -DTEST_PARSER)
+include(GoogleTest)
 
 # Unit tests
 
@@ -24,6 +12,7 @@ add_executable(RegexTest
 )
 target_link_libraries(RegexTest PUBLIC ${libraries} GTest::gtest_main)
 target_include_directories(RegexTest PUBLIC ${include_dirs})
+gtest_discover_tests(RegexTest)
 
 add_executable(MatchTest
         unittests/match_test.cpp
@@ -31,6 +20,7 @@ add_executable(MatchTest
         )
 target_link_libraries(MatchTest PUBLIC ${libraries} GTest::gtest_main)
 target_include_directories(MatchTest PUBLIC ${include_dirs} "../src/config/old")
+gtest_discover_tests(MatchTest)
 
 add_executable(ConTest
         unittests/con_test.cpp
@@ -38,8 +28,11 @@ add_executable(ConTest
         )
 target_link_libraries(ConTest PUBLIC ${libraries} GTest::gtest_main GTest::gmock)
 target_include_directories(ConTest PUBLIC ${include_dirs} "../src/config/old")
+gtest_discover_tests(ConTest)
 
 # End unit tests
+
+# Begin command and config test
 
 add_executable(test.config_parser_new
     config_parser_new.cpp
@@ -100,12 +93,7 @@ target_compile_options(test.config_parser PUBLIC ${compile_options} -DTEST_PARSE
 
 find_package(Python REQUIRED)
 
-include(GoogleTest)
 include(Pytest.cmake)
-gtest_discover_tests(FooTest)
-gtest_discover_tests(RegexTest)
-gtest_discover_tests(MatchTest)
-gtest_discover_tests(ConTest)
 
 pytest_discover_tests(
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -116,12 +104,4 @@ pytest_discover_tests(
         XML_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/report
 )
 
-#add_test(NAME config_parser_new
-#        COMMAND ${Python_EXECUTABLE} -m pytest ${CMAKE_CURRENT_SOURCE_DIR}/test/test_config-parser_new.py
-#        WORKING_DIRECTORY $<TARGET_FILE_DIR:test.config_parser_new>
-#)
-
-#add_test(NAME config_parser
-#        COMMAND ${Python_EXECUTABLE} -m pytest ${CMAKE_CURRENT_SOURCE_DIR}/test/test_config-parser.py
-#        WORKING_DIRECTORY $<TARGET_FILE_DIR:test.config_parser>
-#)
+# End command and config test
