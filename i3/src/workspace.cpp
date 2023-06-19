@@ -255,7 +255,7 @@ void extract_workspace_names_from_bindings() {
 WorkspaceCon *create_workspace_on_output(Output *output, Con *content) {
     /* add a workspace to this output */
     bool exists = true;
-    WorkspaceCon *ws = new WorkspaceCon();
+    auto *ws = new WorkspaceCon();
 
     /* try the configured workspace bindings first to find a free name */
     for (const auto &target_name : binding_workspace_names) {
@@ -936,7 +936,7 @@ void ws_force_orientation(Con *ws, orientation_t orientation) {
  * returns that.
  *
  */
-Con *workspace_attach_to(Con *ws) {
+Con *workspace_attach_to(WorkspaceCon *ws) {
     DLOG(fmt::sprintf("Attaching a window to workspace %p / %s\n",  (void*)ws, ws->name));
 
     if (ws->workspace_layout == L_DEFAULT) {

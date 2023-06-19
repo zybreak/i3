@@ -327,14 +327,15 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
         } else if (ctx.last_key == "workspace_layout") {
             char *buf = nullptr;
             sasprintf(&buf, "%.*s", (int)val.length(), val.c_str());
-            if (strcasecmp(buf, "default") == 0)
-                ctx.json_node->workspace_layout = L_DEFAULT;
-            else if (strcasecmp(buf, "stacked") == 0)
-                ctx.json_node->workspace_layout = L_STACKED;
-            else if (strcasecmp(buf, "tabbed") == 0)
-                ctx.json_node->workspace_layout = L_TABBED;
-            else
-                 LOG(fmt::sprintf("Unhandled \"workspace_layout\": %s\n", buf));
+            // TODO: needed to be commented out
+            //if (strcasecmp(buf, "default") == 0)
+            //    ctx.json_node->workspace_layout = L_DEFAULT;
+            //else if (strcasecmp(buf, "stacked") == 0)
+            //   ctx.json_node->workspace_layout = L_STACKED;
+            //else if (strcasecmp(buf, "tabbed") == 0)
+            //    ctx.json_node->workspace_layout = L_TABBED;
+            //else
+            //     LOG(fmt::sprintf("Unhandled \"workspace_layout\": %s\n", buf));
             free(buf);
         } else if (ctx.last_key == "last_split_layout") {
             char *buf = nullptr;

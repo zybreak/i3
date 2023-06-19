@@ -397,7 +397,7 @@ static std::string layout(Con *con) {
     }
 }
 
-static std::string workspace_layout(Con *con) {
+static std::string workspace_layout(WorkspaceCon *con) {
     switch (con->workspace_layout) {
         case L_DEFAULT:
             return "default";
@@ -490,7 +490,9 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
     }
 
     j["layout"] = layout(con);
-    j["workspace_layout"] = workspace_layout(con);
+    if (con->type == CT_WORKSPACE) {
+        j["workspace_layout"] = workspace_layout(dynamic_cast<WorkspaceCon*>(con));
+    }
     j["last_split_layout"] = (con->layout == L_SPLITV) ? "splitv" : "splith";
     j["border"] = border_style(con);
     j["current_border_width"] = con->current_border_width;

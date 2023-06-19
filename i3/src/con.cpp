@@ -83,7 +83,6 @@ Con::Con(Con *parent, i3Window *window, bool skeleton) {
     this->fullscreen_mode = CF_NONE;
     this->layout = L_DEFAULT;
     this->last_split_layout = L_DEFAULT;
-    this->workspace_layout = L_DEFAULT;
     this->floating = FLOATING_AUTO_OFF;
     this->scratchpad_state = SCRATCHPAD_NONE;
 
@@ -260,9 +259,9 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
      */
     if (this->window != nullptr &&
         parent->type == CT_WORKSPACE &&
-        parent->workspace_layout != L_DEFAULT) {
+        dynamic_cast<WorkspaceCon*>(parent)->workspace_layout != L_DEFAULT) {
         DLOG("Parent is a workspace. Applying default layout...\n");
-        Con *target = workspace_attach_to(parent);
+        Con *target = workspace_attach_to(dynamic_cast<WorkspaceCon*>(parent));
 
         /* Attach the original con to this new split con instead */
         nodes_head = target->nodes_head;
@@ -1683,10 +1682,11 @@ void con_set_layout(Con *con, layout_t layout) {
      * intuitive operations (like level-up and then opening a new window), we
      * need to create a new split container. */
     if (con->type == CT_WORKSPACE) {
+        auto workspaceCon = dynamic_cast<WorkspaceCon*>(con);
         if (con->con_num_children() == 0) {
             layout_t ws_layout = (layout == L_STACKED || layout == L_TABBED) ? layout : L_DEFAULT;
             DLOG(fmt::sprintf("Setting workspace_layout to %d\n",  ws_layout));
-            con->workspace_layout = ws_layout;
+            workspaceCon->workspace_layout = ws_layout;
             DLOG(fmt::sprintf("Setting layout to %d\n",  layout));
             con->layout = layout;
         } else if (layout == L_STACKED || layout == L_TABBED || layout == L_SPLITV || layout == L_SPLITH) {

@@ -353,7 +353,7 @@ void tree_split(Con *con, orientation_t orientation) {
         if (con->con_num_children() < 2) {
             if (con->con_num_children() == 0) {
                 DLOG("Changing workspace_layout to L_DEFAULT\n");
-                con->workspace_layout = L_DEFAULT;
+                dynamic_cast<WorkspaceCon*>(con)->workspace_layout = L_DEFAULT;
             }
             DLOG("Changing orientation of workspace\n");
             con->layout = (orientation == HORIZ) ? L_SPLITH : L_SPLITV;

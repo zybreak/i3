@@ -246,14 +246,8 @@ public:
      * last_split_layout is one of splitv or splith to support the old "layout
      * default" command which by now should be "layout splitv" or "layout
      * splith" explicitly.
-     *
-     * workspace_layout is only for type == CT_WORKSPACE cons. When you change
-     * the layout of a workspace without any children, i3 cannot just set the
-     * layout (because workspaces need to be splitv/splith to allow focus
-     * parent and opening new containers). Instead, it stores the requested
-     * layout in workspace_layout and creates a new split container with that
-     * layout whenever a new container is attached to the workspace. */
-    layout_t layout, last_split_layout, workspace_layout;
+     */
+    layout_t layout, last_split_layout;
     border_style_t border_style;
     /** floating? (= not in tiling layout) This cannot be simply a bool
      * because we want to keep track of whether the status was set by the
@@ -560,9 +554,17 @@ class WorkspaceCon : public Con {
    public:
     /* Only workspace-containers can have floating clients */
     std::deque<Con*> floating_windows{};
+    /* workspace_layout is only for type == CT_WORKSPACE cons. When you change
+     * the layout of a workspace without any children, i3 cannot just set the
+     * layout (because workspaces need to be splitv/splith to allow focus
+     * parent and opening new containers). Instead, it stores the requested
+     * layout in workspace_layout and creates a new split container with that
+     * layout whenever a new container is attached to the workspace. */
+    layout_t workspace_layout;
 
     WorkspaceCon() : Con(nullptr, nullptr, false) {
         this->type = CT_WORKSPACE;
+        this->workspace_layout = L_DEFAULT;
     }
     bool con_accepts_window() override;
     void con_attach(Con *parent, bool ignore_focus, Con *previous = nullptr) override;

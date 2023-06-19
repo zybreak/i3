@@ -181,7 +181,7 @@ void ws_force_orientation(Con *ws, orientation_t orientation);
  * returns that.
  *
  */
-Con *workspace_attach_to(Con *ws);
+Con *workspace_attach_to(WorkspaceCon *ws);
 
 /**
  * Creates a new container and re-parents all of children from the given

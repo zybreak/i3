@@ -136,7 +136,7 @@ void insert_con_into(Con *con, Con *target, position_t position) {
     /* When moving to a workspace, we respect the user’s configured
      * workspace_layout */
     if (parent->type == CT_WORKSPACE) {
-        Con *split = workspace_attach_to(parent);
+        Con *split = workspace_attach_to(dynamic_cast<WorkspaceCon*>(parent));
         if (split != parent) {
             DLOG("Got a new split con, using that one instead\n");
             con->parent = split;
