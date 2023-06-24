@@ -119,9 +119,6 @@ void render_con(Con *con) {
     params.sizes = precalculate_sizes(con, &params);
 
     if (con->layout == L_OUTPUT) {
-        /* Skip i3-internal outputs */
-        if (con->con_is_internal())
-            return;
         render_output(con);
     } else if (con->type == CT_ROOT) {
         render_root(con, fullscreen);
@@ -214,8 +211,6 @@ static void render_root(Con *con, Con *fullscreen) {
      * windows/containers so that they overlap on another output. */
     DLOG("Rendering floating windows:\n");
     for (auto &output : con->nodes_head) {
-        if (output->con_is_internal())
-            continue;
         /* Get the active workspace of that output */
         Con *content = output->output_get_content();
         if (!content || content->focus_head.empty()) {

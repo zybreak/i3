@@ -20,8 +20,6 @@
 
 #include "i3-ipc.h"
 
-extern std::string current_socketpath;
-
 struct Binding;
 struct Barconfig;
 

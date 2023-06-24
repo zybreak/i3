@@ -50,8 +50,6 @@
 #include <nlohmann/json.hpp>
 #include <ranges>
 
-std::string current_socketpath{};
-
 static std::vector<ipc_client*> all_clients{};
 
 static void ipc_client_timeout(EV_P_ ev_timer *w, int revents);
@@ -771,8 +769,6 @@ static void handle_get_workspaces(ipc_client *client, uint8_t *message, int size
     Con *focused_ws = global.focused->con_get_workspace();
 
     for (auto &output : global.croot->nodes_head) {
-        if (output->con_is_internal())
-            continue;
         for (auto &ws : output->output_get_content()->nodes_head) {
             assert(ws->type == CT_WORKSPACE);
 

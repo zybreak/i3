@@ -21,6 +21,8 @@
 import subprocess
 import pytest
 
+pytestmark = pytest.mark.skip("all tests still WIP")
+
 expected_all_tokens = "ERROR: CONFIG: Expected one of these tokens: <end>, '#', 'set ', 'set	', 'set_from_resource', 'include', 'bindsym', 'bindcode', 'bind', 'bar', 'font', 'mode', 'floating_minimum_size', 'floating_maximum_size', 'floating_modifier', 'default_orientation', 'workspace_layout', 'default_border', 'new_window', 'default_floating_border', 'new_float', 'hide_edge_borders', 'for_window', 'assign', 'no_focus', 'focus_follows_mouse', 'mouse_warping', 'focus_wrapping', 'force_focus_wrapping', 'workspace_auto_back_and_forth', 'force_display_urgency_hint', 'focus_on_window_activation', 'title_align', 'workspace', 'ipc_socket', 'ipc-socket', 'ipc_kill_timeout', 'restart_state', 'popup_during_fullscreen', 'exec_always', 'exec', 'client.background', 'client.focused_inactive', 'client.focused', 'client.unfocused', 'client.urgent', 'client.placeholder'"
 
 

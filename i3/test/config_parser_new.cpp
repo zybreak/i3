@@ -1,6 +1,6 @@
-#include <stdio.h>
 #include <err.h>
 #include <string>
+#include <sstream>
 #include "config_parser.h"
 #include "config_adapter.h"
 

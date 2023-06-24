@@ -18,9 +18,8 @@ public:
     COMMAND_FOCUS = 12, COMMAND_KILL = 13, COMMAND_RELOAD = 14, COMMAND_RESTART = 15, 
     COMMAND_OPEN = 16, COMMAND_FULLSCREEN = 17, COMMAND_STICKY = 18, COMMAND_SPLIT = 19, 
     COMMAND_FLOATING = 20, COMMAND_RESIZE = 21, COMMAND_RENAME = 22, COMMAND_NOP = 23, 
-    COMMAND_SCRATCHPAD = 24, COMMAND_TITLE_FORMAT = 25, COMMAND_TITLE_WINDOW_ICON = 26, 
-    COMMAND_MODE = 27, COMMAND_WS = 28, COMMAND_OPTION = 29, COMMAND_NUMBER = 30, 
-    COMMAND_STRING = 31
+    COMMAND_TITLE_FORMAT = 24, COMMAND_TITLE_WINDOW_ICON = 25, COMMAND_MODE = 26, 
+    COMMAND_WS = 27, COMMAND_OPTION = 28, COMMAND_NUMBER = 29, COMMAND_STRING = 30
   };
 
   enum {
@@ -31,8 +30,7 @@ public:
     RuleCommand_focus = 13, RuleCommand_split = 14, RuleCommand_floating = 15, 
     RuleCommand_resize = 16, RuleCommand_rename = 17, RuleCommand_nop = 18, 
     RuleCommand_reload = 19, RuleCommand_restart = 20, RuleCommand_mode = 21, 
-    RuleCommand_open = 22, RuleCommand_scratchpad = 23, RuleCommand_title_format = 24, 
-    RuleCommand_title_window_icon = 25
+    RuleCommand_open = 22, RuleCommand_title_format = 23, RuleCommand_title_window_icon = 24
   };
 
   explicit commandsGrammar(antlr4::TokenStream *input);
@@ -75,7 +73,6 @@ public:
   class Command_restartContext;
   class Command_modeContext;
   class Command_openContext;
-  class Command_scratchpadContext;
   class Command_title_formatContext;
   class Command_title_window_iconContext; 
 
@@ -122,7 +119,6 @@ public:
     Command_nopContext *command_nop();
     Command_reloadContext *command_reload();
     Command_restartContext *command_restart();
-    Command_scratchpadContext *command_scratchpad();
     Command_title_formatContext *command_title_format();
     Command_title_window_iconContext *command_title_window_icon();
 
@@ -429,20 +425,6 @@ public:
   };
 
   Command_openContext* command_open();
-
-  class  Command_scratchpadContext : public antlr4::ParserRuleContext {
-  public:
-    Command_scratchpadContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *COMMAND_SCRATCHPAD();
-    antlr4::tree::TerminalNode *COMMAND_STRING();
-
-    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
-    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
-   
-  };
-
-  Command_scratchpadContext* command_scratchpad();
 
   class  Command_title_formatContext : public antlr4::ParserRuleContext {
   public:

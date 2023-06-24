@@ -42,6 +42,7 @@
 #include "startup.h"
 #include "global.h"
 #include "format_placeholders.h"
+#include "ipc.h"
 
 /*
  * Returns the content container below the given output container.
@@ -498,6 +499,10 @@ bool Con::con_is_leaf() const {
  * excluding dock containers)
  */
 bool Con::con_has_managed_window() {
+    return false;
+}
+
+bool ConCon::con_has_managed_window() {
     return (this->window != nullptr && this->window->id != XCB_WINDOW_NONE && this->con_get_workspace() != nullptr);
 }
 
@@ -572,6 +577,10 @@ bool Con::con_is_sticky() {
  *
  */
 bool Con::con_accepts_window() {
+    return false;
+}
+
+bool ConCon::con_accepts_window() {
     if (this->con_is_split()) {
         DLOG(fmt::sprintf("container %p does not accept windows, it is a split container.\n",  (void*)this));
         return false;
@@ -581,10 +590,6 @@ bool Con::con_accepts_window() {
     return (this->window == nullptr);
 }
 
-bool WorkspaceCon::con_accepts_window() {
-    /* 1: workspaces never accept direct windows */
-    return false;
-}
 FloatingCon *WorkspaceCon::con_inside_floating() {
     return nullptr;
 }
@@ -690,14 +695,6 @@ Con* Con::con_get_fullscreen_covering_ws() {
         return this->con_get_fullscreen_con(CF_OUTPUT);
     }
     return fs;
-}
-
-/*
- * Returns true if the container is internal, such as __i3_scratch
- *
- */
-bool Con::con_is_internal() const {
-    return (this->name[0] == '_' && this->name[1] == '_');
 }
 
 /*
@@ -1221,7 +1218,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
      * We don’t focus the con for i3 pseudo workspaces like __i3_scratch and
      * we don’t focus when there is a fullscreen con on that workspace. We
      * also don't do it if the caller requested to ignore focus. */
-    if (!ignore_focus && !target_ws->con_is_internal() && !fullscreen) {
+    if (!ignore_focus && !fullscreen) {
         /* We need to save the focused workspace on the output in case the
          * new workspace is hidden and it's necessary to immediately switch
          * back to the originally-focused workspace. */

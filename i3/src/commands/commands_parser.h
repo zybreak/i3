@@ -9,6 +9,8 @@
  */
 #pragma once
 
+#include "command_result.h"
+
 #include <config.h>
 
 #include "ipc.h"
@@ -34,19 +36,6 @@ struct CommandResultIR {
     int next_state;
 
     /* Whether the command requires calling tree_render. */
-    bool needs_tree_render;
-};
-
-/**
- * A struct that contains useful information about the result of a command as a
- * whole (e.g. a compound command like "floating enable, border none").
- * needs_tree_render is true if needs_tree_render of any individual command was
- * true.
- */
-struct CommandResult {
-    bool parse_error;
-    /* the error_message is currently only set for parse errors */
-    std::string error_message;
     bool needs_tree_render;
 };
 

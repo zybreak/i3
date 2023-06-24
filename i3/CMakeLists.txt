@@ -1,80 +1,3 @@
-list(APPEND i3_src
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/assignments.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/atoms.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/autostarts.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/bindings.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/boolstr.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/click.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/commands.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/old/commands_parser.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/new/commands_parser.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/new/parser-specs/commandsGrammarBaseListener.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/new/parser-specs/commandsLexer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/new/parser-specs/commandsGrammar.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/new/parser-specs/commandsGrammarListener.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/commands_parser.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/con.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/config/old/config_directives.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/config/old/config_parser.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/config/new/config_parser.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/config/new/config_applier.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/config/new/parser-specs/configGrammarBaseListener.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/config/new/parser-specs/configLexer.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/config/new/parser-specs/configGrammar.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/config/new/parser-specs/configGrammarListener.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/configuration.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/drag.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ewmh.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/floating.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/font.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/format_placeholders.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/global.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/property_handlers.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/ipc.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/is_background_set.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/load_layout.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/nagbar.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/manage.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/match.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/move.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/nonblock.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/output.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/parser_stack.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/program_arguments.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/randr.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/rect.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/regex.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/render.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/resize.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/restore_layout.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/scratchpad.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/sighandler.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/startup.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/string.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/dpi.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/draw_util.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/get_process_filename.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/get_visualtype.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/log.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/resolve_tilde.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/root_atom_contents.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/safewrappers.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/mkdirp.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/sync.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/tree.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/util.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/window.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/workspace.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/xcb.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/x.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/keysyms.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/event_handler.cpp
-        )
-
-add_executable(i3
-  ${i3_src}
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
-
 find_package(PkgConfig REQUIRED)
 include(CheckLibraryExists)
 
@@ -117,23 +40,87 @@ list(APPEND libraries fmt::fmt)
 find_package(nlohmann_json 3.11.2 REQUIRED)
 list(APPEND libraries nlohmann_json::nlohmann_json)
 
-find_package(antlr4-runtime 4.11.1 REQUIRED)
-list(APPEND libraries antlr4_static)
-list(APPEND include_dirs ${antlr4-runtime_INCLUDE_DIR})
-
 list(APPEND libraries libi3ipc)
 
 list(APPEND include_dirs
-        "${PROJECT_BINARY_DIR}"
         "${PROJECT_SOURCE_DIR}"
         "${PROJECT_SOURCE_DIR}/lib"
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/commands"
         )
 
-add_dependencies(i3 libi3ipc Commands Config)
-target_link_libraries(i3 PUBLIC ${libraries})
+list(APPEND i3_src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/assignments.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/atoms.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/autostarts.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/bindings.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/boolstr.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/click.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/commands_parser.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/con.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/configuration.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/drag.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ewmh.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/floating.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/font.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/format_placeholders.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/global.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/property_handlers.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ipc.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/is_background_set.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/load_layout.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/nagbar.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/manage.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/match.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/move.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/nonblock.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/output.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/program_arguments.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/randr.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/rect.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/regex.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/render.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/resize.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/restore_layout.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/sighandler.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/startup.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/string.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/dpi.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/draw_util.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/get_process_filename.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/get_visualtype.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/log.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/resolve_tilde.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/root_atom_contents.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/safewrappers.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/mkdirp.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/sync.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/tree.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/util.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/window.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/workspace.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/xcb.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/x.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/keysyms.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/event_handler.cpp
+        )
+
+
+add_subdirectory(src/commands/new)
+add_subdirectory(src/commands/old)
+add_subdirectory(src/config/new)
+add_subdirectory(src/config/old)
+
+add_library(i3_lib STATIC ${i3_src})
+target_link_libraries(i3_lib PUBLIC ${libraries})
+target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
+target_compile_options(i3_lib PUBLIC ${compile_options})
+add_dependencies(i3_lib libi3ipc)
+
+add_executable(i3
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
+target_link_libraries(i3 PUBLIC i3_lib i3_commands_new i3_commands_old i3_config_new i3_config_old)
 target_include_directories(i3 PUBLIC ${include_dirs} "${CMAKE_CURRENT_SOURCE_DIR}/src/config/old")
-target_compile_options(i3 PUBLIC ${compile_options})
 
 add_subdirectory(test)

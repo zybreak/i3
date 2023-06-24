@@ -30,6 +30,7 @@
 #include "global.h"
 #include "config_parser.h"
 #include "nagbar.h"
+#include "ipc.h"
 
 #include <cmath>
 

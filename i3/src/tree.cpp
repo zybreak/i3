@@ -44,46 +44,7 @@
 #include "ewmh.h"
 #include "restore_layout.h"
 #include "global.h"
-
-/*
- * Create the pseudo-output __i3. Output-independent workspaces such as
- * __i3_scratch will live there.
- *
- */
-static Con* create_i3(Con *croot) {
-    auto con = new OutputCon(croot);
-    con->name.assign("__i3");
-    croot->con_fix_percent();
-    x_set_name(con, "[i3 con] pseudo-output __i3");
-    /* For retaining the correct position/size of a scratchpad window, the
-     * dimensions of the real outputs should be multiples of the __i3
-     * pseudo-output. Ensuring that is the job of scratchpad_fix_resolution()
-     * which gets called after this function and after detecting all the
-     * outputs (or whenever an output changes). */
-    con->rect.width = 1280;
-    con->rect.height = 1024;
-
-    /* Add a content container. */
-    DLOG("adding main content container\n");
-    auto content = new ConCon(nullptr, nullptr);
-    content->type = CT_CON;
-    content->name.assign("content");
-    content->layout = L_SPLITH;
-
-    x_set_name(content, "[i3 con] content __i3");
-    content->con_attach(con, false);
-
-    /* Attach the __i3_scratch workspace. */
-    auto ws = new WorkspaceCon();
-    ws->num = -1;
-    ws->name.assign("__i3_scratch");
-    ws->layout = L_SPLITH;
-    ws->con_attach(content, false);
-    x_set_name(ws, "[i3 con] workspace __i3_scratch");
-    ws->fullscreen_mode = CF_OUTPUT;
-
-    return con;
-}
+#include "ipc.h"
 
 /*
  * Loads tree from 'path' (used for in-place restarts).
@@ -129,17 +90,6 @@ bool tree_restore(const std::string_view &path, const xcb_get_geometry_reply_t *
     Con *ws = con::first(out->nodes_head);
     DLOG(fmt::sprintf("ws = %p\n",  (void*)ws));
 
-    /* For in-place restarting into v4.2, we need to make sure the new
-     * pseudo-output __i3 is present. */
-    if (strcmp(out->name.c_str(), "__i3") != 0) {
-        DLOG("Adding pseudo-output __i3 during inplace restart\n");
-        Con *__i3 = create_i3(global.croot);
-        /* Ensure that it is the first output, other places in the code make
-         * that assumption. */
-        std::erase(global.croot->nodes_head, __i3);
-        global.croot->nodes_head.push_front(__i3);
-    }
-
     restore_open_placeholder_windows(global.croot);
     result = true;
 
@@ -159,8 +109,6 @@ void tree_init(const xcb_get_geometry_reply_t *geometry) {
         (uint32_t)geometry->y,
         geometry->width,
         geometry->height};
-
-    create_i3(global.croot);
 }
 
 /*

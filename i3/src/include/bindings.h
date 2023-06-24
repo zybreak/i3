@@ -12,11 +12,9 @@
 #include <config.h>
 #include <set>
 
-#include "commands_parser.h"
 #include "con.h"
 #include "global.h"
-
-struct CommandResult;
+#include "command_result.h"
 
 /**
  * Binding input types. See Binding::input_type.

@@ -39,9 +39,8 @@
 
 #include "parser_stack.h"
 #include "i3-ipc.h"
-#include "commands.h"
-#include "commands_parser.h"
-#include "config_parser.h"
+#include "../commands.h"
+#include "../commands_parser.h"
 
 /*******************************************************************************
  * The data structures used for parsing. Essentially the current state and a

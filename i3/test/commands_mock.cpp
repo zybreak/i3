@@ -151,14 +151,6 @@ namespace cmd {
         std::cout << "cmd::move_window_to_mouse" << std::endl;
     }
 
-    void move_scratchpad(struct criteria_state &criteria_state, struct CommandResultIR &cmd_output) {
-        std::cout << "cmd::move_scratchpad" << std::endl;
-    }
-
-    void scratchpad_show(struct criteria_state &criteria_state, struct CommandResultIR &cmd_output) {
-        std::cout << "cmd::scratchpad_show" << std::endl;
-    }
-
     void title_format(struct criteria_state &criteria_state, struct CommandResultIR &cmd_output, const char *format) {
         std::cout << "cmd::title_format" << std::endl;
     }

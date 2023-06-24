@@ -43,6 +43,7 @@
 #include "bindings.h"
 #include "restore_layout.h"
 #include "global.h"
+#include "ipc.h"
 
 /*
  * Match frame and window depth. This is needed because X will refuse to reparent a

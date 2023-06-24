@@ -175,9 +175,6 @@ public:
   virtual void enterCommand_open(configGrammar::Command_openContext * /*ctx*/) override { }
   virtual void exitCommand_open(configGrammar::Command_openContext * /*ctx*/) override { }
 
-  virtual void enterCommand_scratchpad(configGrammar::Command_scratchpadContext * /*ctx*/) override { }
-  virtual void exitCommand_scratchpad(configGrammar::Command_scratchpadContext * /*ctx*/) override { }
-
   virtual void enterCommand_title_format(configGrammar::Command_title_formatContext * /*ctx*/) override { }
   virtual void exitCommand_title_format(configGrammar::Command_title_formatContext * /*ctx*/) override { }
 

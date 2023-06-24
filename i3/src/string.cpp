@@ -16,6 +16,9 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <pango/pango.h>
+#include <cairo/cairo-xcb.h>
+
 i3String::i3String(const std::string &str) {
     /* g_utf8_make_valid NULL-terminates the string. */
     this->utf8 = g_utf8_make_valid(str.c_str(), str.length());

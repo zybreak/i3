@@ -385,8 +385,7 @@ void handle_button_press(xcb_button_press_event_t *event) {
             Con *output, *ws;
             for (auto &c : global.croot->nodes_head) {
                 output = c;
-                if (output->con_is_internal() ||
-                    !output->rect.rect_contains(event->event_x, event->event_y))
+                if (!output->rect.rect_contains(event->event_x, event->event_y))
                     continue;
 
                 ws = con::first(output->output_get_content()->focus_head);

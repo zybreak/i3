@@ -27,8 +27,8 @@
 #include <antlr4-runtime.h>
 
 #include "i3-ipc.h"
-#include "commands.h"
-#include "commands_parser.h"
+#include "../commands.h"
+#include "../commands_parser.h"
 #include "parser-specs/commandsLexer.h"
 #include "parser-specs/commandsGrammar.h"
 #include "parser-specs/commandsGrammarBaseListener.h"
@@ -153,10 +153,6 @@ class CommandsListener : public commandsGrammarBaseListener {
 
     void enterCommand_open(commandsGrammar::Command_openContext * ctx) override {
         cmd::open(criteria_state, command_output);
-    }
-
-    void enterCommand_scratchpad(commandsGrammar::Command_scratchpadContext * ctx) override {
-        cmd::scratchpad_show(criteria_state, command_output);
     }
 
     void enterCommand_title_format(commandsGrammar::Command_title_formatContext * ctx) override {

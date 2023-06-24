@@ -20,6 +20,7 @@
 #include <cstring>
 
 #include <xcb/xcb.h>
+#include <filesystem>
 
 #include "i3string.h"
 #include "log.h"

@@ -437,10 +437,6 @@ static void workspace_defer_update_urgent_hint_cb(EV_P_ ev_timer *w, int revents
 void workspace_show(Con *workspace) {
     Con *current, *old = nullptr;
 
-    /* safe-guard against showing i3-internal workspaces like __i3_scratch */
-    if (workspace->con_is_internal())
-        return;
-
     /* disable fullscreen for the other workspaces and get the workspace we are
      * currently on. */
     for (auto &c : workspace->parent->nodes_head) {
@@ -472,7 +468,7 @@ void workspace_show(Con *workspace) {
      * the corresponding workspace is cleaned up.
      * NOTE: Internal cons such as __i3_scratch (when a scratchpad window is
      * focused) are skipped, see bug #868. */
-    if (current && !current->con_is_internal()) {
+    if (current) {
         previous_workspace_name.assign(current->name);
         DLOG(fmt::sprintf("Setting previous_workspace_name = %s\n",  previous_workspace_name));
     }
@@ -581,9 +577,6 @@ WorkspaceCon *workspace_next() {
             return dynamic_cast<WorkspaceCon*>(*(++it));
         bool found_current = false;
         for (auto &output : global.croot->nodes_head) {
-            /* Skip outputs starting with __, they are internal. */
-            if (output->con_is_internal())
-                continue;
             for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);)
                 for (auto &c : output->output_get_content()->nodes_head) {
                     child = c;
@@ -604,9 +597,6 @@ WorkspaceCon *workspace_next() {
     } else {
         /* If currently a numbered workspace, find next numbered workspace. */
         for (auto &output : global.croot->nodes_head) {
-            /* Skip outputs starting with __, they are internal. */
-            if (output->con_is_internal())
-                continue;
             for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);)
                 for (auto &c : output->output_get_content()->nodes_head) {
                     child = c;
@@ -650,9 +640,6 @@ WorkspaceCon *workspace_prev() {
         if (!prev) {
             bool found_current = false;
             for (auto &output : global.croot->nodes_head | std::views::reverse) {
-                /* Skip outputs starting with __, they are internal. */
-                if (output->con_is_internal())
-                    continue;
                 for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
                     for (auto &c : output->output_get_content()->nodes_head | std::views::reverse) {
                         child = c;
@@ -675,9 +662,6 @@ WorkspaceCon *workspace_prev() {
     } else {
         /* If numbered workspace, find previous numbered workspace. */
         for (auto &output : global.croot->nodes_head | std::views::reverse) {
-            /* Skip outputs starting with __, they are internal. */
-            if (output->con_is_internal())
-                continue;
             for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
                 for (auto &c : output->output_get_content()->nodes_head | std::views::reverse) {
                     child = c;

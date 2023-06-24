@@ -34,7 +34,7 @@
 
 #include <string>
 #include "commands_parser.h"
-
+#include "wrapper.h"
 
 CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, ipc_client *client);
 CommandResult parse_command_new(const std::string &input, nlohmann::json *gen, ipc_client *client);

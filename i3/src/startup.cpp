@@ -193,7 +193,7 @@ void start_application(const std::string_view &command, bool no_startup_id) {
             /* Setup the environment variable(s) */
             if (!no_startup_id)
                 sn_launcher_context_setup_child_process(context);
-            setenv("I3SOCK", current_socketpath.c_str(), 1);
+            setenv("I3SOCK", global.current_socketpath.c_str(), 1);
 
             execl(_PATH_BSHELL, _PATH_BSHELL, "-c", command.data(), NULL);
             /* not reached */

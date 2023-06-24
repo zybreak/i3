@@ -31,7 +31,6 @@ command
     | command_nop
     | command_reload
     | command_restart
-    | command_scratchpad
     | command_title_format
     | command_title_window_icon
 ;
@@ -57,6 +56,5 @@ command_reload: COMMAND_RELOAD;
 command_restart: COMMAND_RESTART;
 command_mode: COMMAND_MODE COMMAND_STRING;
 command_open: COMMAND_OPEN;
-command_scratchpad: COMMAND_SCRATCHPAD COMMAND_STRING;
 command_title_format: COMMAND_TITLE_FORMAT COMMAND_STRING;
 command_title_window_icon: COMMAND_TITLE_WINDOW_ICON; // TODO

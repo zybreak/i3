@@ -83,9 +83,6 @@ public:
   virtual void enterCommand_open(commandsGrammar::Command_openContext *ctx) = 0;
   virtual void exitCommand_open(commandsGrammar::Command_openContext *ctx) = 0;
 
-  virtual void enterCommand_scratchpad(commandsGrammar::Command_scratchpadContext *ctx) = 0;
-  virtual void exitCommand_scratchpad(commandsGrammar::Command_scratchpadContext *ctx) = 0;
-
   virtual void enterCommand_title_format(commandsGrammar::Command_title_formatContext *ctx) = 0;
   virtual void exitCommand_title_format(commandsGrammar::Command_title_formatContext *ctx) = 0;
 

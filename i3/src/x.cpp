@@ -39,6 +39,7 @@
 #include "con.h"
 #include "ewmh.h"
 #include "global.h"
+#include "ipc.h"
 
 #include <unistd.h>
 #include <ranges>

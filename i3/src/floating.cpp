@@ -35,6 +35,7 @@
 #include "move.h"
 #include "output.h"
 #include "global.h"
+#include "ipc.h"
 
 #include <cmath>
 #include <algorithm>
@@ -450,10 +451,6 @@ void floating_disable(Con *con) {
     }
 
     Con *ws = con->con_get_workspace();
-    if (ws->con_is_internal()) {
-        LOG("Can't disable floating for container in internal workspace.\n");
-        return;
-    }
     Con *tiling_focused = con_descend_tiling_focused(ws);
 
     if (tiling_focused->type == CT_WORKSPACE) {
@@ -520,11 +517,6 @@ void floating_raise_con(Con *con) {
  *
  */
 bool floating_maybe_reassign_ws(Con *con) {
-    if (con->con_get_workspace()->con_is_internal()) {
-        DLOG("Con in an internal workspace\n");
-        return false;
-    }
-
     Output *output = get_output_from_rect(con->rect);
 
     if (!output) {

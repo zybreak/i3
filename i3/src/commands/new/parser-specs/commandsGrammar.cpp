@@ -48,15 +48,14 @@ void commandsgrammarParserInitialize() {
       "command_border", "command_layout", "command_append_layout", "command_workspace", 
       "command_focus", "command_split", "command_floating", "command_resize", 
       "command_rename", "command_nop", "command_reload", "command_restart", 
-      "command_mode", "command_open", "command_scratchpad", "command_title_format", 
-      "command_title_window_icon"
+      "command_mode", "command_open", "command_title_format", "command_title_window_icon"
     },
     std::vector<std::string>{
       "", "'$('", "')'", "';'", "'move'", "'exec'", "'exit'", "'debuglog'", 
       "'border'", "'layout'", "'append_layout'", "'workspace'", "'focus'", 
       "'kill'", "'reload'", "'restart'", "'open'", "'fullscreen'", "'sticky'", 
-      "'split'", "'floating'", "'resize'", "'rename'", "'nop'", "'scratchpad'", 
-      "'title_format'", "'title_window_icon'", "'mode'", "' '"
+      "'split'", "'floating'", "'resize'", "'rename'", "'nop'", "'title_format'", 
+      "'title_window_icon'", "'mode'", "' '"
     },
     std::vector<std::string>{
       "", "OPEN_COMMAND", "CLOSE_COMMAND", "COMMAND_SEP", "COMMAND_MOVE", 
@@ -64,67 +63,65 @@ void commandsgrammarParserInitialize() {
       "COMMAND_LAYOUT", "COMMAND_APPEND_LAYOUT", "COMMAND_WORKSPACE", "COMMAND_FOCUS", 
       "COMMAND_KILL", "COMMAND_RELOAD", "COMMAND_RESTART", "COMMAND_OPEN", 
       "COMMAND_FULLSCREEN", "COMMAND_STICKY", "COMMAND_SPLIT", "COMMAND_FLOATING", 
-      "COMMAND_RESIZE", "COMMAND_RENAME", "COMMAND_NOP", "COMMAND_SCRATCHPAD", 
-      "COMMAND_TITLE_FORMAT", "COMMAND_TITLE_WINDOW_ICON", "COMMAND_MODE", 
-      "COMMAND_WS", "COMMAND_OPTION", "COMMAND_NUMBER", "COMMAND_STRING"
+      "COMMAND_RESIZE", "COMMAND_RENAME", "COMMAND_NOP", "COMMAND_TITLE_FORMAT", 
+      "COMMAND_TITLE_WINDOW_ICON", "COMMAND_MODE", "COMMAND_WS", "COMMAND_OPTION", 
+      "COMMAND_NUMBER", "COMMAND_STRING"
     }
   );
   static const int32_t serializedATNSegment[] = {
-  	4,1,31,180,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
+  	4,1,30,174,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
   	7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,
   	14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,
-  	21,2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,1,0,1,0,1,0,1,0,5,0,57,8,0,
-  	10,0,12,0,60,9,0,1,0,1,0,3,0,64,8,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  	3,1,92,8,1,1,2,1,2,1,2,1,3,1,3,5,3,99,8,3,10,3,12,3,102,9,3,1,3,1,3,1,
-  	4,1,4,1,5,1,5,1,5,1,6,1,6,1,6,3,6,114,8,6,1,7,1,7,1,7,1,8,1,8,1,8,1,9,
-  	1,9,1,9,3,9,125,8,9,1,10,1,10,1,10,3,10,130,8,10,1,11,1,11,1,11,1,12,
-  	1,12,5,12,137,8,12,10,12,12,12,140,9,12,1,12,1,12,1,13,1,13,1,13,3,13,
-  	147,8,13,1,14,1,14,1,14,1,15,1,15,1,15,1,16,1,16,1,17,1,17,1,18,1,18,
-  	3,18,161,8,18,1,19,1,19,1,20,1,20,1,21,1,21,1,21,1,22,1,22,1,23,1,23,
-  	1,23,1,24,1,24,1,24,1,25,1,25,1,25,0,0,26,0,2,4,6,8,10,12,14,16,18,20,
-  	22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,0,1,1,0,30,31,185,0,52,1,
-  	0,0,0,2,91,1,0,0,0,4,93,1,0,0,0,6,96,1,0,0,0,8,105,1,0,0,0,10,107,1,0,
-  	0,0,12,110,1,0,0,0,14,115,1,0,0,0,16,118,1,0,0,0,18,121,1,0,0,0,20,126,
-  	1,0,0,0,22,131,1,0,0,0,24,134,1,0,0,0,26,143,1,0,0,0,28,148,1,0,0,0,30,
-  	151,1,0,0,0,32,154,1,0,0,0,34,156,1,0,0,0,36,158,1,0,0,0,38,162,1,0,0,
-  	0,40,164,1,0,0,0,42,166,1,0,0,0,44,169,1,0,0,0,46,171,1,0,0,0,48,174,
-  	1,0,0,0,50,177,1,0,0,0,52,58,5,1,0,0,53,54,3,2,1,0,54,55,5,3,0,0,55,57,
-  	1,0,0,0,56,53,1,0,0,0,57,60,1,0,0,0,58,56,1,0,0,0,58,59,1,0,0,0,59,61,
-  	1,0,0,0,60,58,1,0,0,0,61,63,3,2,1,0,62,64,5,3,0,0,63,62,1,0,0,0,63,64,
-  	1,0,0,0,64,65,1,0,0,0,65,66,5,2,0,0,66,1,1,0,0,0,67,92,3,4,2,0,68,92,
-  	3,6,3,0,69,92,3,8,4,0,70,92,3,16,8,0,71,92,3,18,9,0,72,92,3,20,10,0,73,
-  	92,3,22,11,0,74,92,3,24,12,0,75,92,3,26,13,0,76,92,3,10,5,0,77,92,3,42,
-  	21,0,78,92,3,44,22,0,79,92,3,12,6,0,80,92,3,14,7,0,81,92,3,28,14,0,82,
-  	92,3,30,15,0,83,92,3,32,16,0,84,92,3,34,17,0,85,92,3,36,18,0,86,92,3,
-  	38,19,0,87,92,3,40,20,0,88,92,3,46,23,0,89,92,3,48,24,0,90,92,3,50,25,
-  	0,91,67,1,0,0,0,91,68,1,0,0,0,91,69,1,0,0,0,91,70,1,0,0,0,91,71,1,0,0,
-  	0,91,72,1,0,0,0,91,73,1,0,0,0,91,74,1,0,0,0,91,75,1,0,0,0,91,76,1,0,0,
-  	0,91,77,1,0,0,0,91,78,1,0,0,0,91,79,1,0,0,0,91,80,1,0,0,0,91,81,1,0,0,
-  	0,91,82,1,0,0,0,91,83,1,0,0,0,91,84,1,0,0,0,91,85,1,0,0,0,91,86,1,0,0,
-  	0,91,87,1,0,0,0,91,88,1,0,0,0,91,89,1,0,0,0,91,90,1,0,0,0,92,3,1,0,0,
-  	0,93,94,5,4,0,0,94,95,7,0,0,0,95,5,1,0,0,0,96,100,5,5,0,0,97,99,5,29,
-  	0,0,98,97,1,0,0,0,99,102,1,0,0,0,100,98,1,0,0,0,100,101,1,0,0,0,101,103,
-  	1,0,0,0,102,100,1,0,0,0,103,104,5,31,0,0,104,7,1,0,0,0,105,106,5,6,0,
-  	0,106,9,1,0,0,0,107,108,5,13,0,0,108,109,5,31,0,0,109,11,1,0,0,0,110,
-  	111,5,17,0,0,111,113,5,31,0,0,112,114,5,31,0,0,113,112,1,0,0,0,113,114,
-  	1,0,0,0,114,13,1,0,0,0,115,116,5,18,0,0,116,117,5,31,0,0,117,15,1,0,0,
-  	0,118,119,5,7,0,0,119,120,5,31,0,0,120,17,1,0,0,0,121,122,5,8,0,0,122,
-  	124,5,31,0,0,123,125,5,30,0,0,124,123,1,0,0,0,124,125,1,0,0,0,125,19,
-  	1,0,0,0,126,127,5,9,0,0,127,129,5,31,0,0,128,130,5,31,0,0,129,128,1,0,
-  	0,0,129,130,1,0,0,0,130,21,1,0,0,0,131,132,5,10,0,0,132,133,5,31,0,0,
-  	133,23,1,0,0,0,134,138,5,11,0,0,135,137,5,29,0,0,136,135,1,0,0,0,137,
-  	140,1,0,0,0,138,136,1,0,0,0,138,139,1,0,0,0,139,141,1,0,0,0,140,138,1,
-  	0,0,0,141,142,5,31,0,0,142,25,1,0,0,0,143,144,5,12,0,0,144,146,5,31,0,
-  	0,145,147,5,31,0,0,146,145,1,0,0,0,146,147,1,0,0,0,147,27,1,0,0,0,148,
-  	149,5,19,0,0,149,150,5,31,0,0,150,29,1,0,0,0,151,152,5,20,0,0,152,153,
-  	5,31,0,0,153,31,1,0,0,0,154,155,5,21,0,0,155,33,1,0,0,0,156,157,5,22,
-  	0,0,157,35,1,0,0,0,158,160,5,23,0,0,159,161,5,31,0,0,160,159,1,0,0,0,
-  	160,161,1,0,0,0,161,37,1,0,0,0,162,163,5,14,0,0,163,39,1,0,0,0,164,165,
-  	5,15,0,0,165,41,1,0,0,0,166,167,5,27,0,0,167,168,5,31,0,0,168,43,1,0,
-  	0,0,169,170,5,16,0,0,170,45,1,0,0,0,171,172,5,24,0,0,172,173,5,31,0,0,
-  	173,47,1,0,0,0,174,175,5,25,0,0,175,176,5,31,0,0,176,49,1,0,0,0,177,178,
-  	5,26,0,0,178,51,1,0,0,0,10,58,63,91,100,113,124,129,138,146,160
+  	21,2,22,7,22,2,23,7,23,2,24,7,24,1,0,1,0,1,0,1,0,5,0,55,8,0,10,0,12,0,
+  	58,9,0,1,0,1,0,3,0,62,8,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,89,8,1,1,
+  	2,1,2,1,2,1,3,1,3,5,3,96,8,3,10,3,12,3,99,9,3,1,3,1,3,1,4,1,4,1,5,1,5,
+  	1,5,1,6,1,6,1,6,3,6,111,8,6,1,7,1,7,1,7,1,8,1,8,1,8,1,9,1,9,1,9,3,9,122,
+  	8,9,1,10,1,10,1,10,3,10,127,8,10,1,11,1,11,1,11,1,12,1,12,5,12,134,8,
+  	12,10,12,12,12,137,9,12,1,12,1,12,1,13,1,13,1,13,3,13,144,8,13,1,14,1,
+  	14,1,14,1,15,1,15,1,15,1,16,1,16,1,17,1,17,1,18,1,18,3,18,158,8,18,1,
+  	19,1,19,1,20,1,20,1,21,1,21,1,21,1,22,1,22,1,23,1,23,1,23,1,24,1,24,1,
+  	24,0,0,25,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,
+  	44,46,48,0,1,1,0,29,30,179,0,50,1,0,0,0,2,88,1,0,0,0,4,90,1,0,0,0,6,93,
+  	1,0,0,0,8,102,1,0,0,0,10,104,1,0,0,0,12,107,1,0,0,0,14,112,1,0,0,0,16,
+  	115,1,0,0,0,18,118,1,0,0,0,20,123,1,0,0,0,22,128,1,0,0,0,24,131,1,0,0,
+  	0,26,140,1,0,0,0,28,145,1,0,0,0,30,148,1,0,0,0,32,151,1,0,0,0,34,153,
+  	1,0,0,0,36,155,1,0,0,0,38,159,1,0,0,0,40,161,1,0,0,0,42,163,1,0,0,0,44,
+  	166,1,0,0,0,46,168,1,0,0,0,48,171,1,0,0,0,50,56,5,1,0,0,51,52,3,2,1,0,
+  	52,53,5,3,0,0,53,55,1,0,0,0,54,51,1,0,0,0,55,58,1,0,0,0,56,54,1,0,0,0,
+  	56,57,1,0,0,0,57,59,1,0,0,0,58,56,1,0,0,0,59,61,3,2,1,0,60,62,5,3,0,0,
+  	61,60,1,0,0,0,61,62,1,0,0,0,62,63,1,0,0,0,63,64,5,2,0,0,64,1,1,0,0,0,
+  	65,89,3,4,2,0,66,89,3,6,3,0,67,89,3,8,4,0,68,89,3,16,8,0,69,89,3,18,9,
+  	0,70,89,3,20,10,0,71,89,3,22,11,0,72,89,3,24,12,0,73,89,3,26,13,0,74,
+  	89,3,10,5,0,75,89,3,42,21,0,76,89,3,44,22,0,77,89,3,12,6,0,78,89,3,14,
+  	7,0,79,89,3,28,14,0,80,89,3,30,15,0,81,89,3,32,16,0,82,89,3,34,17,0,83,
+  	89,3,36,18,0,84,89,3,38,19,0,85,89,3,40,20,0,86,89,3,46,23,0,87,89,3,
+  	48,24,0,88,65,1,0,0,0,88,66,1,0,0,0,88,67,1,0,0,0,88,68,1,0,0,0,88,69,
+  	1,0,0,0,88,70,1,0,0,0,88,71,1,0,0,0,88,72,1,0,0,0,88,73,1,0,0,0,88,74,
+  	1,0,0,0,88,75,1,0,0,0,88,76,1,0,0,0,88,77,1,0,0,0,88,78,1,0,0,0,88,79,
+  	1,0,0,0,88,80,1,0,0,0,88,81,1,0,0,0,88,82,1,0,0,0,88,83,1,0,0,0,88,84,
+  	1,0,0,0,88,85,1,0,0,0,88,86,1,0,0,0,88,87,1,0,0,0,89,3,1,0,0,0,90,91,
+  	5,4,0,0,91,92,7,0,0,0,92,5,1,0,0,0,93,97,5,5,0,0,94,96,5,28,0,0,95,94,
+  	1,0,0,0,96,99,1,0,0,0,97,95,1,0,0,0,97,98,1,0,0,0,98,100,1,0,0,0,99,97,
+  	1,0,0,0,100,101,5,30,0,0,101,7,1,0,0,0,102,103,5,6,0,0,103,9,1,0,0,0,
+  	104,105,5,13,0,0,105,106,5,30,0,0,106,11,1,0,0,0,107,108,5,17,0,0,108,
+  	110,5,30,0,0,109,111,5,30,0,0,110,109,1,0,0,0,110,111,1,0,0,0,111,13,
+  	1,0,0,0,112,113,5,18,0,0,113,114,5,30,0,0,114,15,1,0,0,0,115,116,5,7,
+  	0,0,116,117,5,30,0,0,117,17,1,0,0,0,118,119,5,8,0,0,119,121,5,30,0,0,
+  	120,122,5,29,0,0,121,120,1,0,0,0,121,122,1,0,0,0,122,19,1,0,0,0,123,124,
+  	5,9,0,0,124,126,5,30,0,0,125,127,5,30,0,0,126,125,1,0,0,0,126,127,1,0,
+  	0,0,127,21,1,0,0,0,128,129,5,10,0,0,129,130,5,30,0,0,130,23,1,0,0,0,131,
+  	135,5,11,0,0,132,134,5,28,0,0,133,132,1,0,0,0,134,137,1,0,0,0,135,133,
+  	1,0,0,0,135,136,1,0,0,0,136,138,1,0,0,0,137,135,1,0,0,0,138,139,5,30,
+  	0,0,139,25,1,0,0,0,140,141,5,12,0,0,141,143,5,30,0,0,142,144,5,30,0,0,
+  	143,142,1,0,0,0,143,144,1,0,0,0,144,27,1,0,0,0,145,146,5,19,0,0,146,147,
+  	5,30,0,0,147,29,1,0,0,0,148,149,5,20,0,0,149,150,5,30,0,0,150,31,1,0,
+  	0,0,151,152,5,21,0,0,152,33,1,0,0,0,153,154,5,22,0,0,154,35,1,0,0,0,155,
+  	157,5,23,0,0,156,158,5,30,0,0,157,156,1,0,0,0,157,158,1,0,0,0,158,37,
+  	1,0,0,0,159,160,5,14,0,0,160,39,1,0,0,0,161,162,5,15,0,0,162,41,1,0,0,
+  	0,163,164,5,26,0,0,164,165,5,30,0,0,165,43,1,0,0,0,166,167,5,16,0,0,167,
+  	45,1,0,0,0,168,169,5,24,0,0,169,170,5,30,0,0,170,47,1,0,0,0,171,172,5,
+  	25,0,0,172,49,1,0,0,0,10,56,61,88,97,110,121,126,135,143,157
   };
   staticData->serializedATN = antlr4::atn::SerializedATNView(serializedATNSegment, sizeof(serializedATNSegment) / sizeof(serializedATNSegment[0]));
 
@@ -235,33 +232,33 @@ commandsGrammar::CommandsContext* commandsGrammar::commands() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(52);
+    setState(50);
     match(commandsGrammar::OPEN_COMMAND);
-    setState(58);
+    setState(56);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 0, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(53);
+        setState(51);
         command();
-        setState(54);
+        setState(52);
         match(commandsGrammar::COMMAND_SEP); 
       }
-      setState(60);
+      setState(58);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 0, _ctx);
     }
-    setState(61);
+    setState(59);
     command();
-    setState(63);
+    setState(61);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == commandsGrammar::COMMAND_SEP) {
-      setState(62);
+      setState(60);
       match(commandsGrammar::COMMAND_SEP);
     }
-    setState(65);
+    setState(63);
     match(commandsGrammar::CLOSE_COMMAND);
    
   }
@@ -364,10 +361,6 @@ commandsGrammar::Command_restartContext* commandsGrammar::CommandContext::comman
   return getRuleContext<commandsGrammar::Command_restartContext>(0);
 }
 
-commandsGrammar::Command_scratchpadContext* commandsGrammar::CommandContext::command_scratchpad() {
-  return getRuleContext<commandsGrammar::Command_scratchpadContext>(0);
-}
-
 commandsGrammar::Command_title_formatContext* commandsGrammar::CommandContext::command_title_format() {
   return getRuleContext<commandsGrammar::Command_title_formatContext>(0);
 }
@@ -405,173 +398,166 @@ commandsGrammar::CommandContext* commandsGrammar::command() {
     exitRule();
   });
   try {
-    setState(91);
+    setState(88);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case commandsGrammar::COMMAND_MOVE: {
         enterOuterAlt(_localctx, 1);
-        setState(67);
+        setState(65);
         command_move();
         break;
       }
 
       case commandsGrammar::COMMAND_EXEC: {
         enterOuterAlt(_localctx, 2);
-        setState(68);
+        setState(66);
         command_exec();
         break;
       }
 
       case commandsGrammar::COMMAND_EXIT: {
         enterOuterAlt(_localctx, 3);
-        setState(69);
+        setState(67);
         command_exit();
         break;
       }
 
       case commandsGrammar::COMMAND_DEBUGLOG: {
         enterOuterAlt(_localctx, 4);
-        setState(70);
+        setState(68);
         command_debuglog();
         break;
       }
 
       case commandsGrammar::COMMAND_BORDER: {
         enterOuterAlt(_localctx, 5);
-        setState(71);
+        setState(69);
         command_border();
         break;
       }
 
       case commandsGrammar::COMMAND_LAYOUT: {
         enterOuterAlt(_localctx, 6);
-        setState(72);
+        setState(70);
         command_layout();
         break;
       }
 
       case commandsGrammar::COMMAND_APPEND_LAYOUT: {
         enterOuterAlt(_localctx, 7);
-        setState(73);
+        setState(71);
         command_append_layout();
         break;
       }
 
       case commandsGrammar::COMMAND_WORKSPACE: {
         enterOuterAlt(_localctx, 8);
-        setState(74);
+        setState(72);
         command_workspace();
         break;
       }
 
       case commandsGrammar::COMMAND_FOCUS: {
         enterOuterAlt(_localctx, 9);
-        setState(75);
+        setState(73);
         command_focus();
         break;
       }
 
       case commandsGrammar::COMMAND_KILL: {
         enterOuterAlt(_localctx, 10);
-        setState(76);
+        setState(74);
         command_kill();
         break;
       }
 
       case commandsGrammar::COMMAND_MODE: {
         enterOuterAlt(_localctx, 11);
-        setState(77);
+        setState(75);
         command_mode();
         break;
       }
 
       case commandsGrammar::COMMAND_OPEN: {
         enterOuterAlt(_localctx, 12);
-        setState(78);
+        setState(76);
         command_open();
         break;
       }
 
       case commandsGrammar::COMMAND_FULLSCREEN: {
         enterOuterAlt(_localctx, 13);
-        setState(79);
+        setState(77);
         command_fullscreen();
         break;
       }
 
       case commandsGrammar::COMMAND_STICKY: {
         enterOuterAlt(_localctx, 14);
-        setState(80);
+        setState(78);
         command_sticky();
         break;
       }
 
       case commandsGrammar::COMMAND_SPLIT: {
         enterOuterAlt(_localctx, 15);
-        setState(81);
+        setState(79);
         command_split();
         break;
       }
 
       case commandsGrammar::COMMAND_FLOATING: {
         enterOuterAlt(_localctx, 16);
-        setState(82);
+        setState(80);
         command_floating();
         break;
       }
 
       case commandsGrammar::COMMAND_RESIZE: {
         enterOuterAlt(_localctx, 17);
-        setState(83);
+        setState(81);
         command_resize();
         break;
       }
 
       case commandsGrammar::COMMAND_RENAME: {
         enterOuterAlt(_localctx, 18);
-        setState(84);
+        setState(82);
         command_rename();
         break;
       }
 
       case commandsGrammar::COMMAND_NOP: {
         enterOuterAlt(_localctx, 19);
-        setState(85);
+        setState(83);
         command_nop();
         break;
       }
 
       case commandsGrammar::COMMAND_RELOAD: {
         enterOuterAlt(_localctx, 20);
-        setState(86);
+        setState(84);
         command_reload();
         break;
       }
 
       case commandsGrammar::COMMAND_RESTART: {
         enterOuterAlt(_localctx, 21);
-        setState(87);
+        setState(85);
         command_restart();
         break;
       }
 
-      case commandsGrammar::COMMAND_SCRATCHPAD: {
-        enterOuterAlt(_localctx, 22);
-        setState(88);
-        command_scratchpad();
-        break;
-      }
-
       case commandsGrammar::COMMAND_TITLE_FORMAT: {
-        enterOuterAlt(_localctx, 23);
-        setState(89);
+        enterOuterAlt(_localctx, 22);
+        setState(86);
         command_title_format();
         break;
       }
 
       case commandsGrammar::COMMAND_TITLE_WINDOW_ICON: {
-        enterOuterAlt(_localctx, 24);
-        setState(90);
+        enterOuterAlt(_localctx, 23);
+        setState(87);
         command_title_window_icon();
         break;
       }
@@ -639,9 +625,9 @@ commandsGrammar::Command_moveContext* commandsGrammar::command_move() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(93);
+    setState(90);
     match(commandsGrammar::COMMAND_MOVE);
-    setState(94);
+    setState(91);
     _la = _input->LA(1);
     if (!(_la == commandsGrammar::COMMAND_NUMBER
 
@@ -716,19 +702,19 @@ commandsGrammar::Command_execContext* commandsGrammar::command_exec() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(96);
+    setState(93);
     match(commandsGrammar::COMMAND_EXEC);
-    setState(100);
+    setState(97);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == commandsGrammar::COMMAND_OPTION) {
-      setState(97);
+      setState(94);
       match(commandsGrammar::COMMAND_OPTION);
-      setState(102);
+      setState(99);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(103);
+    setState(100);
     match(commandsGrammar::COMMAND_STRING);
    
   }
@@ -781,7 +767,7 @@ commandsGrammar::Command_exitContext* commandsGrammar::command_exit() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(105);
+    setState(102);
     match(commandsGrammar::COMMAND_EXIT);
    
   }
@@ -838,9 +824,9 @@ commandsGrammar::Command_killContext* commandsGrammar::command_kill() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(107);
+    setState(104);
     match(commandsGrammar::COMMAND_KILL);
-    setState(108);
+    setState(105);
     match(commandsGrammar::COMMAND_STRING);
    
   }
@@ -902,16 +888,16 @@ commandsGrammar::Command_fullscreenContext* commandsGrammar::command_fullscreen(
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(110);
+    setState(107);
     match(commandsGrammar::COMMAND_FULLSCREEN);
-    setState(111);
+    setState(108);
     match(commandsGrammar::COMMAND_STRING);
-    setState(113);
+    setState(110);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == commandsGrammar::COMMAND_STRING) {
-      setState(112);
+      setState(109);
       match(commandsGrammar::COMMAND_STRING);
     }
    
@@ -969,9 +955,9 @@ commandsGrammar::Command_stickyContext* commandsGrammar::command_sticky() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(115);
+    setState(112);
     match(commandsGrammar::COMMAND_STICKY);
-    setState(116);
+    setState(113);
     match(commandsGrammar::COMMAND_STRING);
    
   }
@@ -1028,9 +1014,9 @@ commandsGrammar::Command_debuglogContext* commandsGrammar::command_debuglog() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(118);
+    setState(115);
     match(commandsGrammar::COMMAND_DEBUGLOG);
-    setState(119);
+    setState(116);
     match(commandsGrammar::COMMAND_STRING);
    
   }
@@ -1092,16 +1078,16 @@ commandsGrammar::Command_borderContext* commandsGrammar::command_border() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(121);
+    setState(118);
     match(commandsGrammar::COMMAND_BORDER);
-    setState(122);
+    setState(119);
     match(commandsGrammar::COMMAND_STRING);
-    setState(124);
+    setState(121);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == commandsGrammar::COMMAND_NUMBER) {
-      setState(123);
+      setState(120);
       match(commandsGrammar::COMMAND_NUMBER);
     }
    
@@ -1164,16 +1150,16 @@ commandsGrammar::Command_layoutContext* commandsGrammar::command_layout() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(126);
+    setState(123);
     match(commandsGrammar::COMMAND_LAYOUT);
-    setState(127);
+    setState(124);
     match(commandsGrammar::COMMAND_STRING);
-    setState(129);
+    setState(126);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == commandsGrammar::COMMAND_STRING) {
-      setState(128);
+      setState(125);
       match(commandsGrammar::COMMAND_STRING);
     }
    
@@ -1231,9 +1217,9 @@ commandsGrammar::Command_append_layoutContext* commandsGrammar::command_append_l
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(131);
+    setState(128);
     match(commandsGrammar::COMMAND_APPEND_LAYOUT);
-    setState(132);
+    setState(129);
     match(commandsGrammar::COMMAND_STRING);
    
   }
@@ -1299,19 +1285,19 @@ commandsGrammar::Command_workspaceContext* commandsGrammar::command_workspace() 
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(134);
+    setState(131);
     match(commandsGrammar::COMMAND_WORKSPACE);
-    setState(138);
+    setState(135);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == commandsGrammar::COMMAND_OPTION) {
-      setState(135);
+      setState(132);
       match(commandsGrammar::COMMAND_OPTION);
-      setState(140);
+      setState(137);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(141);
+    setState(138);
     match(commandsGrammar::COMMAND_STRING);
    
   }
@@ -1373,16 +1359,16 @@ commandsGrammar::Command_focusContext* commandsGrammar::command_focus() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(143);
+    setState(140);
     match(commandsGrammar::COMMAND_FOCUS);
-    setState(144);
+    setState(141);
     match(commandsGrammar::COMMAND_STRING);
-    setState(146);
+    setState(143);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == commandsGrammar::COMMAND_STRING) {
-      setState(145);
+      setState(142);
       match(commandsGrammar::COMMAND_STRING);
     }
    
@@ -1440,9 +1426,9 @@ commandsGrammar::Command_splitContext* commandsGrammar::command_split() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(148);
+    setState(145);
     match(commandsGrammar::COMMAND_SPLIT);
-    setState(149);
+    setState(146);
     match(commandsGrammar::COMMAND_STRING);
    
   }
@@ -1499,9 +1485,9 @@ commandsGrammar::Command_floatingContext* commandsGrammar::command_floating() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(151);
+    setState(148);
     match(commandsGrammar::COMMAND_FLOATING);
-    setState(152);
+    setState(149);
     match(commandsGrammar::COMMAND_STRING);
    
   }
@@ -1554,7 +1540,7 @@ commandsGrammar::Command_resizeContext* commandsGrammar::command_resize() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(154);
+    setState(151);
     match(commandsGrammar::COMMAND_RESIZE);
    
   }
@@ -1607,7 +1593,7 @@ commandsGrammar::Command_renameContext* commandsGrammar::command_rename() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(156);
+    setState(153);
     match(commandsGrammar::COMMAND_RENAME);
    
   }
@@ -1665,14 +1651,14 @@ commandsGrammar::Command_nopContext* commandsGrammar::command_nop() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(158);
+    setState(155);
     match(commandsGrammar::COMMAND_NOP);
-    setState(160);
+    setState(157);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == commandsGrammar::COMMAND_STRING) {
-      setState(159);
+      setState(156);
       match(commandsGrammar::COMMAND_STRING);
     }
    
@@ -1726,7 +1712,7 @@ commandsGrammar::Command_reloadContext* commandsGrammar::command_reload() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(162);
+    setState(159);
     match(commandsGrammar::COMMAND_RELOAD);
    
   }
@@ -1779,7 +1765,7 @@ commandsGrammar::Command_restartContext* commandsGrammar::command_restart() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(164);
+    setState(161);
     match(commandsGrammar::COMMAND_RESTART);
    
   }
@@ -1836,9 +1822,9 @@ commandsGrammar::Command_modeContext* commandsGrammar::command_mode() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(166);
+    setState(163);
     match(commandsGrammar::COMMAND_MODE);
-    setState(167);
+    setState(164);
     match(commandsGrammar::COMMAND_STRING);
    
   }
@@ -1891,67 +1877,8 @@ commandsGrammar::Command_openContext* commandsGrammar::command_open() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(169);
+    setState(166);
     match(commandsGrammar::COMMAND_OPEN);
-   
-  }
-  catch (RecognitionException &e) {
-    _errHandler->reportError(this, e);
-    _localctx->exception = std::current_exception();
-    _errHandler->recover(this, _localctx->exception);
-  }
-
-  return _localctx;
-}
-
-//----------------- Command_scratchpadContext ------------------------------------------------------------------
-
-commandsGrammar::Command_scratchpadContext::Command_scratchpadContext(ParserRuleContext *parent, size_t invokingState)
-  : ParserRuleContext(parent, invokingState) {
-}
-
-tree::TerminalNode* commandsGrammar::Command_scratchpadContext::COMMAND_SCRATCHPAD() {
-  return getToken(commandsGrammar::COMMAND_SCRATCHPAD, 0);
-}
-
-tree::TerminalNode* commandsGrammar::Command_scratchpadContext::COMMAND_STRING() {
-  return getToken(commandsGrammar::COMMAND_STRING, 0);
-}
-
-
-size_t commandsGrammar::Command_scratchpadContext::getRuleIndex() const {
-  return commandsGrammar::RuleCommand_scratchpad;
-}
-
-void commandsGrammar::Command_scratchpadContext::enterRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<commandsGrammarListener *>(listener);
-  if (parserListener != nullptr)
-    parserListener->enterCommand_scratchpad(this);
-}
-
-void commandsGrammar::Command_scratchpadContext::exitRule(tree::ParseTreeListener *listener) {
-  auto parserListener = dynamic_cast<commandsGrammarListener *>(listener);
-  if (parserListener != nullptr)
-    parserListener->exitCommand_scratchpad(this);
-}
-
-commandsGrammar::Command_scratchpadContext* commandsGrammar::command_scratchpad() {
-  Command_scratchpadContext *_localctx = _tracker.createInstance<Command_scratchpadContext>(_ctx, getState());
-  enterRule(_localctx, 46, commandsGrammar::RuleCommand_scratchpad);
-
-#if __cplusplus > 201703L
-  auto onExit = finally([=, this] {
-#else
-  auto onExit = finally([=] {
-#endif
-    exitRule();
-  });
-  try {
-    enterOuterAlt(_localctx, 1);
-    setState(171);
-    match(commandsGrammar::COMMAND_SCRATCHPAD);
-    setState(172);
-    match(commandsGrammar::COMMAND_STRING);
    
   }
   catch (RecognitionException &e) {
@@ -1996,7 +1923,7 @@ void commandsGrammar::Command_title_formatContext::exitRule(tree::ParseTreeListe
 
 commandsGrammar::Command_title_formatContext* commandsGrammar::command_title_format() {
   Command_title_formatContext *_localctx = _tracker.createInstance<Command_title_formatContext>(_ctx, getState());
-  enterRule(_localctx, 48, commandsGrammar::RuleCommand_title_format);
+  enterRule(_localctx, 46, commandsGrammar::RuleCommand_title_format);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -2007,9 +1934,9 @@ commandsGrammar::Command_title_formatContext* commandsGrammar::command_title_for
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(174);
+    setState(168);
     match(commandsGrammar::COMMAND_TITLE_FORMAT);
-    setState(175);
+    setState(169);
     match(commandsGrammar::COMMAND_STRING);
    
   }
@@ -2051,7 +1978,7 @@ void commandsGrammar::Command_title_window_iconContext::exitRule(tree::ParseTree
 
 commandsGrammar::Command_title_window_iconContext* commandsGrammar::command_title_window_icon() {
   Command_title_window_iconContext *_localctx = _tracker.createInstance<Command_title_window_iconContext>(_ctx, getState());
-  enterRule(_localctx, 50, commandsGrammar::RuleCommand_title_window_icon);
+  enterRule(_localctx, 48, commandsGrammar::RuleCommand_title_window_icon);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -2062,7 +1989,7 @@ commandsGrammar::Command_title_window_iconContext* commandsGrammar::command_titl
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(177);
+    setState(171);
     match(commandsGrammar::COMMAND_TITLE_WINDOW_ICON);
    
   }

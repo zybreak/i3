@@ -15,6 +15,8 @@
 #include "event_handler.h"
 
 struct global {
+    std::string current_socketpath{};
+
     Con *focused;
     RootCon *croot;
 

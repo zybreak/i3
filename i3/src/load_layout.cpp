@@ -28,6 +28,7 @@
 #include <clocale>
 
 #include <fmt/core.h>
+#include <nlohmann/json.hpp>
 
 /* TODO: refactor the whole parsing thing */
 

@@ -5,4 +5,4 @@ add_library(libi3ipc STATIC
 
 target_include_directories(libi3ipc PUBLIC
         "${PROJECT_BINARY_DIR}"
-        include)
+        "${CMAKE_CURRENT_SOURCE_DIR}/include")

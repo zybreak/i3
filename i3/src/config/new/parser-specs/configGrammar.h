@@ -27,13 +27,13 @@ public:
     COMMAND_APPEND_LAYOUT = 47, COMMAND_WORKSPACE = 48, COMMAND_FOCUS = 49, 
     COMMAND_KILL = 50, COMMAND_RELOAD = 51, COMMAND_RESTART = 52, COMMAND_OPEN = 53, 
     COMMAND_FULLSCREEN = 54, COMMAND_STICKY = 55, COMMAND_SPLIT = 56, COMMAND_FLOATING = 57, 
-    COMMAND_RESIZE = 58, COMMAND_RENAME = 59, COMMAND_NOP = 60, COMMAND_SCRATCHPAD = 61, 
-    COMMAND_TITLE_FORMAT = 62, COMMAND_TITLE_WINDOW_ICON = 63, COMMAND_MODE = 64, 
-    COMMAND_WS = 65, COMMAND_OPTION = 66, COMMAND_NUMBER = 67, COMMAND_STRING = 68, 
-    END_CRITERION = 69, CRITERION_STRING = 70, TILING = 71, FLOATING = 72, 
-    ALL = 73, CLASS = 74, INSTANCE = 75, WINDOW_ROLE = 76, CON_ID = 77, 
-    ID = 78, WINDOW_TYPE = 79, TITLE = 80, URGENT = 81, MACHINE = 82, FLOATING_FROM = 83, 
-    TILING_FROM = 84, CRITERION_EQ = 85, CRITERION_SEP = 86
+    COMMAND_RESIZE = 58, COMMAND_RENAME = 59, COMMAND_NOP = 60, COMMAND_TITLE_FORMAT = 61, 
+    COMMAND_TITLE_WINDOW_ICON = 62, COMMAND_MODE = 63, COMMAND_WS = 64, 
+    COMMAND_OPTION = 65, COMMAND_NUMBER = 66, COMMAND_STRING = 67, END_CRITERION = 68, 
+    CRITERION_STRING = 69, TILING = 70, FLOATING = 71, ALL = 72, CLASS = 73, 
+    INSTANCE = 74, WINDOW_ROLE = 75, CON_ID = 76, ID = 77, WINDOW_TYPE = 78, 
+    TITLE = 79, URGENT = 80, MACHINE = 81, FLOATING_FROM = 82, TILING_FROM = 83, 
+    CRITERION_EQ = 84, CRITERION_SEP = 85
   };
 
   enum {
@@ -53,9 +53,8 @@ public:
     RuleCommand_focus = 43, RuleCommand_split = 44, RuleCommand_floating = 45, 
     RuleCommand_resize = 46, RuleCommand_rename = 47, RuleCommand_nop = 48, 
     RuleCommand_reload = 49, RuleCommand_restart = 50, RuleCommand_mode = 51, 
-    RuleCommand_open = 52, RuleCommand_scratchpad = 53, RuleCommand_title_format = 54, 
-    RuleCommand_title_window_icon = 55, RuleCriteria = 56, RuleCriterion = 57, 
-    RuleValue_criterion = 58
+    RuleCommand_open = 52, RuleCommand_title_format = 53, RuleCommand_title_window_icon = 54, 
+    RuleCriteria = 55, RuleCriterion = 56, RuleValue_criterion = 57
   };
 
   explicit configGrammar(antlr4::TokenStream *input);
@@ -128,7 +127,6 @@ public:
   class Command_restartContext;
   class Command_modeContext;
   class Command_openContext;
-  class Command_scratchpadContext;
   class Command_title_formatContext;
   class Command_title_window_iconContext;
   class CriteriaContext;
@@ -638,7 +636,6 @@ public:
     Command_nopContext *command_nop();
     Command_reloadContext *command_reload();
     Command_restartContext *command_restart();
-    Command_scratchpadContext *command_scratchpad();
     Command_title_formatContext *command_title_format();
     Command_title_window_iconContext *command_title_window_icon();
 
@@ -945,20 +942,6 @@ public:
   };
 
   Command_openContext* command_open();
-
-  class  Command_scratchpadContext : public antlr4::ParserRuleContext {
-  public:
-    Command_scratchpadContext(antlr4::ParserRuleContext *parent, size_t invokingState);
-    virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *COMMAND_SCRATCHPAD();
-    antlr4::tree::TerminalNode *COMMAND_STRING();
-
-    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
-    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
-   
-  };
-
-  Command_scratchpadContext* command_scratchpad();
 
   class  Command_title_formatContext : public antlr4::ParserRuleContext {
   public:

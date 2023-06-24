@@ -44,7 +44,6 @@
 #include "output.h"
 #include "ewmh.h"
 #include "startup.h"
-#include "scratchpad.h"
 #include "bindings.h"
 #include "sync.h"
 
@@ -59,6 +58,7 @@
 #include <ranges>
 #include <span>
 #include "global.h"
+#include "ipc.h"
 #include <config.h>
 
 /* After mapping/unmapping windows, a notify event is generated. However, we don’t want it,
@@ -332,11 +332,6 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
     DLOG("Configure request!\n");
 
     Con *workspace = con->con_get_workspace();
-    if (workspace && (strcmp(workspace->name.c_str(), "__i3_scratch") == 0)) {
-        DLOG("This is a scratchpad container, ignoring ConfigureRequest\n");
-        fake_absolute_configure_notify(con);
-        return;
-    }
     Con *fullscreen = workspace ? workspace->con_get_fullscreen_covering_ws() : nullptr;
 
     if (fullscreen != con && con->con_is_floating() && con->con_is_leaf()) {
@@ -470,8 +465,6 @@ void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
     global.croot->rect.height = reply->height;
 
     global.randr->randr_query_outputs();
-
-    scratchpad_fix_resolution();
 
     ipc_send_event("output", I3_IPC_EVENT_OUTPUT, R"({"change":"unspecified"})");
 }
@@ -753,32 +746,18 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
             return;
         }
 
-        if (ws->con_is_internal() && ws != workspace_get("__i3_scratch")) {
-            DLOG("Workspace is internal but not scratchpad, ignoring _NET_ACTIVE_WINDOW\n");
-            return;
-        }
-
         /* data32[0] indicates the source of the request (application or pager) */
         if (event->data.data32[0] == 2) {
             /* Always focus the con if it is from a pager, because this is most
              * likely from some user action */
             DLOG(fmt::sprintf("This request came from a pager. Focusing con = %p\n",  (void*)con));
 
-            if (ws->con_is_internal()) {
-                scratchpad_show(con);
-            } else {
-                workspace_show(ws);
-                /* Re-set focus, even if unchanged from i3’s perspective. */
-                global.x->focused_id = XCB_NONE;
-                con->con_activate_unblock();
-            }
+            workspace_show(ws);
+            /* Re-set focus, even if unchanged from i3’s perspective. */
+            global.x->focused_id = XCB_NONE;
+            con->con_activate_unblock();
         } else {
             /* Request is from an application. */
-            if (ws->con_is_internal()) {
-                DLOG(fmt::sprintf("Ignoring request to make con = %p active because it's on an internal workspace.\n",  (void*)con));
-                return;
-            }
-
             if (config.focus_on_window_activation == FOWA_FOCUS || (config.focus_on_window_activation == FOWA_SMART && workspace_is_visible(ws))) {
                 DLOG(fmt::sprintf("Focusing con = %p\n",  (void*)con));
                 con->con_activate_unblock();

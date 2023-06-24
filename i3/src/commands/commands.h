@@ -269,18 +269,6 @@ namespace cmd {
     void move_window_to_mouse(struct criteria_state &criteria_state, struct CommandResultIR &cmd_output);
 
     /**
-     * Implementation of 'move scratchpad'.
-     *
-     */
-    void move_scratchpad(struct criteria_state &criteria_state, struct CommandResultIR &cmd_output);
-
-    /**
-     * Implementation of 'scratchpad show'.
-     *
-     */
-    void scratchpad_show(struct criteria_state &criteria_state, struct CommandResultIR &cmd_output);
-
-    /**
      * Implementation of 'title_format <format>'
      *
      */

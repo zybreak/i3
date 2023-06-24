@@ -18,6 +18,7 @@
 
 #include "i3string.h"
 #include "log.h"
+#include "ipc.h"
 #include "draw.h"
 #include "font.h"
 #include "wrapper.h"

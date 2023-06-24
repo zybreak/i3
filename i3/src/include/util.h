@@ -54,23 +54,6 @@ int ws_name_to_number(const std::string &name);
 bool update_if_necessary(uint32_t *destination, const uint32_t new_value);
 
 /**
- * exec()s an i3 utility, for example the config file migration script or
- * i3-nagbar. This function first searches $PATH for the given utility named,
- * then falls back to the dirname() of the i3 executable path and then falls
- * back to the dirname() of the target of /proc/self/exe (on linux).
- *
- * This function should be called after fork()ing.
- *
- * The first argument of the given argv vector will be overwritten with the
- * executable name, so pass NULL.
- *
- * If the utility cannot be found in any of these locations, it exits with
- * return code 2.
- *
- */
-void exec_i3_utility(char *name, char *argv[]);
-
-/**
  * Restart i3 in-place
  * appends -a to argument list to disable autostart
  *

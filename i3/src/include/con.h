@@ -308,7 +308,7 @@ public:
      * Returns true when this con is a leaf node with a managed X11 window (e.g.,
      * excluding dock containers)
      */
-    bool con_has_managed_window();
+    virtual bool con_has_managed_window();
 
     /**
      * Returns true if a container should be considered split.
@@ -362,12 +362,6 @@ public:
      *
      */
     Con *con_get_fullscreen_covering_ws();
-
-    /**
-     * Returns true if the container is internal, such as __i3_scratch
-     *
-     */
-    bool con_is_internal() const;
 
     /**
      * Returns true if the node is floating.
@@ -562,11 +556,10 @@ class WorkspaceCon : public Con {
      * layout whenever a new container is attached to the workspace. */
     layout_t workspace_layout;
 
-    WorkspaceCon() : Con(nullptr, nullptr, false) {
+    WorkspaceCon() : Con(nullptr, false) {
         this->type = CT_WORKSPACE;
         this->workspace_layout = L_DEFAULT;
     }
-    bool con_accepts_window() override;
     void con_attach(Con *parent, bool ignore_focus, Con *previous = nullptr) override;
     FloatingCon *con_inside_floating() override;
 };
@@ -586,7 +579,7 @@ namespace con {
  * container exists.
  *
  */
-Con *con_by_window_id(xcb_window_t window);
+ConCon *con_by_window_id(xcb_window_t window);
 
 /**
  * Returns the container with the given frame ID or NULL if no such container

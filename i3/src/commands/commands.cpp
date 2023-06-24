@@ -39,14 +39,13 @@
 #include "output.h"
 #include "ewmh.h"
 #include "startup.h"
-#include "scratchpad.h"
 #include "commands.h"
 #include "commands_parser.h"
 #include "bindings.h"
-#include "config_parser.h"
 #include "restore_layout.h"
 #include "criteria_state.h"
 #include "nagbar.h"
+#include "ipc.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -1024,9 +1023,6 @@ namespace cmd {
         bool success = false;
         for (auto current: criteria_state.owindows) {
             WorkspaceCon *ws = current->con_get_workspace();
-            if (ws->con_is_internal()) {
-                continue;
-            }
 
             Output *current_output = get_output_for_con(ws);
 
@@ -1236,7 +1232,7 @@ namespace cmd {
 
         for (auto current: criteria_state.owindows) {
             Con *ws = current->con_get_workspace();
-            if (!ws || ws->con_is_internal()) {
+            if (!ws) {
                 continue;
             }
             if (auto_direction) {
@@ -1262,7 +1258,7 @@ namespace cmd {
         const position_t direction = (STARTS_WITH(direction_str, "prev")) ? BEFORE : AFTER;
         for (auto current: criteria_state.owindows) {
             Con *ws = current->con_get_workspace();
-            if (!ws || ws->con_is_internal()) {
+            if (!ws) {
                 continue;
             }
             Con *next = get_tree_next_sibling(current, direction);
@@ -1367,22 +1363,12 @@ namespace cmd {
 
         CMD_FOCUS_WARN_CHILDREN(criteria_state);
 
-        Con *i3_scratch = workspace_get("__i3_scratch");
         for (auto current: criteria_state.owindows) {
             Con *ws = current->con_get_workspace();
             /* If no workspace could be found, this was a dock window.
              * Just skip it, you cannot focus dock windows. */
             if (!ws)
                 continue;
-
-            /* In case this is a scratchpad window, call scratchpad_show(). */
-            if (ws == i3_scratch) {
-                scratchpad_show(current);
-                /* While for the normal focus case we can change focus multiple
-                 * times and only a single window ends up focused, we could show
-                 * multiple scratchpad windows. So, rather break here. */
-                break;
-            }
 
             LOG(fmt::sprintf("focusing %p / %s\n",  (void*)current, current->name));
             current->con_activate_unblock();
@@ -1780,47 +1766,6 @@ namespace cmd {
 
         cmd_output.needs_tree_render = true;
         ysuccess(cmd_output.json_gen, true);
-    }
-
-/*
- * Implementation of 'move scratchpad'.
- *
- */
-    void move_scratchpad(struct criteria_state &criteria_state, struct CommandResultIR &cmd_output) {
-        DLOG("should move window to scratchpad\n");
-
-        HANDLE_EMPTY_MATCH(criteria_state);
-
-        for (auto current: criteria_state.owindows) {
-            DLOG(fmt::sprintf("matching: %p / %s\n",  (void*)current, current->name));
-            scratchpad_move(current);
-        }
-
-        cmd_output.needs_tree_render = true;
-        // XXX: default reply for now, make this a better reply
-        ysuccess(cmd_output.json_gen, true);
-    }
-
-/*
- * Implementation of 'scratchpad show'.
- *
- */
-    void scratchpad_show(struct criteria_state &criteria_state, struct CommandResultIR &cmd_output) {
-        DLOG("should show scratchpad window\n");
-        bool result = false;
-
-        if (match_is_empty(criteria_state.current_match)) {
-            result = ::scratchpad_show(nullptr);
-        } else {
-            for (auto current: criteria_state.owindows) {
-                DLOG(fmt::sprintf("matching: %p / %s\n",  (void*)current, current->name));
-                result |= ::scratchpad_show(current);
-            }
-        }
-
-        cmd_output.needs_tree_render = true;
-
-        ysuccess(cmd_output.json_gen, result);
     }
 
 /*

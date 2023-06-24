@@ -173,9 +173,6 @@ public:
   virtual void enterCommand_open(configGrammar::Command_openContext *ctx) = 0;
   virtual void exitCommand_open(configGrammar::Command_openContext *ctx) = 0;
 
-  virtual void enterCommand_scratchpad(configGrammar::Command_scratchpadContext *ctx) = 0;
-  virtual void exitCommand_scratchpad(configGrammar::Command_scratchpadContext *ctx) = 0;
-
   virtual void enterCommand_title_format(configGrammar::Command_title_formatContext *ctx) = 0;
   virtual void exitCommand_title_format(configGrammar::Command_title_formatContext *ctx) = 0;
 

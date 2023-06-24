@@ -27,7 +27,6 @@ COMMAND_FLOATING: 'floating';
 COMMAND_RESIZE: 'resize';
 COMMAND_RENAME: 'rename';
 COMMAND_NOP: 'nop';
-COMMAND_SCRATCHPAD: 'scratchpad';
 COMMAND_TITLE_FORMAT: 'title_format';
 COMMAND_TITLE_WINDOW_ICON: 'title_window_icon';
 COMMAND_MODE: 'mode';

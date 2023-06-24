@@ -47,7 +47,6 @@
 #include "output.h"
 #include "ewmh.h"
 #include "startup.h"
-#include "scratchpad.h"
 #include "bindings.h"
 #include "config_parser.h"
 #include "restore_layout.h"
@@ -80,6 +79,7 @@
 #include "atoms.h"
 #include "keysyms.h"
 #include "event_handler.h"
+#include "ipc.h"
 
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;
@@ -314,7 +314,7 @@ static Output *get_focused_output() {
 static void init_ipc() {
     int ipc_socket;
 
-    std::tie(current_socketpath, ipc_socket) = create_socket(config.ipc_socket_path);
+    std::tie(global.current_socketpath, ipc_socket) = create_socket(config.ipc_socket_path);
     if (ipc_socket == -1) {
         ELOG("Could not create the IPC socket, IPC disabled\n");
     } else {
@@ -397,7 +397,7 @@ static void start_i3bar() {
         std::string command = fmt::format("{} {} --bar_id={} --socket=\"{}\"",
                   barconfig->i3bar_command ? barconfig->i3bar_command : "exec i3bar",
                   barconfig->verbose ? "-V" : "",
-                  barconfig->id, current_socketpath);
+                  barconfig->id, global.current_socketpath);
         LOG(fmt::sprintf("Starting bar process: %s\n",  command));
         start_application(command, true);
     }
@@ -526,8 +526,6 @@ int main(int argc, char *argv[]) {
      * been disabled in the short time between writing the restart layout file
      * and restarting i3. See #2326. */
     force_disable_output(args);
-
-    scratchpad_fix_resolution();
 
     Output *output = get_focused_output();
     con_descend_focused(output->con->output_get_content())->con_activate();

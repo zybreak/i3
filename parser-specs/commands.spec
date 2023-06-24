@@ -34,7 +34,6 @@ state INITIAL:
   'resize' -> RESIZE
   'rename' -> RENAME
   'nop' -> NOP
-  'scratchpad' -> SCRATCHPAD
   'title_format' -> TITLE_FORMAT
   'title_window_icon' -> TITLE_WINDOW_ICON
   'mode' -> MODE
@@ -301,9 +300,7 @@ state RENAME_WORKSPACE_TO_NEW_NAME:
 # move <direction> [<amount> [px|ppt]]
 # move [window|container] [to] workspace [<str>|next|prev|next_on_output|prev_on_output|current]
 # move [window|container] [to] output <str>
-# move [window|container] [to] scratchpad
 # move workspace to [output] <str>
-# move scratchpad
 # move [window|container] [to] [absolute] position [ [<pos_x> [px|ppt] <pos_y> [px|ppt] ] | center ]
 # move [window|container] [to] position mouse|cursor|pointer
 state MOVE:
@@ -319,8 +316,6 @@ state MOVE:
       -> MOVE_WORKSPACE
   'output'
       -> MOVE_TO_OUTPUT
-  'scratchpad'
-      -> call cmd::move_scratchpad()
   direction = 'left', 'right', 'up', 'down'
       -> MOVE_DIRECTION
   method = 'position'
@@ -406,10 +401,6 @@ state NOP:
       -> call cmd::nop($comment)
   end
       -> call cmd::nop(NULL)
-
-state SCRATCHPAD:
-  'show'
-      -> call cmd::scratchpad_show()
 
 state TITLE_FORMAT:
   format = string

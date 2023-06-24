@@ -16,7 +16,7 @@
 
 #include <xcb/xcb.h>
 
-#include "i3string.h"
+#include "ipc.h"
 #include "log.h"
 #include "draw.h"
 #include "font.h"
