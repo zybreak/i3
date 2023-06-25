@@ -172,9 +172,6 @@ static void ewmh_update_wm_desktop_recursively(Con *con, const uint32_t desktop)
      * since showing it works on any workspace. We cannot remove the property
      * as per specification. */
     Con *ws = con->con_get_workspace();
-    if (ws != nullptr && ws->con_is_internal()) {
-        wm_desktop = NET_WM_DESKTOP_ALL;
-    }
 
     /* If this is the cached value, we don't need to do anything. */
     if (con->window->wm_desktop == wm_desktop)

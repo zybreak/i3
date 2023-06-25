@@ -518,7 +518,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     /* We ignore the hint for an internal workspace because windows in the
      * scratchpad also have this value, but upon restarting i3 we don't want
      * them to become sticky windows. */
-    if (cwindow->wm_desktop == NET_WM_DESKTOP_ALL && (ws == nullptr || !ws->con_is_internal())) {
+    if (cwindow->wm_desktop == NET_WM_DESKTOP_ALL) {
         DLOG("This window has _NET_WM_DESKTOP = 0xFFFFFFFF. Will float it and make it sticky.\n");
         nc->sticky = true;
         want_floating = true;

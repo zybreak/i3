@@ -521,6 +521,8 @@ class ConCon : public Con {
     ConCon(Con *parent = nullptr, i3Window *window = nullptr, bool skeleton = false) : Con(parent, window, skeleton) {
         this->type = CT_CON;
     }
+    bool con_has_managed_window() override;
+    bool con_accepts_window() override;
 };
 
 /* Wrap a floating ConCon in a FloatingCon. */
@@ -556,7 +558,7 @@ class WorkspaceCon : public Con {
      * layout whenever a new container is attached to the workspace. */
     layout_t workspace_layout;
 
-    WorkspaceCon() : Con(nullptr, false) {
+    WorkspaceCon() : Con(nullptr, nullptr, false) {
         this->type = CT_WORKSPACE;
         this->workspace_layout = L_DEFAULT;
     }
@@ -579,7 +581,7 @@ namespace con {
  * container exists.
  *
  */
-ConCon *con_by_window_id(xcb_window_t window);
+Con *con_by_window_id(xcb_window_t window);
 
 /**
  * Returns the container with the given frame ID or NULL if no such container

@@ -1410,8 +1410,8 @@ void x_set_name(Con *con, const std::string &name) {
 void x_set_i3_atoms() {
     pid_t pid = getpid();
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, A_I3_SOCKET_PATH, A_UTF8_STRING, 8,
-                        current_socketpath.length(),
-                        current_socketpath.c_str());
+                        global.current_socketpath.length(),
+                        global.current_socketpath.c_str());
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, A_I3_PID, XCB_ATOM_CARDINAL, 32, 1, &pid);
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, A_I3_CONFIG_PATH, A_UTF8_STRING, 8,
                         current_configpath.length(), current_configpath.c_str());

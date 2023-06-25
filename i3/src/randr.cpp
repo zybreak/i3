@@ -423,7 +423,7 @@ void init_ws_for_output(Output *output) {
      * list that would be updated during iteration by the
      * workspace_move_to_output function. */
     for (const auto &workspace : global.all_cons) {
-        if (workspace->type != CT_WORKSPACE || workspace->con_is_internal()) {
+        if (workspace->type != CT_WORKSPACE) {
             continue;
         }
 
@@ -937,7 +937,7 @@ void RandR::randr_query_outputs() {
      * restart's layout but the output is disabled by a randr query happening
      * at the same time. */
     for (auto &con : global.croot->nodes_head) {
-        if (!con->con_is_internal() && this->get_output_by_name(con->name, true) == nullptr) {
+        if (this->get_output_by_name(con->name, true) == nullptr) {
             DLOG(fmt::sprintf("No output %s found, moving its old content to first output\n",  con->name));
             move_content(con);
         }

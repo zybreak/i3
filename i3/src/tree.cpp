@@ -485,34 +485,39 @@ static Con *get_tree_next(Con *con, direction_t direction) {
             return first_wrap;
         }
 
-        WorkspaceCon *const parent = dynamic_cast<WorkspaceCon*>(con->parent);
+        Con *const parent = con->parent;
         if (con->type == CT_FLOATING_CON) {
+            auto floating_parent = dynamic_cast<WorkspaceCon*>(parent);
+            std::deque<Con*> floating_windows{};
+            if (floating_parent) {
+                floating_windows = floating_parent->floating_windows;
+            }
             if (orientation != HORIZ) {
                 /* up/down does not change floating containers */
                 return nullptr;
             }
 
             /* left/right focuses the previous/next floating container */
-            auto con_it = std::ranges::find(parent->floating_windows, con);
+            auto con_it = std::ranges::find(floating_windows, con);
 
             /* Our parent does not list us in floating heads? */
-            assert(con_it != parent->floating_windows.end());
+            assert(con_it != floating_windows.end());
 
             Con *next;
 
-            if (con_it == parent->floating_windows.begin()) {
+            if (con_it == floating_windows.begin()) {
                 if (previous) {
                     /* If there is no next/previous container, wrap */
-                    next = parent->floating_windows.back();
+                    next = floating_windows.back();
                 } else {
-                    next = (std::next(con_it) == parent->floating_windows.end()) ? nullptr : *std::next(con_it);
+                    next = (std::next(con_it) == floating_windows.end()) ? nullptr : *std::next(con_it);
                 }
-            } else if ((con_it+1) == parent->floating_windows.end()) {
+            } else if ((con_it+1) == floating_windows.end()) {
                 if (previous) {
-                    next = (con_it == parent->floating_windows.begin()) ? nullptr : *std::prev(con_it);
+                    next = (con_it == floating_windows.begin()) ? nullptr : *std::prev(con_it);
                 } else {
                     /* If there is no next/previous container, wrap */
-                    next = parent->floating_windows.front();
+                    next = floating_windows.front();
                 }
             } else {
                 next = previous ? *std::prev(con_it) : *std::next(con_it);

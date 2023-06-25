@@ -1689,7 +1689,8 @@ void con_set_layout(Con *con, layout_t layout) {
         } else if (layout == L_STACKED || layout == L_TABBED || layout == L_SPLITV || layout == L_SPLITH) {
             DLOG("Creating new split container\n");
             /* 1: create a new split container */
-            Con *new_con = new ConCon(con);
+            Con *new_con = new ConCon();
+            new_con->parent = con;
 
             /* 2: Set the requested layout on the split container and mark it as
              * split. */

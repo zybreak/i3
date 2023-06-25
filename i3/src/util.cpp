@@ -46,6 +46,7 @@
 #include <unistd.h>
 #include <fmt/core.h>
 #include "global.h"
+#include "ipc.h"
 
 #if defined(__OpenBSD__)
 #include <sys/cdefs.h>
