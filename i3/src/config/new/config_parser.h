@@ -14,7 +14,7 @@ private:
 
 public:
     NewParser(const ResourceDatabase& resourceDatabase, std::istream *stream, config_load_t load_type, BaseConfigApplier &applier);
-    parse_file_result_t parse_file();
+    parse_file_result_t parse_file() override;
 
     std::istream *stream;
     config_load_t load_type;

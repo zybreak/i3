@@ -97,6 +97,6 @@ public:
     struct parser_ctx ctx{};
     OldParser(const char *filename, struct parser_ctx &parent_ctx);
     OldParser(const char *filename, config_load_t load_type);
-    ~OldParser();
-    parse_file_result_t parse_file();
+    ~OldParser() override;
+    parse_file_result_t parse_file() override;
 };
