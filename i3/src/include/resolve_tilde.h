@@ -8,4 +8,4 @@
  * or multiple matches are found, it just returns a copy of path as given.
  *
  */
-std::string resolve_tilde(const std::string_view &path);
+std::string resolve_tilde(const std::string_view path);

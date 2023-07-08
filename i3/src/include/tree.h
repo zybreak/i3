@@ -84,7 +84,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
  * Loads tree from ~/.i3/_restart.json (used for in-place restarts).
  *
  */
-bool tree_restore(const std::string_view  &path, const xcb_get_geometry_reply_t *geometry);
+bool tree_restore(const std::string_view  path, const xcb_get_geometry_reply_t *geometry);
 
 /**
  * tree_flatten() removes pairs of redundant split containers, e.g.:

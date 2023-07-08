@@ -50,7 +50,7 @@
  * Loads tree from 'path' (used for in-place restarts).
  *
  */
-bool tree_restore(const std::string_view &path, const xcb_get_geometry_reply_t *geometry) {
+bool tree_restore(const std::string_view path, const xcb_get_geometry_reply_t *geometry) {
     bool result = false;
     auto globbed = resolve_tilde(path);
     std::string buf;

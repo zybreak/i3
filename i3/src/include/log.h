@@ -33,7 +33,7 @@ void set_verbosity(bool _verbose);
  *
  */
 inline __attribute__((always_inline))
-void LOG(const std::string_view &msg) {
+void LOG(const std::string_view msg) {
     if (!get_verbosity())
         return;
 
@@ -45,7 +45,7 @@ void LOG(const std::string_view &msg) {
  *
  */
 inline __attribute__((always_inline))
-void ELOG(const std::string_view &msg) {
+void ELOG(const std::string_view msg) {
     std::cerr << fmt::format("ERROR: {}", msg);
 }
 
@@ -56,7 +56,7 @@ void ELOG(const std::string_view &msg) {
  *
  */
 inline __attribute__((always_inline))
-void DLOG(const std::string_view &msg) {
+void DLOG(const std::string_view msg) {
     if (!(get_debug_logging()))
         return;
 
