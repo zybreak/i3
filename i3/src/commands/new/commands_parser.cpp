@@ -27,7 +27,6 @@
 #include <antlr4-runtime.h>
 
 #include "i3-ipc.h"
-#include "../commands.h"
 #include "../commands_parser.h"
 #include "parser-specs/commandsLexer.h"
 #include "parser-specs/commandsGrammar.h"

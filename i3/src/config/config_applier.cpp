@@ -34,7 +34,7 @@
 #include "config_parser.h"
 #include "global.h"
 #include "base_config_applier.h"
-#include "../base_parser.h"
+#include "base_parser.h"
 
 #include <wordexp.h>
 #include <autostarts.h>

@@ -30,8 +30,10 @@ struct Variable {
     ~Variable();
 };
 
-struct parser_ctx {
+class parser_ctx {
+   public:
     config_load_t load_type;
+    BaseConfigApplier &applier;
     int state;
     struct criteria_state criteria_state{};
 
@@ -52,7 +54,11 @@ struct parser_ctx {
 
     std::vector<std::shared_ptr<Variable>> variables{};
 
-    bool has_errors;
+    bool has_errors{false};
+
+    parser_ctx(BaseConfigApplier &applier, config_load_t load_type);
+
+    ~parser_ctx() = default;
 };
 
 /**
@@ -94,9 +100,9 @@ private:
     FILE *fstr;
 public:
     struct parser_ctx *parent_ctx = nullptr;
-    struct parser_ctx ctx{};
-    OldParser(const char *filename, struct parser_ctx &parent_ctx);
-    OldParser(const char *filename, config_load_t load_type);
+    struct parser_ctx ctx;
+    OldParser(const char *filename, struct parser_ctx &parent_ctx, BaseConfigApplier &applier);
+    OldParser(const char *filename, config_load_t load_type, BaseConfigApplier &applier);
     ~OldParser() override;
     parse_file_result_t parse_file() override;
 };

@@ -60,6 +60,7 @@ list(APPEND i3_src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/commands_parser.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/con.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/configuration.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/config/config_applier.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/drag.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ewmh.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/floating.cpp
@@ -107,7 +108,7 @@ list(APPEND i3_src
         )
 
 
-add_subdirectory(src/commands/new)
+#add_subdirectory(src/commands/new)
 add_subdirectory(src/commands/old)
 add_subdirectory(src/config/new)
 add_subdirectory(src/config/old)
@@ -120,7 +121,7 @@ add_dependencies(i3_lib libi3ipc)
 
 add_executable(i3
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
-target_link_libraries(i3 PUBLIC i3_lib i3_commands_new i3_commands_old i3_config_new i3_config_old)
+target_link_libraries(i3 PUBLIC i3_lib i3_commands_old i3_config_new i3_config_old)
 target_include_directories(i3 PUBLIC ${include_dirs} "${CMAKE_CURRENT_SOURCE_DIR}/src/config/old")
 
 add_subdirectory(test)

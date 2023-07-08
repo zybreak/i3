@@ -3,11 +3,9 @@
 #include "parser-specs/configLexer.h"
 #include "parser-specs/configGrammar.h"
 #include "parser-specs/configGrammarBaseListener.h"
-#include "base_config_applier.h"
-#include "criteria_state.h"
+#include "../base_config_applier.h"
 #include "config_parser.h"
 #include "fn.hpp"
-#include "config_applier.h"
 #include "resource_database.h"
 #include <ranges>
 #include <utility>
@@ -332,7 +330,7 @@ public:
 
 };
 
-NewParser::NewParser(const ResourceDatabase& resourceDatabase, std::istream *stream, config_load_t load_type, BaseConfigApplier &applier) : applier(applier), stream(stream), load_type(load_type), resourceDatabase(resourceDatabase) {
+NewParser::NewParser(const ResourceDatabase& resourceDatabase, std::istream *stream, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier), stream(stream), load_type(load_type), resourceDatabase(resourceDatabase) {
 
 }
 

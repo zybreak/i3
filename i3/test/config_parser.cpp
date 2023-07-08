@@ -1,9 +1,10 @@
 #include "config_parser.h"
 #include "parser_stack.h"
+#include "config/config_applier.h"
 #include <stdio.h>
 #include <configuration.h>
 
-bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *filename);
+bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *filename, BaseConfigApplier &applier);
 
 /*******************************************************************************
  * Code for building the stand-alone binary test.commands_parser which is used
@@ -21,5 +22,7 @@ int main(int argc, char *argv[]) {
         content += c;
     }
 
-    parse_config(ctx, content, "<stdin>");
+    ConfigApplier applier{};
+
+    parse_config(ctx, content, "<stdin>", applier);
 }

@@ -4,7 +4,6 @@ find_package(antlr4-runtime 4.11.1 REQUIRED)
 
 add_library(i3_commands_new STATIC
         ${CMAKE_CURRENT_SOURCE_DIR}/../../boolstr.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/../commands.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/commands_parser.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/parser-specs/commandsGrammarBaseListener.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/parser-specs/commandsLexer.cpp

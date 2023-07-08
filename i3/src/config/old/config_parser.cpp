@@ -706,13 +706,12 @@ static char* replace_variables(char *n, char *buf, __off_t size, parser_ctx &ctx
 }
 
 
-OldParser::OldParser(const char *filename, struct parser_ctx &parent_ctx) : OldParser(filename, parent_ctx.load_type) {
+OldParser::OldParser(const char *filename, struct parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, parent_ctx.load_type, applier) {
     this->parent_ctx = &parent_ctx;
     this->ctx.variables = parent_ctx.variables;
 }
 
-OldParser::OldParser(const char *filename, config_load_t load_type) : filename(filename) {
-    this->ctx.load_type = load_type;
+OldParser::OldParser(const char *filename, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier), filename(filename), ctx(applier, load_type) {
     this->old_dir = get_current_dir_name();
     char *dir = nullptr;
     /* dirname(3) might modify the buffer, so make a copy: */
@@ -752,7 +751,7 @@ parse_file_result_t OldParser::parse_file() {
         return PARSE_FILE_FAILED;
     }
 
-    char *buf = (char*)scalloc(stbuf.st_size + 1, 1);
+    char *buf = (char*)calloc(stbuf.st_size + 1, 1);
 
 #ifndef TEST_PARSER
     if (current_config == nullptr) {
@@ -813,3 +812,6 @@ parse_file_result_t OldParser::parse_file() {
     return PARSE_FILE_SUCCESS;
 }
 
+parser_ctx::parser_ctx(BaseConfigApplier &applier, config_load_t load_type)
+    : applier(applier), load_type(load_type) {
+}

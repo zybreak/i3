@@ -39,7 +39,7 @@
 
 #include "parser_stack.h"
 #include "i3-ipc.h"
-#include "../commands.h"
+#include "commands.h"
 #include "../commands_parser.h"
 
 /*******************************************************************************

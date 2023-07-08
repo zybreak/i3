@@ -36,10 +36,10 @@
 #include "configuration.h"
 #include "match.h"
 #include "bindings.h"
-#include "config_parser.h"
+#include "config/old/config_parser.h"
 #include "global.h"
 #include "config/new/config_parser.h"
-#include "config/new/config_applier.h"
+#include "config/config_applier.h"
 
 using namespace std::literals;
 
@@ -287,6 +287,8 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     ResourceDatabase resourceDatabase{*global.x->conn};
     parse_file_result_t result;
     try {
+        ConfigApplier configListener{};
+
         if (global.new_parser) {
             std::string filename = resolved_path;
             std::istream *stream;
@@ -299,11 +301,10 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
                 stream = &if_stream;
             }
 
-            ConfigApplier configListener{};
             NewParser np{ resourceDatabase, stream, load_type, configListener };
             result = np.parse_file();
         } else {
-            OldParser op = OldParser{ resolved_path, load_type };
+            OldParser op = OldParser{ resolved_path, load_type, configListener };
             result = op.parse_file();
         }
         if (result == PARSE_FILE_FAILED) {

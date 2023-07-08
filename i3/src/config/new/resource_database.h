@@ -1,6 +1,5 @@
 #pragma once
 
-#include "base_config_applier.h"
 #include <ranges>
 #include <xcb/xcb_xrm.h>
 
