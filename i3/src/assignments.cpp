@@ -77,14 +77,14 @@ void run_assignments(i3Window *window) {
  * Returns the first matching assignment for the given window.
  *
  */
-Assignment* assignment_for(i3Window *window, assignment_type_t type) {
+std::optional<std::reference_wrapper<Assignment>> assignment_for(i3Window *window, assignment_type_t type) {
     for (const auto &assignment : global.assignments) {
         if ((type != A_ANY && (assignment->type & type) == 0) ||
                 (assignment->match == nullptr || !match_matches_window(*assignment->match, window)))
             continue;
         DLOG("got a matching assignment\n");
-        return assignment.get();
+        return *assignment;
     }
 
-    return nullptr;
+    return std::nullopt;
 }

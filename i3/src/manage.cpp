@@ -330,24 +330,24 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     const bool match_from_restart_mode = (match && match->restart_mode);
     if (nc == nullptr) {
         Con *wm_desktop_ws = nullptr;
-        Assignment* assignment;
+        auto assignmentOpt = assignment_for(cwindow, A_TO_WORKSPACE).or_else([&] () { return assignment_for(cwindow, A_TO_WORKSPACE_NUMBER); });
 
         /* If not, check if it is assigned to a specific workspace */
-        if ((assignment = assignment_for(cwindow, A_TO_WORKSPACE)) ||
-            (assignment = assignment_for(cwindow, A_TO_WORKSPACE_NUMBER))) {
+        if (assignmentOpt.has_value()) {
+            Assignment &assignment = assignmentOpt->get();
             DLOG(fmt::sprintf("Assignment matches (%p)\n",  (void*)match));
-            auto workspaceAssignment = dynamic_cast<WorkspaceAssignment*>(assignment);
+            auto workspaceAssignment = dynamic_cast<WorkspaceAssignment&>(assignment);
 
             Con *assigned_ws = nullptr;
-            if (assignment->type == A_TO_WORKSPACE_NUMBER) {
-                long parsed_num = ws_name_to_number(workspaceAssignment->workspace);
+            if (assignment.type == A_TO_WORKSPACE_NUMBER) {
+                long parsed_num = ws_name_to_number(workspaceAssignment.workspace);
 
                 assigned_ws = get_existing_workspace_by_num(parsed_num);
             }
             /* A_TO_WORKSPACE type assignment or fallback from A_TO_WORKSPACE_NUMBER
              * when the target workspace number does not exist yet. */
             if (!assigned_ws) {
-                assigned_ws = workspace_get(workspaceAssignment->workspace);
+                assigned_ws = workspace_get(workspaceAssignment.workspace);
             }
 
             nc = con_descend_tiling_focused(assigned_ws);
@@ -393,10 +393,10 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             } else
                 nc = tree_open_con(nullptr, cwindow);
         }
-
-        if ((assignment = assignment_for(cwindow, A_TO_OUTPUT))) {
-            auto outputAssignment = dynamic_cast<OutputAssignment*>(assignment);
-            con_move_to_output_name(nc, outputAssignment->output, true);
+        auto outputAssignmentOpt = assignment_for(cwindow, A_TO_OUTPUT);
+        if (outputAssignmentOpt.has_value()) {
+            auto outputAssignment = dynamic_cast<OutputAssignment&>(outputAssignmentOpt->get());
+            con_move_to_output_name(nc, outputAssignment.output, true);
         }
     } else {
         /* M_BELOW inserts the new window as a child of the one which was
@@ -668,7 +668,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     /* Send an event about window creation */
     ipc_send_window_event("new", nc);
 
-    if (set_focus && assignment_for(cwindow, A_NO_FOCUS) != nullptr) {
+    if (set_focus && assignment_for(cwindow, A_NO_FOCUS).has_value()) {
         /* The first window on a workspace should always be focused. We have to
          * compare with == 1 because the container has already been inserted at
          * this point. */

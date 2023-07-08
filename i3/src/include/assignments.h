@@ -82,4 +82,4 @@ void run_assignments(i3Window *window);
  * Returns the first matching assignment for the given window.
  *
  */
-Assignment* assignment_for(i3Window *window, assignment_type_t type);
+std::optional<std::reference_wrapper<Assignment>> assignment_for(i3Window *window, assignment_type_t type);
