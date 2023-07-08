@@ -92,7 +92,7 @@ void ConfigApplier::exec(const std::string &exectype, bool no_startup_id,
 }
 
 void ConfigApplier::for_window(Match &current_match, const std::string &command) {
-    if (match_is_empty(current_match)) {
+    if (current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this for_window statement\n");
         return;
     }
@@ -325,7 +325,7 @@ void ConfigApplier::color(const std::string &colorclass, const std::string &bord
 }
 
 void ConfigApplier::assign_output(Match &current_match, const std::string &output) {
-    if (match_is_empty(current_match)) {
+    if (current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;
     }
@@ -344,7 +344,7 @@ void ConfigApplier::assign_output(Match &current_match, const std::string &outpu
 }
 
 void ConfigApplier::assign(Match &current_match, const std::string &workspace, bool is_number) {
-    if (match_is_empty(current_match)) {
+    if (current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;
     }
@@ -368,7 +368,7 @@ void ConfigApplier::assign(Match &current_match, const std::string &workspace, b
 }
 
 void ConfigApplier::no_focus(Match &current_match) {
-    if (match_is_empty(current_match)) {
+    if (current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;
     }

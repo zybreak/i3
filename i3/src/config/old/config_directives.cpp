@@ -162,7 +162,7 @@ namespace cfg {
     }
 
     void for_window(struct criteria_state &criteria_state, struct ConfigResultIR &result, const char *command) {
-        if (match_is_empty(criteria_state.current_match)) {
+        if (criteria_state.current_match.match_is_empty()) {
             //ELOG("Match is empty, ignoring this for_window statement\n");
             return;
         }
@@ -258,7 +258,7 @@ namespace cfg {
     }
 
     void assign_output(struct criteria_state &criteria_state, struct ConfigResultIR &result, const char *output) {
-        if (match_is_empty(criteria_state.current_match)) {
+        if (criteria_state.current_match.match_is_empty()) {
             ELOG("Match is empty, ignoring this assignment\n");
             return;
         }
@@ -274,7 +274,7 @@ namespace cfg {
     }
 
     void assign(struct criteria_state &criteria_state, struct ConfigResultIR &result, const char *workspace, bool is_number) {
-        if (match_is_empty(criteria_state.current_match)) {
+        if (criteria_state.current_match.match_is_empty()) {
             ELOG("Match is empty, ignoring this assignment\n");
             return;
         }
@@ -288,7 +288,7 @@ namespace cfg {
     }
 
     void no_focus(struct criteria_state &criteria_state, struct ConfigResultIR &result) {
-        if (match_is_empty(criteria_state.current_match)) {
+        if (criteria_state.current_match.match_is_empty()) {
             ELOG("Match is empty, ignoring this assignment\n");
             return;
         }

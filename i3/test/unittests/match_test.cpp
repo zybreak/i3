@@ -4,7 +4,7 @@
 TEST(MatchTest, IsNotInitialized){
     Match m{};
 
-    ASSERT_TRUE(match_is_empty(m));
+    ASSERT_TRUE(m.match_is_empty());
 }
 
 TEST(MatchTest, IsInitialized){
@@ -12,7 +12,7 @@ TEST(MatchTest, IsInitialized){
 
     m.parse_property("class", "foo");
 
-    ASSERT_FALSE(match_is_empty(m));
+    ASSERT_FALSE(m.match_is_empty());
 }
 
 TEST(MatchTest, MatchesWindowClass){
@@ -21,7 +21,7 @@ TEST(MatchTest, MatchesWindowClass){
     m.dock = M_DONTCHECK;
     m.parse_property("class", "foo");
 
-    EXPECT_FALSE(match_is_empty(m));
+    EXPECT_FALSE(m.match_is_empty());
 
     i3Window w{};
     w.class_class = sstrdup("foo");
@@ -34,7 +34,7 @@ TEST(MatchTest, MatchesUrgentLatest){
 
     m.urgent = U_LATEST;
 
-    EXPECT_FALSE(match_is_empty(m));
+    EXPECT_FALSE(m.match_is_empty());
 
     i3Window w{};
     w.class_class = sstrdup("foo");
@@ -59,7 +59,7 @@ TEST(MatchTest, MatchesUrgentOldest){
 
     m.urgent = U_OLDEST;
 
-    EXPECT_FALSE(match_is_empty(m));
+    EXPECT_FALSE(m.match_is_empty());
 
     i3Window w{};
     w.class_class = sstrdup("foo");

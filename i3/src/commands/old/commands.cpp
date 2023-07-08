@@ -131,7 +131,7 @@ static void HANDLE_EMPTY_MATCH(struct criteria_state &criteria_state) {
         throw std::runtime_error(fmt::sprintf("Invalid match: %s", criteria_state.current_match.error));
     }
 
-    if (match_is_empty(criteria_state.current_match)) {
+    if (criteria_state.current_match.match_is_empty()) {
         criteria_state.owindows.clear();
         criteria_state.owindows.push_back(global.focused);
     }
@@ -277,7 +277,7 @@ namespace cmd {
             }
 
             if (current->window != nullptr) {
-                if (match_matches_window(criteria_state.current_match, current->window)) {
+                if (criteria_state.current_match.match_matches_window(current->window)) {
                     DLOG("matches window!\n");
                     accept_match = true;
                 } else {
@@ -1352,7 +1352,7 @@ namespace cmd {
     void focus(struct criteria_state &criteria_state, struct CommandResultIR &cmd_output) {
         DLOG(fmt::sprintf("criteria_state.current_match = %p\n",  (void*)&criteria_state.current_match));
 
-        if (match_is_empty(criteria_state.current_match)) {
+        if (criteria_state.current_match.match_is_empty()) {
             ELOG("You have to specify which window/container should be focused.\n");
             ELOG("Example: [class=\"urxvt\" title=\"irssi\"] focus\n");
 
@@ -1533,7 +1533,7 @@ namespace cmd {
         DLOG(fmt::sprintf("toggling layout (mode = %s)\n",  toggle_mode));
 
         /* check if the match is empty, not if the result is empty */
-        if (match_is_empty(criteria_state.current_match))
+        if (criteria_state.current_match.match_is_empty())
             con_toggle_layout(global.focused, toggle_mode);
         else {
             for (auto current: criteria_state.owindows) {

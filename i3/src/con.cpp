@@ -813,7 +813,7 @@ Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
 
     for (auto &child : con->nodes_head) {
         for (auto &match : child->swallow) {
-            if (!match_matches_window(*match, window))
+            if (!match->match_matches_window(window))
                 continue;
             if (store_match != nullptr)
                 *store_match = match.get();
@@ -827,7 +827,7 @@ Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
     if (dynamic_cast<WorkspaceCon*>(con)) {
         for (auto &child : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
             for (auto &match : child->swallow) {
-                if (!match_matches_window(*match, window))
+                if (!match->match_matches_window(window))
                     continue;
                 if (store_match != nullptr)
                     *store_match = match.get();

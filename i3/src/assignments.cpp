@@ -36,7 +36,7 @@ void run_assignments(i3Window *window) {
 
     /* Check if any assignments match */
     for (const auto &current : global.assignments) {
-        if (current->type != A_COMMAND || (current->match == nullptr || !match_matches_window(*current->match, window)))
+        if (current->type != A_COMMAND || (current->match == nullptr || !current->match->match_matches_window(window)))
             continue;
 
 
@@ -80,7 +80,7 @@ void run_assignments(i3Window *window) {
 std::optional<std::reference_wrapper<Assignment>> assignment_for(i3Window *window, assignment_type_t type) {
     for (const auto &assignment : global.assignments) {
         if ((type != A_ANY && (assignment->type & type) == 0) ||
-                (assignment->match == nullptr || !match_matches_window(*assignment->match, window)))
+                (assignment->match == nullptr || !assignment->match->match_matches_window(window)))
             continue;
         DLOG("got a matching assignment\n");
         return *assignment;

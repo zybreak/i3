@@ -94,7 +94,7 @@ public:
 
     Match() = default;
     Match(const Match &src);
-    Match(const Match &&src);
+    Match(Match &&src) noexcept;
     Match& operator=(Match &&src) noexcept;
     ~Match();
     /**
@@ -103,18 +103,17 @@ public:
      */
     void parse_property(const char *ctype, const char *cvalue);
 
+    /**
+     * Check if a match is empty. This is necessary while parsing commands to see
+     * whether the user specified a match at all.
+     *
+     */
+    bool match_is_empty();
+
+
+    /**
+     * Check if a match data structure matches the given window.
+     *
+     */
+    bool match_matches_window(i3Window *window);
 };
-
-/**
- * Check if a match is empty. This is necessary while parsing commands to see
- * whether the user specified a match at all.
- *
- */
-bool match_is_empty(Match &match);
-
-/**
- * Check if a match data structure matches the given window.
- *
- */
-bool match_matches_window(Match &match, i3Window *window);
-

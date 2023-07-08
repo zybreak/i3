@@ -23,7 +23,7 @@
 #include "match.h"
 #include "config_parser.h"
 
-bool match_is_empty(Match &match) {
+bool Match::match_is_empty() {
     return false;
 }
 

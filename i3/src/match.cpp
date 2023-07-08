@@ -46,24 +46,44 @@ static bool is_initialized(const Regex *regex) {
  * whether the user specified a match at all.
  *
  */
-bool match_is_empty(Match &match) {
+bool Match::match_is_empty() {
     /* we cannot simply use memcmp() because the structure is part of a
      * TAILQ and I don’t want to start with things like assuming that the
      * last member of a struct really is at the end in memory… */
-    return (!is_initialized(match.title) &&
-            !is_initialized(match.application) &&
-            !is_initialized(match.window_class) &&
-            !is_initialized(match.instance) &&
-            !is_initialized(match.window_role) &&
-            !is_initialized(match.workspace) &&
-            !is_initialized(match.machine) &&
-            match.urgent == U_DONTCHECK &&
-            match.id == XCB_NONE &&
-            match.window_type == UINT32_MAX &&
-            match.con_id == nullptr &&
-            match.dock == M_NODOCK &&
-            match.window_mode == WM_ANY &&
-            match.match_all_windows == false);
+    return (!is_initialized(this->title) &&
+            !is_initialized(this->application) &&
+            !is_initialized(this->window_class) &&
+            !is_initialized(this->instance) &&
+            !is_initialized(this->window_role) &&
+            !is_initialized(this->workspace) &&
+            !is_initialized(this->machine) &&
+            this->urgent == U_DONTCHECK &&
+            this->id == XCB_NONE &&
+            this->window_type == UINT32_MAX &&
+            this->con_id == nullptr &&
+            this->dock == M_NODOCK &&
+            this->window_mode == WM_ANY &&
+            this->match_all_windows == false);
+}
+
+Match::Match(Match &&src) noexcept {
+    std::swap(this->error, src.error);
+    std::swap(this->window_type, src.window_type);
+    std::swap(this->urgent, src.urgent);
+    std::swap(this->dock, src.dock);
+    std::swap(this->id, src.id);
+    std::swap(this->window_mode, src.window_mode);
+    std::swap(this->con_id, src.con_id);
+    std::swap(this->match_all_windows, src.match_all_windows);
+    std::swap(this->insert_where, src.insert_where);
+    std::swap(this->restart_mode, src.restart_mode);
+
+    std::swap(this->title, src.title);
+    std::swap(this->application, src.application);
+    std::swap(this->window_class, src.window_class);
+    std::swap(this->instance, src.instance);
+    std::swap(this->window_role, src.window_role);
+    std::swap(this->workspace, src.workspace);
 }
 
 Match& Match::operator=(Match &&src) noexcept {
@@ -136,15 +156,15 @@ void checkWindowField(Regex *match_field, i3Window *window, char* (*window_field
  * Check if a match data structure matches the given window.
  *
  */
-bool match_matches_window(Match &match, i3Window *window) {
+bool Match::match_matches_window(i3Window *window) {
     LOG(fmt::sprintf("Checking window 0x%08x (class %s)\n",  window->id, window->class_class));
 
     try {
-        checkWindowField(match.window_class, window, [](i3Window *window) { return window->class_class; });
-        checkWindowField(match.instance, window, [](i3Window *window) { return window->class_instance; });
+        checkWindowField(this->window_class, window, [](i3Window *window) { return window->class_class; });
+        checkWindowField(this->instance, window, [](i3Window *window) { return window->class_instance; });
 
-        if (match.id != XCB_NONE) {
-            if (window->id == match.id) {
+        if (this->id != XCB_NONE) {
+            if (window->id == this->id) {
                 LOG(fmt::sprintf("match made by window id (%d)\n", window->id));
             } else {
                 LOG("window id does not match\n");
@@ -152,24 +172,24 @@ bool match_matches_window(Match &match, i3Window *window) {
             }
         }
 
-        checkWindowField(match.title, window, [](i3Window *window) { return window->name != nullptr ? window->name->get_utf8() : nullptr; });
-        checkWindowField(match.window_role, window, [](i3Window *window) { return window->role; });
+        checkWindowField(this->title, window, [](i3Window *window) { return window->name != nullptr ? window->name->get_utf8() : nullptr; });
+        checkWindowField(this->window_role, window, [](i3Window *window) { return window->role; });
 
-        if (match.window_type != UINT32_MAX) {
-            if (window->window_type == match.window_type) {
-                LOG(fmt::sprintf("window_type matches (%i)\n", match.window_type));
+        if (this->window_type != UINT32_MAX) {
+            if (window->window_type == this->window_type) {
+                LOG(fmt::sprintf("window_type matches (%i)\n", this->window_type));
             } else {
                 return false;
             }
         }
 
-        checkWindowField(match.machine, window, [](i3Window *window) { return window->machine; });
+        checkWindowField(this->machine, window, [](i3Window *window) { return window->machine; });
     } catch (std::logic_error &e) {
         return false;
     }
 
     Con *con = nullptr;
-    if (match.urgent == U_LATEST) {
+    if (this->urgent == U_LATEST) {
         /* if the window isn't urgent, no sense in searching */
         if (window->urgent.tv_sec == 0) {
             return false;
@@ -184,7 +204,7 @@ bool match_matches_window(Match &match, i3Window *window) {
         LOG("urgent matches latest\n");
     }
 
-    if (match.urgent == U_OLDEST) {
+    if (this->urgent == U_OLDEST) {
         /* if the window isn't urgent, no sense in searching */
         if (window->urgent.tv_sec == 0) {
             return false;
@@ -201,7 +221,7 @@ bool match_matches_window(Match &match, i3Window *window) {
         LOG("urgent matches oldest\n");
     }
 
-    if (match.workspace != nullptr) {
+    if (this->workspace != nullptr) {
         if ((con = con_by_window_id(window->id)) == nullptr)
             return false;
 
@@ -209,22 +229,22 @@ bool match_matches_window(Match &match, i3Window *window) {
         if (ws == nullptr)
             return false;
 
-        if (strcmp(match.workspace->pattern, "__focused__") == 0 &&
+        if (strcmp(this->workspace->pattern, "__focused__") == 0 &&
             strcmp(ws->name.c_str(), global.focused->con_get_workspace()->name.c_str()) == 0) {
             LOG("workspace matches focused workspace\n");
-        } else if (match.workspace->regex_matches(ws->name.c_str())) {
+        } else if (this->workspace->regex_matches(ws->name.c_str())) {
             LOG(fmt::sprintf("workspace matches (%s)\n",  ws->name));
         } else {
             return false;
         }
     }
 
-    if (match.dock != M_DONTCHECK) {
-        if ((window->dock == i3Window::W_DOCK_TOP && match.dock == M_DOCK_TOP) ||
-            (window->dock == i3Window::W_DOCK_BOTTOM && match.dock == M_DOCK_BOTTOM) ||
+    if (this->dock != M_DONTCHECK) {
+        if ((window->dock == i3Window::W_DOCK_TOP && this->dock == M_DOCK_TOP) ||
+            (window->dock == i3Window::W_DOCK_BOTTOM && this->dock == M_DOCK_BOTTOM) ||
             ((window->dock == i3Window::W_DOCK_TOP || window->dock == i3Window::W_DOCK_BOTTOM) &&
-             match.dock == M_DOCK_ANY) ||
-            (window->dock == i3Window::W_NODOCK && match.dock == M_NODOCK)) {
+             this->dock == M_DOCK_ANY) ||
+            (window->dock == i3Window::W_NODOCK && this->dock == M_NODOCK)) {
             LOG("dock status matches\n");
         } else {
             LOG("dock status does not match\n");
@@ -232,12 +252,12 @@ bool match_matches_window(Match &match, i3Window *window) {
         }
     }
 
-    if (match.window_mode != WM_ANY) {
+    if (this->window_mode != WM_ANY) {
         if ((con = con_by_window_id(window->id)) == nullptr) {
             return false;
         }
 
-        switch (match.window_mode) {
+        switch (this->window_mode) {
             case WM_TILING_AUTO:
                 if (con->floating != FLOATING_AUTO_OFF) {
                     return false;
