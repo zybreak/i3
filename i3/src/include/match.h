@@ -15,6 +15,7 @@
 
 #include <config.h>
 #include <xcb/xcb.h>
+#include <map>
 #include "i3_regex.h"
 #include "con.h"
 
@@ -115,5 +116,5 @@ public:
      * Check if a match data structure matches the given window.
      *
      */
-    bool match_matches_window(i3Window *window);
+    bool match_matches_window(i3Window *window) const;
 };

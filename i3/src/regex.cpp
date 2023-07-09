@@ -55,6 +55,14 @@ Regex::Regex(Regex &&other) noexcept {
     std::swap(this->pattern, other.pattern);
 }
 
+Regex& Regex::operator=(Regex &&other) noexcept {
+    std::swap(this->regex, other.regex);
+    std::swap(this->valid, other.valid);
+    std::swap(this->pattern, other.pattern);
+
+    return *this;
+}
+
 /*
  * Frees the given regular expression. It must not be used afterwards!
  *

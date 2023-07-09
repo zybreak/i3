@@ -32,6 +32,7 @@ public:
     explicit Regex(const char *pattern);
     Regex(const Regex &other);
     Regex(Regex &&other) noexcept;
+    Regex& operator=(Regex &&other) noexcept;
     ~Regex();
     bool regex_matches(const char *input);
 };

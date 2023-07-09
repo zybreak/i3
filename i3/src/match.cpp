@@ -156,7 +156,7 @@ void checkWindowField(Regex *match_field, i3Window *window, char* (*window_field
  * Check if a match data structure matches the given window.
  *
  */
-bool Match::match_matches_window(i3Window *window) {
+bool Match::match_matches_window(i3Window *window) const {
     LOG(fmt::sprintf("Checking window 0x%08x (class %s)\n",  window->id, window->class_class));
 
     try {
@@ -324,6 +324,8 @@ Match::~Match() {
 void Match::parse_property(const char *ctype, const char *cvalue) {
     DLOG(fmt::sprintf("ctype=*%s*, cvalue=*%s*\n",  ctype, cvalue));
 
+    // REGEXES
+
     if (strcmp(ctype, "class") == 0) {
         delete this->window_class;
         this->window_class = new Regex(cvalue);
@@ -341,6 +343,26 @@ void Match::parse_property(const char *ctype, const char *cvalue) {
         this->window_role = new Regex(cvalue);
         return;
     }
+
+    if (strcmp(ctype, "title") == 0) {
+        delete this->title;
+        this->title = new Regex(cvalue);
+        return;
+    }
+
+    if (strcmp(ctype, "workspace") == 0) {
+        delete this->workspace;
+        this->workspace = new Regex(cvalue);
+        return;
+    }
+
+    if (strcmp(ctype, "machine") == 0) {
+        delete this->machine;
+        this->machine = new Regex(cvalue);
+        return;
+    }
+
+    // END REGEXES
 
     if (strcmp(ctype, "con_id") == 0) {
         if (strcmp(cvalue, "__focused__") == 0) {
@@ -400,12 +422,6 @@ void Match::parse_property(const char *ctype, const char *cvalue) {
         return;
     }
 
-    if (strcmp(ctype, "title") == 0) {
-        delete this->title;
-        this->title = new Regex(cvalue);
-        return;
-    }
-
     if (strcmp(ctype, "urgent") == 0) {
         if (strcasecmp(cvalue, "latest") == 0 ||
             strcasecmp(cvalue, "newest") == 0 ||
@@ -419,17 +435,7 @@ void Match::parse_property(const char *ctype, const char *cvalue) {
         return;
     }
 
-    if (strcmp(ctype, "workspace") == 0) {
-        delete this->workspace;
-        this->workspace = new Regex(cvalue);
-        return;
-    }
-
-    if (strcmp(ctype, "machine") == 0) {
-        delete this->machine;
-        this->machine = new Regex(cvalue);
-        return;
-    }
+    // WINDOW MODE
 
     if (strcmp(ctype, "tiling") == 0) {
         this->window_mode = WM_TILING;
@@ -468,6 +474,8 @@ void Match::parse_property(const char *ctype, const char *cvalue) {
         this->window_mode = WM_FLOATING_USER;
         return;
     }
+
+    // END WINDOW MODE
 
     /* match_matches_window() only checks negatively, so match_all_windows
      * won't actually be used there, but that's OK because if no negative
