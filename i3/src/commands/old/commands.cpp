@@ -550,7 +550,7 @@ namespace cmd {
         Con *dummy = nullptr;
         direction_t search_direction = (strcmp(direction, "width") == 0 ? D_LEFT : D_DOWN);
         bool search_result = resize_find_tiling_participants(&current, &dummy, search_direction, true);
-        if (search_result == false) {
+        if (!search_result) {
             yerror(cmd_output.json_gen, "Failed to find appropriate tiling containers for resize operation");
             return false;
         }

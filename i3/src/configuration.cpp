@@ -269,14 +269,14 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     current_configpath = get_config_path(override_configpath, true);
     if (current_configpath.empty()) {
         errx(EXIT_FAILURE,
-             "Unable to find the configuration file (looked at $XDG_CONFIG_HOME/i3/config, ~/.i3/config, $XDG_CONFIG_DIRS/i3/config and /usr/local/etc/i3/config)");;
+             "Unable to find the configuration file (looked at $XDG_CONFIG_HOME/i3/config, ~/.i3/config, $XDG_CONFIG_DIRS/i3/config and /usr/local/etc/i3/config)");
     }
 
     included_files.clear();
 
     char resolved_path[PATH_MAX] = {'\0'};
     if (realpath(current_configpath.c_str(), resolved_path) == nullptr) {
-        errx(EXIT_FAILURE, "realpath(%s): %s", current_configpath.c_str(), strerror((*__errno_location())));;
+        errx(EXIT_FAILURE, "realpath(%s): %s", current_configpath.c_str(), strerror((*__errno_location())));
     }
 
     included_files.emplace_back(resolved_path);

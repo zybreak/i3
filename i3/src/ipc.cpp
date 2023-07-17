@@ -721,27 +721,27 @@ static nlohmann::json dump_bar_config(Barconfig *config) {
     j["verbose"] = config->verbose;
 
     auto m = nlohmann::json::object();
-    if (config->colors.background) { m["background"] = config->colors.background; };
-    if (config->colors.statusline) { m["statusline"] = config->colors.statusline; };
-    if (config->colors.separator) { m["separator"] = config->colors.separator; };
-    if (config->colors.focused_background) { m["focused_background"] = config->colors.focused_background; };
-    if (config->colors.focused_statusline) { m["focused_statusline"] = config->colors.focused_statusline; };
-    if (config->colors.focused_separator) { m["focused_separator"] = config->colors.focused_separator; };
-    if (config->colors.focused_workspace_border) { m["focused_workspace_border"] = config->colors.focused_workspace_border; };
-    if (config->colors.focused_workspace_bg) { m["focused_workspace_bg"] = config->colors.focused_workspace_bg; };
-    if (config->colors.focused_workspace_text) { m["focused_workspace_text"] = config->colors.focused_workspace_text; };
-    if (config->colors.active_workspace_border) { m["active_workspace_border"] = config->colors.active_workspace_border; };
-    if (config->colors.active_workspace_bg) { m["active_workspace_bg"] = config->colors.active_workspace_bg; };
-    if (config->colors.active_workspace_text) { m["active_workspace_text"] = config->colors.active_workspace_text; };
-    if (config->colors.inactive_workspace_border) { m["inactive_workspace_border"] = config->colors.inactive_workspace_border; };
-    if (config->colors.inactive_workspace_bg) { m["inactive_workspace_bg"] = config->colors.inactive_workspace_bg; };
-    if (config->colors.inactive_workspace_text) { m["inactive_workspace_text"] = config->colors.inactive_workspace_text; };
-    if (config->colors.urgent_workspace_border) { m["urgent_workspace_border"] = config->colors.urgent_workspace_border; };
-    if (config->colors.urgent_workspace_bg) { m["urgent_workspace_bg"] = config->colors.urgent_workspace_bg; };
-    if (config->colors.urgent_workspace_text) { m["urgent_workspace_text"] = config->colors.urgent_workspace_text; };
-    if (config->colors.binding_mode_border) { m["binding_mode_border"] = config->colors.binding_mode_border; };
-    if (config->colors.binding_mode_bg) { m["binding_mode_bg"] = config->colors.binding_mode_bg; };
-    if (config->colors.binding_mode_text) { m["binding_mode_text"] = config->colors.binding_mode_text; };
+    if (config->colors.background) { m["background"] = config->colors.background; }
+    if (config->colors.statusline) { m["statusline"] = config->colors.statusline; }
+    if (config->colors.separator) { m["separator"] = config->colors.separator; }
+    if (config->colors.focused_background) { m["focused_background"] = config->colors.focused_background; }
+    if (config->colors.focused_statusline) { m["focused_statusline"] = config->colors.focused_statusline; }
+    if (config->colors.focused_separator) { m["focused_separator"] = config->colors.focused_separator; }
+    if (config->colors.focused_workspace_border) { m["focused_workspace_border"] = config->colors.focused_workspace_border; }
+    if (config->colors.focused_workspace_bg) { m["focused_workspace_bg"] = config->colors.focused_workspace_bg; }
+    if (config->colors.focused_workspace_text) { m["focused_workspace_text"] = config->colors.focused_workspace_text; }
+    if (config->colors.active_workspace_border) { m["active_workspace_border"] = config->colors.active_workspace_border; }
+    if (config->colors.active_workspace_bg) { m["active_workspace_bg"] = config->colors.active_workspace_bg; }
+    if (config->colors.active_workspace_text) { m["active_workspace_text"] = config->colors.active_workspace_text; }
+    if (config->colors.inactive_workspace_border) { m["inactive_workspace_border"] = config->colors.inactive_workspace_border; }
+    if (config->colors.inactive_workspace_bg) { m["inactive_workspace_bg"] = config->colors.inactive_workspace_bg; }
+    if (config->colors.inactive_workspace_text) { m["inactive_workspace_text"] = config->colors.inactive_workspace_text; }
+    if (config->colors.urgent_workspace_border) { m["urgent_workspace_border"] = config->colors.urgent_workspace_border; }
+    if (config->colors.urgent_workspace_bg) { m["urgent_workspace_bg"] = config->colors.urgent_workspace_bg; }
+    if (config->colors.urgent_workspace_text) { m["urgent_workspace_text"] = config->colors.urgent_workspace_text; }
+    if (config->colors.binding_mode_border) { m["binding_mode_border"] = config->colors.binding_mode_border; }
+    if (config->colors.binding_mode_bg) { m["binding_mode_bg"] = config->colors.binding_mode_bg; }
+    if (config->colors.binding_mode_text) { m["binding_mode_text"] = config->colors.binding_mode_text; }
 
     j["colors"] = m;
 
@@ -833,7 +833,7 @@ static void handle_get_version(ipc_client *client, uint8_t *message, int size, u
     auto a = nlohmann::json::array();
     for (auto &file : std::ranges::drop_view{included_files,1}) {
         a.push_back(file);
-    };
+    }
     j["included_config_file_names"] = a;
 
     auto payload = j.dump();

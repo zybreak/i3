@@ -512,7 +512,7 @@ int main(int argc, char *argv[]) {
 
     if (!load_keymap()) {
         errx(EXIT_FAILURE, "Could not load keymap\n");
-    };
+    }
 
     translate_keysyms();
     grab_all_keys(*x);

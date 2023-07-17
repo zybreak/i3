@@ -400,7 +400,7 @@ static void draw_nagbar(i3String *prompt,
     int screens;
     if ((conn = xcb_connect(nullptr, &screens)) == nullptr ||
         xcb_connection_has_error(conn))
-        errx(EXIT_FAILURE, "Cannot open display");;
+        errx(EXIT_FAILURE, "Cannot open display");
 
 /* Place requests for the atoms we need as soon as possible */
 #define xmacro(atom) \

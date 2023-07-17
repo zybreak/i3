@@ -112,12 +112,12 @@ bool resize_find_tiling_participants(Con **current, Con **other, direction_t dir
         /* get the counterpart for this resizement */
         if (dir_backwards) {
             second = con::previous(first, first->parent->nodes_head);
-            if (second == nullptr && both_sides == true) {
+            if (second == nullptr && both_sides) {
                 second = con::next(first, first->parent->nodes_head);
             }
         } else {
             second = con::next(first, first->parent->nodes_head);
-            if (second == nullptr && both_sides == true) {
+            if (second == nullptr && both_sides) {
                 second = con::previous(first, first->parent->nodes_head);
             }
         }

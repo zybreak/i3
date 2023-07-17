@@ -184,7 +184,7 @@ CommandResult parse_command_new(const std::string &input, nlohmann::json *gen, i
     commandsLexer lexer{&stream};
 
     lexer.removeErrorListeners();
-    ErrorListener pListener{};;
+    ErrorListener pListener{};
     lexer.addErrorListener(&pListener);
 
     CommonTokenStream tokens{&lexer};

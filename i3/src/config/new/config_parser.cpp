@@ -348,7 +348,7 @@ parse_file_result_t NewParser::parse_file() {
     configLexer lexer{&input};
 
     lexer.removeErrorListeners();
-    ErrorListener pListener{};;
+    ErrorListener pListener{};
     lexer.addErrorListener(&pListener);
 
     CommonTokenStream tokens{&lexer};

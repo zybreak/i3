@@ -191,7 +191,7 @@ static void draw_util_set_source_color(surface_t *surface, color_t color) {
     if ((surface)->id == 0L) {
         ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
         return;
-    };
+    }
 
     cairo_set_source_rgba(surface->cr, color.red, color.green, color.blue, color.alpha);
 }
@@ -206,7 +206,7 @@ void draw_util_text(xcb_connection_t *conn, i3String *text, surface_t *surface, 
     if ((surface)->id == 0L) {
         ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
         return;
-    };
+    }
 
     /* Flush any changes before we draw the text as this might use XCB directly. */
     CAIRO_SURFACE_FLUSH(surface->surface);
@@ -228,7 +228,7 @@ void draw_util_rectangle(surface_t *surface, color_t color, double x, double y, 
     if ((surface)->id == 0L) {
         ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
         return;
-    };
+    }
 
     cairo_save(surface->cr);
 
@@ -256,7 +256,7 @@ void draw_util_clear_surface(surface_t *surface, color_t color) {
     if ((surface)->id == 0L) {
         ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
         return;
-    };
+    }
 
     cairo_save(surface->cr);
 
@@ -284,11 +284,11 @@ void draw_util_copy_surface(surface_t *src, surface_t *dest, double src_x, doubl
     if ((src)->id == 0L) {
         ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)src));
         return;
-    };
+    }
     if ((dest)->id == 0L) {
         ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)dest));
         return;
-    };
+    }
 
     cairo_save(dest->cr);
 
