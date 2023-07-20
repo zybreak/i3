@@ -3,6 +3,10 @@ find_package(GTest CONFIG)
 include(GoogleTest)
 
 # Unit tests
+add_executable(TreeTest tree_test.cpp)
+target_link_libraries(TreeTest PUBLIC ${libraries} GTest::gtest_main i3_lib)
+target_include_directories(TreeTest PUBLIC ${include_dirs})
+gtest_discover_tests(TreeTest)
 
 add_executable(RegexTest regex_test.cpp)
 target_link_libraries(RegexTest PUBLIC ${libraries} GTest::gtest_main i3_lib)
