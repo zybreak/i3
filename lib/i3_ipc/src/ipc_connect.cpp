@@ -5,7 +5,7 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "i3-ipc.h"
+module;
 
 #include <err.h>
 #include <fcntl.h>
@@ -13,6 +13,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <string_view>
+
+module i3ipc;
 
 /*
  * Connects to the i3 IPC socket and returns the file descriptor for the

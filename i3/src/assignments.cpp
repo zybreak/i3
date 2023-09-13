@@ -9,6 +9,7 @@
  */
 
 #include <fmt/core.h>
+#include <optional>
 
 #include "i3string.h"
 #include "log.h"

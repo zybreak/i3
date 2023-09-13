@@ -81,6 +81,8 @@
 #include "event_handler.h"
 #include "ipc.h"
 
+import i3ipc;
+
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;
 

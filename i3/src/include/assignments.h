@@ -11,6 +11,7 @@
 
 #include <config.h>
 #include <memory>
+#include <optional>
 
 #include "window.h"
 

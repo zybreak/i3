@@ -18,8 +18,6 @@
 #include "tree.h"
 #include "con.h"
 
-#include "i3-ipc.h"
-
 struct Binding;
 struct Barconfig;
 

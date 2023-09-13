@@ -5,12 +5,17 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
+module;
 #include "i3-ipc.h"
 
-#include <cerrno>
-#include <cstring>
-#include <unistd.h>
 #include <cstdlib>
+#include <sys/un.h>
+#include <string_view>
+
+#include <cerrno>
+#include <unistd.h>
+
+module i3ipc;
 
 /*
  * Reads a message from the given socket file descriptor and stores its length

@@ -50,6 +50,8 @@
 #include <nlohmann/json.hpp>
 #include <ranges>
 
+import i3ipc;
+
 static std::vector<ipc_client*> all_clients{};
 
 static void ipc_client_timeout(EV_P_ ev_timer *w, int revents);

@@ -5,13 +5,16 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "i3-ipc.h"
+module;
+#include <cstdlib>
+#include <string_view>
 
-#include <cstdio>
 #include <cerrno>
 #include <unistd.h>
 
-static ssize_t writeall(int fd, const void *buf, size_t count) {
+module i3ipc;
+
+ssize_t writeall(int fd, const void *buf, size_t count) {
     size_t written = 0;
 
     while (written < count) {
