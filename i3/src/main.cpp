@@ -206,7 +206,7 @@ void handle_extra_args(int argc, char *argv[])  {
     if (connect(sockfd, (const struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0)
         err(EXIT_FAILURE, "Could not connect to i3");
 
-    if (ipc_send_message(sockfd, strlen(payload.c_str()), I3_IPC_MESSAGE_TYPE_RUN_COMMAND,
+    if (i3ipc::ipc_send_message(sockfd, strlen(payload.c_str()), I3_IPC_MESSAGE_TYPE_RUN_COMMAND,
                          (uint8_t *)payload.c_str()) == -1)
         err(EXIT_FAILURE, "IPC: write()");
 
@@ -214,7 +214,7 @@ void handle_extra_args(int argc, char *argv[])  {
     uint32_t reply_type;
     uint8_t *reply;
     int ret;
-    if ((ret = ipc_recv_message(sockfd, &reply_type, &reply_length, &reply)) != 0) {
+    if ((ret = i3ipc::ipc_recv_message(sockfd, &reply_type, &reply_length, &reply)) != 0) {
         if (ret == -1)
             err(EXIT_FAILURE, "IPC: read()");
         exit(1);

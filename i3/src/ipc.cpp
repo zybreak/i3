@@ -125,11 +125,11 @@ static void ipc_push_pending(ipc_client *client) {
 static void ipc_send_client_message(ipc_client *client, const uint32_t message_type, const std::string &payload) {
     auto size = payload.length();
 
-    const i3_ipc_header_t header = {
+    const i3ipc::i3_ipc_header_t header = {
         .magic = {'i', '3', '-', 'i', 'p', 'c'},
         .size = (uint32_t)size,
         .type = message_type};
-    const size_t header_size = sizeof(i3_ipc_header_t);
+    const size_t header_size = sizeof(i3ipc::i3_ipc_header_t);
     const size_t message_size = header_size + size;
 
     const bool push_now = (client->buffer_size == 0);
@@ -1082,7 +1082,7 @@ static void ipc_receive_message(EV_P_ struct ev_io *w, int revents) {
     auto *client = (ipc_client *)w->data;
     assert(client->fd == w->fd);
 
-    int ret = ipc_recv_message(w->fd, &message_type, &message_length, &message);
+    int ret = i3ipc::ipc_recv_message(w->fd, &message_type, &message_length, &message);
     /* EOF or other error */
     if (ret < 0) {
         /* Was this a spurious read? See ev(3) */
