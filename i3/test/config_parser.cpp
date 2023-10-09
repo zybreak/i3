@@ -11,9 +11,6 @@ bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *
  * by t/187-commands-parser.t.
  ******************************************************************************/
 int main(int argc, char *argv[]) {
-    struct parser_ctx ctx = {
-        .load_type = config_load_t::C_LOAD,
-    };
 
     std::string content{};
     char c;
@@ -23,6 +20,8 @@ int main(int argc, char *argv[]) {
     }
 
     ConfigApplier applier{};
+
+    parser_ctx ctx{applier, config_load_t::C_LOAD};
 
     parse_config(ctx, content, "<stdin>", applier);
 }
