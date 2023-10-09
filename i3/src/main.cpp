@@ -29,7 +29,6 @@
 #include "dpi.h"
 #include "get_visualtype.h"
 #include "root_atom_contents.h"
-#include "resolve_tilde.h"
 #include "get_process_filename.h"
 
 #include "util.h"
@@ -82,6 +81,8 @@
 #include "ipc.h"
 
 import i3ipc;
+import i3;
+import utils;
 
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;
@@ -120,7 +121,7 @@ static void i3_exit() {
  *
  */
 static std::tuple<std::string, int> create_socket(const char *filename) {
-    auto resolved = resolve_tilde(filename);
+    auto resolved = utils::resolve_tilde(filename);
     DLOG(fmt::sprintf("Creating UNIX socket at %s\n", resolved));
     const std::filesystem::path p(resolved);
     const std::filesystem::path &parent = p.parent_path();

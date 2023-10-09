@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 #CONAN_PROFILE=default
 CONAN_PROFILE=clang
 mkdir build

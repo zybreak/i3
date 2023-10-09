@@ -27,7 +27,6 @@
 #include "draw.h"
 #include "font.h"
 #include "dpi.h"
-#include "resolve_tilde.h"
 
 #include "util.h"
 #include "tree.h"
@@ -40,6 +39,9 @@
 #include "global.h"
 #include "config/new/config_parser.h"
 #include "config/config_applier.h"
+
+import i3;
+import utils;
 
 using namespace std::literals;
 
@@ -76,10 +78,10 @@ static std::string get_config_path(const std::string *override_configpath, bool 
 
     /* 1: check for $XDG_CONFIG_HOME/i3/config */
     if (getenv("XDG_CONFIG_HOME") == nullptr) {
-        auto tilde = resolve_tilde("~/.config");
+        auto tilde = utils::resolve_tilde("~/.config");
         xdg_config_home = tilde;
     } else {
-        auto tilde = resolve_tilde(getenv("XDG_CONFIG_HOME"));
+        auto tilde = utils::resolve_tilde(getenv("XDG_CONFIG_HOME"));
         xdg_config_home = tilde;
     }
 
@@ -90,7 +92,7 @@ static std::string get_config_path(const std::string *override_configpath, bool 
     }
 
     /* 2: check the traditional path under the home directory */
-    auto tilde = resolve_tilde("~/.i3/config");
+    auto tilde = utils::resolve_tilde("~/.i3/config");
     config_path = tilde;
     if (std::filesystem::exists(config_path)) {
         return config_path;
@@ -118,7 +120,7 @@ static std::string get_config_path(const std::string *override_configpath, bool 
             break;
         }
 
-        std::string tok = resolve_tilde(std::string(first, found).c_str());
+        std::string tok = utils::resolve_tilde(std::string(first, found).c_str());
         tok += "/i3/config";
 
         if (std::filesystem::exists(tok)) {

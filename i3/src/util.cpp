@@ -25,7 +25,6 @@
 #include "font.h"
 #include "wrapper.h"
 #include "dpi.h"
-#include "resolve_tilde.h"
 #include "mkdirp.h"
 #include "get_process_filename.h"
 #include "util.h"
@@ -51,6 +50,9 @@
 #if defined(__OpenBSD__)
 #include <sys/cdefs.h>
 #endif
+
+import i3;
+import utils;
 
 /*
  * Returns true if the name consists of only digits.
@@ -191,7 +193,7 @@ static std::string store_restart_layout() {
         else
             filename = f;
     } else {
-        auto f = resolve_tilde(config.restart_state_path);
+        auto f = utils::resolve_tilde(config.restart_state_path);
         filename = f;
     }
 

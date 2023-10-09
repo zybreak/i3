@@ -92,7 +92,6 @@ list(APPEND i3_src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/get_process_filename.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/get_visualtype.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/log.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/resolve_tilde.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/root_atom_contents.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/safewrappers.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mkdirp.cpp
@@ -113,10 +112,22 @@ add_subdirectory(src/commands/old)
 add_subdirectory(src/config/new)
 add_subdirectory(src/config/old)
 
+add_library(utils STATIC)
+target_sources(utils PUBLIC
+        src/resolve_tilde.cpp
+        PUBLIC
+        FILE_SET cxx_modules TYPE CXX_MODULES
+        FILES src/utils.ixx)
+target_compile_options(utils PUBLIC "-pthread")
+
 add_library(i3_lib STATIC)
 target_sources(i3_lib PUBLIC
-        ${i3_src})
-target_link_libraries(i3_lib PUBLIC ${libraries})
+        ${i3_src}
+        PUBLIC
+        FILE_SET cxx_modules TYPE CXX_MODULES
+        FILES src/i3-lib.ixx
+        )
+target_link_libraries(i3_lib PUBLIC ${libraries} utils)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
 target_compile_options(i3_lib PUBLIC ${compile_options})
 add_dependencies(i3_lib libi3ipc)

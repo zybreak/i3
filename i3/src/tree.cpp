@@ -24,7 +24,6 @@
 #include "font.h"
 #include "wrapper.h"
 #include "dpi.h"
-#include "resolve_tilde.h"
 
 #include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
@@ -46,13 +45,15 @@
 #include "global.h"
 #include "ipc.h"
 
+import utils;
+
 /*
  * Loads tree from 'path' (used for in-place restarts).
  *
  */
 bool tree_restore(const std::string_view path, const xcb_get_geometry_reply_t *geometry) {
     bool result = false;
-    auto globbed = resolve_tilde(path);
+    auto globbed = utils::resolve_tilde(path);
     std::string buf;
 
     if (!std::filesystem::exists(globbed)) {

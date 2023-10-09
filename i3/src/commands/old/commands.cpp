@@ -20,7 +20,6 @@
 #include "draw.h"
 #include "wrapper.h"
 #include "dpi.h"
-#include "resolve_tilde.h"
 
 #include "con.h"
 #include "util.h"
@@ -53,6 +52,8 @@
 #include <vector>
 #include <ranges>
 #include <algorithm>
+
+import utils;
 
 static void ysuccess(nlohmann::json *json_gen, bool success) {
     if (json_gen != nullptr) {
@@ -812,7 +813,7 @@ namespace cmd {
          LOG(fmt::sprintf("Appending layout \"%s\"\n", cpath));
 
         /* Make sure we allow paths like '~/.i3/layout.json' */
-        auto path = resolve_tilde(cpath);
+        auto path = utils::resolve_tilde(cpath);
         std::string buf = slurp(path);
 
         if (!json_validate(buf)) {
