@@ -55,7 +55,6 @@ list(APPEND i3_src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/atoms.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/autostarts.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/bindings.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/boolstr.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/click.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/commands_parser.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/commands_applier.cpp

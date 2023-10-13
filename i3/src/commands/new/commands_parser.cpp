@@ -26,7 +26,6 @@
 #include <fmt/core.h>
 #include <antlr4-runtime.h>
 
-#include "i3-ipc.h"
 #include "../commands_parser.h"
 #include "parser-specs/commandsLexer.h"
 #include "parser-specs/commandsGrammar.h"
@@ -178,7 +177,7 @@ class ErrorListener : public BaseErrorListener {
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult parse_command_new(const std::string &input, nlohmann::json *gen, ipc_client *client) {
+CommandResult parse_command_new(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier &applier) {
     std::string padded_input = fmt::sprintf("$(%s)", input);
     ANTLRInputStream stream{padded_input};
     commandsLexer lexer{&stream};

@@ -4,7 +4,7 @@ module;
 export module utils;
 
 export namespace utils {
-    /*
+    /**
      * This function resolves ~ in pathnames.
      * It may resolve wildcards in the first part of the path, but if no match
      * or multiple matches are found, it just returns a copy of path as given.
@@ -12,7 +12,7 @@ export namespace utils {
      */
     std::string resolve_tilde(const std::string_view path);
 
-    /*
+    /**
      * Parses a string (or word, if as_word is true). Extracted out of
      * parse_command so that it can be used in src/workspace.c for interpreting
      * workspace commands.
@@ -20,6 +20,12 @@ export namespace utils {
      */
     char *parse_string(const char **walk, bool as_word);
 }
+
+/**
+ * Reports whether str represents the enabled state (1, yes, true, …).
+ *
+ */
+export bool boolstr(const char *str);
 
 /**
  * Safe-wrapper around malloc which exits if malloc returns NULL (meaning that

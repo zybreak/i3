@@ -64,9 +64,3 @@ extern struct ev_loop *main_loop;
  *
  */
 void set_nonblock(int sockfd);
-
-/**
- * Reports whether str represents the enabled state (1, yes, true, …).
- *
- */
-bool boolstr(const char *str);

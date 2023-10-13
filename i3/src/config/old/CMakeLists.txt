@@ -1,5 +1,4 @@
 add_library(i3_config_old STATIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../boolstr.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/parser_stack.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/config_directives.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/config_parser.cpp
