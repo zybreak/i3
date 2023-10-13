@@ -40,8 +40,7 @@ bool match_matches_window(Match &match, i3Window *window) {
     return false;
 }
 
-Match::~Match() {
-}
+Match::~Match() = default;
 
 void Match::parse_property(const char *ctype, const char *cvalue) {
     DLOG(fmt::sprintf("ctype=*%s*, cvalue=*%s*\n",  ctype, cvalue));

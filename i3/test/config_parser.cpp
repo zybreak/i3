@@ -1,7 +1,7 @@
 #include "config_parser.h"
 #include "parser_stack.h"
 #include "config/config_applier.h"
-#include <stdio.h>
+#include <cstdio>
 #include <configuration.h>
 
 bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *filename, BaseConfigApplier &applier);

@@ -119,14 +119,14 @@ target_sources(i3_lib PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES src/i3-lib.ixx
         )
-target_link_libraries(i3_lib PUBLIC ${libraries} utils)
+target_link_libraries(i3_lib PUBLIC ${libraries} i3_commands_old utils)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
 target_compile_options(i3_lib PUBLIC ${compile_options})
 add_dependencies(i3_lib libi3ipc)
 
 add_executable(i3
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
-target_link_libraries(i3 PUBLIC i3_lib libi3ipc i3_commands_old i3_config_new i3_config_old)
+target_link_libraries(i3 PUBLIC i3_lib libi3ipc i3_config_new i3_config_old)
 target_include_directories(i3 PUBLIC ${include_dirs} "${CMAKE_CURRENT_SOURCE_DIR}/src/config/old")
 
 add_subdirectory(test)

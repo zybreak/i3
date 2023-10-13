@@ -11,7 +11,7 @@
 #include <pwd.h>
 #include <cstdlib>
 #include <unistd.h>
-#include <stdio.h>
+#include <cstdio>
 
 import utils;
 
