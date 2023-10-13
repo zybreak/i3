@@ -58,6 +58,7 @@ list(APPEND i3_src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/boolstr.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/click.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/commands_parser.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/commands/commands_applier.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/con.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/configuration.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/config/config_applier.cpp
@@ -93,7 +94,6 @@ list(APPEND i3_src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/get_visualtype.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/log.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/root_atom_contents.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/safewrappers.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/mkdirp.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/sync.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/tree.cpp
@@ -111,14 +111,7 @@ list(APPEND i3_src
 add_subdirectory(src/commands/old)
 add_subdirectory(src/config/new)
 add_subdirectory(src/config/old)
-
-add_library(utils STATIC)
-target_sources(utils PUBLIC
-        src/resolve_tilde.cpp
-        PUBLIC
-        FILE_SET cxx_modules TYPE CXX_MODULES
-        FILES src/utils.ixx)
-target_compile_options(utils PUBLIC "-pthread")
+add_subdirectory(src/utils)
 
 add_library(i3_lib STATIC)
 target_sources(i3_lib PUBLIC

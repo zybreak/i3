@@ -18,7 +18,6 @@
 #include "i3string.h"
 #include "log.h"
 #include "draw.h"
-#include "wrapper.h"
 #include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
 #include "tree.h"
@@ -39,6 +38,8 @@
 
 #include <cmath>
 #include <algorithm>
+
+import utils;
 
 /*
  * Calculates sum of heights and sum of widths of all currently active outputs

@@ -11,10 +11,11 @@
 #include <cstdlib>
 #include <cstring>
 #include "log.h"
-#include "wrapper.h"
 #include "dpi.h"
 #include "util.h"
 #include "i3_regex.h"
+
+import utils;
 
 /*
  * Creates a new 'regex' struct containing the given pattern and a PCRE

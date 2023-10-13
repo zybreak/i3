@@ -20,6 +20,7 @@
 #include "assignments.h"
 #include "commands_parser.h"
 #include "global.h"
+#include "commands_applier.h"
 
 Assignment::~Assignment() {
     delete this->match;
@@ -63,7 +64,8 @@ void run_assignments(i3Window *window) {
 
         DLOG(fmt::sprintf("matching assignment, execute command %s\n",  command->command));
         std::string full_command = fmt::format("[id=\"{}\"] {}", std::to_string(window->id), command->command);
-        CommandResult result = parse_command(full_command, nullptr, nullptr);
+        auto commandsApplier = CommandsApplier{};
+        CommandResult result = parse_command(full_command, nullptr, nullptr, commandsApplier);
 
         if (result.needs_tree_render)
             needs_tree_render = true;

@@ -10,7 +10,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "global.h"
 
 #include <cstdlib>
@@ -18,6 +17,8 @@
 
 #include <xcb/xcb.h>
 #include <deque>
+
+import utils;
 
 /* Forward declarations */
 static void draw_util_set_source_color(surface_t *surface, color_t color);

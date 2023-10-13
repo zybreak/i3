@@ -17,7 +17,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 #include "util.h"
 #include "xcb.h"
@@ -25,6 +24,8 @@
 #include "configuration.h"
 #include "handlers.h"
 #include "global.h"
+
+import utils;
 
 /*
  * Convenience wrapper around xcb_create_window which takes care of depth, generating an ID and checking

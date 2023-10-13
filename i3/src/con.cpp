@@ -20,7 +20,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 
 #include <xcb/xcb.h>
 #include <vector>
@@ -43,6 +42,8 @@
 #include "global.h"
 #include "format_placeholders.h"
 #include "ipc.h"
+
+import utils;
 
 /*
  * Returns the content container below the given output container.

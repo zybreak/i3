@@ -21,7 +21,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 
 #include "util.h"
@@ -41,6 +40,8 @@
 #include <libsn/sn-launcher.h>
 #include "global.h"
 #include <config.h>
+
+import utils;
 
 /* Display handle for libstartup-notification */
 SnDisplay *sndisplay;

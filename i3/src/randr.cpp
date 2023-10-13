@@ -19,7 +19,6 @@
 #include <xcb/xcb.h>
 
 #include "log.h"
-#include "wrapper.h"
 
 #include "util.h"
 #include "tree.h"
@@ -40,6 +39,8 @@
 #include <vector>
 #include <algorithm>
 #include <fmt/core.h>
+
+import utils;
 
 /*
  * Get a specific output by its internal X11 id. Used by randr_query_outputs

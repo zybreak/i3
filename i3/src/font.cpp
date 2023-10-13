@@ -9,7 +9,6 @@
 #include "draw.h"
 #include "dpi.h"
 #include "log.h"
-#include "wrapper.h"
 #include "font.h"
 
 #include <cassert>
@@ -19,6 +18,8 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+
+import utils;
 
 static const i3Font *savedFont = nullptr;
 

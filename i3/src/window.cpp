@@ -18,7 +18,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 
 #include "util.h"
@@ -32,6 +31,8 @@
 #include "global.h"
 
 #include <cmath>
+
+import utils;
 
 /*
  * Frees an i3Window and all its members.

@@ -19,7 +19,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 
 #include "util.h"
@@ -36,6 +35,10 @@
 #include "ewmh.h"
 #include "commands_parser.h"
 #include "global.h"
+#include "ipc.h"
+
+import utils;
+
 /*
  * Stores a copy of the name of the last used workspace for the workspace
  * back-and-forth switching.
@@ -232,7 +235,7 @@ void extract_workspace_names_from_bindings() {
             while (*target == ' ' || *target == '\t')
                 target++;
         }
-        char *target_name = parse_string(&target, false);
+        char *target_name = utils::parse_string(&target, false);
         if (target_name == nullptr)
             continue;
         if (strncasecmp(target_name, "__", strlen("__")) == 0) {

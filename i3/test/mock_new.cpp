@@ -15,13 +15,14 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 
 #include "configuration.h"
 #include "con.h"
 #include "match.h"
 #include "config_parser.h"
+
+import utils;
 
 bool Match::match_is_empty() {
     return false;

@@ -26,21 +26,21 @@
 #include <cerrno>
 #include <climits>
 
-#include <cstdint>
+#include <err.h>
 #include <cstdlib>
 #include <cstring>
 #include <regex>
 #include <fmt/core.h>
-
-#include "i3string.h"
-#include "log.h"
-#include "draw.h"
-#include "wrapper.h"
+#include <fmt/printf.h>
+#include <nlohmann/json.hpp>
 
 #include "parser_stack.h"
-#include "i3-ipc.h"
 #include "commands.h"
-#include "../commands_parser.h"
+#include "../command_result_ir.h"
+#include "../command_result.h"
+#include "../base_commands_applier.h"
+
+import utils;
 
 /*******************************************************************************
  * The data structures used for parsing. Essentially the current state and a
@@ -51,6 +51,8 @@
  ******************************************************************************/
 
 #include "GENERATED_command_enums.h"
+
+struct ipc_client;
 
 struct cmdp_token {
     const char *name;
@@ -80,14 +82,15 @@ struct cmdp_token_ptr {
 static struct CommandResultIR subcommand_output;
 static struct CommandResultIR command_output;
 
-#include "criteria_state.h"
+//#include "criteria_state.h"
 #include "GENERATED_command_call.h"
 
 [[nodiscard("PURE FUN")]]
-static cmdp_state next_state(const cmdp_token &token, stack &stack, struct criteria_state &criteria_state) {
+static cmdp_state next_state(const cmdp_token &token, stack &stack, struct criteria_state *criteria_state) {
     if (token.next_state == __CALL) {
         subcommand_output.json_gen = command_output.json_gen;
         subcommand_output.client = command_output.client;
+        subcommand_output.applier = command_output.applier;
         subcommand_output.needs_tree_render = false;
 
         try {
@@ -118,7 +121,7 @@ static cmdp_state next_state(const cmdp_token &token, stack &stack, struct crite
 }
 
 
-bool handle_literal(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state &criteria_state) {
+bool handle_literal(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
 
     if (strncasecmp(*walk, token.name + 1, strlen(token.name) - 1) == 0) {
         if (token.identifier != nullptr) {
@@ -132,7 +135,7 @@ bool handle_literal(const char **walk, const cmdp_token &token, cmdp_state *stat
     return false;
 }
 
-bool handle_number(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state &criteria_state) {
+bool handle_number(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
     /* Handle numbers. We only accept decimal numbers for now. */
     char *end = nullptr;
     errno = 0;
@@ -155,8 +158,8 @@ bool handle_number(const char **walk, const cmdp_token &token, cmdp_state *state
     return true;
 }
 
-bool handle_word(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state criteria_state) {
-    char *str = parse_string(walk, (token.name[0] != 's'));
+bool handle_word(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
+    char *str = utils::parse_string(walk, (token.name[0] != 's'));
     if (str != nullptr) {
         if (token.identifier) {
             push_string(stack, token.identifier, str);
@@ -171,7 +174,7 @@ bool handle_word(const char **walk, const cmdp_token &token, cmdp_state *state, 
     return false;
 }
 
-bool handle_end(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state criteria_state) {
+bool handle_end(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
     if (**walk == '\0' || **walk == ',' || **walk == ';') {
         *state = next_state(token, stack, criteria_state);
         /* To make sure we start with an appropriate matching
@@ -227,9 +230,9 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
     std::fill_n(position.begin(), len - strlen(*walk), ' ');
     std::fill_n(position.begin() + (len - strlen(*walk)), strlen(*walk), '^');
 
-    ELOG(fmt::sprintf("%s\n",  errormessage));
-    ELOG(fmt::sprintf("Your command: %s\n",  input));
-    ELOG(fmt::sprintf("              %s\n",  position));
+    //ELOG(fmt::sprintf("%s\n",  errormessage));
+    //ELOG(fmt::sprintf("Your command: %s\n",  input));
+    //ELOG(fmt::sprintf("              %s\n",  position));
 
     result.parse_error = true;
     result.error_message = errormessage;
@@ -258,13 +261,14 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, ipc_client *client) {
-    DLOG(fmt::sprintf("COMMAND: *%.4000s*\n",  input));
+CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier &applier) {
+    //DLOG(fmt::sprintf("COMMAND: *%.4000s*\n",  input));
     cmdp_state state = INITIAL;
     stack stack{};
-    struct criteria_state criteria_state{};
+    struct criteria_state* criteria_state = applier.create_criteria_state();
     auto result = CommandResult{};
 
+    command_output.applier = &applier;
     command_output.client = client;
 
     /* A YAJL JSON generator used for formatting replies. */

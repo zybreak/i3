@@ -14,12 +14,13 @@
 #include <xcb/xcb.h>
 
 #include "log.h"
-#include "wrapper.h"
 
 #include "global.h"
 
 #include "xcb.h"
 #include "sync.h"
+
+import utils;
 
 void sync_respond(xcb_window_t window, uint32_t rnd) {
     DLOG(fmt::sprintf("[i3 sync protocol] Sending random value %d back to X11 window 0x%08x\n",  rnd, window));

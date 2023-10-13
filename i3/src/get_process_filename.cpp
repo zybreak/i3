@@ -5,13 +5,15 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "wrapper.h"
 #include "mkdirp.h"
 
 #include <err.h>
 #include <pwd.h>
 #include <cstdlib>
 #include <unistd.h>
+#include <stdio.h>
+
+import utils;
 
 /*
  * Returns the name of a temporary file with the specified prefix.

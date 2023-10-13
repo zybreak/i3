@@ -18,7 +18,6 @@
 #include "i3string.h"
 #include "log.h"
 #include "draw.h"
-#include "wrapper.h"
 
 #include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
@@ -31,6 +30,7 @@
 #include "config_parser.h"
 #include "nagbar.h"
 #include "ipc.h"
+#include "commands_applier.h"
 
 #include <cmath>
 
@@ -38,6 +38,8 @@
 #include <xkbcommon/xkbcommon.h>
 #include <fmt/core.h>
 #include <set>
+
+import utils;
 
 static struct xkb_context *xkb_context;
 static struct xkb_keymap *xkb_keymap;
@@ -803,7 +805,8 @@ CommandResult run_binding(Binding *bind, Con *con) {
     //"exec \"i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3 exit'\""
 
     Binding bind_cp = *bind;
-    CommandResult result = parse_command(command, nullptr, nullptr);
+    auto commandsApplier = CommandsApplier{};
+    CommandResult result = parse_command(command, nullptr, nullptr, commandsApplier);
 
     if (result.needs_tree_render) {
         tree_render();

@@ -15,7 +15,6 @@ add_executable(test.commands_parser
     mock.cpp
     ../src/global.cpp
     ../src/log.cpp
-    ../src/safewrappers.cpp
 )
 target_link_libraries(test.commands_parser PUBLIC ${libraries} i3_commands_old)
 target_include_directories(test.commands_parser PUBLIC ${include_dirs} "../src/config/old")
@@ -35,7 +34,6 @@ add_executable(test.config_parser
     mock.cpp
     ../src/global.cpp
     ../src/log.cpp
-    ../src/safewrappers.cpp
 )
 target_link_libraries(test.config_parser PUBLIC ${libraries} i3_config_old)
 target_include_directories(test.config_parser PUBLIC ${include_dirs} "../src/config/old")

@@ -17,7 +17,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 
 #include "util.h"
@@ -31,6 +30,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <filesystem>
+
+import utils;
 
 class dialog_t {
    public:

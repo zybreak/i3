@@ -23,7 +23,6 @@ namespace utils {
      *
      */
     std::string resolve_tilde(const std::string_view path) {
-#if 0
         static glob_t globbuf{};
         std::string result;
 
@@ -47,7 +46,5 @@ namespace utils {
         globfree(&globbuf);
 
         return result;
-#endif
-        return "";
     }
 }

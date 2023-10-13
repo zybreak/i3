@@ -23,7 +23,6 @@
 #include "i3string.h"
 #include "log.h"
 #include "draw.h"
-#include "wrapper.h"
 
 #include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
@@ -60,6 +59,8 @@
 #include "global.h"
 #include "ipc.h"
 #include <config.h>
+
+import utils;
 
 /* After mapping/unmapping windows, a notify event is generated. However, we don’t want it,
    since it’d trigger an infinite loop of switching between the different windows when

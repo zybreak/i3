@@ -19,7 +19,6 @@
 #include "i3string.h"
 #include "log.h"
 #include "draw.h"
-#include "wrapper.h"
 
 #include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
@@ -44,6 +43,8 @@
 #include "restore_layout.h"
 #include "global.h"
 #include "ipc.h"
+
+import utils;
 
 /*
  * Match frame and window depth. This is needed because X will refuse to reparent a

@@ -23,7 +23,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 
 #include "criteria_state.h"
@@ -39,6 +38,8 @@
 
 #include <wordexp.h>
 #include <autostarts.h>
+
+import utils;
 
 /*******************************************************************************
  * Include functions.

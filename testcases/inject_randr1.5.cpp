@@ -28,7 +28,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 
 #include <xcb/randr.h>
@@ -39,6 +38,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+
+import utils;
 
 static void uds_connection_cb(EV_P_ ev_io *w, int revents);
 static void read_client_setup_request_cb(EV_P_ ev_io *w, int revents);

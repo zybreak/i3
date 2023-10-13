@@ -25,7 +25,6 @@
 #include "shape.h"
 #include "xkb.h"
 #include "draw.h"
-#include "wrapper.h"
 #include "dpi.h"
 #include "get_visualtype.h"
 #include "root_atom_contents.h"

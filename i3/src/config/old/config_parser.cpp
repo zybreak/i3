@@ -39,7 +39,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 
 #include "parser_stack.h"
@@ -56,6 +55,8 @@
 #include <libgen.h>
 
 #include <xcb/xcb_xrm.h>
+
+import utils;
 
 /*******************************************************************************
  * The data structures used for parsing. Essentially the current state and a
@@ -99,7 +100,7 @@ static void next_state(const cmdp_token *token, struct parser_ctx &ctx) {
         struct ConfigResultIR subcommand_output = {
             .ctx = ctx,
         };
-        GENERATED_call(ctx.criteria_state, ctx.stack, token->extra.call_identifier, subcommand_output);
+        GENERATED_call(&ctx.criteria_state, ctx.stack, token->extra.call_identifier, subcommand_output);
         if (subcommand_output.has_errors) {
             ctx.has_errors = true;
         }
@@ -371,7 +372,7 @@ static bool handle_end(const char **walk, const cmdp_token *token, parser_ctx &c
                      * datastructure for commands which do *not* specify any
                      * criteria, we re-initialize the criteria system after
                      * every command. */
-        cfg::criteria_init(ctx.criteria_state, subcommand_output, INITIAL);
+        cfg::criteria_init(&ctx.criteria_state, subcommand_output, INITIAL);
         (*linecnt)++;
         (*walk)++;
 
@@ -408,7 +409,7 @@ bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *
         .ctx = ctx,
     };
 
-    cfg::criteria_init(ctx.criteria_state, subcommand_output, INITIAL);
+    cfg::criteria_init(&ctx.criteria_state, subcommand_output, INITIAL);
 
     /* The "<=" operator is intentional: We also handle the terminating 0-byte
      * explicitly by looking for an 'end' token. */

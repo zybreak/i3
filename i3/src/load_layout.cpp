@@ -13,7 +13,6 @@
 #include "i3string.h"
 #include "log.h"
 #include "draw.h"
-#include "wrapper.h"
 
 #include "util.h"
 #include "workspace.h"
@@ -29,6 +28,8 @@
 
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
+
+import utils;
 
 /* TODO: refactor the whole parsing thing */
 

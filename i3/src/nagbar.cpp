@@ -14,7 +14,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 
 #include "get_process_filename.h"
@@ -49,6 +48,7 @@
 #include <sys/cdefs.h>
 #endif
 
+import utils;
 
 /*
  * Handler which will be called when we get a SIGCHLD for the nagbar, meaning

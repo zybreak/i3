@@ -24,7 +24,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 #include "get_visualtype.h"
 
@@ -38,6 +37,8 @@
 #ifdef I3_ASAN_ENABLED
 #include <sanitizer/lsan_interface.h>
 #endif
+
+import utils;
 
 typedef struct placeholder_state {
     /** The X11 placeholder window. */

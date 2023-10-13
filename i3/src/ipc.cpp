@@ -22,7 +22,6 @@
 #include "i3string.h"
 #include "log.h"
 #include "draw.h"
-#include "wrapper.h"
 
 #include "bindings.h"
 #include "util.h"
@@ -49,8 +48,11 @@
 
 #include <nlohmann/json.hpp>
 #include <ranges>
+#include "ipc.h"
+#include "commands_applier.h"
 
 import i3ipc;
+import utils;
 
 static std::vector<ipc_client*> all_clients{};
 
@@ -230,7 +232,8 @@ static void handle_run_command(ipc_client *client, uint8_t *message, int size, u
     LOG(fmt::sprintf("IPC: received: *%.4000s*\n",  command));
     nlohmann::json gen;
 
-    CommandResult result = parse_command(command, &gen, client);
+    auto commandsApplier = CommandsApplier{};
+    CommandResult result = parse_command(command, &gen, client, commandsApplier);
 
     if (result.needs_tree_render) {
         tree_render();

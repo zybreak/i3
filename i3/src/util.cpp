@@ -23,7 +23,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 #include "mkdirp.h"
 #include "get_process_filename.h"

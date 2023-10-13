@@ -23,7 +23,6 @@
 #include "log.h"
 #include "draw.h"
 #include "font.h"
-#include "wrapper.h"
 #include "dpi.h"
 
 #include "draw.h"
@@ -43,6 +42,8 @@
 
 #include <unistd.h>
 #include <ranges>
+
+import utils;
 
 #define COLOR_TRANSPARENT ((color_t){.red = 0.0, .green = 0.0, .blue = 0.0, .colorpixel = 0})
 

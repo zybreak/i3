@@ -5,13 +5,17 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "wrapper.h"
+module;
+
 
 #include <err.h>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
+#include <cstdarg>
+#include <stdio.h>
+module utils;
 
 /*
  * The s* functions (safe) are wrappers around malloc, strdup, …, which exits if one of
