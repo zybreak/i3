@@ -5,15 +5,14 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "mkdirp.h"
-
+module;
 #include <err.h>
 #include <pwd.h>
 #include <cstdlib>
 #include <unistd.h>
 #include <cstdio>
 
-import utils;
+module utils;
 
 /*
  * Returns the name of a temporary file with the specified prefix.

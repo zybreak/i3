@@ -28,7 +28,6 @@
 #include "dpi.h"
 #include "get_visualtype.h"
 #include "root_atom_contents.h"
-#include "get_process_filename.h"
 
 #include "util.h"
 #include "i3_ipc/include/i3-ipc.h"

@@ -24,8 +24,6 @@
 #include "draw.h"
 #include "font.h"
 #include "dpi.h"
-#include "mkdirp.h"
-#include "get_process_filename.h"
 #include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
 #include "tree.h"

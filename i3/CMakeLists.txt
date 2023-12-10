@@ -89,11 +89,9 @@ list(APPEND i3_src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/string.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/dpi.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/draw_util.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/get_process_filename.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/get_visualtype.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/log.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/root_atom_contents.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/mkdirp.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/sync.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/tree.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/util.cpp

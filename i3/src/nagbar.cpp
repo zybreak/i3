@@ -16,7 +16,6 @@
 #include "font.h"
 #include "dpi.h"
 
-#include "get_process_filename.h"
 #include "get_visualtype.h"
 #include "util.h"
 #include "i3_ipc/include/i3-ipc.h"

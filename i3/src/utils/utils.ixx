@@ -68,3 +68,15 @@ export char *sstrndup(const char *str, size_t size);
  *
  */
 export int sasprintf(char **strp, const char *fmt, ...);
+
+/**
+ * Returns the name of a temporary file with the specified prefix.
+ *
+ */
+export char *get_process_filename(const char *prefix);
+
+/**
+ * Emulates mkdir -p (creates any missing folders)
+ *
+ */
+export int mkdirp(const char *path, mode_t mode);
