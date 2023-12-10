@@ -11,13 +11,6 @@ module;
 #include <cstdlib>
 module utils;
 
-static void *scalloc(size_t num, size_t size) {
-    void *result = calloc(num, size);
-    if (result == nullptr)
-        err(EXIT_FAILURE, "calloc(%zd, %zd)", num, size);
-    return result;
-}
-
 namespace utils {
     /*
      * Parses a string (or word, if as_word is true). Extracted out of
