@@ -5,12 +5,14 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
+module;
 #include "i3string.h"
 #include "dpi.h"
 #include "global.h"
 
 #include <algorithm>
 #include <xcb/xcb_aux.h>
+module i3;
 
 /**
  * Find the region in the given window that is not covered by a mapped child

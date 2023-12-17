@@ -85,8 +85,6 @@ import utils;
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;
 
-bool is_background_set(x_connection *conn, xcb_screen_t *screen);
-
 /*
  * Exit handler which destroys the main_loop. Will trigger cleanup handlers.
  *
