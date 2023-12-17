@@ -57,10 +57,3 @@ extern SnDisplay *sndisplay;
 
 extern struct ev_loop *main_loop;
 
-/**
- * Puts the given socket file descriptor into non-blocking mode or dies if
- * setting O_NONBLOCK failed. Non-blocking sockets are a good idea for our
- * IPC model because we should by no means block the window manager.
- *
- */
-void set_nonblock(int sockfd);

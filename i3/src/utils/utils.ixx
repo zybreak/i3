@@ -80,3 +80,12 @@ export char *get_process_filename(const char *prefix);
  *
  */
 export int mkdirp(const char *path, mode_t mode);
+
+/**
+ * Puts the given socket file descriptor into non-blocking mode or dies if
+ * setting O_NONBLOCK failed. Non-blocking sockets are a good idea for our
+ * IPC model because we should by no means block the window manager.
+ *
+ */
+export void set_nonblock(int sockfd);
+

@@ -6,6 +6,7 @@ target_sources(utils PUBLIC
         boolstr.cpp
         get_process_filename.cpp
         mkdirp.cpp
+        nonblock.cpp
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES utils.ixx)

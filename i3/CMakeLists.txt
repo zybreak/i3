@@ -75,7 +75,6 @@ list(APPEND i3_src
         ${CMAKE_CURRENT_SOURCE_DIR}/src/manage.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/match.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/move.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/nonblock.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/output.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/program_arguments.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/randr.cpp

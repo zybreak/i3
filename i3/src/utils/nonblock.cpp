@@ -1,5 +1,7 @@
+module;
 #include <err.h>
 #include <fcntl.h>
+module utils;
 
 /*
  * Puts the given socket file descriptor into non-blocking mode or dies if
