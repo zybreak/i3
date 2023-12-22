@@ -116,7 +116,7 @@ target_sources(i3_lib PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES src/i3-lib.ixx
         )
-target_link_libraries(i3_lib PUBLIC ${libraries} i3_commands_old utils)
+target_link_libraries(i3_lib PUBLIC ${libraries} i3_commands_old utils std)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
 target_compile_options(i3_lib PUBLIC ${compile_options})
 add_dependencies(i3_lib libi3ipc)

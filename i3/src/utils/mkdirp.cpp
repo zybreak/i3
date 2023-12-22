@@ -5,12 +5,9 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-module;
-#include <fmt/printf.h>
-#include <cstdlib>
-#include <filesystem>
-
 module utils;
+
+import std;
 
 /*
  * Emulates mkdir -p (creates any missing folders)

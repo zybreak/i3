@@ -40,6 +40,7 @@ add_custom_target(Config ALL
             'GENERATED_config_call.h')
 
 add_subdirectory(lib/i3_ipc)
+add_subdirectory(lib/std.module)
 add_subdirectory(i3)
 #add_subdirectory(i3-msg)
 #add_subdirectory(utils)

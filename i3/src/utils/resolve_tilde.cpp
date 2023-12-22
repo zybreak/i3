@@ -9,11 +9,10 @@ module;
 #include <err.h>
 #include <glob.h>
 #include <cstdlib>
-#include <string>
-#include <string_view>
-#include <ranges>
 
 module utils;
+
+import std;
 
 namespace utils {
     /*

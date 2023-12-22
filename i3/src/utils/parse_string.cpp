@@ -5,10 +5,6 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-module;
-#include <err.h>
-#include <cerrno>
-#include <cstdlib>
 module utils;
 
 namespace utils {
