@@ -5,14 +5,16 @@
 #include <queue>
 #include <config.h>
 #include <memory>
-#include "assignments.h"
-#include "workspace.h"
-#include "x.h"
-#include "keysyms.h"
-#include "shape.h"
-#include "xkb.h"
-#include "handlers.h"
-#include "event_handler.h"
+
+class Con;
+class RootCon;
+class Keysyms;
+class X;
+class RandR;
+class Shape;
+class Xkb;
+class EventHandler;
+class PropertyHandlers;
 
 struct global {
     std::string current_socketpath{};

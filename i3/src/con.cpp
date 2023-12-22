@@ -9,6 +9,7 @@
  *        …).
  *
  */
+module;
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
@@ -18,31 +19,18 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
 
 #include <xcb/xcb.h>
 #include <vector>
 
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
-#include "xcb.h"
-#include "workspace.h"
 #include "i3.h"
-#include "x.h"
-#include "floating.h"
-#include "configuration.h"
-#include "con.h"
-#include "render.h"
-#include "match.h"
-#include "output.h"
-#include "ewmh.h"
-#include "startup.h"
 #include "global.h"
-#include "format_placeholders.h"
 #include "ipc.h"
+module i3;
 
+import :output;
+import :format_placeholders;
 import utils;
 
 /*

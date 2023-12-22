@@ -22,16 +22,8 @@
 #include "global.h"
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
-#include "get_visualtype.h"
 
-#include "xcb.h"
 #include "i3.h"
-#include "configuration.h"
-#include "con.h"
-#include "match.h"
 #include "restore_layout.h"
 
 #ifdef I3_ASAN_ENABLED
@@ -39,6 +31,7 @@
 #endif
 
 import utils;
+import i3;
 
 typedef struct placeholder_state {
     /** The X11 placeholder window. */

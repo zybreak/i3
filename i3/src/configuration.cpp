@@ -8,6 +8,7 @@
  *           the correct path, switching key bindings mode).
  *
  */
+module;
 #include <config.h>
 
 #include <fstream>
@@ -24,23 +25,13 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
 
-#include "util.h"
-#include "tree.h"
-#include "workspace.h"
-#include "x.h"
-#include "configuration.h"
-#include "match.h"
-#include "bindings.h"
 #include "config/old/config_parser.h"
 #include "global.h"
 #include "config/new/config_parser.h"
 #include "config/config_applier.h"
+module i3;
 
-import i3;
 import utils;
 
 using namespace std::literals;

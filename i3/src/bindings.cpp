@@ -6,6 +6,7 @@
  *
  * bindings.c: Functions for configuring, finding and, running bindings.
  */
+module;
 #include <cassert>
 
 #include <cstdint>
@@ -17,15 +18,10 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
 
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
-#include "xcb.h"
 #include "i3.h"
 #include "commands_parser.h"
-#include "bindings.h"
 #include "global.h"
 #include "config_parser.h"
 #include "nagbar.h"
@@ -38,6 +34,7 @@
 #include <xkbcommon/xkbcommon.h>
 #include <fmt/core.h>
 #include <set>
+module i3;
 
 import utils;
 

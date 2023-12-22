@@ -7,6 +7,7 @@
  * window.c: Updates window attributes (X11 hints/properties).
  *
  */
+module;
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -16,21 +17,11 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
 
-#include "util.h"
-#include "xcb.h"
-#include "configuration.h"
-#include "con.h"
-#include "render.h"
-#include "window.h"
-#include "ewmh.h"
-#include "assignments.h"
 #include "global.h"
 
 #include <cmath>
+module i3;
 
 import utils;
 

@@ -9,6 +9,7 @@
  * (take your time to read it completely, it answers all questions).
  *
  */
+module;
 #include <cassert>
 #include <err.h>
 
@@ -20,18 +21,7 @@
 
 #include "log.h"
 
-#include "util.h"
-#include "tree.h"
-#include "workspace.h"
 #include "i3.h"
-#include "x.h"
-#include "floating.h"
-#include "configuration.h"
-#include "randr.h"
-#include "con.h"
-#include "match.h"
-#include "output.h"
-#include "ewmh.h"
 #include "global.h"
 
 #include <xcb/randr.h>
@@ -39,6 +29,7 @@
 #include <vector>
 #include <algorithm>
 #include <fmt/core.h>
+module i3;
 
 import utils;
 

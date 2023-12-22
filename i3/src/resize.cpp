@@ -7,6 +7,7 @@
  * resize.c: Interactive resizing.
  *
  */
+module;
 #include <cassert>
 
 #include <cstdint>
@@ -14,17 +15,9 @@
 #include <xcb/xcb.h>
 
 #include "log.h"
-#include "dpi.h"
 
-#include "util.h"
-#include "tree.h"
-#include "xcb.h"
-#include "x.h"
-#include "drag.h"
-#include "configuration.h"
-#include "con.h"
-#include "resize.h"
 #include "global.h"
+module i3;
 
 /*
  * This is an ugly data structure which we need because there is no standard

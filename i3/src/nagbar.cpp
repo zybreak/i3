@@ -12,18 +12,10 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
 
-#include "get_visualtype.h"
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
 #include "manage.h"
 #include "i3.h"
-#include "configuration.h"
-#include "bindings.h"
 #include "config_parser.h"
 #include "nagbar.h"
 
@@ -48,6 +40,7 @@
 #endif
 
 import utils;
+import i3;
 
 /*
  * Handler which will be called when we get a SIGCHLD for the nagbar, meaning

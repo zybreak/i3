@@ -12,9 +12,6 @@
 #include <config.h>
 
 #include "parser_stack.h"
-#include "configuration.h"
-#include "criteria_state.h"
-#include "match.h"
 #include "global.h"
 #include "../base_parser.h"
 

@@ -7,24 +7,13 @@
  * move.c: Moving containers into some direction.
  *
  */
-#include <cassert>
-
-#include <cstdlib>
-#include <algorithm>
+module;
 #include "ipc.h"
 
 #include "log.h"
 
-#include "util.h"
 #include "i3-ipc.h"
-#include "tree.h"
-#include "workspace.h"
-#include "floating.h"
-#include "randr.h"
-#include "con.h"
-#include "move.h"
-#include "output.h"
-#include "ewmh.h"
+module i3;
 
 /*
  * Returns the lowest container in the tree that has both a and b as descendants.

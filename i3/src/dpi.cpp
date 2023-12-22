@@ -5,13 +5,13 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
+module;
 #include "log.h"
-#include "dpi.h"
-
-#include <cmath>
-#include <cstdlib>
 
 #include <xcb/xcb_xrm.h>
+module i3;
+
+import std;
 
 static double dpi;
 

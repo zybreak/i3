@@ -1,4 +1,6 @@
-#include "keysyms.h"
+module;
+#include <xcb/xcb_keysyms.h>
+module i3;
 
 Keysyms::Keysyms(X *x): x(x) {
     keysyms = xcb_key_symbols_alloc(**x);

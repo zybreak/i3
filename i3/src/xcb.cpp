@@ -7,23 +7,17 @@
  * xcb.c: Helper functions for easier usage of XCB
  *
  */
-
-#include <cstdint>
-#include <cstdlib>
+module;
 
 #include <xcb/xcb.h>
 #include "i3string.h"
 #include <config.h>
 #include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
-#include "util.h"
-#include "xcb.h"
 #include "i3.h"
-#include "configuration.h"
-#include "handlers.h"
 #include "global.h"
+module i3;
+
+import std;
 
 import utils;
 

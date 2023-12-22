@@ -8,7 +8,7 @@
  *              workspaces.
  *
  */
-
+module;
 #include <cstdlib>
 #include <cstring>
 #include <fmt/core.h>
@@ -17,25 +17,15 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
 
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
-#include "workspace.h"
 #include "i3.h"
-#include "x.h"
-#include "floating.h"
-#include "configuration.h"
-#include "randr.h"
-#include "con.h"
-#include "output.h"
-#include "ewmh.h"
 #include "commands_parser.h"
 #include "global.h"
 #include "ipc.h"
+module i3;
+
+import :output;
 
 import utils;
 

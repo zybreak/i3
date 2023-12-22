@@ -10,6 +10,7 @@
  *            the appropriate workspace.
  *
  */
+module;
 #include <cassert>
 
 #include <cstdlib>
@@ -19,17 +20,9 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
 
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
-#include "xcb.h"
 #include "i3.h"
-#include "con.h"
-#include "startup.h"
 
 #include <paths.h>
 #include <sys/types.h>
@@ -40,6 +33,7 @@
 #include <libsn/sn-launcher.h>
 #include "global.h"
 #include <config.h>
+module i3;
 
 import utils;
 

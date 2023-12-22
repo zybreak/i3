@@ -88,7 +88,6 @@ list(APPEND i3_src
         src/string.cpp
         src/dpi.cpp
         src/draw_util.cpp
-        src/get_visualtype.cpp
         src/log.cpp
         src/root_atom_contents.cpp
         src/sync.cpp
@@ -114,7 +113,43 @@ target_sources(i3_lib PUBLIC
         ${i3_src}
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
-        FILES src/i3-lib.ixx
+        FILES
+        src/i3-lib.ixx
+        src/include/assignments.ixx
+        src/include/autostarts.ixx
+        src/include/bindings.ixx
+        src/include/click.ixx
+        src/include/configuration.ixx
+        src/include/con.ixx
+        src/include/util.ixx
+        src/include/x.ixx
+        src/include/workspace.ixx
+        src/include/keysyms.ixx
+        src/include/event_handler.ixx
+        src/include/shape.ixx
+        src/include/xkb.ixx
+        src/include/handlers.ixx
+        src/include/criteria_state.ixx
+        src/include/resize.ixx
+        src/include/window.ixx
+        src/include/match.ixx
+        src/include/tree.ixx
+        src/include/startup.ixx
+        src/include/draw.ixx
+        src/include/sync.ixx
+        src/include/output.ixx
+        src/include/rect.ixx
+        src/include/render.ixx
+        src/include/randr.ixx
+        src/include/font.ixx
+        src/include/format_placeholders.ixx
+        src/include/xcb.ixx
+        src/include/drag.ixx
+        src/include/dpi.ixx
+        src/include/get_visualtype.ixx
+        src/include/ewmh.ixx
+        src/include/floating.ixx
+        src/include/move.ixx
         )
 target_link_libraries(i3_lib PUBLIC ${libraries} i3_commands_old utils std)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)

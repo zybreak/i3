@@ -7,39 +7,21 @@
  * floating.c: Floating windows.
  *
  */
-#include <cassert>
+module;
 #include <fmt/core.h>
-
-#include <cstdint>
-#include <cstdlib>
 
 #include <xcb/xcb.h>
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
-#include "xcb.h"
-#include "workspace.h"
 #include "i3.h"
-#include "x.h"
-#include "floating.h"
-#include "drag.h"
-#include "configuration.h"
-#include "randr.h"
-#include "con.h"
-#include "render.h"
-#include "move.h"
-#include "output.h"
 #include "global.h"
 #include "ipc.h"
-
-#include <cmath>
-#include <algorithm>
+module i3;
 
 import utils;
+import std;
 
 /*
  * Calculates sum of heights and sum of widths of all currently active outputs

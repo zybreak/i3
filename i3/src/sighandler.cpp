@@ -15,15 +15,8 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
 
-#include "util.h"
-#include "xcb.h"
 #include "i3.h"
-#include "configuration.h"
-#include "randr.h"
 #include "sighandler.h"
 #include "global.h"
 
@@ -32,6 +25,7 @@
 #include <filesystem>
 
 import utils;
+import i3;
 
 class dialog_t {
    public:

@@ -8,6 +8,7 @@
  *           various rects. Needs to be pushed to X11 (see x.c) to be visible.
  *
  */
+module;
 #include <cassert>
 
 #include <cstdlib>
@@ -16,15 +17,9 @@
 
 #include "log.h"
 
-#include "util.h"
-#include "x.h"
-#include "configuration.h"
-#include "con.h"
-#include "render.h"
-#include "output.h"
-
 #include <cmath>
 #include <ranges>
+module i3;
 
 /* Forward declarations */
 static std::vector<int> precalculate_sizes(Con *con, render_params *p);

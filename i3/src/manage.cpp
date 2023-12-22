@@ -18,32 +18,15 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
 
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
-#include "xcb.h"
 #include "manage.h"
-#include "workspace.h"
 #include "i3.h"
-#include "x.h"
-#include "floating.h"
-#include "configuration.h"
-#include "randr.h"
-#include "con.h"
-#include "render.h"
-#include "window.h"
-#include "match.h"
-#include "output.h"
-#include "ewmh.h"
-#include "assignments.h"
-#include "startup.h"
-#include "bindings.h"
 #include "restore_layout.h"
 #include "global.h"
 #include "ipc.h"
 
+import i3;
 import utils;
 
 /*

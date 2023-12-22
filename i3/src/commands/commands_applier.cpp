@@ -17,31 +17,12 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "dpi.h"
 
-#include "con.h"
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
-#include "workspace.h"
-#include "x.h"
-#include "floating.h"
-#include "configuration.h"
-#include "randr.h"
 #include "load_layout.h"
-#include "render.h"
-#include "match.h"
-#include "resize.h"
-#include "move.h"
-#include "output.h"
-#include "ewmh.h"
-#include "startup.h"
 //#include "commands.h"
 #include "commands_parser.h"
-#include "bindings.h"
 #include "restore_layout.h"
-#include "criteria_state.h"
 #include "nagbar.h"
 #include "ipc.h"
 
@@ -55,6 +36,7 @@
 #include "command_result_ir.h"
 
 import utils;
+import i3;
 
 static void ysuccess(nlohmann::json *json_gen, bool success) {
     if (json_gen != nullptr) {

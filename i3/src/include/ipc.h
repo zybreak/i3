@@ -14,10 +14,6 @@
 #include <ev.h>
 #include <nlohmann/json.hpp>
 
-#include "bindings.h"
-#include "tree.h"
-#include "con.h"
-
 struct Binding;
 struct Barconfig;
 

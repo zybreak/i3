@@ -7,7 +7,7 @@
  * sync.c: i3 sync protocol: https://i3wm.org/docs/testsuite.html#i3_sync
  *
  */
-
+module;
 #include <cstdint>
 #include <cstdlib>
 
@@ -17,8 +17,7 @@
 
 #include "global.h"
 
-#include "xcb.h"
-#include "sync.h"
+module i3;
 
 import utils;
 

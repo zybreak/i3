@@ -7,7 +7,6 @@
  */
 module;
 #include "i3string.h"
-#include "dpi.h"
 #include "global.h"
 
 #include <algorithm>

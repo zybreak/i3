@@ -8,6 +8,7 @@
  *             …).
  *
  */
+module;
 #include <cassert>
 #include <climits>
 
@@ -22,29 +23,10 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
 
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
-#include "xcb.h"
 #include "manage.h"
-#include "workspace.h"
 #include "i3.h"
-#include "x.h"
-#include "click.h"
-#include "floating.h"
-#include "configuration.h"
-#include "handlers.h"
-#include "randr.h"
-#include "con.h"
-#include "render.h"
-#include "window.h"
-#include "output.h"
-#include "ewmh.h"
-#include "startup.h"
-#include "bindings.h"
-#include "sync.h"
 
 #include <ctime>
 
@@ -59,7 +41,9 @@
 #include "global.h"
 #include "ipc.h"
 #include <config.h>
+module i3;
 
+import :output;
 import utils;
 
 /* After mapping/unmapping windows, a notify event is generated. However, we don’t want it,

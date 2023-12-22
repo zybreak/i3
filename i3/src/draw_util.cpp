@@ -6,10 +6,9 @@
  * draw.c: Utility for drawing.
  *
  */
+module;
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
 #include "global.h"
 
 #include <cstdlib>
@@ -17,6 +16,7 @@
 
 #include <xcb/xcb.h>
 #include <deque>
+module i3;
 
 import utils;
 

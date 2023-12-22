@@ -21,22 +21,10 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
 
-#include "bindings.h"
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
-#include "xcb.h"
-#include "workspace.h"
 #include "i3.h"
-#include "configuration.h"
-#include "randr.h"
-#include "con.h"
-#include "output.h"
 #include "commands_parser.h"
-#include "sync.h"
-#include "match.h"
 #include "i3_regex.h"
 
 #include <ev.h>
@@ -53,6 +41,7 @@
 
 import i3ipc;
 import utils;
+import i3;
 
 static std::vector<ipc_client*> all_clients{};
 

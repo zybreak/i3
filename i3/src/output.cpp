@@ -7,6 +7,7 @@
  * output.c: Output (monitor) related functions.
  *
  */
+module;
 #include <cassert>
 
 #include <cstring>
@@ -15,13 +16,8 @@
 
 #include "log.h"
 
-#include "util.h"
-#include "tree.h"
-#include "workspace.h"
-#include "configuration.h"
-#include "randr.h"
-#include "con.h"
-#include "output.h"
+#include "global.h"
+module i3;
 
 /*
  * Returns an 'output' corresponding to one of left/right/down/up or a specific

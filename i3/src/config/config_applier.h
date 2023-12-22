@@ -21,25 +21,17 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
 
-#include "criteria_state.h"
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
 #include "i3.h"
-#include "configuration.h"
-#include "match.h"
-#include "bindings.h"
 #include "config_parser.h"
 #include "global.h"
 #include "base_config_applier.h"
 
 #include <wordexp.h>
-#include <autostarts.h>
 
 import utils;
+import i3;
 
 /*******************************************************************************
  * Include functions.

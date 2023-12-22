@@ -7,26 +7,17 @@
  * ewmh.c: Get/set certain EWMH properties easily.
  *
  */
-
-#include <cstdint>
-#include <cstring>
-
+module;
 #include <xcb/xcb.h>
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
 
-#include "tree.h"
-#include "xcb.h"
-#include "workspace.h"
 #include "i3.h"
-#include "configuration.h"
-#include "con.h"
-#include "ewmh.h"
 #include "global.h"
 
 #include "atoms.h"
+module i3;
 
 xcb_window_t ewmh_window;
 

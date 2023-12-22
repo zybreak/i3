@@ -7,6 +7,7 @@
  * tree.c: Everything that primarily modifies the layout tree data structure.
  *
  */
+module;
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
@@ -20,30 +21,16 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
 
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
-#include "xcb.h"
-#include "workspace.h"
 #include "i3.h"
-#include "x.h"
-#include "configuration.h"
-#include "handlers.h"
-#include "randr.h"
-#include "con.h"
 #include "load_layout.h"
-#include "render.h"
-#include "window.h"
-#include "output.h"
-#include "ewmh.h"
 #include "restore_layout.h"
 #include "global.h"
 #include "ipc.h"
+module i3;
 
+import :output;
 import utils;
 
 /*

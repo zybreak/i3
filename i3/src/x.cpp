@@ -8,6 +8,7 @@
  *      render.c). Basically a big state machine.
  *
  */
+module;
 #include <cassert>
 
 #include <cstdint>
@@ -21,27 +22,15 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
 
-#include "draw.h"
-
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
-#include "xcb.h"
 #include "i3.h"
-#include "x.h"
-#include "configuration.h"
-#include "randr.h"
-#include "con.h"
-#include "ewmh.h"
 #include "global.h"
 #include "ipc.h"
 
 #include <unistd.h>
 #include <ranges>
+module i3;
 
 import utils;
 

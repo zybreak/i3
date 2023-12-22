@@ -1,5 +1,7 @@
 #pragma once
 
+#import <xcb/xproto.h>
+
 #define I3_NET_SUPPORTED_ATOMS_XMACRO \
 xmacro(_NET_SUPPORTED) \
 xmacro(_NET_SUPPORTING_WM_CHECK) \

@@ -20,17 +20,11 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
 
-#include "util.h"
-#include "tree.h"
-#include "xcb.h"
-#include "configuration.h"
-#include "con.h"
-#include "match.h"
 #include "i3_regex.h"
 
 import utils;
+import i3;
 
 /* From sys/time.h, not sure if it’s available on all systems. */
 template<typename Comp = std::ranges::less>

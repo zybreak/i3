@@ -12,16 +12,8 @@
 #include <cstring>
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
 
-#include "util.h"
-#include "workspace.h"
-#include "x.h"
-#include "floating.h"
-#include "configuration.h"
-#include "con.h"
 #include "load_layout.h"
-#include "match.h"
 #include "i3_regex.h"
 
 #include <clocale>
@@ -30,6 +22,7 @@
 #include <nlohmann/json.hpp>
 
 import utils;
+import i3;
 
 /* TODO: refactor the whole parsing thing */
 

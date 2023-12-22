@@ -7,6 +7,7 @@
  * click.c: Button press (mouse click) events.
  *
  */
+module;
 #include <cassert>
 
 #include <cstdint>
@@ -16,21 +17,13 @@
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
 
-#include "util.h"
-#include "tree.h"
-#include "workspace.h"
 #include "i3.h"
-#include "click.h"
-#include "floating.h"
-#include "configuration.h"
-#include "con.h"
-#include "resize.h"
-#include "output.h"
 #include "commands_parser.h"
-#include "bindings.h"
 #include "global.h"
+module i3;
+
+import :output;
 
 enum click_destination_t {
     CLICK_BORDER = 0,

@@ -28,10 +28,6 @@
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-launcher.h>
 
-#include "bindings.h"
-#include "xcb.h"
-#include "workspace.h"
-
 #define DEFAULT_DIR_MODE (S_IRWXU | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH)
 
 /** Mouse buttons */

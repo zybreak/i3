@@ -1,6 +1,5 @@
 #pragma once
 
-#include "configuration.h"
 #include "config/base_parser.h"
 #include "../base_config_applier.h"
 #include "resource_database.h"

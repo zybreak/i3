@@ -1,5 +1,6 @@
+module;
 #include <cstdint>
-#include "rect.h"
+module i3;
 
 bool Rect::rect_contains(uint32_t _x, uint32_t _y) {
     Rect *rect = this;

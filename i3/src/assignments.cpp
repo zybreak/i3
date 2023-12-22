@@ -7,20 +7,17 @@
  * assignments.c: Assignments for specific windows (for_window).
  *
  */
-
+module;
 #include <fmt/core.h>
 #include <optional>
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
 
-#include "tree.h"
-#include "match.h"
-#include "assignments.h"
 #include "commands_parser.h"
 #include "global.h"
 #include "commands_applier.h"
+module i3;
 
 Assignment::~Assignment() {
     delete this->match;

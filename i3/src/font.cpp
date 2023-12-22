@@ -5,11 +5,9 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "get_visualtype.h"
-#include "draw.h"
-#include "dpi.h"
+module;
 #include "log.h"
-#include "font.h"
+#include "i3string.h"
 
 #include <cassert>
 #include <cairo/cairo-xcb.h>
@@ -18,6 +16,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+module i3;
 
 import utils;
 

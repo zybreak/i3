@@ -7,27 +7,19 @@
  * drag.c: click and drag.
  *
  */
-
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
+module;
 #include <ev.h>
 
 #include <xcb/xcb.h>
 
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
 
-#include "util.h"
-#include "tree.h"
 #include "i3.h"
-#include "drag.h"
-#include "configuration.h"
-#include "handlers.h"
-#include "con.h"
 #include "global.h"
-#include "event_handler.h"
+module i3;
+
+import std;
 
 /* Custom data structure used to track dragging-related events. */
 struct drag_x11_cb {

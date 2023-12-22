@@ -8,6 +8,7 @@
  *         also libi3).
  *
  */
+module;
 #include <err.h>
 #include <cerrno>
 #include <climits>
@@ -21,16 +22,9 @@
 #include <sys/types.h>
 #include "i3string.h"
 #include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
 #include "manage.h"
 #include "i3.h"
-#include "configuration.h"
-#include "bindings.h"
 #include "nagbar.h"
 
 #include <cctype>
@@ -47,8 +41,8 @@
 #if defined(__OpenBSD__)
 #include <sys/cdefs.h>
 #endif
+module i3;
 
-import i3;
 import utils;
 
 /*

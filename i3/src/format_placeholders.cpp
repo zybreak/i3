@@ -5,9 +5,9 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include "format_placeholders.h"
+module i3;
 
-#include <cstring>
+import std;
 
 static bool CS_STARTS_WITH(const char *string, const char *needle) {
     return strncmp(string, needle, strlen(needle)) == 0;
