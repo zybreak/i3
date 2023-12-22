@@ -1,9 +1,6 @@
-//
-// Created by zybreak on 11/20/21.
-//
-module;
-#include <compare>
-module i3:rect;
+export module i3:rect;
+
+import std;
 
 export {
 

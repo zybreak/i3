@@ -7,10 +7,6 @@
  *
  */
 module;
-#include "i3string.h"
-#include "log.h"
-#include "global.h"
-
 #include <cstdlib>
 #include <cstring>
 

@@ -8,10 +8,16 @@
  *                restart.
  *
  */
-#pragma once
+module;
 
 #include <config.h>
 #include <fstream>
+
+export module i3:load_layout;
+
+class Con;
+
+export {
 
 enum json_content_t {
     // We could not determine the content of the JSON file. This typically
@@ -41,3 +47,4 @@ json_content_t json_determine_content(std::string &fb);
 bool json_validate(std::string &fb);
 
 void tree_append_json(Con *con, std::string &fb, char **errormsg);
+}

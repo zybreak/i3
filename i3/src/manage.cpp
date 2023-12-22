@@ -7,27 +7,18 @@
  * manage.c: Initially managing new windows (or existing ones on restart).
  *
  */
-
-#include <cstdint>
-#include <cstdlib>
-
+module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
 #include <fmt/core.h>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3_ipc/include/i3-ipc.h"
-#include "manage.h"
 #include "i3.h"
-#include "restore_layout.h"
-#include "global.h"
-#include "ipc.h"
+module i3;
 
-import i3;
 import utils;
+import std;
 
 /*
  * Match frame and window depth. This is needed because X will refuse to reparent a

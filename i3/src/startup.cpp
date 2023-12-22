@@ -18,9 +18,6 @@ module;
 
 #include <xcb/xcb.h>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3_ipc/include/i3-ipc.h"
 #include "i3.h"
 
@@ -31,7 +28,6 @@ module;
 
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-launcher.h>
-#include "global.h"
 #include <config.h>
 module i3;
 

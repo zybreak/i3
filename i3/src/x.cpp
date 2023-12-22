@@ -20,13 +20,8 @@ module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3_ipc/include/i3-ipc.h"
 #include "i3.h"
-#include "global.h"
-#include "ipc.h"
 
 #include <unistd.h>
 #include <ranges>

@@ -1,6 +1,10 @@
-#pragma once
+module;
 
 #include <xcb/xcb.h>
+
+export module i3:root_atom_contents;
+
+export {
 
 /**
  * Try to get the contents of the given atom (for example I3_SOCKET_PATH) from
@@ -14,3 +18,4 @@
  *
  */
 char *root_atom_contents(const char *atomname, xcb_connection_t *provided_conn, int screen);
+}

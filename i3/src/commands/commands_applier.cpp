@@ -15,16 +15,9 @@
 #include <cstring>
 #include <queue>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3_ipc/include/i3-ipc.h"
-#include "load_layout.h"
 //#include "commands.h"
 #include "commands_parser.h"
-#include "restore_layout.h"
-#include "nagbar.h"
-#include "ipc.h"
 
 #include <fcntl.h>
 #include <unistd.h>

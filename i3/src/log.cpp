@@ -7,7 +7,8 @@
  * log.c: Logging functions.
  *
  */
-#include "log.h"
+module i3;
+
 
 static bool debug_logging = false;
 static bool verbose = false;

@@ -2,8 +2,11 @@ module;
 
 #include <pango/pango.h>
 #include <cairo/cairo-xcb.h>
-#include "i3string.h"
 export module i3:draw;
+
+import std;
+
+class i3String;
 
 export {
 

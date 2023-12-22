@@ -6,9 +6,6 @@
  *
  */
 module;
-#include "i3string.h"
-#include "global.h"
-
 #include <algorithm>
 #include <xcb/xcb_aux.h>
 module i3;

@@ -7,9 +7,16 @@
  * manage.c: Initially managing new windows (or existing ones on restart).
  *
  */
-#pragma once
-
+module;
 #include <config.h>
+#include <xcb/xproto.h>
+export module i3:manage;
+
+import :internal;
+
+class Con;
+
+export {
 
 /**
  * Go through all existing windows (if the window manager is restarted) and
@@ -44,3 +51,4 @@ void manage_window(xcb_window_t window,
 Con *remanage_window(Con *con);
 
 void update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_border_style);
+}

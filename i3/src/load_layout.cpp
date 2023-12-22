@@ -8,21 +8,16 @@
  *                restart.
  *
  */
-
+module;
 #include <cstring>
-#include "i3string.h"
-#include "log.h"
-
-#include "load_layout.h"
-#include "i3_regex.h"
 
 #include <clocale>
 
 #include <fmt/core.h>
 #include <nlohmann/json.hpp>
+module i3;
 
 import utils;
-import i3;
 
 /* TODO: refactor the whole parsing thing */
 

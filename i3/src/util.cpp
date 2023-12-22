@@ -20,12 +20,8 @@ module;
 #include <cstring>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include "i3string.h"
-#include "log.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "manage.h"
 #include "i3.h"
-#include "nagbar.h"
 
 #include <cctype>
 #include <fcntl.h>
@@ -35,8 +31,6 @@ module;
 #include <sys/wait.h>
 #include <unistd.h>
 #include <fmt/core.h>
-#include "global.h"
-#include "ipc.h"
 
 #if defined(__OpenBSD__)
 #include <sys/cdefs.h>

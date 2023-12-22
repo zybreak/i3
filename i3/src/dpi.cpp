@@ -6,8 +6,6 @@
  *
  */
 module;
-#include "log.h"
-
 #include <xcb/xcb_xrm.h>
 module i3;
 

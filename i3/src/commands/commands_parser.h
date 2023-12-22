@@ -11,9 +11,10 @@
 
 #include "command_result.h"
 #include "base_commands_applier.h"
-#include "ipc.h"
 #include <nlohmann/json.hpp>
 #include <config.h>
+
+class ipc_client;
 
 /**
  * Parses and executes the given command. If a caller-allocated yajl_gen is

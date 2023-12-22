@@ -9,11 +9,16 @@
  */
 module;
 
+#include <cairo.h>
 #include <config.h>
-#include <deque>
+#include <xcb/xcb.h>
 
 export module i3:window;
 
+import std;
+
+class Assignment;
+class i3String;
 export {
 
 enum border_style_t : unsigned int;
@@ -87,7 +92,7 @@ public:
         W_DOCK_BOTTOM = 2 } dock;
 
     /** When this window was marked urgent. 0 means not urgent */
-    struct timeval urgent;
+    timeval urgent;
 
     /** Pixels the window reserves. left/right/top/bottom */
     struct reservedpx reserved;

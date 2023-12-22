@@ -1,8 +1,6 @@
-module;
-#include <string>
-#include <vector>
-#include <memory>
 export module i3:autostarts;
+
+import std;
 
 export {
 

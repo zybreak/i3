@@ -1,7 +1,15 @@
-#pragma once
+module;
 
 #include "unistd.h"
 #include "sys/types.h"
+
+export module i3:nagbar;
+
+import std;
+
+class i3String;
+
+export {
 
 enum bar_type_t {
     TYPE_ERROR = 0,
@@ -39,3 +47,4 @@ void start_nagbar(pid_t *nagbar_pid,
  *
  */
 void kill_nagbar(pid_t nagbar_pid, bool wait_for_it);
+}

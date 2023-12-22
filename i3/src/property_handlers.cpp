@@ -21,11 +21,7 @@ module;
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3_ipc/include/i3-ipc.h"
-#include "manage.h"
 #include "i3.h"
 
 #include <ctime>
@@ -38,8 +34,6 @@ module;
 #include <algorithm>
 #include <ranges>
 #include <span>
-#include "global.h"
-#include "ipc.h"
 #include <config.h>
 module i3;
 

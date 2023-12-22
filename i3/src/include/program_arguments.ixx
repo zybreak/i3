@@ -1,7 +1,6 @@
-#ifndef BUILD_PROGRAM_ARGUMENTS_H
-#define BUILD_PROGRAM_ARGUMENTS_H
+export module i3:program_arguments;
 
-#include <string>
+import std;
 
 // program arguments
 struct program_arguments {
@@ -15,5 +14,3 @@ struct program_arguments {
 };
 
 program_arguments parse_args(int argc, char *argv[]);
-
-#endif //BUILD_PROGRAM_ARGUMENTS_H

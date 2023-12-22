@@ -8,8 +8,12 @@
  *
  */
 module;
-#include <config.h>
+#include <xcb/xcb.h>
 export module i3:resize;
+
+import :internal;
+
+class Con;
 
 export {
 

@@ -1,7 +1,6 @@
 module;
 #include <vector>
 #include <memory>
-#include "log.h"
 module i3;
 
 /* The list of exec-lines */

@@ -5,27 +5,20 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-
-#include <cstdint>
-#include <cstdlib>
+module;
 #include <sys/types.h>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3.h"
-#include "sighandler.h"
-#include "global.h"
 
 #include <sys/wait.h>
 #include <unistd.h>
-#include <filesystem>
+module i3;
 
 import utils;
-import i3;
+import std;
 
 class dialog_t {
    public:

@@ -1,8 +1,10 @@
+module;
+#include <pango/pango.h>
+#include <xcb/xcb.h>
 export module i3:font;
 
-struct xcb_connection_t;
-struct xcb_screen_t;
 struct color_t;
+class i3String;
 
 export {
 /**

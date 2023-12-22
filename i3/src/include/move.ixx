@@ -13,6 +13,10 @@ module;
 
 export module i3:move;
 
+import :internal;
+
+class Con;
+
 export {
 
 /**

@@ -19,12 +19,8 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
-#include "global.h"
-#include "i3string.h"
-#include "log.h"
 
 #include "i3.h"
-#include "restore_layout.h"
 
 #ifdef I3_ASAN_ENABLED
 #include <sanitizer/lsan_interface.h>

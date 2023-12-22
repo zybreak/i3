@@ -16,16 +16,10 @@ module;
 
 #include <xcb/xcb.h>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3_ipc/include/i3-ipc.h"
 #include "i3.h"
 #include "commands_parser.h"
-#include "global.h"
 #include "config_parser.h"
-#include "nagbar.h"
-#include "ipc.h"
 #include "commands_applier.h"
 
 #include <cmath>

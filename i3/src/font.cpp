@@ -6,9 +6,6 @@
  *
  */
 module;
-#include "log.h"
-#include "i3string.h"
-
 #include <cassert>
 #include <cairo/cairo-xcb.h>
 #include <err.h>

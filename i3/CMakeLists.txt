@@ -66,7 +66,6 @@ list(APPEND i3_src
         src/floating.cpp
         src/font.cpp
         src/format_placeholders.cpp
-        src/global.cpp
         src/property_handlers.cpp
         src/ipc.cpp
         src/is_background_set.cpp
@@ -150,6 +149,18 @@ target_sources(i3_lib PUBLIC
         src/include/ewmh.ixx
         src/include/floating.ixx
         src/include/move.ixx
+        src/include/sighandler.ixx
+        src/include/ipc.ixx
+        src/include/load_layout.ixx
+        src/include/restore_layout.ixx
+        src/include/program_arguments.ixx
+        src/include/root_atom_contents.ixx
+        src/include/nagbar.ixx
+        src/include/manage.ixx
+        src/include/i3string.ixx
+        src/include/log.ixx
+        src/include/i3_regex.ixx
+        src/include/internal.ixx
         )
 target_link_libraries(i3_lib PUBLIC ${libraries} i3_commands_old utils std)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)

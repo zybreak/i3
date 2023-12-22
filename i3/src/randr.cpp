@@ -19,10 +19,7 @@ module;
 
 #include <xcb/xcb.h>
 
-#include "log.h"
-
 #include "i3.h"
-#include "global.h"
 
 #include <xcb/randr.h>
 

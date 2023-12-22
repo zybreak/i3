@@ -14,6 +14,11 @@ module;
 #include <xcb/randr.h>
 export module i3:handlers;
 
+import std;
+
+class Con;
+class X;
+
 export {
 struct Ignore_Event {
     int sequence;

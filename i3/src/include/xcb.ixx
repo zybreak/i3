@@ -10,9 +10,11 @@
 module;
 
 #include <config.h>
+#include <xcb/xcb.h>
 export module i3:xcb;
 
 import std;
+import :internal;
 
 export {
 
@@ -62,7 +64,7 @@ class Con;
  *
  */
 xcb_window_t create_window(xcb_connection_t *conn, Rect r, uint16_t depth, xcb_visualid_t visual,
-                           uint16_t window_class, enum xcursor_cursor_t cursor, bool map, uint32_t mask, uint32_t *values);
+                           uint16_t window_class, xcursor_cursor_t cursor, bool map, uint32_t mask, uint32_t *values);
 
 /**
  * Generates a configure_notify_event with absolute coordinates (relative to

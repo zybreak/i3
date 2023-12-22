@@ -8,9 +8,16 @@
  *                   parsing (which can be found in load_layout.c).
  *
  */
-#pragma once
+module;
 
 #include <config.h>
+#include <xcb/xcb.h>
+
+export module i3:restore_layout;
+
+class Con;
+
+export {
 
 /**
  * Opens a separate connection to X11 for placeholder windows when restoring
@@ -38,3 +45,4 @@ void restore_open_placeholder_windows(Con *con);
  *
  */
 bool restore_kill_placeholder(xcb_window_t placeholder);
+}

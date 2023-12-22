@@ -1,7 +1,6 @@
 module;
 #include <ev.h>
 #include <xcb/xcb.h>
-#include "global.h"
 module i3;
 
 struct ev_loop *main_loop;

@@ -19,15 +19,8 @@ module;
 #include <algorithm>
 #include <filesystem>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3_ipc/include/i3-ipc.h"
 #include "i3.h"
-#include "load_layout.h"
-#include "restore_layout.h"
-#include "global.h"
-#include "ipc.h"
 module i3;
 
 import :output;

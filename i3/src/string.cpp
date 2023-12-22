@@ -9,15 +9,14 @@
  *           others want UTF-8 (Pango).
  *
  */
-#include "i3string.h"
-#include "log.h"
-
+module;
 #include <glib.h>
-#include <cstdlib>
-#include <cstring>
 
 #include <pango/pango.h>
 #include <cairo/cairo-xcb.h>
+module i3;
+
+import std;
 
 i3String::i3String(const std::string &str) {
     /* g_utf8_make_valid NULL-terminates the string. */

@@ -1,34 +1,18 @@
+module;
 #include <err.h>
-#include <cerrno>
-#include <climits>
-#include <fstream>
 
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3_ipc/include/i3-ipc.h"
-#include "manage.h"
 #include "i3.h"
 #include "config_parser.h"
-#include "nagbar.h"
 
-#include <cctype>
-#include <fcntl.h>
-#include <cinttypes>
 #include <libgen.h>
 #include <clocale>
 #include <sys/wait.h>
-#include <unistd.h>
 #include <fmt/core.h>
 #include <getopt.h>
-#include <paths.h>
 
 #include <xcb/randr.h>
 #include <xcb/xcb.h>
@@ -38,9 +22,10 @@
 #if defined(__OpenBSD__)
 #include <sys/cdefs.h>
 #endif
+module i3;
 
 import utils;
-import i3;
+import std;
 
 /*
  * Handler which will be called when we get a SIGCHLD for the nagbar, meaning

@@ -10,6 +10,7 @@
  */
 module;
 #include <config.h>
+#include <xcb/xcb.h>
 #include <xcb/shape.h>
 
 #include <xpp/xpp.hpp>
@@ -25,6 +26,9 @@ module;
 export module i3:x;
 
 import :rect;
+import :internal;
+
+class Con;
 
 export {
 
@@ -65,18 +69,6 @@ struct con_state {
     bool initial{};
 
     std::string name{};
-};
-
-enum xcursor_cursor_t {
-    XCURSOR_CURSOR_POINTER = 0,
-    XCURSOR_CURSOR_RESIZE_HORIZONTAL,
-    XCURSOR_CURSOR_RESIZE_VERTICAL,
-    XCURSOR_CURSOR_TOP_LEFT_CORNER,
-    XCURSOR_CURSOR_TOP_RIGHT_CORNER,
-    XCURSOR_CURSOR_BOTTOM_LEFT_CORNER,
-    XCURSOR_CURSOR_BOTTOM_RIGHT_CORNER,
-    XCURSOR_CURSOR_WATCH,
-    XCURSOR_CURSOR_MOVE,
 };
 
 class X {

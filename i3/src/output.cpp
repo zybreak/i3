@@ -7,17 +7,9 @@
  * output.c: Output (monitor) related functions.
  *
  */
-module;
-#include <cassert>
-
-#include <cstring>
-#include <ranges>
-#include <algorithm>
-
-#include "log.h"
-
-#include "global.h"
 module i3;
+
+import std;
 
 /*
  * Returns an 'output' corresponding to one of left/right/down/up or a specific

@@ -13,10 +13,6 @@ module;
 
 #include <xcb/xcb.h>
 
-#include "log.h"
-
-#include "global.h"
-
 module i3;
 
 import utils;

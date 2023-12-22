@@ -8,20 +8,18 @@
  * as i3-config-wizard, …
  *
  */
-#pragma once
+module;
 
 #include <config.h>
-
-#include <string>
-#include <cstdarg>
-#include <cstdio>
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 #include <xcb/xcb_keysyms.h>
 #include <fmt/core.h>
 #include <fmt/printf.h>
-#include <iostream>
 //#include <source_location>
+module i3:string;
+
+import std;
 
 /**
  * Data structure for storing strings.

@@ -7,15 +7,22 @@
  * ipc.c: UNIX domain socket IPC (initialization, client handling, protocol).
  *
  */
-#pragma once
+module;
 
 #include <config.h>
-
 #include <ev.h>
+
 #include <nlohmann/json.hpp>
+
+export module i3:ipc;
+
+import std;
 
 struct Binding;
 struct Barconfig;
+class Con;
+
+export {
 
 struct ipc_client {
     int fd;
@@ -135,3 +142,4 @@ void ipc_set_kill_timeout(ev_tstamp newTimeout);
  * Sends a restart reply to the IPC client on the specified fd.
  */
 void ipc_confirm_restart(ipc_client *client);
+}

@@ -11,7 +11,6 @@ module;
 
 #include <config.h>
 #include <xcb/xcb.h>
-#include "global.h"
 #include "command_result.h"
 export module i3:bindings;
 

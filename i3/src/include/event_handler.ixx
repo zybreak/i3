@@ -1,6 +1,8 @@
 module;
-#include "ev.h"
+#include <ev.h>
 export module i3:event_handler;
+
+class X;
 
 export {
 class EventHandler {

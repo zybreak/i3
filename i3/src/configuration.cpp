@@ -23,11 +23,7 @@ module;
 #include <xcb/xcb.h>
 #include <filesystem>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "config/old/config_parser.h"
-#include "global.h"
 #include "config/new/config_parser.h"
 #include "config/config_applier.h"
 module i3;

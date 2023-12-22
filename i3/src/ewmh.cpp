@@ -10,11 +10,7 @@
 module;
 #include <xcb/xcb.h>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3.h"
-#include "global.h"
 
 #include "atoms.h"
 module i3;

@@ -10,8 +10,14 @@
 module;
 
 #include <config.h>
+#include <xcb/xcb.h>
 
 export module i3:floating;
+
+import std;
+import :rect;
+
+class Con;
 
 export {
 

@@ -8,27 +8,17 @@
  *
  */
 module;
-
-#include <config.h>
-#include <queue>
-
 #include <cassert>
-#include <memory>
-#include <stdexcept>
-#include <iterator>
-#include <set>
-#include <algorithm>
-#include <cstddef>
-#include <string>
 #include <xcb/xcb.h>
 export module i3:tree;
 
-export {
+import std;
+import :internal;
 
-enum position_t {
-    BEFORE,
-    AFTER
-};
+class Con;
+class i3Window;
+
+export {
 
 /// A node in the Tree, combining links to other nodes as well as the actual data.
 template<class T>

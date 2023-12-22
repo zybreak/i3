@@ -1,11 +1,8 @@
-#include "program_arguments.h"
+module;
 #include "i3.h"
-#include "root_atom_contents.h"
 
 #include <getopt.h>
-#include <global.h>
-
-import i3;
+module i3;
 
 program_arguments parse_args(int argc, char *argv[]) {
     program_arguments args{};

@@ -5,9 +5,13 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#pragma once
+module;
 
 #include <config.h>
+
+export module i3:sighandler;
+
+export {
 
 /**
  * Configured a signal handler to gracefully handle crashes and allow the user
@@ -15,3 +19,4 @@
  *
  */
 void setup_signal_handler();
+}

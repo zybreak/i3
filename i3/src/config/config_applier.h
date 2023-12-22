@@ -19,13 +19,9 @@
 
 #include <xcb/xcb.h>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3_ipc/include/i3-ipc.h"
 #include "i3.h"
 #include "config_parser.h"
-#include "global.h"
 #include "base_config_applier.h"
 
 #include <wordexp.h>

@@ -15,8 +15,6 @@ module;
 
 #include <xcb/xcb.h>
 
-#include "log.h"
-
 #include <cmath>
 #include <ranges>
 module i3;

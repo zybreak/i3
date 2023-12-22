@@ -1,7 +1,8 @@
 #include <xcb/xcb.h>
 #include <xpp/xpp.hpp>
 #include "atoms.h"
-#include "global.h"
+
+import i3;
 
 /* Define all atoms as global variables */
 #define xmacro(atom) xcb_atom_t A_##atom;

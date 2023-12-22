@@ -10,11 +10,8 @@
 module;
 
 #include <xcb/xcb.h>
-#include "i3string.h"
 #include <config.h>
-#include "log.h"
 #include "i3.h"
-#include "global.h"
 module i3;
 
 import std;

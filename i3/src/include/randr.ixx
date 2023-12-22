@@ -17,6 +17,11 @@ module;
 export module i3:randr;
 
 import std;
+import :internal;
+
+class Output;
+class Rect;
+class X;
 
 enum output_close_far_t {
     CLOSEST_OUTPUT = 0,

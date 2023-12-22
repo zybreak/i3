@@ -8,10 +8,6 @@
  *
  */
 module;
-#include "ipc.h"
-
-#include "log.h"
-
 #include "i3-ipc.h"
 module i3;
 

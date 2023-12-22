@@ -1,9 +1,13 @@
-#pragma once
+module;
 
 #include <iostream>
 #include <string>
 #include <fmt/core.h>
 #include <fmt/printf.h>
+
+export module i3:log;
+
+export {
 
 /**
  * Checks if debug logging is active.
@@ -61,4 +65,5 @@ void DLOG(const std::string_view msg) {
         return;
 
     std::cerr << fmt::format("DEBUG: {}", msg);
+}
 }

@@ -12,10 +12,12 @@ module;
 #include <config.h>
 
 #include <err.h>
+#include <xcb/xcb_keysyms.h>
 
 export module i3:util;
 
 import std;
+import :internal;
 
 export {
 

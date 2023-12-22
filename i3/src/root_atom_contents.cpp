@@ -5,14 +5,13 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-#include <cmath>
-#include <cstdlib>
-#include <cstring>
-
+module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
+module i3;
 
 import utils;
+import std;
 
 /*
  * Try to get the contents of the given atom (for example I3_SOCKET_PATH) from

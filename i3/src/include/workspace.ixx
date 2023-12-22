@@ -15,6 +15,7 @@ module;
 export module i3:workspace;
 
 import std;
+import :internal;
 
 class Output;
 class WorkspaceCon;

@@ -7,12 +7,15 @@
  * regex.c: Interface to libPCRE (perl compatible regular expressions).
  *
  */
-#pragma once
+module;
 
 #define PCRE2_CODE_UNIT_WIDTH 8
 
 #include <config.h>
 #include <pcre2.h>
+export module i3:regex;
+
+export {
 
 /**
  * Regular expression wrapper. It contains the pattern itself as a string (like
@@ -37,3 +40,4 @@ public:
     bool regex_matches(const char *input);
 };
 
+}

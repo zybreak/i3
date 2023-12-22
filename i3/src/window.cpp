@@ -15,11 +15,6 @@ module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 
-#include "i3string.h"
-#include "log.h"
-
-#include "global.h"
-
 #include <cmath>
 module i3;
 

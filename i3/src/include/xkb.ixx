@@ -1,4 +1,8 @@
+module;
+#include <xcb/xkb.h>
 export module i3:xkb;
+
+import :x;
 
 export class Xkb {
    public:

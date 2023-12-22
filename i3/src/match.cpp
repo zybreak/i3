@@ -18,11 +18,6 @@
 
 #include <xcb/xcb.h>
 
-#include "i3string.h"
-#include "log.h"
-
-#include "i3_regex.h"
-
 import utils;
 import i3;
 

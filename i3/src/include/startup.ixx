@@ -18,7 +18,10 @@ module;
 
 export module i3:startup;
 
+import std;
+
 struct SnLauncherContext;
+class i3Window;
 
 export {
 

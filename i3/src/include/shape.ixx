@@ -1,5 +1,7 @@
 export module i3:shape;
 
+import :x;
+
 export class Shape {
    public:
     int shape_base{-1};
@@ -16,7 +18,7 @@ export class Shape {
             shape_supported = false;
         }
         if (!shape_supported) {
-            DLOG("shape 1.1 is not present on this server\n");
+            //DLOG("shape 1.1 is not present on this server\n");
         }
     }
 };

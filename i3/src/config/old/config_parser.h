@@ -12,7 +12,6 @@
 #include <config.h>
 
 #include "parser_stack.h"
-#include "global.h"
 #include "../base_parser.h"
 
 /**

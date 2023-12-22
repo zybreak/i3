@@ -11,11 +11,7 @@ module;
 #include <fmt/core.h>
 #include <optional>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "commands_parser.h"
-#include "global.h"
 #include "commands_applier.h"
 module i3;
 

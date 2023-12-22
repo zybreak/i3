@@ -1,6 +1,6 @@
 module;
 #include <xcb/xcb.h>
-module i3:get_visualtype;
+export module i3:get_visualtype;
 
 /**
  * Returns the visual type associated with the given screen.

@@ -14,9 +14,11 @@
 module;
 #include <config.h>
 #include <xcb/xcb.h>
-#include <map>
-#include "i3_regex.h"
 export module i3:match;
+
+class Con;
+class i3Window;
+class Regex;
 
 export {
 

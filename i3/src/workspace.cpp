@@ -15,14 +15,9 @@ module;
 #include <algorithm>
 #include <ranges>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3_ipc/include/i3-ipc.h"
 #include "i3.h"
 #include "commands_parser.h"
-#include "global.h"
-#include "ipc.h"
 module i3;
 
 import :output;

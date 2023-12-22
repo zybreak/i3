@@ -7,7 +7,7 @@
  * ipc.c: UNIX domain socket IPC (initialization, client handling, protocol).
  *
  */
-
+module;
 #include <config.h>
 
 #include <cassert>
@@ -19,13 +19,9 @@
 
 #include <xcb/xcb.h>
 
-#include "i3string.h"
-#include "log.h"
-
 #include "i3_ipc/include/i3-ipc.h"
 #include "i3.h"
 #include "commands_parser.h"
-#include "i3_regex.h"
 
 #include <ev.h>
 #include <fcntl.h>
@@ -36,12 +32,11 @@
 
 #include <nlohmann/json.hpp>
 #include <ranges>
-#include "ipc.h"
 #include "commands_applier.h"
+module i3;
 
 import i3ipc;
 import utils;
-import i3;
 
 static std::vector<ipc_client*> all_clients{};
 
