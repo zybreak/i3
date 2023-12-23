@@ -17,9 +17,7 @@ module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
 //#include <source_location>
-module i3:string;
-
-import std;
+module i3:i3string;
 
 /**
  * Data structure for storing strings.

@@ -16,8 +16,6 @@ module;
 
 export module i3:ipc;
 
-import std;
-
 struct Binding;
 struct Barconfig;
 class Con;

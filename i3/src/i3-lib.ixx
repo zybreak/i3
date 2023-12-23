@@ -45,7 +45,7 @@ export import :program_arguments;
 export import :root_atom_contents;
 export import :nagbar;
 export import :manage;
-export import :string;
+export import :i3string;
 export import :log;
 export import :regex;
 
