@@ -20,34 +20,9 @@
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_keysyms.h>
 
-#include "i3string.h"
-#include "log.h"
-#include "shape.h"
-#include "xkb.h"
-#include "draw.h"
-#include "dpi.h"
-#include "get_visualtype.h"
-#include "root_atom_contents.h"
-
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
-#include "tree.h"
-#include "xcb.h"
-#include "manage.h"
-#include "i3.h"
-#include "x.h"
-#include "configuration.h"
-#include "handlers.h"
-#include "randr.h"
-#include "con.h"
-#include "sighandler.h"
-#include "output.h"
-#include "ewmh.h"
-#include "startup.h"
-#include "bindings.h"
+#include "i3.h""
 #include "config_parser.h"
-#include "restore_layout.h"
-#include "nagbar.h"
 
 #include <ev.h>
 #include <fcntl.h>
@@ -57,8 +32,6 @@
 #include <sys/un.h>
 #include <unistd.h>
 #include <string>
-#include <program_arguments.h>
-#include <autostarts.h>
 #include <fmt/core.h>
 #include <filesystem>
 #include <xpp/xpp.hpp>
@@ -66,7 +39,6 @@
 #include <xpp/proto/xkb.hpp>
 #include <xpp/proto/shape.hpp>
 #include <xpp/proto/bigreq.hpp>
-#include "global.h"
 #include <config.h>
 
 #ifdef I3_ASAN_ENABLED
@@ -74,9 +46,6 @@
 #endif
 
 #include "atoms.h"
-#include "keysyms.h"
-#include "event_handler.h"
-#include "ipc.h"
 
 import i3ipc;
 import i3;

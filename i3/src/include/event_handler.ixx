@@ -1,10 +1,9 @@
 module;
-#include <ev.h>
+//#include <ev.h>
 export module i3:event_handler;
 
 class X;
-
-typedef struct ev_loop _ev_loop;
+struct ev_signal;
 
 export {
 class EventHandler {
@@ -30,7 +29,7 @@ void main_set_x11_cb(bool enable);
  * Exits the program gracefully.
  *
  */
-void handle_term_signal(_ev_loop *loop, ev_signal *signal, int revents);
+void handle_term_signal(struct ev_loop *loop, ev_signal *signal, int revents);
 
 /*
  * Set up handlers for all signals with default action "Term", see signal(7)

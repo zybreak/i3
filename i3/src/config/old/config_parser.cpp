@@ -35,20 +35,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "i3string.h"
-#include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
-
 #include "parser_stack.h"
-#include "util.h"
 #include "i3.h"
-#include "configuration.h"
-#include "bindings.h"
 #include "config_directives.h"
 #include "config_parser.h"
-#include "nagbar.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -57,6 +47,7 @@
 #include <xcb/xcb_xrm.h>
 
 import utils;
+import i3;
 
 /*******************************************************************************
  * The data structures used for parsing. Essentially the current state and a

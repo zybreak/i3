@@ -10,7 +10,6 @@
 module;
 
 #include <config.h>
-#include <ev.h>
 
 #include <nlohmann/json.hpp>
 
@@ -38,7 +37,7 @@ struct ipc_client {
     uint8_t *buffer{};
     size_t buffer_size{};
 
-    ipc_client(EV_P_ int fd);
+    ipc_client(struct ev_loop *loop, int fd);
     ~ipc_client();
 };
 
@@ -63,7 +62,7 @@ typedef void (*handler_t)(ipc_client *, uint8_t *, int, uint32_t, uint32_t);
  * the list of clients.
  *
  */
-void ipc_new_client(EV_P_ struct ev_io *w, int revents);
+void ipc_new_client(struct ev_loop *loop, struct ev_io *w, int revents);
 
 /**
  * ipc_new_client_on_fd() only sets up the event handler
@@ -73,7 +72,7 @@ void ipc_new_client(EV_P_ struct ev_io *w, int revents);
  * This variant is useful for the inherited IPC connection when restarting.
  *
  */
-ipc_client *ipc_new_client_on_fd(EV_P_ int fd);
+ipc_client *ipc_new_client_on_fd(struct ev_loop *loop, int fd);
 
 /**
  * Sends the specified event to all IPC clients which are currently connected
@@ -134,7 +133,7 @@ void ipc_send_binding_event(const char *event_type, Binding *bind);
  * Set the maximum duration that we allow for a connection with an unwriteable
  * socket.
  */
-void ipc_set_kill_timeout(ev_tstamp newTimeout);
+void ipc_set_kill_timeout(double newTimeout);
 
 /**
  * Sends a restart reply to the IPC client on the specified fd.

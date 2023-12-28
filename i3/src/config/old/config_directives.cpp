@@ -16,27 +16,15 @@
 
 #include <xcb/xcb.h>
 
-#include "i3string.h"
-#include "log.h"
-#include "ipc.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
-
-#include "criteria_state.h"
-#include "util.h"
 #include "i3_ipc/include/i3-ipc.h"
 #include "i3.h"
-#include "configuration.h"
-#include "match.h"
-#include "bindings.h"
 #include "config_directives.h"
 #include "config_parser.h"
 
 #include <wordexp.h>
-#include <autostarts.h>
 
 import utils;
+import i3;
 
 static bool str_to_bool(const char *s, const char *v) {
     if (s == nullptr) {

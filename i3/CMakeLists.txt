@@ -90,7 +90,7 @@ list(APPEND i3_src
         src/log.cpp
         src/root_atom_contents.cpp
         src/sync.cpp
-        src/tree.cpp
+        #src/tree.cpp
         src/util.cpp
         src/window.cpp
         src/workspace.cpp
@@ -132,7 +132,7 @@ target_sources(i3_lib PUBLIC
         src/include/resize.ixx
         src/include/window.ixx
         src/include/match.ixx
-        src/include/tree.ixx
+        #src/include/tree.ixx
         src/include/startup.ixx
         src/include/draw.ixx
         src/include/sync.ixx
