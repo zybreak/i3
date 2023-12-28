@@ -1,0 +1,11 @@
+[settings]
+arch=armv8
+build_type=Release
+compiler=clang
+compiler.cppstd=gnu23
+compiler.libcxx=libc++
+compiler.version=17
+os=Linux
+[conf]
+tools.build:compiler_executables={"c": "clang", "cpp": "clang++"}
+tools.build:cxxflags=["-fexperimental-library"]
