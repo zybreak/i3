@@ -15,7 +15,7 @@ module;
 #include <algorithm>
 #include <ranges>
 
-#include "i3_ipc/include/i3-ipc.h"
+#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 #include "commands_parser.h"
 module i3;

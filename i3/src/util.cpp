@@ -20,7 +20,7 @@ module;
 #include <cstring>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include "i3_ipc/include/i3-ipc.h"
+#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 
 #include <cctype>

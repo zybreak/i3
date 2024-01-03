@@ -1,7 +1,7 @@
 #ifndef XPP_PIXMAP_HPP
 #define XPP_PIXMAP_HPP
 
-#include "xpp/proto/x.hpp"
+#include "proto/x.hpp"
 #include "generic/resource.hpp"
 
 namespace xpp {

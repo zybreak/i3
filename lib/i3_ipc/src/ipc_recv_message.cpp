@@ -6,7 +6,7 @@
  *
  */
 module;
-#include "i3-ipc.h"
+#include "../i3_ipc/i3-ipc.h"
 
 #include <cstdlib>
 #include <sys/un.h>

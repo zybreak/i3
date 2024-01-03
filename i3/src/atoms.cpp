@@ -1,5 +1,5 @@
 #include <xcb/xcb.h>
-#include <xpp/xpp.hpp>
+#include "xpp/xpp.hpp"
 #include "atoms.h"
 
 import i3;

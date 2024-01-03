@@ -6,7 +6,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include "xpp/proto/x.hpp"
+#include "proto/x.hpp"
 
 namespace xpp::event {
 

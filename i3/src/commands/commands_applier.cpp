@@ -15,7 +15,7 @@
 #include <cstring>
 #include <queue>
 
-#include "i3_ipc/include/i3-ipc.h"
+#include "i3_ipc/i3-ipc.h"
 //#include "commands.h"
 #include "commands_parser.h"
 

@@ -21,7 +21,7 @@ module;
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
 
-#include "i3_ipc/include/i3-ipc.h"
+#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 
 #include <ctime>

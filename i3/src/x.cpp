@@ -20,7 +20,7 @@ module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 
-#include "i3_ipc/include/i3-ipc.h"
+#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 
 #include <unistd.h>

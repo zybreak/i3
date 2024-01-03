@@ -4,7 +4,7 @@
 #include "core.hpp"
 #include "generic/factory.hpp"
 
-#include "xpp/proto/x.hpp"
+#include "proto/x.hpp"
 
 namespace xpp {
 

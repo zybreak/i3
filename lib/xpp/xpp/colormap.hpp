@@ -1,7 +1,7 @@
 #ifndef XPP_COLORMAP_HPP
 #define XPP_COLORMAP_HPP
 
-#include "xpp/proto/x.hpp"
+#include "proto/x.hpp"
 #include "generic/resource.hpp"
 
 namespace xpp {
