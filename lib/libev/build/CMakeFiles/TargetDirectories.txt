@@ -1,3 +1,0 @@
-/home/zybreak/src/i3-nova/lib/libev/build/CMakeFiles/libev.dir
-/home/zybreak/src/i3-nova/lib/libev/build/CMakeFiles/edit_cache.dir
-/home/zybreak/src/i3-nova/lib/libev/build/CMakeFiles/rebuild_cache.dir
