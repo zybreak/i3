@@ -33,10 +33,19 @@ module;
 #include <nlohmann/json.hpp>
 #include <ranges>
 #include "commands_applier.h"
+#include "atoms.h"
+
+#include <fmt/printf.h>
 module i3;
 
 import i3ipc;
 import utils;
+
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
 
 static std::vector<ipc_client*> all_clients{};
 
@@ -1198,7 +1207,7 @@ void ipc_new_client(EV_P_ struct ev_io *w, int revents) {
  *
  */
 
-ipc_client::ipc_client(EV_P_ int fd) {
+ipc_client::ipc_client(struct ev_loop *loop, int fd) {
     this->fd = fd;
 
     read_callback = new ev_io{};
@@ -1211,10 +1220,10 @@ ipc_client::ipc_client(EV_P_ int fd) {
     ev_io_init(write_callback, ipc_socket_writeable_cb, fd, EV_WRITE);
 }
 
-ipc_client *ipc_new_client_on_fd(EV_P_ int fd) {
+ipc_client *ipc_new_client_on_fd(struct ev_loop *loop, int fd) {
     set_nonblock(fd);
 
-    auto *client = new ipc_client(EV_A_ fd);
+    auto *client = new ipc_client(loop, fd);
 
     DLOG(fmt::sprintf("IPC: new client connected on fd %d\n",  fd));
     all_clients.push_back(client);

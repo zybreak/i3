@@ -35,7 +35,16 @@ module;
 #include <ranges>
 #include <span>
 #include <config.h>
+#include <fmt/printf.h>
+
+#include "atoms.h"
 module i3;
+
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
 
 import :output;
 import utils;

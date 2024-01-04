@@ -14,7 +14,6 @@ module;
 
 export module i3:floating;
 
-import std;
 import :rect;
 
 class Con;

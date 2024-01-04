@@ -5,9 +5,10 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
+module;
+#include <strings.h>
 module utils;
 
-import std;
 /*
  * Reports whether str represents the enabled state (1, yes, true, …).
  *

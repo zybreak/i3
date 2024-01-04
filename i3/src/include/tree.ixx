@@ -9,16 +9,21 @@
  */
 module;
 #include <cassert>
+#include <string>
+#include <set>
+#include <algorithm>
+#include <queue>
 #include <xcb/xcb.h>
 export module i3:tree;
 
-import std;
 import :internal;
 
 class Con;
 class i3Window;
 
 export {
+
+#if 0
 
 /// A node in the Tree, combining links to other nodes as well as the actual data.
 template<class T>
@@ -3305,6 +3310,7 @@ typename Tree<T, tree_node_allocator>::leaf_iterator& Tree<T, tree_node_allocato
     }
     return (*this);
 }
+#endif
 
 /**
  * Initializes the Tree by creating the root node, adding all RandR outputs

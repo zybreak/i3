@@ -1,11 +1,11 @@
 module;
 
+#include <vector>
+
 #include "unistd.h"
 #include "sys/types.h"
 
 export module i3:nagbar;
-
-import std;
 
 class i3String;
 

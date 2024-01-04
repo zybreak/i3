@@ -12,9 +12,10 @@ module;
 
 #include <config.h>
 
+#include <string>
+
 export module i3:workspace;
 
-import std;
 import :internal;
 
 class Output;
@@ -27,8 +28,8 @@ export {
  * need to use uint32_t as we actually need the full range of it. This is
  * technically dangerous, but it's safe to assume that we will never have more
  * than 4294967279 workspaces open at a time. */
-#define NET_WM_DESKTOP_NONE 0xFFFFFFF0
-#define NET_WM_DESKTOP_ALL 0xFFFFFFFF
+const uint32_t NET_WM_DESKTOP_NONE = 0xFFFFFFF0;
+const uint32_t NET_WM_DESKTOP_ALL = 0xFFFFFFFF;
 
 /**
  * Stores which workspace (by name or number) goes to which output.

@@ -5,9 +5,11 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
+module;
+#include <string.h>
+#include <deque>
+#include <vector>
 module i3;
-
-import std;
 
 static bool CS_STARTS_WITH(const char *string, const char *needle) {
     return strncmp(string, needle, strlen(needle)) == 0;

@@ -14,8 +14,6 @@ module;
 #include "i3.h"
 module i3;
 
-import std;
-
 import utils;
 
 /*

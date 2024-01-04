@@ -1,6 +1,6 @@
+module;
+#include <string>
 export module i3:program_arguments;
-
-import std;
 
 // program arguments
 struct program_arguments {

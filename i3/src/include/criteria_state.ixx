@@ -1,6 +1,7 @@
+module;
+#include <deque>
 export module i3:criteria_state;
 
-import std;
 import :match;
 
 class Con;

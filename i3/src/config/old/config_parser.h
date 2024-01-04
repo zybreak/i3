@@ -31,7 +31,7 @@ class parser_ctx {
     config_load_t load_type;
     BaseConfigApplier &applier;
     int state;
-    struct criteria_state criteria_state{};
+    criteria_state criteria_state{};
 
     /* A list which contains the states that lead to the current state, e.g.
    * INITIAL, WORKSPACE_LAYOUT.

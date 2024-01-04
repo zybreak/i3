@@ -18,7 +18,6 @@ module;
 module i3;
 
 import utils;
-import std;
 
 /*
  * Match frame and window depth. This is needed because X will refuse to reparent a

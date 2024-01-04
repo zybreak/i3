@@ -22,6 +22,7 @@ module;
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
+#include <fmt/printf.h>
 module i3;
 
 import :output;

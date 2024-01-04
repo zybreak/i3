@@ -12,6 +12,7 @@ module;
 #include <clocale>
 #include <sys/wait.h>
 #include <fmt/core.h>
+#include <fmt/printf.h>
 #include <getopt.h>
 
 #include <xcb/randr.h>
@@ -25,15 +26,14 @@ module;
 module i3;
 
 import utils;
-import std;
 
 /*
  * Handler which will be called when we get a SIGCHLD for the nagbar, meaning
  * it exited (or could not be started, depending on the exit code).
  *
  */
-static void nagbar_exited(EV_P_ ev_child *watcher, int revents) {
-    ev_child_stop(EV_A_ watcher);
+static void nagbar_exited(struct ev_loop *loop, ev_child *watcher, int revents) {
+    ev_child_stop(loop, watcher);
 
     int exitcode = WEXITSTATUS(watcher->rstatus);
     if (!WIFEXITED(watcher->rstatus)) {

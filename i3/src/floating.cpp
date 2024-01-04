@@ -8,16 +8,26 @@
  *
  */
 module;
+#include <cassert>
 #include <fmt/core.h>
+#include <fmt/printf.h>
 
 #include <xcb/xcb.h>
+
+#include <ranges>
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 module i3;
 
 import utils;
-import std;
+
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
+
 
 /*
  * Calculates sum of heights and sum of widths of all currently active outputs

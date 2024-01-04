@@ -11,7 +11,6 @@ module;
 module i3;
 
 import utils;
-import std;
 
 /*
  * Try to get the contents of the given atom (for example I3_SOCKET_PATH) from

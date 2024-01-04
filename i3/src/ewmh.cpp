@@ -8,14 +8,15 @@
  *
  */
 module;
+#include <fmt/printf.h>
 #include <xcb/xcb.h>
 
 #include "i3.h"
 
 #include "atoms.h"
-module i3;
 
 xcb_window_t ewmh_window;
+module i3;
 
 /*
  * Updates _NET_CURRENT_DESKTOP with the current desktop number.
@@ -45,7 +46,7 @@ static void ewmh_update_number_of_desktops() {
     uint32_t idx = 0;
 
     for (auto &output : global.croot->nodes_head) {
-        for (auto &ws: output->output_get_content()->nodes_head) {
+        for (auto &ws : output->output_get_content()->nodes_head) {
             idx++;
         }
     }
@@ -68,7 +69,7 @@ static void ewmh_update_desktop_names() {
 
     /* count the size of the property message to set */
     for (auto &output : global.croot->nodes_head) {
-        for (auto &ws: output->output_get_content()->nodes_head) {
+        for (auto &ws : output->output_get_content()->nodes_head) {
             msg_length += ws->name.length() + 1;
         }
     }
@@ -78,7 +79,7 @@ static void ewmh_update_desktop_names() {
 
     /* fill the buffer with the names of the i3 workspaces */
     for (auto &output : global.croot->nodes_head) {
-        for (auto &ws: output->output_get_content()->nodes_head) {
+        for (auto &ws : output->output_get_content()->nodes_head) {
             for (size_t i = 0; i < ws->name.length() + 1; i++) {
                 desktop_names[current_position++] = ws->name[i];
             }
@@ -97,7 +98,7 @@ static void ewmh_update_desktop_viewport() {
     int num_desktops = 0;
     /* count number of desktops */
     for (auto &output : global.croot->nodes_head) {
-        for (auto &ws: output->output_get_content()->nodes_head) {
+        for (auto &ws : output->output_get_content()->nodes_head) {
             num_desktops++;
         }
     }
@@ -107,7 +108,7 @@ static void ewmh_update_desktop_viewport() {
     int current_position = 0;
     /* fill the viewport buffer */
     for (auto &output : global.croot->nodes_head) {
-        for (auto &ws: output->output_get_content()->nodes_head) {
+        for (auto &ws : output->output_get_content()->nodes_head) {
             viewports[current_position++] = output->rect.x;
             viewports[current_position++] = output->rect.y;
         }
@@ -137,7 +138,7 @@ static void ewmh_update_wm_desktop_recursively(Con *con, const uint32_t desktop)
 
     /* If con is a workspace, we also need to go through the floating windows on it. */
     if (con->type == CT_WORKSPACE) {
-        for (auto &child : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+        for (auto &child : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
             ewmh_update_wm_desktop_recursively(child, desktop);
         }
     }
@@ -167,12 +168,12 @@ static void ewmh_update_wm_desktop_recursively(Con *con, const uint32_t desktop)
 
     const xcb_window_t window = con->window->id;
     if (wm_desktop != NET_WM_DESKTOP_NONE) {
-        DLOG(fmt::sprintf("Setting _NET_WM_DESKTOP = %d for window 0x%08x.\n",  wm_desktop, window));
+        DLOG(fmt::sprintf("Setting _NET_WM_DESKTOP = %d for window 0x%08x.\n", wm_desktop, window));
         xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, window, A__NET_WM_DESKTOP, XCB_ATOM_CARDINAL, 32, 1, &wm_desktop);
     } else {
         /* If we can't determine the workspace index, delete the property. We'd
          * rather not set it than lie. */
-        ELOG(fmt::sprintf("Failed to determine the proper EWMH desktop index for window 0x%08x, deleting _NET_WM_DESKTOP.\n",  window));
+        ELOG(fmt::sprintf("Failed to determine the proper EWMH desktop index for window 0x%08x, deleting _NET_WM_DESKTOP.\n", window));
         xcb_delete_property(**global.x, window, A__NET_WM_DESKTOP);
     }
 }
@@ -274,10 +275,10 @@ void ewmh_update_client_list_stacking(xcb_window_t *stack, int num_windows) {
  */
 void ewmh_update_sticky(xcb_window_t window, bool sticky) {
     if (sticky) {
-        DLOG(fmt::sprintf("Setting _NET_WM_STATE_STICKY for window = %d.\n",  window));
+        DLOG(fmt::sprintf("Setting _NET_WM_STATE_STICKY for window = %d.\n", window));
         xcb_add_property_atom(**global.x, window, A__NET_WM_STATE, A__NET_WM_STATE_STICKY);
     } else {
-        DLOG(fmt::sprintf("Removing _NET_WM_STATE_STICKY for window = %d.\n",  window));
+        DLOG(fmt::sprintf("Removing _NET_WM_STATE_STICKY for window = %d.\n", window));
         xcb_remove_property_atom(**global.x, window, A__NET_WM_STATE, A__NET_WM_STATE_STICKY);
     }
 }
@@ -288,10 +289,10 @@ void ewmh_update_sticky(xcb_window_t window, bool sticky) {
  */
 void ewmh_update_focused(xcb_window_t window, bool is_focused) {
     if (is_focused) {
-        DLOG(fmt::sprintf("Setting _NET_WM_STATE_FOCUSED for window = %d.\n",  window));
+        DLOG(fmt::sprintf("Setting _NET_WM_STATE_FOCUSED for window = %d.\n", window));
         xcb_add_property_atom(**global.x, window, A__NET_WM_STATE, A__NET_WM_STATE_FOCUSED);
     } else {
-        DLOG(fmt::sprintf("Removing _NET_WM_STATE_FOCUSED for window = %d.\n",  window));
+        DLOG(fmt::sprintf("Removing _NET_WM_STATE_FOCUSED for window = %d.\n", window));
         xcb_remove_property_atom(**global.x, window, A__NET_WM_STATE, A__NET_WM_STATE_FOCUSED);
     }
 }
@@ -313,7 +314,7 @@ void ewmh_setup_hints() {
         **global.x,
         XCB_COPY_FROM_PARENT,        /* depth */
         ewmh_window,                 /* window id */
-        global.x->root,                        /* parent */
+        global.x->root,              /* parent */
         -1, -1, 1, 1,                /* dimensions (x, y, w, h) */
         0,                           /* border */
         XCB_WINDOW_CLASS_INPUT_ONLY, /* window class */
@@ -349,7 +350,7 @@ Con *ewmh_get_workspace_by_index(uint32_t idx) {
     uint32_t current_index = 0;
 
     for (auto &output : global.croot->nodes_head) {
-        for (auto &ws: output->output_get_content()->nodes_head) {
+        for (auto &ws : output->output_get_content()->nodes_head) {
             if (current_index == idx) {
                 return ws;
             }
@@ -372,7 +373,7 @@ uint32_t ewmh_get_workspace_index(Con *con) {
 
     Con *target_workspace = con->con_get_workspace();
     for (auto &output : global.croot->nodes_head) {
-        for (auto &ws: output->output_get_content()->nodes_head) {
+        for (auto &ws : output->output_get_content()->nodes_head) {
             if (ws == target_workspace) {
                 return index;
             }

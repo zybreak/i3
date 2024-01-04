@@ -1,6 +1,7 @@
 module;
 #include <vector>
 #include <memory>
+#include <fmt/printf.h>
 module i3;
 
 /* The list of exec-lines */

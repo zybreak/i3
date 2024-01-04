@@ -9,8 +9,6 @@ module;
 #include <xcb/xcb_xrm.h>
 module i3;
 
-import std;
-
 static double dpi;
 
 static double init_dpi_fallback(xcb_screen_t *root_screen) {

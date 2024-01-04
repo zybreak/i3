@@ -1,6 +1,6 @@
+module;
+#include <string>
 export module i3:format_placeholders;
-
-import std;
 
 export {
 /** Helper structure for usage in format_placeholders(). */

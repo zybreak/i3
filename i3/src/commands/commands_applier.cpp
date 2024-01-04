@@ -28,6 +28,8 @@
 #include "commands_applier.h"
 #include "command_result_ir.h"
 
+#include <fmt/printf.h>
+
 import utils;
 import i3;
 

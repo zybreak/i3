@@ -17,13 +17,13 @@ module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
 //#include <source_location>
-module i3:i3string;
+export module i3:i3string;
 
 /**
  * Data structure for storing strings.
  *
  */
-class i3String {
+export class i3String {
    private:
     char *utf8{nullptr};
     size_t num_bytes;

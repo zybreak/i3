@@ -7,6 +7,8 @@
  */
 module;
 #include <algorithm>
+#include <cairo.h>
+#include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 module i3;
 
@@ -85,8 +87,8 @@ static uint32_t flicker_window_at(x_connection *conn, xcb_screen_t *screen, uint
                                   uint32_t pixel) {
     uint32_t value_list[]{pixel, 1};
     conn->create_window(XCB_COPY_FROM_PARENT, window, screen->root, x, y, 10, 10,
-                      0, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
-                      XCB_CW_BACK_PIXEL | XCB_CW_OVERRIDE_REDIRECT, value_list);
+                        0, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
+                        XCB_CW_BACK_PIXEL | XCB_CW_OVERRIDE_REDIRECT, value_list);
     conn->map_window(window);
     conn->clear_area(0, window, 0, 0, 0, 0);
     xcb_aux_sync(*conn);

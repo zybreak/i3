@@ -89,7 +89,7 @@ list(APPEND i3_src
         src/log.cpp
         src/root_atom_contents.cpp
         src/sync.cpp
-        #src/tree.cpp
+        src/tree.cpp
         src/util.cpp
         src/window.cpp
         src/workspace.cpp
@@ -131,7 +131,7 @@ target_sources(i3_lib PUBLIC
         src/include/resize.ixx
         src/include/window.ixx
         src/include/match.ixx
-        #src/include/tree.ixx
+        src/include/tree.ixx
         src/include/startup.ixx
         src/include/draw.ixx
         src/include/sync.ixx
@@ -161,7 +161,7 @@ target_sources(i3_lib PUBLIC
         src/include/i3_regex.ixx
         src/include/internal.ixx
         )
-target_link_libraries(i3_lib PUBLIC ${libraries} i3_commands_old utils std xpp)
+target_link_libraries(i3_lib PUBLIC ${libraries} i3_commands_old utils xpp)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
 target_compile_options(i3_lib PUBLIC ${compile_options})
 add_dependencies(i3_lib libi3ipc)

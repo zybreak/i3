@@ -13,12 +13,14 @@
 module;
 #include <config.h>
 
+#include <string_view>
+#include <memory>
+#include <vector>
+
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-monitor.h>
 
 export module i3:startup;
-
-import std;
 
 struct SnLauncherContext;
 class i3Window;

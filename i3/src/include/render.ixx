@@ -8,9 +8,10 @@
  *           various rects. Needs to be pushed to X11 (see x.c) to be visible.
  *
  */
+module;
+#include <vector>
 export module i3:render;
 
-import std;
 import :rect;
 
 class Con;

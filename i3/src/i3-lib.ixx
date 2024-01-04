@@ -1,5 +1,8 @@
 module;
 #include <xcb/xproto.h>
+#include <string>
+#include <deque>
+#include <sys/resource.h>
 export module i3;
 
 export import :assignments;
@@ -20,7 +23,6 @@ export import :criteria_state;
 export import :resize;
 export import :window;
 export import :match;
-export import :tree;
 export import :startup;
 export import :draw;
 export import :sync;
@@ -48,8 +50,9 @@ export import :manage;
 export import :i3string;
 export import :log;
 export import :regex;
+export import :tree;
 
-import :internal;
+export import :internal;
 
 export namespace i3 {
 
@@ -57,13 +60,13 @@ export namespace i3 {
 
 export bool is_background_set(x_connection *conn, xcb_screen_t *screen);
 
-export struct global {
+export struct global_t {
     std::string current_socketpath{};
 
     Con *focused;
     RootCon *croot;
 
-    std::deque<Con*> all_cons{};
+    std::deque<Con *> all_cons{};
 
     char **start_argv;
 
@@ -82,7 +85,7 @@ export struct global {
     /* The original value of RLIMIT_CORE when i3 was started. We need to restore
      * this before starting any other process, since we set RLIMIT_CORE to
      * RLIM_INFINITY for i3 debugging versions. */
-    struct rlimit original_rlimit_core;
+    rlimit original_rlimit_core;
 
     /* The list of assignments */
     std::deque<std::unique_ptr<Assignment>> assignments{};
@@ -101,4 +104,4 @@ export struct global {
     EventHandler *eventHandler;
 };
 
-export struct global_t global{};
+export struct global_t global {};

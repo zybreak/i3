@@ -1,7 +1,9 @@
 #pragma once
 
-#include <ranges>
 #include <xcb/xcb_xrm.h>
+#include <fmt/printf.h>
+
+import i3;
 
 class ResourceDatabase {
     xcb_xrm_database_t *database = nullptr;

@@ -10,5 +10,4 @@ target_sources(utils PUBLIC
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES utils.ixx)
-target_link_libraries(utils PUBLIC std)
 target_compile_options(utils PUBLIC "-pthread" "-fsized-deallocation")

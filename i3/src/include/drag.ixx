@@ -14,8 +14,6 @@ module;
 
 export module i3:drag;
 
-import std;
-
 class Con;
 class Rect;
 

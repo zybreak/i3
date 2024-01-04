@@ -10,7 +10,6 @@
 module i3;
 
 import utils;
-import std;
 
 /*
  * Creates a new 'regex' struct containing the given pattern and a PCRE

@@ -9,8 +9,6 @@
  */
 module i3;
 
-import std;
-
 /*
  * Returns an 'output' corresponding to one of left/right/down/up or a specific
  * output name.

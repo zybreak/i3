@@ -6,6 +6,7 @@
  *
  */
 module;
+#include <fmt/printf.h>
 #include <cassert>
 #include <cairo/cairo-xcb.h>
 #include <err.h>

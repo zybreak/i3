@@ -41,7 +41,8 @@ add_custom_target(Config ALL
 
 add_subdirectory(lib/i3_ipc)
 add_subdirectory(lib/xpp)
-add_subdirectory(lib/std.module)
+add_subdirectory(lib/libev)
+#add_subdirectory(lib/std.module)
 add_subdirectory(i3)
 #add_subdirectory(i3-msg)
 #add_subdirectory(utils)

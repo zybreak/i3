@@ -9,13 +9,19 @@
  */
 module;
 #include <ev.h>
+#include <fmt/printf.h>
 
 #include <xcb/xcb.h>
 
 #include "i3.h"
 module i3;
 
-import std;
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
+
 
 /* Custom data structure used to track dragging-related events. */
 struct drag_x11_cb {
@@ -54,7 +60,7 @@ static bool threshold_exceeded(uint32_t x1, uint32_t y1,
     return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) > threshold * threshold;
 }
 
-static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
+static bool drain_drag_events(struct ev_loop *loop, struct drag_x11_cb *dragloop) {
     xcb_motion_notify_event_t *last_motion_notify = nullptr;
     xcb_generic_event_t *event;
 
@@ -160,7 +166,7 @@ static bool drain_drag_events(EV_P, struct drag_x11_cb *dragloop) {
     return dragloop->result != DRAGGING;
 }
 
-static void xcb_drag_prepare_cb(EV_P_ ev_prepare *w, int revents) {
+static void xcb_drag_prepare_cb(struct ev_loop *loop, ev_prepare *w, int revents) {
     auto *dragloop = (struct drag_x11_cb *)w->data;
     while (!drain_drag_events(EV_A, dragloop)) {
         /* repeatedly drain events: draining might produce additional ones */

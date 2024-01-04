@@ -30,6 +30,12 @@ module i3;
 
 import utils;
 
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
+
 using namespace std::literals;
 
 std::string current_configpath{};

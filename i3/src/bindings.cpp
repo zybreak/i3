@@ -27,13 +27,14 @@ module;
 #include <xkbcommon/xkbcommon-x11.h>
 #include <xkbcommon/xkbcommon.h>
 #include <fmt/core.h>
+#include <fmt/printf.h>
 #include <set>
 module i3;
 
 import utils;
 
-static struct xkb_context *xkb_context;
-static struct xkb_keymap *xkb_keymap;
+static xkb_context *xkb_context;
+static xkb_keymap *xkb_keymap;
 
 /*
  * The name of the default mode.

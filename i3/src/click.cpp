@@ -17,6 +17,7 @@ module;
 
 #include "i3.h"
 #include "commands_parser.h"
+#include <fmt/printf.h>
 module i3;
 
 import :output;
@@ -34,7 +35,7 @@ enum click_destination_t {
  *
  */
 static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press_event_t *event, bool use_threshold) {
-    DLOG(fmt::sprintf("border = %d, con = %p\n",  border, (void*)con));
+    DLOG(fmt::sprintf("border = %d, con = %p\n", border, (void *)con));
     Con *second = nullptr;
     Con *first = con;
     direction_t search_direction;
@@ -59,7 +60,7 @@ static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press
         return false;
     }
     if (first->fullscreen_mode != second->fullscreen_mode) {
-        DLOG(fmt::sprintf("Avoiding resize between containers with different fullscreen modes, %d != %d\n",  first->fullscreen_mode, second->fullscreen_mode));
+        DLOG(fmt::sprintf("Avoiding resize between containers with different fullscreen modes, %d != %d\n", first->fullscreen_mode, second->fullscreen_mode));
         return false;
     }
 
@@ -95,12 +96,12 @@ static bool floating_mod_on_tiled_client(Con *con, xcb_button_press_event_t *eve
      * right mouse button, by chosing the border which is the most near one to
      * the position of the mouse pointer */
     uint32_t to_right = con->rect.width - event->event_x,
-        to_left = event->event_x,
-        to_top = event->event_y,
-        to_bottom = con->rect.height - event->event_y;
+             to_left = event->event_x,
+             to_top = event->event_y,
+             to_bottom = con->rect.height - event->event_y;
 
     DLOG(fmt::sprintf("click was %d px to the right, %d px to the left, %d px to top, %d px to bottom\n",
-         to_right, to_left, to_top, to_bottom));
+                      to_right, to_left, to_top, to_bottom));
 
     if (to_right < to_left &&
         to_right < to_top &&
@@ -133,8 +134,8 @@ static bool tiling_resize(Con *con, xcb_button_press_event_t *event, const click
     /* check if this was a click on the window border (and on which one) */
     Rect bsr = con_border_style_rect(con);
     DLOG(fmt::sprintf("BORDER x = %d, y = %d for con %p, window 0x%08x\n",
-         event->event_x, event->event_y, (void*)con, event->event));
-    DLOG(fmt::sprintf("checks for right >= %d\n",  con->window_rect.x + con->window_rect.width));
+                      event->event_x, event->event_y, (void *)con, event->event));
+    DLOG(fmt::sprintf("checks for right >= %d\n", con->window_rect.x + con->window_rect.width));
     if (dest == CLICK_DECORATION) {
         return tiling_resize_for_border(con, BORDER_TOP, event, use_threshold);
     }
@@ -159,9 +160,9 @@ static bool tiling_resize(Con *con, xcb_button_press_event_t *event, const click
  *
  */
 static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *event, const bool mod_pressed, const click_destination_t dest) {
-    DLOG(fmt::sprintf("--> click properties: mod = %d, destination = %d\n",  mod_pressed, dest));
-    DLOG(fmt::sprintf("--> OUTCOME = %p\n",  (void*)con));
-    DLOG(fmt::sprintf("type = %d, name = %s\n",  con->type, con->name));
+    DLOG(fmt::sprintf("--> click properties: mod = %d, destination = %d\n", mod_pressed, dest));
+    DLOG(fmt::sprintf("--> OUTCOME = %p\n", (void *)con));
+    DLOG(fmt::sprintf("type = %d, name = %s\n", con->type, con->name));
 
     /* don’t handle dockarea cons, they must not be focused */
     if (con->parent->type == CT_DOCKAREA) {
@@ -343,15 +344,15 @@ done:
 void handle_button_press(xcb_button_press_event_t *event) {
     Con *con;
     DLOG(fmt::sprintf("Button %d (state %d) %s on window 0x%08x (child 0x%08x) at (%d, %d) (root %d, %d)\n",
-         event->detail, event->state, (event->response_type == XCB_BUTTON_PRESS ? "press" : "release"),
-         event->event, event->child, event->event_x, event->event_y, event->root_x,
-         event->root_y));
+                      event->detail, event->state, (event->response_type == XCB_BUTTON_PRESS ? "press" : "release"),
+                      event->event, event->child, event->event_x, event->event_y, event->root_x,
+                      event->root_y));
 
     global.last_timestamp = event->time;
 
     const uint32_t mod = (config.floating_modifier & 0xFFFF);
     const bool mod_pressed = (mod != 0 && (event->state & mod) == mod);
-    DLOG(fmt::sprintf("floating_mod = %d, detail = %d\n",  mod_pressed, event->detail));
+    DLOG(fmt::sprintf("floating_mod = %d, detail = %d\n", mod_pressed, event->detail));
     if ((con = con_by_window_id(event->event))) {
         route_click(*global.x, con, event, mod_pressed, CLICK_INSIDE);
         return;

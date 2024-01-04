@@ -11,12 +11,7 @@ module;
 
 #include <config.h>
 #include <xcb/xcb.h>
-export module i3:xcb;
-
-import std;
-import :internal;
-
-export {
+#include <set>
 
 #define _NET_WM_STATE_REMOVE 0
 #define _NET_WM_STATE_ADD 1
@@ -55,84 +50,89 @@ export {
 
 #include "atoms.h"
 
-struct Rect;
-class Con;
+export module i3:xcb;
 
-/**
- * Convenience wrapper around xcb_create_window which takes care of depth,
- * generating an ID and checking for errors.
- *
- */
-xcb_window_t create_window(xcb_connection_t *conn, Rect r, uint16_t depth, xcb_visualid_t visual,
-                           uint16_t window_class, xcursor_cursor_t cursor, bool map, uint32_t mask, uint32_t *values);
+import :internal;
 
-/**
- * Generates a configure_notify_event with absolute coordinates (relative to
- * the X root window, not to the client’s frame) for the given client.
- *
- */
-void fake_absolute_configure_notify(Con *con);
+export {
+    struct Rect;
+    class Con;
 
-/**
- * Sends the WM_TAKE_FOCUS ClientMessage to the given window
- *
- */
-void send_take_focus(xcb_window_t window, xcb_timestamp_t timestamp);
+    /**
+     * Convenience wrapper around xcb_create_window which takes care of depth,
+     * generating an ID and checking for errors.
+     *
+     */
+    xcb_window_t create_window(xcb_connection_t * conn, Rect r, uint16_t depth, xcb_visualid_t visual,
+                               uint16_t window_class, xcursor_cursor_t cursor, bool map, uint32_t mask, uint32_t *values);
 
-/**
- * Configures the given window to have the size/position specified by given rect
- *
- */
-void xcb_set_window_rect(xcb_connection_t *conn, xcb_window_t window, Rect r);
+    /**
+     * Generates a configure_notify_event with absolute coordinates (relative to
+     * the X root window, not to the client’s frame) for the given client.
+     *
+     */
+    void fake_absolute_configure_notify(Con * con);
 
-/**
- * Returns the first supported _NET_WM_WINDOW_TYPE atom.
- *
- */
-xcb_atom_t xcb_get_preferred_window_type(xcb_get_property_reply_t *reply);
+    /**
+     * Sends the WM_TAKE_FOCUS ClientMessage to the given window
+     *
+     */
+    void send_take_focus(xcb_window_t window, xcb_timestamp_t timestamp);
 
-/**
- * Returns true if the given reply contains the given data.
- *
- */
-bool xcb_reply_contains_atom(xcb_get_property_reply_t *prop, xcb_atom_t atom);
+    /**
+     * Configures the given window to have the size/position specified by given rect
+     *
+     */
+    void xcb_set_window_rect(xcb_connection_t * conn, xcb_window_t window, Rect r);
 
-/**
- * Get depth of visual specified by visualid
- *
- */
-uint16_t get_visual_depth(xcb_visualid_t visual_id);
+    /**
+     * Returns the first supported _NET_WM_WINDOW_TYPE atom.
+     *
+     */
+    xcb_atom_t xcb_get_preferred_window_type(xcb_get_property_reply_t * reply);
 
-/**
- * Get visual type specified by visualid
- *
- */
-xcb_visualtype_t *get_visualtype_by_id(xcb_visualid_t visual_id);
+    /**
+     * Returns true if the given reply contains the given data.
+     *
+     */
+    bool xcb_reply_contains_atom(xcb_get_property_reply_t * prop, xcb_atom_t atom);
 
-/**
- * Get visualid with specified depth
- *
- */
-xcb_visualid_t get_visualid_by_depth(uint16_t depth);
+    /**
+     * Get depth of visual specified by visualid
+     *
+     */
+    uint16_t get_visual_depth(xcb_visualid_t visual_id);
 
-/**
- * Add an atom to a list of atoms the given property defines.
- * This is useful, for example, for manipulating _NET_WM_STATE.
- *
- */
-void xcb_add_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t atom);
+    /**
+     * Get visual type specified by visualid
+     *
+     */
+    xcb_visualtype_t *get_visualtype_by_id(xcb_visualid_t visual_id);
 
-/**
- * Remove an atom from a list of atoms the given property defines without
- * removing any other potentially set atoms.  This is useful, for example, for
- * manipulating _NET_WM_STATE.
- *
- */
-void xcb_remove_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t atom);
+    /**
+     * Get visualid with specified depth
+     *
+     */
+    xcb_visualid_t get_visualid_by_depth(uint16_t depth);
 
-/**
- * Grab the specified buttons on a window when managing it.
- *
- */
-void xcb_grab_buttons(xcb_window_t window, std::set<int> &buttons);
+    /**
+     * Add an atom to a list of atoms the given property defines.
+     * This is useful, for example, for manipulating _NET_WM_STATE.
+     *
+     */
+    void xcb_add_property_atom(xcb_connection_t * conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t atom);
+
+    /**
+     * Remove an atom from a list of atoms the given property defines without
+     * removing any other potentially set atoms.  This is useful, for example, for
+     * manipulating _NET_WM_STATE.
+     *
+     */
+    void xcb_remove_property_atom(xcb_connection_t * conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t atom);
+
+    /**
+     * Grab the specified buttons on a window when managing it.
+     *
+     */
+    void xcb_grab_buttons(xcb_window_t window, std::set<int> &buttons);
 }

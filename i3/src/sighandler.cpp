@@ -18,7 +18,6 @@ module;
 module i3;
 
 import utils;
-import std;
 
 class dialog_t {
    public:

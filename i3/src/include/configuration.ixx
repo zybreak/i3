@@ -11,14 +11,23 @@
  *
  */
 module;
+#include <string>
+#include <vector>
+#include <memory>
 #include "i3.h"
 export module i3:configuration;
 
-import std;
 import :draw;
 import :bindings;
 import :con;
 import :font;
+import :internal;
+
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
 
 export {
 typedef struct Mode Mode;

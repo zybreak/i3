@@ -3,6 +3,8 @@
 #include <string>
 #include <iostream>
 
+import i3;
+
 class BaseConfigApplier {
 public:
 

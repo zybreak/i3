@@ -1,10 +1,9 @@
 module;
 
+#include <compare>
 #include <pango/pango.h>
 #include <cairo/cairo-xcb.h>
 export module i3:draw;
-
-import std;
 
 class i3String;
 

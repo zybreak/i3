@@ -11,17 +11,20 @@
 module;
 #include <config.h>
 
+#include <string>
+
 #include <err.h>
 #include <xcb/xcb_keysyms.h>
 
 export module i3:util;
 
-import std;
 import :internal;
 
 export {
 
-#define STARTS_WITH(string, needle) (strncasecmp((string), (needle), strlen((needle))) == 0)
+bool STARTS_WITH(char *string, char *needle) {
+        return (strncasecmp((string), (needle), strlen((needle))) == 0);
+}
 
 #define FREE(pointer)   \
     do {                \

@@ -5,7 +5,7 @@
 #include "parser-specs/configGrammarBaseListener.h"
 #include "../base_config_applier.h"
 #include "config_parser.h"
-#include "fn.hpp"
+#include "lib/fn.hpp"
 #include "resource_database.h"
 #include <ranges>
 #include <utility>

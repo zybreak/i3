@@ -14,7 +14,9 @@ module;
 #include <clocale>
 
 #include <fmt/core.h>
+#include <fmt/printf.h>
 #include <nlohmann/json.hpp>
+#include <deque>
 module i3;
 
 import utils;

@@ -1,3 +1,5 @@
+module;
+#include "xpp/proto/shape.hpp"
 export module i3:shape;
 
 import :x;

@@ -9,6 +9,7 @@
  */
 module;
 #include <fmt/core.h>
+#include <fmt/printf.h>
 #include <optional>
 
 #include "commands_parser.h"
@@ -34,7 +35,6 @@ void run_assignments(i3Window *window) {
         if (current->type != A_COMMAND || (current->match == nullptr || !current->match->match_matches_window(window)))
             continue;
 
-
         bool skip = false;
         for (const auto &c : window->ran_assignments) {
             if (c != current.get())
@@ -53,9 +53,9 @@ void run_assignments(i3Window *window) {
          * loops. */
         window->ran_assignments.push_back(current.get());
 
-        auto command = dynamic_cast<CommandAssignment*>(current.get());
+        auto command = dynamic_cast<CommandAssignment *>(current.get());
 
-        DLOG(fmt::sprintf("matching assignment, execute command %s\n",  command->command));
+        DLOG(fmt::sprintf("matching assignment, execute command %s\n", command->command));
         std::string full_command = fmt::format("[id=\"{}\"] {}", std::to_string(window->id), command->command);
         auto commandsApplier = CommandsApplier{};
         CommandResult result = parse_command(full_command, nullptr, nullptr, commandsApplier);
@@ -76,7 +76,7 @@ void run_assignments(i3Window *window) {
 std::optional<std::reference_wrapper<Assignment>> assignment_for(i3Window *window, assignment_type_t type) {
     for (const auto &assignment : global.assignments) {
         if ((type != A_ANY && (assignment->type & type) == 0) ||
-                (assignment->match == nullptr || !assignment->match->match_matches_window(window)))
+            (assignment->match == nullptr || !assignment->match->match_matches_window(window)))
             continue;
         DLOG("got a matching assignment\n");
         return *assignment;
