@@ -1,0 +1,2 @@
+/usr/bin/ar qc liblibev.a CMakeFiles/libev.dir/ev.c.o CMakeFiles/libev.dir/event.c.o
+/usr/bin/ranlib liblibev.a
