@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.28.0)
 
-project(libev VERSION 4.33 LANGUAGES C)
+project(libev VERSION 4.33 LANGUAGES CXX)
 
 include(CheckIncludeFile)
 include(CheckFunctionExists)
@@ -70,8 +70,8 @@ configure_file(config.h.in config.h)
 
 add_library(libev STATIC)
 target_sources(libev PUBLIC
-    ev.c
-    event.c
+    ev.cpp
+    #event.c
     #ev_epoll.c
     #ev_iouring.c
     #ev_kqueue.c
@@ -83,7 +83,7 @@ target_sources(libev PUBLIC
     INTERFACE
     ev.h
     ev++.h
-    event.h
+    #event.h
 )
 
 target_include_directories(libev PUBLIC

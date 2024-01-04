@@ -1,6 +1,5 @@
 [requires]
 zlib/1.2.13
-libev/4.33
 pcre2/10.42
 fmt/9.1.0
 antlr4-cppruntime/4.11.1
