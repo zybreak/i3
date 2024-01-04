@@ -71,19 +71,9 @@ configure_file(config.h.in config.h)
 add_library(libev STATIC)
 target_sources(libev PUBLIC
     ev.cpp
-    #event.c
-    #ev_epoll.c
-    #ev_iouring.c
-    #ev_kqueue.c
-    #ev_linuxaio.c
-    #ev_poll.c
-    #ev_port.c
-    #ev_select.c
-    #ev_win32.c
     INTERFACE
     ev.h
     ev++.h
-    #event.h
 )
 
 target_include_directories(libev PUBLIC
