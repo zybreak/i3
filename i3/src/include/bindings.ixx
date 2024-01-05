@@ -32,7 +32,7 @@ enum input_type_t {
  * The name of the default mode.
  *
  */
-extern const char *DEFAULT_BINDING_MODE;
+const char *DEFAULT_BINDING_MODE = "default";
 
 /**
  * The lower 16 bits contain a xcb_key_but_mask_t, the higher 16 bits contain

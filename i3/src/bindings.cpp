@@ -36,12 +36,6 @@ import utils;
 static xkb_context *xkb_context;
 static xkb_keymap *xkb_keymap;
 
-/*
- * The name of the default mode.
- *
- */
-const char *DEFAULT_BINDING_MODE = "default";
-
 struct resolve {
     /* The binding which we are resolving. */
     Binding *bind;
