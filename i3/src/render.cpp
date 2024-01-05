@@ -16,12 +16,13 @@ module;
 #include <xcb/xcb.h>
 
 #include <cmath>
-#include <algorithm>
 #include <ranges>
 
 #include <fmt/printf.h>
 
 module i3;
+
+import :con;
 
 /* Forward declarations */
 static std::vector<int> precalculate_sizes(Con *con, render_params *p);

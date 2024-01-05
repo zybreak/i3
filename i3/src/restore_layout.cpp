@@ -56,10 +56,10 @@ static ev_prepare *xcb_prepare;
 static void restore_handle_event(int type, xcb_generic_event_t *event);
 
 /* Documentation for these functions can be found in src/main.c, starting at xcb_got_event */
-static void restore_xcb_got_event(EV_P_ struct ev_io *w, int revents) {
+static void restore_xcb_got_event(ev_io *w, int revents) {
 }
 
-static void restore_xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
+static void restore_xcb_prepare_cb(ev_prepare *w, int revents) {
     xcb_generic_event_t *event;
 
     if (xcb_connection_has_error(restore_conn)) {

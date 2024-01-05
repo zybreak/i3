@@ -33,8 +33,8 @@ module i3;
 
 import utils;
 
-static xkb_context *xkb_context;
-static xkb_keymap *xkb_keymap;
+static xkb_context *context;
+static xkb_keymap *keymap;
 
 struct resolve {
     /* The binding which we are resolving. */
@@ -44,16 +44,16 @@ struct resolve {
     xkb_keysym_t keysym;
 
     /* The xkb state built from the user-provided modifiers and group. */
-    struct xkb_state *xkb_state;
+    xkb_state *state;
 
     /* Like |xkb_state|, just without the shift modifier, if shift was specified. */
-    struct xkb_state *xkb_state_no_shift;
+    xkb_state *xkb_state_no_shift;
 
     /* Like |xkb_state|, but with NumLock. */
-    struct xkb_state *xkb_state_numlock;
+    xkb_state *xkb_state_numlock;
 
     /* Like |xkb_state|, but with NumLock, just without the shift modifier, if shift was specified. */
-    struct xkb_state *xkb_state_numlock_no_shift;
+    xkb_state *xkb_state_numlock_no_shift;
 };
 
 /*
@@ -400,17 +400,17 @@ Binding *get_binding_from_xcb_event(xcb_generic_event_t *event) {
  * |data->resolving|.
  *
  */
-static void add_keycode_if_matches(struct xkb_keymap *keymap, xkb_keycode_t key, void *data) {
+static void add_keycode_if_matches(xkb_keymap *keymap, xkb_keycode_t key, void *data) {
     const struct resolve *resolving = (struct resolve*)data;
     struct xkb_state *numlock_state = resolving->xkb_state_numlock;
-    xkb_keysym_t sym = xkb_state_key_get_one_sym(resolving->xkb_state, key);
+    xkb_keysym_t sym = xkb_state_key_get_one_sym(resolving->state, key);
     if (sym != resolving->keysym) {
         /* Check if Shift was specified, and try resolving the symbol without
          * shift, so that “bindsym $mod+Shift+a nop” actually works. */
-        const xkb_layout_index_t layout = xkb_state_key_get_layout(resolving->xkb_state, key);
+        const xkb_layout_index_t layout = xkb_state_key_get_layout(resolving->state, key);
         if (layout == XKB_LAYOUT_INVALID)
             return;
-        if (xkb_state_key_get_level(resolving->xkb_state, key, layout) > 1)
+        if (xkb_state_key_get_level(resolving->state, key, layout) > 1)
             return;
         /* Skip the Shift fallback for keypad keys, otherwise one cannot bind
          * KP_1 independent of KP_End. */
@@ -468,10 +468,10 @@ void translate_keysyms() {
     struct xkb_state *dummy_state_numlock_no_shift = nullptr;
     bool has_errors = false;
 
-    if ((dummy_state = xkb_state_new(xkb_keymap)) == nullptr ||
-        (dummy_state_no_shift = xkb_state_new(xkb_keymap)) == nullptr ||
-        (dummy_state_numlock = xkb_state_new(xkb_keymap)) == nullptr ||
-        (dummy_state_numlock_no_shift = xkb_state_new(xkb_keymap)) == nullptr) {
+    if ((dummy_state = xkb_state_new(keymap)) == nullptr ||
+        (dummy_state_no_shift = xkb_state_new(keymap)) == nullptr ||
+        (dummy_state_numlock = xkb_state_new(keymap)) == nullptr ||
+        (dummy_state_numlock_no_shift = xkb_state_new(keymap)) == nullptr) {
         ELOG("Could not create XKB state, cannot translate keysyms.\n");
         goto out;
     }
@@ -596,7 +596,7 @@ void translate_keysyms() {
         struct resolve resolving = {
             .bind = bind.get(),
             .keysym = keysym,
-            .xkb_state = dummy_state,
+            .state = dummy_state,
             .xkb_state_no_shift = dummy_state_no_shift,
             .xkb_state_numlock = dummy_state_numlock,
             .xkb_state_numlock_no_shift = dummy_state_numlock_no_shift,
@@ -604,7 +604,7 @@ void translate_keysyms() {
 
         bind->keycodes_head.clear();
 
-        xkb_keymap_key_for_each(xkb_keymap, add_keycode_if_matches, &resolving);
+        xkb_keymap_key_for_each(keymap, add_keycode_if_matches, &resolving);
         std::string keycodes{};
         int num_keycodes = 0;
         for (auto &binding_keycode : bind->keycodes_head) {
@@ -808,7 +808,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
     return result;
 }
 
-static int fill_rmlvo_from_root(struct xkb_rule_names *xkb_names) {
+static int fill_rmlvo_from_root(xkb_rule_names *xkb_names) {
     size_t content_max_words = 256;
 
     auto atom_reply = global.x->conn->intern_atom(0, strlen("_XKB_RULES_NAMES"), "_XKB_RULES_NAMES");
@@ -869,8 +869,8 @@ static int fill_rmlvo_from_root(struct xkb_rule_names *xkb_names) {
  *
  */
 bool load_keymap() {
-    if (xkb_context == nullptr) {
-        if ((xkb_context = xkb_context_new(XKB_CONTEXT_NO_FLAGS)) == nullptr) {
+    if (context == nullptr) {
+        if ((context = xkb_context_new(XKB_CONTEXT_NO_FLAGS)) == nullptr) {
             ELOG("Could not create xkbcommon context\n");
             return false;
         }
@@ -879,7 +879,7 @@ bool load_keymap() {
     struct xkb_keymap *new_keymap = nullptr;
     int32_t device_id;
     if (global.xkb->xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(**global.x)) > -1) {
-        if ((new_keymap = xkb_x11_keymap_new_from_device(xkb_context, **global.x, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
+        if ((new_keymap = xkb_x11_keymap_new_from_device(context, **global.x, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
             ELOG("xkb_x11_keymap_new_from_device failed\n");
             return false;
         }
@@ -897,7 +897,7 @@ bool load_keymap() {
             ELOG("Could not get _XKB_RULES_NAMES atom from root window, falling back to defaults.\n");
             /* Using NULL for the fields of xkb_rule_names. */
         }
-        new_keymap = xkb_keymap_new_from_names(xkb_context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        new_keymap = xkb_keymap_new_from_names(context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
         free((char *)names.rules);
         free((char *)names.model);
         free((char *)names.layout);
@@ -908,8 +908,8 @@ bool load_keymap() {
             return false;
         }
     }
-    xkb_keymap_unref(xkb_keymap);
-    xkb_keymap = new_keymap;
+    xkb_keymap_unref(keymap);
+    keymap = new_keymap;
 
     return true;
 }

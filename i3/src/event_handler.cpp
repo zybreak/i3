@@ -6,14 +6,14 @@ module i3;
 
 /* We keep the xcb_prepare watcher around to be able to enable and disable it
  * temporarily for drag_pointer(). */
-static struct ev_prepare *xcb_prepare;
+static ev_prepare *xcb_prepare;
 
 /*
  * This callback is only a dummy, see xcb_prepare_cb.
  * See also man libev(3): "ev_prepare" and "ev_check" - customise your event loop
  *
  */
-static void xcb_got_event(EV_P_ struct ev_io *w, int revents) {
+static void xcb_got_event(ev_io *w, int revents) {
     /* empty, because xcb_prepare_cb are used */
 }
 
@@ -24,7 +24,7 @@ static void xcb_got_event(EV_P_ struct ev_io *w, int revents) {
  * iteration, and hence another xcb_prepare_cb invocation.
  *
  */
-static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
+static void xcb_prepare_cb(ev_prepare *w, int revents) {
     /* Process all queued (and possibly new) events before the event loop
        sleeps. */
     xcb_generic_event_t *event;

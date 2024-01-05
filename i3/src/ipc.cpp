@@ -48,8 +48,8 @@ import utils;
 
 static std::vector<ipc_client*> all_clients{};
 
-static void ipc_client_timeout(EV_P_ ev_timer *w, int revents);
-static void ipc_socket_writeable_cb(EV_P_ struct ev_io *w, int revents);
+static void ipc_client_timeout(ev_timer *w, int revents);
+static void ipc_socket_writeable_cb(ev_io *w, int revents);
 
 static ev_tstamp kill_timeout = 10.0;
 
@@ -1070,7 +1070,7 @@ handler_t handlers[13] = {
  * at the moment.
  *
  */
-static void ipc_receive_message(EV_P_ struct ev_io *w, int revents) {
+static void ipc_receive_message(ev_io *w, int revents) {
     uint32_t message_type;
     uint32_t message_length;
     uint8_t *message = nullptr;
@@ -1180,7 +1180,7 @@ static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents) {
  * the list of clients.
  *
  */
-void ipc_new_client(EV_P_ struct ev_io *w, int revents) {
+void ipc_new_client(ev_io *w, int revents) {
     struct sockaddr_un peer{};
     socklen_t len = sizeof(struct sockaddr_un);
     int fd;
