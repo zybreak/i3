@@ -14,6 +14,9 @@ module;
 
 #include <pango/pango.h>
 #include <cairo/cairo-xcb.h>
+
+#include <string>
+
 module i3;
 
 i3String::i3String(const std::string &str) {

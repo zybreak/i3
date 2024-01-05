@@ -12,6 +12,7 @@ module;
 #include <cstdlib>
 #include <cstring>
 #include <fmt/core.h>
+#include <fmt/printf.h>
 #include <algorithm>
 #include <ranges>
 
@@ -405,7 +406,7 @@ static void workspace_reassign_sticky(Con *con) {
 static void workspace_defer_update_urgent_hint_cb(EV_P_ ev_timer *w, int revents) {
     Con *con = (Con*)w->data;
 
-    ev_timer_stop(main_loop, con->urgency_timer);
+    ev_timer_stop(con->urgency_timer);
     delete con->urgency_timer;
 
     if (con->urgent) {
@@ -490,11 +491,11 @@ void workspace_show(Con *workspace) {
             ev_timer_init(global.focused->urgency_timer, workspace_defer_update_urgent_hint_cb,
                           config.workspace_urgency_timer, config.workspace_urgency_timer);
             global.focused->urgency_timer->data = global.focused;
-            ev_timer_start(main_loop, global.focused->urgency_timer);
+            ev_timer_start(global.focused->urgency_timer);
         } else {
             DLOG(fmt::sprintf("Resetting urgency timer of con %p on workspace %p\n",
                  (void*)global.focused, (void*)workspace));
-            ev_timer_again(main_loop, global.focused->urgency_timer);
+            ev_timer_again(global.focused->urgency_timer);
         }
     } else
         next->con_focus();

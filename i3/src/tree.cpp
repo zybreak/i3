@@ -21,6 +21,9 @@ module;
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
+#include <fmt/printf.h>
+
+#include "atoms.h"
 module i3;
 
 import :output;
@@ -222,7 +225,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
     if (con->urgency_timer != nullptr) {
         DLOG(fmt::sprintf("Removing urgency timer of con %p\n",  (void*)con));
         workspace_update_urgent_flag(ws);
-        ev_timer_stop(main_loop, con->urgency_timer);
+        ev_timer_stop(con->urgency_timer);
         delete con->urgency_timer;
     }
 

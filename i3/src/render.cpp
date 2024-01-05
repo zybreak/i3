@@ -17,7 +17,6 @@ module;
 
 #include <cmath>
 #include <ranges>
-#include <utility>
 
 #include <fmt/printf.h>
 module i3;

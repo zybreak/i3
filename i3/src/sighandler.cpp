@@ -15,9 +15,17 @@ module;
 
 #include <sys/wait.h>
 #include <unistd.h>
+#include <filesystem>
+#include <fmt/printf.h>
 module i3;
 
 import utils;
+
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
 
 class dialog_t {
    public:

@@ -9,6 +9,7 @@
  *
  */
 module;
+#include <err.h>
 #include <cassert>
 
 #include <cstdint>
@@ -19,12 +20,21 @@ module;
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
+#include <xcb/xcb_cursor.h>
+#include <xcb/xcb_aux.h>
+
+#include <xpp/connection.hpp>
+#include <xpp/proto/x.hpp>
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 
 #include <unistd.h>
 #include <ranges>
+
+#include <fmt/printf.h>
+
+#include "atoms.h"
 module i3;
 
 import utils;

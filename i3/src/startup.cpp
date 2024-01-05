@@ -20,21 +20,22 @@ module;
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
+#include "atoms.h"
 
 #include <paths.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/resource.h>
 #include <unistd.h>
 
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-launcher.h>
+#include <libsn/sn-monitor.h>
 #include <config.h>
+#include <fmt/printf.h>
 module i3;
 
 import utils;
-
-/* Display handle for libstartup-notification */
-SnDisplay *sndisplay;
 
 static std::vector<std::unique_ptr<Startup_Sequence>> startup_sequences{};
 
@@ -155,7 +156,7 @@ void start_application(const std::string_view command, bool no_startup_id) {
         auto *timeout = new ev_timer();
         ev_timer_init(timeout, startup_timeout, 60.0, 0.);
         timeout->data = context;
-        ev_timer_start(main_loop, timeout);
+        ev_timer_start(timeout);
 
         LOG(fmt::sprintf("startup id = %s\n",  sn_launcher_context_get_startup_id(context)));
 

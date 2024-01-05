@@ -13,6 +13,10 @@ module;
 
 #include <xcb/xcb.h>
 
+#include <fmt/printf.h>
+
+#include "atoms.h"
+
 module i3;
 
 import utils;

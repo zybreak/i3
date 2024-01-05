@@ -8,6 +8,8 @@
 module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
+#include <string.h>
+#include <math.h>
 module i3;
 
 import utils;

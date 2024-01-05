@@ -1,6 +1,7 @@
 module;
 #include "i3.h"
 #include <xcb/xcb.h>
+#include <fmt/printf.h>
 module i3;
 
 /* We keep the xcb_prepare watcher around to be able to enable and disable it
@@ -62,12 +63,12 @@ static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
 void main_set_x11_cb(bool enable) {
     DLOG(fmt::sprintf("Setting main X11 callback to enabled=%d\n",  enable));
     if (enable) {
-        ev_prepare_start(main_loop, xcb_prepare);
+        ev_prepare_start(xcb_prepare);
         /* Trigger the watcher explicitly to handle all remaining X11 events.
          * drag_pointer()’s event handler exits in the middle of the loop. */
-        ev_feed_event(main_loop, xcb_prepare, 0);
+        ev_feed_event(xcb_prepare, 0);
     } else {
-        ev_prepare_stop(main_loop, xcb_prepare);
+        ev_prepare_stop(xcb_prepare);
     }
 }
 
@@ -103,33 +104,25 @@ void setup_term_handlers() {
     ev_signal_init(&signal_watchers[4], handle_term_signal, SIGUSR1);
     ev_signal_init(&signal_watchers[5], handle_term_signal, SIGUSR1);
     for (auto &signal_watcher : signal_watchers) {
-        ev_signal_start(main_loop, &signal_watcher);
+        ev_signal_start(&signal_watcher);
         /* The signal handlers should not block ev_run from returning
          * and so none of the signal handlers should hold a reference to
          * the main loop. */
-        ev_unref(main_loop);
+        ev_unref();
     }
 }
 
 
 EventHandler::EventHandler(X *x) {
 
-    /* Initialize the libev event loop. This needs to be done before loading
-     * the config file because the parser will install an ev_child watcher
-     * for the nagbar when config errors are found. */
-    main_loop = ev_default_loop(0);
-    if (main_loop == nullptr) {
-        errx(EXIT_FAILURE, "Could not initialize libev. Bad LIBEV_FLAGS?\n");
-    }
-
     auto *xcb_watcher = new ev_io();
     xcb_prepare = new ev_prepare;
 
     ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(**x), EV_READ);
-    ev_io_start(main_loop, xcb_watcher);
+    ev_io_start(xcb_watcher);
 
     ev_prepare_init(xcb_prepare, xcb_prepare_cb);
-    ev_prepare_start(main_loop, xcb_prepare);
+    ev_prepare_start(xcb_prepare);
 }
 
 void EventHandler::mainLoop() {

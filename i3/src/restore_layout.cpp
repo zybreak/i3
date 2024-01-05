@@ -22,6 +22,8 @@ module;
 
 #include "i3.h"
 
+#include "atoms.h"
+
 #ifdef I3_ASAN_ENABLED
 #include <sanitizer/lsan_interface.h>
 #endif
@@ -97,8 +99,8 @@ void restore_connect() {
     if (restore_conn != nullptr) {
         /* This is not the initial connect, but a reconnect, most likely
          * because our X11 connection was killed (e.g. by a user with xkill. */
-        ev_io_stop(main_loop, xcb_watcher);
-        ev_prepare_stop(main_loop, xcb_prepare);
+        ev_io_stop(xcb_watcher);
+        ev_prepare_stop(xcb_prepare);
 
         states.clear();
 
@@ -127,10 +129,10 @@ void restore_connect() {
     xcb_prepare = new ev_prepare{};
 
     ev_io_init(xcb_watcher, restore_xcb_got_event, xcb_get_file_descriptor(restore_conn), EV_READ);
-    ev_io_start(main_loop, xcb_watcher);
+    ev_io_start(xcb_watcher);
 
     ev_prepare_init(xcb_prepare, restore_xcb_prepare_cb);
-    ev_prepare_start(main_loop, xcb_prepare);
+    ev_prepare_start(xcb_prepare);
 }
 
 static void update_placeholder_contents(x_connection *conn, placeholder_state *state) {

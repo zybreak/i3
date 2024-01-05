@@ -27,6 +27,9 @@ class i3Window;
 
 export {
 
+/* Display handle for libstartup-notification */
+SnDisplay *sndisplay;
+
 /**
  * Stores internal information about a startup sequence, like the workspace it
  * was initiated on.

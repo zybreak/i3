@@ -12,6 +12,10 @@ module;
 
 #include <xcb/xcb.h>
 #include <deque>
+
+#include <fmt/printf.h>
+#include <cairo.h>
+#include <cairo-xcb.h>
 module i3;
 
 import utils;
@@ -34,7 +38,7 @@ struct Colorpixel {
 static std::deque<std::unique_ptr<Colorpixel>> colorpixels{};
 
 static uint8_t RGB_8_TO_16(uint8_t i) {
-    return (65535 * ((i)&0xFF) / 255);
+    return (65535 * ((i) & 0xFF) / 255);
 }
 
 /*
@@ -114,7 +118,7 @@ void draw_util_surface_init(xcb_connection_t *conn, surface_t *surface, xcb_draw
 
     xcb_generic_error_t *error = xcb_request_check(conn, gc_cookie);
     if (error != nullptr) {
-        ELOG(fmt::sprintf("Could not create graphical context. Error code: %d. Please report this bug.\n",  error->error_code));
+        ELOG(fmt::sprintf("Could not create graphical context. Error code: %d. Please report this bug.\n", error->error_code));
     }
 
     surface->surface = cairo_xcb_surface_create(conn, surface->id, visual, width, height);
@@ -154,7 +158,7 @@ void draw_util_surface_set_size(surface_t *surface, int width, int height) {
  */
 color_t draw_util_hex_to_color(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *color) {
     if (strlen(color) < 6 || color[0] != '#') {
-        ELOG(fmt::sprintf("Could not parse color: %s\n",  color));
+        ELOG(fmt::sprintf("Could not parse color: %s\n", color));
         return draw_util_hex_to_color(conn, root_screen, "#A9A9A9");
     }
 
@@ -313,7 +317,7 @@ void draw_util_copy_surface(surface_t *src, surface_t *dest, double src_x, doubl
  */
 void draw_util_image(cairo_surface_t *image, surface_t *surface, int x, int y, int width, int height) {
     if ((surface)->id == XCB_NONE) {
-        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n",  (void*)surface));
+        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
         return;
     }
 

@@ -16,9 +16,21 @@ module;
 #include <xcb/xcb_icccm.h>
 
 #include <cmath>
+
+#include <cairo.h>
+
+#include <fmt/printf.h>
+
+#include <float.h>
 module i3;
 
 import utils;
+
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
 
 /*
  * Frees an i3Window and all its members.

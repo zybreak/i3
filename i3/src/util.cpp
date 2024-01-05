@@ -31,6 +31,9 @@ module;
 #include <sys/wait.h>
 #include <unistd.h>
 #include <fmt/core.h>
+#include <fmt/printf.h>
+
+#include <glib.h>
 
 #if defined(__OpenBSD__)
 #include <sys/cdefs.h>

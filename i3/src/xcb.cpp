@@ -12,9 +12,18 @@ module;
 #include <xcb/xcb.h>
 #include <config.h>
 #include "i3.h"
+#include <fmt/printf.h>
+#include "atoms.h"
+#include <set>
 module i3;
 
 import utils;
+
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
 
 /*
  * Convenience wrapper around xcb_create_window which takes care of depth, generating an ID and checking

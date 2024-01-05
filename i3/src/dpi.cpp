@@ -7,6 +7,9 @@
  */
 module;
 #include <xcb/xcb_xrm.h>
+#include <cstdlib>
+#include <memory>
+#include <fmt/printf.h>
 module i3;
 
 static double dpi;
