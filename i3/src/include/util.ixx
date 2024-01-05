@@ -22,7 +22,7 @@ import :internal;
 
 export {
 
-bool STARTS_WITH(char *string, char *needle) {
+bool STARTS_WITH(const char *string, const char *needle) {
         return (strncasecmp((string), (needle), strlen((needle))) == 0);
 }
 

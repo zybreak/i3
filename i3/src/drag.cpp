@@ -8,7 +8,6 @@
  *
  */
 module;
-#include <ev.h>
 #include <fmt/printf.h>
 
 #include <xcb/xcb.h>
@@ -60,7 +59,7 @@ static bool threshold_exceeded(uint32_t x1, uint32_t y1,
     return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) > threshold * threshold;
 }
 
-static bool drain_drag_events(struct ev_loop *loop, struct drag_x11_cb *dragloop) {
+static bool drain_drag_events(struct drag_x11_cb *dragloop) {
     xcb_motion_notify_event_t *last_motion_notify = nullptr;
     xcb_generic_event_t *event;
 
@@ -166,9 +165,9 @@ static bool drain_drag_events(struct ev_loop *loop, struct drag_x11_cb *dragloop
     return dragloop->result != DRAGGING;
 }
 
-static void xcb_drag_prepare_cb(struct ev_loop *loop, ev_prepare *w, int revents) {
+static void xcb_drag_prepare_cb(ev_prepare *w, int revents) {
     auto *dragloop = (struct drag_x11_cb *)w->data;
-    while (!drain_drag_events(EV_A, dragloop)) {
+    while (!drain_drag_events(EV_A_ dragloop)) {
         /* repeatedly drain events: draining might produce additional ones */
     }
 }
@@ -251,11 +250,11 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
     ev_prepare_init(prepare, xcb_drag_prepare_cb);
     prepare->data = &loop;
     main_set_x11_cb(false);
-    ev_prepare_start(main_loop, prepare);
+    ev_prepare_start(prepare);
 
-    ev_loop(main_loop, 0);
+    ev_loop(0);
 
-    ev_prepare_stop(main_loop, prepare);
+    ev_prepare_stop(prepare);
     main_set_x11_cb(true);
 
     xcb_ungrab_keyboard(**global.x, XCB_CURRENT_TIME);

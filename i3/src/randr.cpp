@@ -26,9 +26,16 @@ module;
 #include <vector>
 #include <algorithm>
 #include <fmt/core.h>
+#include <fmt/printf.h>
 module i3;
 
 import utils;
+
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
 
 /*
  * Get a specific output by its internal X11 id. Used by randr_query_outputs

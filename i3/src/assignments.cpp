@@ -16,6 +16,11 @@ module;
 #include "commands_applier.h"
 module i3;
 
+import :window;
+import :log;
+import :assignments;
+import :tree;
+
 Assignment::~Assignment() {
     delete this->match;
 }

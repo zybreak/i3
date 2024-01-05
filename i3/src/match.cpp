@@ -11,15 +11,33 @@
  * match_matches_window() to find the windows affected by this command.
  *
  */
+module;
 #include <cassert>
 
 #include <cstdint>
 #include <cstring>
+#include <ranges>
 
 #include <xcb/xcb.h>
 
+#include <fmt/printf.h>
+
+#include "atoms.h"
+module i3;
+
 import utils;
-import i3;
+import :regex;
+import :match;
+import :log;
+import :con;
+import :window;
+import :util;
+
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
 
 /* From sys/time.h, not sure if it’s available on all systems. */
 template<typename Comp = std::ranges::less>

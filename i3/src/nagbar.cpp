@@ -1,11 +1,13 @@
 module;
 #include <err.h>
+#include <fcntl.h>
 
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
+#include "atoms.h"
 #include "config_parser.h"
 
 #include <libgen.h>
@@ -14,6 +16,7 @@ module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
 #include <getopt.h>
+#include <paths.h>
 
 #include <xcb/randr.h>
 #include <xcb/xcb.h>
@@ -32,8 +35,8 @@ import utils;
  * it exited (or could not be started, depending on the exit code).
  *
  */
-static void nagbar_exited(struct ev_loop *loop, ev_child *watcher, int revents) {
-    ev_child_stop(loop, watcher);
+static void nagbar_exited(ev_child *watcher, int revents) {
+    ev_child_stop(watcher);
 
     int exitcode = WEXITSTATUS(watcher->rstatus);
     if (!WIFEXITED(watcher->rstatus)) {
@@ -91,7 +94,7 @@ static const button_t *get_button_at(const std::vector<button_t> &buttons, int16
     return nullptr;
 }
 
-static void handle_button_press(xcb_button_press_event_t *event) {
+static void nagbar_handle_button_press(xcb_button_press_event_t *event) {
     printf("button pressed on x = %d, y = %d\n",
             event->event_x, event->event_y);
     /* TODO: set a flag for the button, re-render */
@@ -550,7 +553,7 @@ static void draw_nagbar(i3String *prompt,
                 break;
 
             case XCB_BUTTON_PRESS:
-                handle_button_press((xcb_button_press_event_t *)event);
+                nagbar_handle_button_press((xcb_button_press_event_t *)event);
                 break;
 
             case XCB_BUTTON_RELEASE:
@@ -613,7 +616,7 @@ void start_nagbar(pid_t *nagbar_pid,
         auto *child = new ev_child();
         ev_child_init(child, &nagbar_exited, pid, 0);
         child->data = nagbar_pid;
-        ev_child_start(main_loop, child);
+        ev_child_start(child);
     }
 }
 

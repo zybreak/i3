@@ -9,8 +9,8 @@
  *
  *
  */
+module;
 #include <err.h>
-#include <ev.h>
 
 #include <cstdint>
 #include <cstdlib>
@@ -26,8 +26,10 @@
 #include <sanitizer/lsan_interface.h>
 #endif
 
+#include <fmt/printf.h>
+module i3;
+
 import utils;
-import i3;
 
 typedef struct placeholder_state {
     /** The X11 placeholder window. */

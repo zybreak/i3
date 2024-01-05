@@ -37,7 +37,7 @@ struct ipc_client {
     uint8_t *buffer{};
     size_t buffer_size{};
 
-    ipc_client(struct ev_loop *loop, int fd);
+    ipc_client(int fd);
     ~ipc_client();
 };
 
@@ -62,7 +62,7 @@ typedef void (*handler_t)(ipc_client *, uint8_t *, int, uint32_t, uint32_t);
  * the list of clients.
  *
  */
-void ipc_new_client(struct ev_loop *loop, struct ev_io *w, int revents);
+void ipc_new_client(ev_io *w, int revents);
 
 /**
  * ipc_new_client_on_fd() only sets up the event handler
@@ -72,7 +72,7 @@ void ipc_new_client(struct ev_loop *loop, struct ev_io *w, int revents);
  * This variant is useful for the inherited IPC connection when restarting.
  *
  */
-ipc_client *ipc_new_client_on_fd(struct ev_loop *loop, int fd);
+ipc_client *ipc_new_client_on_fd(int fd);
 
 /**
  * Sends the specified event to all IPC clients which are currently connected

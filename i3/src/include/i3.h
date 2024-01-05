@@ -9,12 +9,13 @@
  */
 #pragma once
 
+#define EV_MULTIPLICITY 0
+#include <ev.h>
+
 #include <config.h>
 
 #include <sys/time.h>
 #include <queue>
-#include <memory>
-#include <sys/resource.h>
 
 #include <xcb/shape.h>
 #include <xcb/xcb_keysyms.h>
@@ -22,8 +23,6 @@
 #define explicit dont_use_cxx_explicit
 #include <xcb/xkb.h>
 #undef explicit
-
-#include <X11/XKBlib.h>
 
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-launcher.h>
@@ -51,5 +50,4 @@
 extern xcb_window_t ewmh_window;
 extern SnDisplay *sndisplay;
 
-extern struct ev_loop *main_loop;
-
+//extern struct ev_loop *main_loop;

@@ -42,6 +42,7 @@ list(APPEND libraries nlohmann_json::nlohmann_json)
 list(APPEND libraries libi3ipc)
 
 list(APPEND include_dirs
+        "${PROJECT_BINARY_DIR}"
         "${PROJECT_SOURCE_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/include"

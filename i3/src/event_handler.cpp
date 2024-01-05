@@ -1,9 +1,7 @@
 module;
-#include <ev.h>
+#include "i3.h"
 #include <xcb/xcb.h>
 module i3;
-
-struct ev_loop *main_loop;
 
 /* We keep the xcb_prepare watcher around to be able to enable and disable it
  * temporarily for drag_pointer(). */
@@ -79,7 +77,7 @@ void main_set_x11_cb(bool enable) {
  * Exits the program gracefully.
  *
  */
-void handle_term_signal(struct ev_loop *loop, ev_signal *signal, int revents) {
+void handle_term_signal(ev_signal *signal, int revents) {
     /* We exit gracefully here in the sense that cleanup handlers
      * installed via atexit are invoked. */
     exit(128 + signal->signum);
@@ -135,9 +133,9 @@ EventHandler::EventHandler(X *x) {
 }
 
 void EventHandler::mainLoop() {
-    ev_loop(main_loop, 0);
+    ev_loop(0);
 }
 
 EventHandler::~EventHandler() {
-    ev_loop_destroy(main_loop);
+    ev_loop_destroy();
 }

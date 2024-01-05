@@ -7,9 +7,22 @@
  * regex.c: Interface to libPCRE (perl compatible regular expressions).
  *
  */
+module;
+#define PCRE2_CODE_UNIT_WIDTH 8
+
+#include <config.h>
+#include <pcre2.h>
+#include <string_view>
+#include <fmt/printf.h>
 module i3;
 
 import utils;
+
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
 
 /*
  * Creates a new 'regex' struct containing the given pattern and a PCRE

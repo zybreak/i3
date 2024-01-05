@@ -7,6 +7,11 @@
  * output.c: Output (monitor) related functions.
  *
  */
+module;
+#include <deque>
+#include <string>
+#include <ranges>
+#include <cassert>
 module i3;
 
 /*

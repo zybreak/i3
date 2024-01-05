@@ -12,12 +12,20 @@ module;
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
 #include <fmt/core.h>
+#include <fmt/printf.h>
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
+#include "atoms.h"
 module i3;
 
 import utils;
+
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
 
 /*
  * Match frame and window depth. This is needed because X will refuse to reparent a
@@ -73,11 +81,11 @@ void restore_geometry() {
 
     for (const auto &con : global.all_cons) {
         if (con->window) {
-            DLOG(fmt::sprintf("Re-adding X11 border of %d px\n",  con->border_width));
+            DLOG(fmt::sprintf("Re-adding X11 border of %d px\n", con->border_width));
             con->window_rect.width += (2 * con->border_width);
             con->window_rect.height += (2 * con->border_width);
             xcb_set_window_rect(**global.x, con->window->id, con->window_rect);
-            DLOG(fmt::sprintf("placing window %08x at %d %d\n",  con->window->id, con->rect.x, con->rect.y));
+            DLOG(fmt::sprintf("placing window %08x at %d %d\n", con->window->id, con->rect.x, con->rect.y));
             xcb_reparent_window(**global.x, con->window->id, global.x->root,
                                 con->rect.x, con->rect.y);
         }
@@ -144,7 +152,7 @@ void con_merge_into(Con *old, Con *new_con) {
  */
 void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
                    bool needs_to_be_mapped) {
-    DLOG(fmt::sprintf("window 0x%08x\n",  window));
+    DLOG(fmt::sprintf("window 0x%08x\n", window));
 
     xcb_drawable_t d = {window};
 
@@ -171,7 +179,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
 
     /* Check if the window is already managed */
     if (con_by_window_id(window) != nullptr) {
-        DLOG(fmt::sprintf("already managed (by con %p)\n",  (void*)con_by_window_id(window)));
+        DLOG(fmt::sprintf("already managed (by con %p)\n", (void *)con_by_window_id(window)));
         xcb_discard_reply(**global.x, geom->sequence);
         return;
     }
@@ -240,20 +248,20 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     cwindow->window_update_hints((wm_hints_cookie.get() != nullptr) ? wm_hints_cookie.get().get() : nullptr, &urgency_hint);
     border_style_t motif_border_style = BS_NORMAL;
     update_motif_hints((motif_wm_hints_cookie.get() != nullptr ? motif_wm_hints_cookie.get().get() : nullptr), &motif_border_style);
-    cwindow->window_update_normal_hints((wm_normal_hints_cookie.get() != nullptr) ? wm_normal_hints_cookie.get().get() :  nullptr, geom.get().get());
+    cwindow->window_update_normal_hints((wm_normal_hints_cookie.get() != nullptr) ? wm_normal_hints_cookie.get().get() : nullptr, geom.get().get());
     cwindow->window_update_machine((wm_machine_cookie.get() != nullptr ? wm_machine_cookie.get().get() : nullptr));
     xcb_get_property_reply_t *type_reply = (wm_type_cookie.get() != nullptr ? wm_type_cookie.get().get() : nullptr);
     xcb_get_property_reply_t *state_reply = (state_cookie.get() != nullptr ? state_cookie.get().get() : nullptr);
 
     char *startup_ws = startup_workspace_for_window(cwindow, (startup_id_cookie.get() != nullptr ? startup_id_cookie.get().get() : nullptr));
-    DLOG(fmt::sprintf("startup workspace = %s\n",  startup_ws));
+    DLOG(fmt::sprintf("startup workspace = %s\n", startup_ws));
 
     /* Get _NET_WM_DESKTOP if it was set. */
     xcb_get_property_reply_t *wm_desktop_reply;
     wm_desktop_reply = (wm_desktop_cookie.get() != nullptr ? wm_desktop_cookie.get().get() : nullptr);
     cwindow->wm_desktop = NET_WM_DESKTOP_NONE;
     if (wm_desktop_reply != nullptr && xcb_get_property_value_length(wm_desktop_reply) != 0) {
-        auto *wm_desktops = (uint32_t*)xcb_get_property_value(wm_desktop_reply);
+        auto *wm_desktops = (uint32_t *)xcb_get_property_value(wm_desktop_reply);
         cwindow->wm_desktop = (int32_t)wm_desktops[0];
     }
 
@@ -270,7 +278,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         LOG("This window is of type dock\n");
         Output *output = global.randr->get_output_containing(geom->x, geom->y);
         if (output != nullptr) {
-            DLOG(fmt::sprintf("Starting search at output %s\n",  output->output_primary_name()));
+            DLOG(fmt::sprintf("Starting search at output %s\n", output->output_primary_name()));
             search_at = output->con;
         }
 
@@ -285,17 +293,17 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             DLOG("Ignoring invalid reserved edges (_NET_WM_STRUT_PARTIAL), using position as fallback:\n");
             if (geom->y < (int16_t)(search_at->rect.height / 2)) {
                 DLOG(fmt::sprintf("geom->y = %d < rect.height / 2 = %d, it is a top dock client\n",
-                     geom->y, (search_at->rect.height / 2)));
+                                  geom->y, (search_at->rect.height / 2)));
                 cwindow->dock = i3Window::W_DOCK_TOP;
             } else {
                 DLOG(fmt::sprintf("geom->y = %d >= rect.height / 2 = %d, it is a bottom dock client\n",
-                     geom->y, (search_at->rect.height / 2)));
+                                  geom->y, (search_at->rect.height / 2)));
                 cwindow->dock = i3Window::W_DOCK_BOTTOM;
             }
         }
     }
 
-    DLOG(fmt::sprintf("Initial geometry: (%d, %d, %d, %d)\n",  geom->x, geom->y, geom->width, geom->height));
+    DLOG(fmt::sprintf("Initial geometry: (%d, %d, %d, %d)\n", geom->x, geom->y, geom->width, geom->height));
 
     /* See if any container swallows this new window */
     cwindow->swallowed = false;
@@ -304,13 +312,13 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     const bool match_from_restart_mode = (match && match->restart_mode);
     if (nc == nullptr) {
         Con *wm_desktop_ws = nullptr;
-        auto assignmentOpt = assignment_for(cwindow, A_TO_WORKSPACE).or_else([&] () { return assignment_for(cwindow, A_TO_WORKSPACE_NUMBER); });
+        auto assignmentOpt = assignment_for(cwindow, A_TO_WORKSPACE).or_else([&]() { return assignment_for(cwindow, A_TO_WORKSPACE_NUMBER); });
 
         /* If not, check if it is assigned to a specific workspace */
         if (assignmentOpt.has_value()) {
             Assignment &assignment = assignmentOpt->get();
-            DLOG(fmt::sprintf("Assignment matches (%p)\n",  (void*)match));
-            auto workspaceAssignment = dynamic_cast<WorkspaceAssignment&>(assignment);
+            DLOG(fmt::sprintf("Assignment matches (%p)\n", (void *)match));
+            auto workspaceAssignment = dynamic_cast<WorkspaceAssignment &>(assignment);
 
             Con *assigned_ws = nullptr;
             if (assignment.type == A_TO_WORKSPACE_NUMBER) {
@@ -325,7 +333,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             }
 
             nc = con_descend_tiling_focused(assigned_ws);
-            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n",  assigned_ws->name, (void*)nc, nc->name));
+            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", assigned_ws->name, (void *)nc, nc->name));
             if (nc->type == CT_WORKSPACE)
                 nc = tree_open_con(nc, cwindow);
             else
@@ -342,7 +350,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
              * since such a window will be made sticky anyway. */
 
             DLOG(fmt::sprintf("Using workspace %p / %s because _NET_WM_DESKTOP = %d.\n",
-                 (void*)wm_desktop_ws, wm_desktop_ws->name, cwindow->wm_desktop));
+                              (void *)wm_desktop_ws, wm_desktop_ws->name, cwindow->wm_desktop));
 
             nc = con_descend_tiling_focused(wm_desktop_ws);
             if (nc->type == CT_WORKSPACE)
@@ -351,9 +359,9 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
                 nc = tree_open_con(nc->parent, cwindow);
         } else if (startup_ws) {
             /* If it was started on a specific workspace, we want to open it there. */
-            DLOG(fmt::sprintf("Using workspace on which this application was started (%s)\n",  startup_ws));
+            DLOG(fmt::sprintf("Using workspace on which this application was started (%s)\n", startup_ws));
             nc = con_descend_tiling_focused(workspace_get(startup_ws));
-            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n",  (void*)startup_ws, (void*)nc, nc->name));
+            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", (void *)startup_ws, (void *)nc, nc->name));
             if (nc->type == CT_WORKSPACE)
                 nc = tree_open_con(nc, cwindow);
             else
@@ -362,14 +370,14 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             /* If not, insert it at the currently focused position */
             if (global.focused->type == CT_CON && global.focused->con_accepts_window()) {
                 LOG(fmt::sprintf("using current container, focused = %p, focused->name = %s\n",
-                    (void*)global.focused, global.focused->name));
+                                 (void *)global.focused, global.focused->name));
                 nc = global.focused;
             } else
                 nc = tree_open_con(nullptr, cwindow);
         }
         auto outputAssignmentOpt = assignment_for(cwindow, A_TO_OUTPUT);
         if (outputAssignmentOpt.has_value()) {
-            auto outputAssignment = dynamic_cast<OutputAssignment&>(outputAssignmentOpt->get());
+            auto outputAssignment = dynamic_cast<OutputAssignment &>(outputAssignmentOpt->get());
             con_move_to_output_name(nc, outputAssignment.output, true);
         }
     } else {
@@ -384,7 +392,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
          * we need to remove that criterion, because they should only be valid
          * once. */
         if (match != nullptr && match->insert_where != M_BELOW) {
-            DLOG(fmt::sprintf("Removing match %p from container %p\n",  (void*)match, (void*)nc));
+            DLOG(fmt::sprintf("Removing match %p from container %p\n", (void *)match, (void *)nc));
             std::erase_if(nc->swallow, [&match](auto &m) {
                 return m.get() == match;
             });
@@ -393,7 +401,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         cwindow->swallowed = true;
     }
 
-    DLOG(fmt::sprintf("new container = %p\n",  (void*)nc));
+    DLOG(fmt::sprintf("new container = %p\n", (void *)nc));
     if (nc->window != nullptr && nc->window != cwindow) {
         if (!restore_kill_placeholder(nc->window->id)) {
             DLOG("Uh?! Container without a placeholder, but with a window, has swallowed this to-be-managed window?!\n");
@@ -412,7 +420,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
 
     nc->border_width = geom->border_width;
 
-    x_set_name(nc, fmt::format("[i3 con] container around {}", (void*)cwindow));
+    x_set_name(nc, fmt::format("[i3 con] container around {}", (void *)cwindow));
 
     /* handle fullscreen containers */
     Con *ws = nc->con_get_workspace();
@@ -458,7 +466,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             DLOG("dock, not focusing\n");
         }
     } else {
-        DLOG(fmt::sprintf("fs = %p, ws = %p, not focusing\n",  (void*)fs, (void*)ws));
+        DLOG(fmt::sprintf("fs = %p, ws = %p, not focusing\n", (void *)fs, (void *)ws));
         /* Insert the new container in focus stack *after* the currently
          * focused (fullscreen) con. This way, the new container will be
          * focused after we return from fullscreen mode */
@@ -546,7 +554,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         nc->geometry = (Rect){(uint32_t)geom->x, (uint32_t)geom->y, geom->width, geom->height};
 
     if (motif_border_style != BS_NORMAL) {
-        DLOG(fmt::sprintf("MOTIF_WM_HINTS specifies decorations (border_style = %d)\n",  motif_border_style));
+        DLOG(fmt::sprintf("MOTIF_WM_HINTS specifies decorations (border_style = %d)\n", motif_border_style));
         if (want_floating) {
             con_set_border_style(nc, motif_border_style, config.default_floating_border_width);
         } else {
@@ -555,7 +563,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     }
 
     if (want_floating) {
-        DLOG(fmt::sprintf("geometry = %d x %d\n",  nc->geometry.width, nc->geometry.height));
+        DLOG(fmt::sprintf("geometry = %d x %d\n", nc->geometry.width, nc->geometry.height));
         /* automatically set the border to the default value if a motif border
          * was not specified */
         bool automatic_border = (motif_border_style == BS_NORMAL);
@@ -649,20 +657,20 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         if (ws->con_num_windows() == 1) {
             DLOG("This is the first window on this workspace, ignoring no_focus.\n");
         } else {
-            DLOG(fmt::sprintf("no_focus was set for con = %p, not setting focus.\n",  (void*)nc));
+            DLOG(fmt::sprintf("no_focus was set for con = %p, not setting focus.\n", (void *)nc));
             set_focus = false;
         }
     }
 
     if (set_focus) {
-        DLOG(fmt::sprintf("Checking con = %p for _NET_WM_USER_TIME.\n",  (void*)nc));
+        DLOG(fmt::sprintf("Checking con = %p for _NET_WM_USER_TIME.\n", (void *)nc));
 
         uint32_t *wm_user_time;
         xcb_get_property_reply_t *wm_user_time_reply = (wm_user_time_cookie.get() != nullptr ? wm_user_time_cookie.get().get() : nullptr);
         if (wm_user_time_reply != nullptr && xcb_get_property_value_length(wm_user_time_reply) != 0 &&
-            (wm_user_time = (uint32_t*)xcb_get_property_value(wm_user_time_reply)) &&
+            (wm_user_time = (uint32_t *)xcb_get_property_value(wm_user_time_reply)) &&
             wm_user_time[0] == 0) {
-            DLOG(fmt::sprintf("_NET_WM_USER_TIME set to 0, not focusing con = %p.\n",  (void*)nc));
+            DLOG(fmt::sprintf("_NET_WM_USER_TIME set to 0, not focusing con = %p.\n", (void *)nc));
             set_focus = false;
         }
     } else {

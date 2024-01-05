@@ -18,6 +18,7 @@ module;
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
+#include "atoms.h"
 module i3;
 
 import utils;
@@ -27,7 +28,6 @@ import utils;
         free(pointer);  \
         pointer = NULL; \
     } while (0)
-
 
 /*
  * Calculates sum of heights and sum of widths of all currently active outputs
@@ -303,7 +303,8 @@ bool floating_enable(Con *con, bool automatic) {
     if (focus_before_parent) {
         if (focus_head_placeholder) {
             auto it = std::ranges::find(fh, focus_head_placeholder);
-            if (it != fh.end()) it++;
+            if (it != fh.end())
+                it++;
             fh.insert(it, nc);
         } else {
             fh.push_front(nc);
@@ -319,7 +320,7 @@ bool floating_enable(Con *con, bool automatic) {
 
     /* check if the parent container is empty and close it if so */
     if ((con->parent->type == CT_CON || con->parent->type == CT_FLOATING_CON) &&
-            con->parent->con_num_children() == 0) {
+        con->parent->con_num_children() == 0) {
         DLOG("Old container empty after setting this child to floating, closing\n");
         Con *parent = con->parent;
         /* clear the pointer before calling tree_close_internal in which the memory is freed */
@@ -327,20 +328,20 @@ bool floating_enable(Con *con, bool automatic) {
         tree_close_internal(parent, DONT_KILL_WINDOW, false);
     }
 
-    x_set_name(nc, fmt::format("[i3 con] floatingcon around {}", (void *) con));
+    x_set_name(nc, fmt::format("[i3 con] floatingcon around {}", (void *)con));
 
     /* find the height for the decorations */
     int deco_height = render_deco_height();
 
-    DLOG(fmt::sprintf("Original rect: (%d, %d) with %d x %d\n",  con->rect.x, con->rect.y, con->rect.width, con->rect.height));
-    DLOG(fmt::sprintf("Geometry = (%d, %d) with %d x %d\n",  con->geometry.x, con->geometry.y, con->geometry.width, con->geometry.height));
+    DLOG(fmt::sprintf("Original rect: (%d, %d) with %d x %d\n", con->rect.x, con->rect.y, con->rect.width, con->rect.height));
+    DLOG(fmt::sprintf("Geometry = (%d, %d) with %d x %d\n", con->geometry.x, con->geometry.y, con->geometry.width, con->geometry.height));
     nc->rect = con->geometry;
     /* If the geometry was not set (split containers), we need to determine a
      * sensible one by combining the geometry of all children */
     if (nc->rect == (Rect){0, 0, 0, 0}) {
         DLOG("Geometry not set, combining children\n");
         for (auto &child : con->nodes_head) {
-            DLOG(fmt::sprintf("child geometry: %d x %d\n",  child->geometry.width, child->geometry.height));
+            DLOG(fmt::sprintf("child geometry: %d x %d\n", child->geometry.width, child->geometry.height));
             nc->rect.width += child->geometry.width;
             nc->rect.height = std::max(nc->rect.height, child->geometry.height);
         }
@@ -398,7 +399,7 @@ bool floating_enable(Con *con, bool automatic) {
     Con *correct_output = ws->con_get_output();
     if (!current_output || current_output->con != correct_output) {
         DLOG(fmt::sprintf("This floating window is on the wrong output, fixing coordinates (currently (%d, %d))\n",
-             nc->rect.x, nc->rect.y));
+                          nc->rect.x, nc->rect.y));
 
         /* If moving from one output to another, keep the relative position
          * consistent (e.g. a centered dialog will remain centered). */
@@ -412,7 +413,7 @@ bool floating_enable(Con *con, bool automatic) {
         }
     }
 
-    DLOG(fmt::sprintf("Floating rect: (%d, %d) with %d x %d\n",  nc->rect.x, nc->rect.y, nc->rect.width, nc->rect.height));
+    DLOG(fmt::sprintf("Floating rect: (%d, %d) with %d x %d\n", nc->rect.x, nc->rect.y, nc->rect.width, nc->rect.height));
 
     /* 5: Subtract the deco_height in order to make the floating window appear
      * at precisely the position it specified in its original geometry (which
@@ -420,7 +421,7 @@ bool floating_enable(Con *con, bool automatic) {
     deco_height = (con->border_style == BS_NORMAL ? render_deco_height() : 0);
     nc->rect.y -= deco_height;
 
-    DLOG(fmt::sprintf("Corrected y = %d (deco_height = %d)\n",  nc->rect.y, deco_height));
+    DLOG(fmt::sprintf("Corrected y = %d (deco_height = %d)\n", nc->rect.y, deco_height));
 
     /* render the cons to get initial window_rect correct */
     render_con(nc);
@@ -469,7 +470,7 @@ void floating_disable(Con *con) {
 void toggle_floating_mode(Con *con, bool automatic) {
     /* forbid the command to toggle floating on a CT_FLOATING_CON */
     if (con->type == CT_FLOATING_CON) {
-        ELOG(fmt::sprintf("Cannot toggle floating mode on con = %p because it is of type CT_FLOATING_CON.\n",  (void*)con));
+        ELOG(fmt::sprintf("Cannot toggle floating mode on con = %p because it is of type CT_FLOATING_CON.\n", (void *)con));
         return;
     }
 
@@ -489,8 +490,8 @@ void toggle_floating_mode(Con *con, bool automatic) {
  *
  */
 void floating_raise_con(Con *con) {
-    DLOG(fmt::sprintf("Raising floating con %p / %s\n",  (void*)con, con->name));
-    if (dynamic_cast<WorkspaceCon*>(con->parent)) {
+    DLOG(fmt::sprintf("Raising floating con %p / %s\n", (void *)con, con->name));
+    if (dynamic_cast<WorkspaceCon *>(con->parent)) {
         WorkspaceCon *workspace = dynamic_cast<WorkspaceCon *>(con->parent);
         auto con_ptr = std::ranges::find(workspace->floating_windows, con);
         if (con_ptr != workspace->floating_windows.end()) {
@@ -522,7 +523,7 @@ bool floating_maybe_reassign_ws(Con *con) {
 
     Con *content = output->con->output_get_content();
     Con *ws = con::first(content->focus_head);
-    DLOG(fmt::sprintf("Moving con %p / %s to workspace %p / %s\n",  (void*)con, con->name, (void*)ws, ws->name));
+    DLOG(fmt::sprintf("Moving con %p / %s to workspace %p / %s\n", (void *)con, con->name, (void *)ws, ws->name));
     Con *needs_focus = con_descend_focused(con);
     if (!needs_focus->con_inside_focused()) {
         needs_focus = nullptr;
@@ -581,7 +582,7 @@ void floating_move_to_pointer(Con *con) {
 }
 
 static void drag_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uint32_t new_y,
-                 const xcb_button_press_event_t *event, const void *extra) {
+                                 const xcb_button_press_event_t *event, const void *extra) {
     /* Reposition the client correctly while moving */
     con->rect.x = old_rect->x + (new_x - event->root_x);
     con->rect.y = old_rect->y + (new_y - event->root_y);
@@ -647,8 +648,8 @@ struct resize_window_callback_params {
 };
 
 static void resize_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uint32_t new_y,
-                 const xcb_button_press_event_t *event, const void *extra) {
-    const struct resize_window_callback_params *params = (struct resize_window_callback_params*)extra;
+                                   const xcb_button_press_event_t *event, const void *extra) {
+    const struct resize_window_callback_params *params = (struct resize_window_callback_params *)extra;
     border_t corner = params->corner;
 
     int32_t dest_x = con->rect.x;
@@ -780,7 +781,7 @@ bool floating_reposition(Con *con, Rect newrect) {
  *
  */
 void floating_resize(Con *floating_con, uint32_t x, uint32_t y) {
-    DLOG(fmt::sprintf("floating resize to %dx%d px\n",  x, y));
+    DLOG(fmt::sprintf("floating resize to %dx%d px\n", x, y));
     Rect &rect = floating_con->rect;
     Con *focused_con = con_descend_focused(floating_con);
     if (focused_con->window == nullptr) {
@@ -811,11 +812,11 @@ void floating_resize(Con *floating_con, uint32_t x, uint32_t y) {
  */
 void floating_fix_coordinates(Con *con, Rect *old_rect, Rect *new_rect) {
     DLOG(fmt::sprintf("Fixing coordinates of floating window %p (rect (%d, %d), %d x %d)\n",
-         (void*)con, con->rect.x, con->rect.y, con->rect.width, con->rect.height));
+                      (void *)con, con->rect.x, con->rect.y, con->rect.width, con->rect.height));
     DLOG(fmt::sprintf("old_rect = (%d, %d), %d x %d\n",
-         old_rect->x, old_rect->y, old_rect->width, old_rect->height));
+                      old_rect->x, old_rect->y, old_rect->width, old_rect->height));
     DLOG(fmt::sprintf("new_rect = (%d, %d), %d x %d\n",
-         new_rect->x, new_rect->y, new_rect->width, new_rect->height));
+                      new_rect->x, new_rect->y, new_rect->width, new_rect->height));
     /* First we get the x/y coordinates relative to the x/y coordinates
      * of the output on which the window is on */
     int32_t rel_x = con->rect.x - old_rect->x + (int32_t)(con->rect.width / 2);
@@ -823,10 +824,10 @@ void floating_fix_coordinates(Con *con, Rect *old_rect, Rect *new_rect) {
     /* Then we calculate a fraction, for example 0.63 for a window
      * which is at y = 1212 of a 1920 px high output */
     DLOG(fmt::sprintf("rel_x = %d, rel_y = %d, fraction_x = %f, fraction_y = %f, output->w = %d, output->h = %d\n",
-         rel_x, rel_y, (double)rel_x / old_rect->width, (double)rel_y / old_rect->height,
-         old_rect->width, old_rect->height));
+                      rel_x, rel_y, (double)rel_x / old_rect->width, (double)rel_y / old_rect->height,
+                      old_rect->width, old_rect->height));
     /* Here we have to multiply at first. Or we will lose precision when not compiled with -msse2 */
     con->rect.x = (int32_t)new_rect->x + (double)(rel_x * (int32_t)new_rect->width) / (int32_t)old_rect->width - (int32_t)(con->rect.width / 2);
     con->rect.y = (int32_t)new_rect->y + (double)(rel_y * (int32_t)new_rect->height) / (int32_t)old_rect->height - (int32_t)(con->rect.height / 2);
-    DLOG(fmt::sprintf("Resulting coordinates: x = %d, y = %d\n",  con->rect.x, con->rect.y));
+    DLOG(fmt::sprintf("Resulting coordinates: x = %d, y = %d\n", con->rect.x, con->rect.y));
 }

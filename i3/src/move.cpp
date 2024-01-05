@@ -8,6 +8,10 @@
  *
  */
 module;
+#include <cassert>
+#include <deque>
+#include <ranges>
+#include <fmt/printf.h>
 #include "i3_ipc/i3-ipc.h"
 module i3;
 
@@ -92,7 +96,7 @@ void insert_con_into(Con *con, Con *target, position_t position) {
         focus_before = moves_focus_from_ancestor;
     } else {
         /* Look at the focus stack order of the children of the lowest common ancestor. */
-        auto current_it = std::ranges::find_if(lca->focus_head, [&con_ancestor,&target_ancestor](auto &current) {
+        auto current_it = std::ranges::find_if(lca->focus_head, [&con_ancestor, &target_ancestor](auto &current) {
             return (current == con_ancestor || current == target_ancestor);
         });
         focus_before = (current_it != lca->focus_head.end() && *current_it == con_ancestor);
@@ -121,7 +125,7 @@ void insert_con_into(Con *con, Con *target, position_t position) {
     /* When moving to a workspace, we respect the user’s configured
      * workspace_layout */
     if (parent->type == CT_WORKSPACE) {
-        Con *split = workspace_attach_to(dynamic_cast<WorkspaceCon*>(parent));
+        Con *split = workspace_attach_to(dynamic_cast<WorkspaceCon *>(parent));
         if (split != parent) {
             DLOG("Got a new split con, using that one instead\n");
             con->parent = split;
@@ -130,7 +134,7 @@ void insert_con_into(Con *con, Con *target, position_t position) {
             con->percent = 0.0;
             split->con_fix_percent();
             con = split;
-            DLOG(fmt::sprintf("ok, continuing with con %p instead\n",  (void*)con));
+            DLOG(fmt::sprintf("ok, continuing with con %p instead\n", (void *)con));
             con->con_detach();
         }
     }
@@ -145,7 +149,8 @@ void insert_con_into(Con *con, Con *target, position_t position) {
         } else {
             /* Example layout: H [ A B* ], we move A up/down. 'target' will be H. */
             auto it = std::ranges::find(parent->focus_head, target);
-            if (std::next(it) != parent->focus_head.end()) it++;
+            if (std::next(it) != parent->focus_head.end())
+                it++;
             parent->focus_head.insert(it, con);
         }
     } else {
@@ -253,7 +258,7 @@ void tree_move(Con *con, direction_t direction) {
     position_t position;
     Con *target;
 
-    DLOG(fmt::sprintf("Moving in direction %d\n",  direction));
+    DLOG(fmt::sprintf("Moving in direction %d\n", direction));
 
     /* 1: get the first parent with the same orientation */
 
@@ -376,7 +381,7 @@ void tree_move(Con *con, direction_t direction) {
         return;
     }
 
-    DLOG(fmt::sprintf("above = %p\n",  (void*)above));
+    DLOG(fmt::sprintf("above = %p\n", (void *)above));
 
     Con *next = (direction == D_UP || direction == D_LEFT) ? con::previous(above, above->parent->nodes_head) : con::next(above, above->parent->nodes_head);
 
@@ -392,7 +397,7 @@ void tree_move(Con *con, direction_t direction) {
     } else if (!next &&
                con->parent->parent->type == CT_WORKSPACE &&
                con->parent->layout != L_DEFAULT &&
-            con->parent->con_num_children() == 1) {
+               con->parent->con_num_children() == 1) {
         /* Con is the lone child of a non-default layout container at the edge
          * of the workspace. Treat it as though the workspace is its parent
          * and move it to the next output. */
