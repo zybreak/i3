@@ -16,9 +16,11 @@ module;
 #include <xcb/xcb.h>
 
 #include <cmath>
+#include <algorithm>
 #include <ranges>
 
 #include <fmt/printf.h>
+
 module i3;
 
 /* Forward declarations */
@@ -53,11 +55,10 @@ void render_con(Con *con) {
         .x = con->rect.x,
         .y = con->rect.y,
         .rect = con->rect,
-        .children = con->con_num_children()
-    };
+        .children = con->con_num_children()};
 
-    DLOG(fmt::sprintf("Rendering node %p / %s / layout %d / children %d\n",  (void*)con, con->name,
-         con->layout, params.children));
+    DLOG(fmt::sprintf("Rendering node %p / %s / layout %d / children %d\n", (void *)con, con->name,
+                      con->layout, params.children));
 
     int i = 0;
     con->mapped = true;
@@ -84,7 +85,7 @@ void render_con(Con *con) {
          * can (by providing their fake-transparency or background color), this
          * code was removed. See also https://bugs.i3wm.org/540 */
 
-        DLOG(fmt::sprintf("child will be at %dx%d with size %dx%d\n",  inset->x, inset->y, inset->width, inset->height));
+        DLOG(fmt::sprintf("child will be at %dx%d with size %dx%d\n", inset->x, inset->y, inset->width, inset->height));
     }
 
     /* Check for fullscreen nodes */
@@ -134,7 +135,7 @@ void render_con(Con *con) {
             child->rect.rect_sanitize_dimensions();
 
             DLOG(fmt::sprintf("child at (%d, %d) with (%d x %d)\n",
-                 child->rect.x, child->rect.y, child->rect.width, child->rect.height));
+                              child->rect.x, child->rect.y, child->rect.width, child->rect.height));
             x_raise_con(child);
             render_con(child);
             i++;
@@ -217,14 +218,14 @@ static void render_root(Con *con, Con *fullscreen) {
             continue;
         }
         Con *fullscreen = workspace->con_get_fullscreen_covering_ws();
-        if (dynamic_cast<WorkspaceCon*>(workspace)) {
-            for (auto &child : dynamic_cast<WorkspaceCon*>(workspace)->floating_windows) {
+        if (dynamic_cast<WorkspaceCon *>(workspace)) {
+            for (auto &child : dynamic_cast<WorkspaceCon *>(workspace)->floating_windows) {
                 if (fullscreen != nullptr) {
                     /* Don’t render floating windows when there is a fullscreen
-                 * window on that workspace. Necessary to make floating
-                 * fullscreen work correctly (ticket #564). Exception to the
-                 * above rule: smart popup_during_fullscreen handling (popups
-                 * belonging to the fullscreen app will be rendered). */
+                     * window on that workspace. Necessary to make floating
+                     * fullscreen work correctly (ticket #564). Exception to the
+                     * above rule: smart popup_during_fullscreen handling (popups
+                     * belonging to the fullscreen app will be rendered). */
                     if (config.popup_during_fullscreen != PDF_SMART || fullscreen->window == nullptr) {
                         continue;
                     }
@@ -245,8 +246,8 @@ static void render_root(Con *con, Con *fullscreen) {
                         if (next_transient == nullptr)
                             break;
                         /* Some clients (e.g. x11-ssh-askpass) actually set
-                     * WM_TRANSIENT_FOR to their own window id, so break instead of
-                     * looping endlessly. */
+                         * WM_TRANSIENT_FOR to their own window id, so break instead of
+                         * looping endlessly. */
                         if (transient_con == next_transient)
                             break;
                         transient_con = next_transient;
@@ -290,7 +291,7 @@ static void render_output(Con *con) {
             }
             content = child;
         } else if (child->type != CT_DOCKAREA) {
-            DLOG(fmt::sprintf("Child %p of type %d is inside the OUTPUT con\n",  (void*)child, child->type));
+            DLOG(fmt::sprintf("Child %p of type %d is inside the OUTPUT con\n", (void *)child, child->type));
             assert(false);
         }
     }
@@ -351,7 +352,7 @@ static void render_output(Con *con) {
         y += child->rect.height;
 
         DLOG(fmt::sprintf("child at (%d, %d) with (%d x %d)\n",
-             child->rect.x, child->rect.y, child->rect.width, child->rect.height));
+                          child->rect.x, child->rect.y, child->rect.width, child->rect.height));
         x_raise_con(child);
         render_con(child);
     }
