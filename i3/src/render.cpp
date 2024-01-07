@@ -144,8 +144,12 @@ void render_con(Con *con) {
 
         /* in a stacking or tabbed container, we ensure the focused client is raised */
         if (con->layout == L_STACKED || con->layout == L_TABBED) {
-            for (auto &it : con->focus_head | std::views::reverse) {
-                x_raise_con(it);
+            // TODO: swap is ambigous when using the views::reverse
+            //for (auto &it : con->focus_head | std::views::reverse) {
+            //    x_raise_con(it);
+            //}
+            for (auto it = con->focus_head.rbegin(); it != con->focus_head.rend(); ++it) {
+                x_raise_con(*it);
             }
             Con *child = con::first(con->focus_head);
             if (child != nullptr) {

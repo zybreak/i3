@@ -23,10 +23,13 @@
  *    nearest <error> token.
  *
  */
+struct criteria_state;
+
 #include <cassert>
 #include <cerrno>
 #include <climits>
 #include <sstream>
+#include <map>
 
 #include <cstdint>
 #include <cstdio>
@@ -46,8 +49,13 @@
 
 #include <xcb/xcb_xrm.h>
 
+#include <fmt/printf.h>
+
+#include "config/configuration.h"
+
+#include "../resource_database.h"
+
 import utils;
-import i3;
 
 /*******************************************************************************
  * The data structures used for parsing. Essentially the current state and a
@@ -82,6 +90,12 @@ struct cmdp_token_ptr {
 
 #include "GENERATED_config_call.h"
 
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
+
 static void next_state(const cmdp_token *token, struct parser_ctx &ctx) {
     cmdp_state _next_state = token->next_state;
 
@@ -91,7 +105,7 @@ static void next_state(const cmdp_token *token, struct parser_ctx &ctx) {
         struct ConfigResultIR subcommand_output = {
             .ctx = ctx,
         };
-        GENERATED_call(&ctx.criteria_state, ctx.stack, token->extra.call_identifier, subcommand_output);
+        GENERATED_call(ctx.criteria_state, ctx.stack, token->extra.call_identifier, subcommand_output);
         if (subcommand_output.has_errors) {
             ctx.has_errors = true;
         }
@@ -190,8 +204,8 @@ static void unhandled_token(const std::string &input, const char *filename, int 
         position[(copywalk - error_line)] = (copywalk >= *walk ? '^' : (*copywalk == '\t' ? '\t' : ' '));
     position[(copywalk - error_line)] = '\0';
 
-    ELOG(fmt::sprintf("CONFIG: Expected one of these tokens: %s\n", possible_tokens));
-    ELOG(fmt::sprintf("CONFIG: (in file %s)\n", filename));
+    //ELOG(fmt::sprintf("CONFIG: Expected one of these tokens: %s\n", possible_tokens));
+    //ELOG(fmt::sprintf("CONFIG: (in file %s)\n", filename));
     char *error_copy = single_line(error_line);
 
     /* Print context lines *before* the error, if any. */
@@ -201,14 +215,14 @@ static void unhandled_token(const std::string &input, const char *filename, int 
         if (linecnt > 2) {
             const char *context_p2_start = start_of_line(context_p1_start - 2, input);
             char *context_p2_line = single_line(context_p2_start);
-            ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 2, context_p2_line));
+            //ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 2, context_p2_line));
             free(context_p2_line);
         }
-        ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 1, context_p1_line));
+        //ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 1, context_p1_line));
         free(context_p1_line);
     }
-    ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt, error_copy));
-    ELOG(fmt::sprintf("CONFIG:           %s\n",  position));
+    //ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt, error_copy));
+    //ELOG(fmt::sprintf("CONFIG:           %s\n",  position));
     free(error_copy);
     /* Print context lines *after* the error, if any. */
     for (int i = 0; i < 2; i++) {
@@ -216,7 +230,7 @@ static void unhandled_token(const std::string &input, const char *filename, int 
         if (error_line_end != nullptr && *(error_line_end + 1) != '\0') {
             error_line = error_line_end + 1;
             error_copy = single_line(error_line);
-            ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt + i + 1, error_copy));
+            //ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt + i + 1, error_copy));
             free(error_copy);
         }
     }
@@ -250,13 +264,13 @@ static void unhandled_token(const std::string &input, const char *filename, int 
 }
 
 /* Dump the entire config file into the debug log. We cannot just use
- * DLOG(fmt::sprintf("%s",  input)); because one log message must not exceed 4 KiB. */
+ * //DLOG(fmt::sprintf("%s",  input)); because one log message must not exceed 4 KiB. */
 static void log_config(const std::string &input) {
     std::istringstream iss(input);
 
     int linecnt = 1;
     for (std::string line; std::getline(iss, line); linecnt++) {
-        DLOG(fmt::sprintf("CONFIG(line %3d): %s\n",  linecnt, line));
+        //DLOG(fmt::sprintf("CONFIG(line %3d): %s\n",  linecnt, line));
     }
 }
 
@@ -363,7 +377,7 @@ static bool handle_end(const char **walk, const cmdp_token *token, parser_ctx &c
                      * datastructure for commands which do *not* specify any
                      * criteria, we re-initialize the criteria system after
                      * every command. */
-        cfg::criteria_init(&ctx.criteria_state, subcommand_output, INITIAL);
+        cfg::criteria_init(ctx.criteria_state, subcommand_output, INITIAL);
         (*linecnt)++;
         (*walk)++;
 
@@ -400,7 +414,7 @@ bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *
         .ctx = ctx,
     };
 
-    cfg::criteria_init(&ctx.criteria_state, subcommand_output, INITIAL);
+    cfg::criteria_init(ctx.criteria_state, subcommand_output, INITIAL);
 
     /* The "<=" operator is intentional: We also handle the terminating 0-byte
      * explicitly by looking for an 'end' token. */
@@ -441,65 +455,17 @@ bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *
     return has_errors;
 }
 
-#ifndef TEST_PARSER
 /**
  * Launch nagbar to indicate errors in the configuration file.
  */
-void start_config_error_nagbar(bool has_errors) {
-    const char *font_pattern = config.font->pattern ? config.font->pattern : "fixed";
-    auto type = has_errors ? TYPE_ERROR : TYPE_WARNING;
-    const char *text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
+//void start_config_error_nagbar(bool has_errors) {
+//    const char *font_pattern = config.font->pattern ? config.font->pattern : "fixed";
+//    auto type = has_errors ? TYPE_ERROR : TYPE_WARNING;
+//    const char *text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
 
-    std::vector<button_t> buttons{};
-    start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type);
-}
-#endif
-
-class ResourceDatabase {
-    xcb_xrm_database_t *database = nullptr;
-    xcb_connection_t *conn;
-   public:
-
-    explicit ResourceDatabase(xcb_connection_t *conn) : conn(conn) {
-    }
-
-    char* get_resource(char *name, const char *fallback) {
-        if (conn == nullptr) {
-            return nullptr;
-        }
-
-        /* Load the resource database lazily. */
-        if (database == nullptr) {
-            database = xcb_xrm_database_from_default(conn);
-
-            if (database == nullptr) {
-                ELOG("Failed to open the resource database.\n");
-
-                /* Load an empty database so we don't keep trying to load the
-                 * default database over and over again. */
-                database = xcb_xrm_database_from_string("");
-
-                return strdup(fallback);
-            }
-        }
-
-        char *resource;
-        xcb_xrm_resource_get_string(database, name, nullptr, &resource);
-
-        if (resource == nullptr) {
-            DLOG(fmt::sprintf("Could not get resource '%s', using fallback '%s'.\n",  name, fallback));
-            resource = strdup(fallback);
-        }
-
-        return resource;
-    }
-
-    ~ResourceDatabase() {
-        if (database) {
-            xcb_xrm_database_free(database);
-        }
-    }
-};
+//    std::vector<button_t> buttons{};
+//    start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type);
+//}
 
 /*
  * Inserts or updates a variable assignment depending on whether it already exists.
@@ -511,13 +477,13 @@ static void upsert_variable(std::vector<std::shared_ptr<Variable>> &variables, c
             continue;
         }
 
-        DLOG(fmt::sprintf("Updated variable: %s = %s -> %s\n",  key, current->value, value));
+        //DLOG(fmt::sprintf("Updated variable: %s = %s -> %s\n",  key, current->value, value));
         FREE(current->value);
         current->value = sstrdup(value);
         return;
     }
 
-    DLOG(fmt::sprintf("Defined new variable: %s = %s\n",  key, value));
+    //DLOG(fmt::sprintf("Defined new variable: %s = %s\n",  key, value));
     auto n = std::make_shared<Variable>();
     auto loc = variables.begin();
     n->key = sstrdup(key);
@@ -561,8 +527,7 @@ static size_t count_extra_bytes(const char *buf, __off_t size, parser_ctx &ctx) 
     return extra_bytes;
 }
 
-static bool read_file(FILE *fstr, char *buf, parser_ctx &ctx) {
-    ResourceDatabase resourceDatabase{**global.x};
+static bool read_file(FILE *fstr, ResourceDatabase &resourceDatabase, char *buf, parser_ctx &ctx) {
     bool invalid_sets = false;
     char buffer[4096], key[512], value[4096], *continuation = nullptr;
 
@@ -575,7 +540,7 @@ static bool read_file(FILE *fstr, char *buf, parser_ctx &ctx) {
             throw std::runtime_error("Unexpected EOF");
         }
         if (buffer[strlen(buffer) - 1] != '\n' && !feof(fstr)) {
-            ELOG(fmt::sprintf("Your line continuation is too long, it exceeds %zd bytes\n",  sizeof(buffer)));
+            //ELOG(fmt::sprintf("Your line continuation is too long, it exceeds %zd bytes\n",  sizeof(buffer)));
         }
 
         /* sscanf implicitly strips whitespace. */
@@ -589,7 +554,7 @@ static bool read_file(FILE *fstr, char *buf, parser_ctx &ctx) {
             if (!comment) {
                 continue;
             }
-            DLOG(fmt::sprintf("line continuation in comment is ignored: \"%.*s\"\n", (int)strlen(buffer) - 1, buffer));
+            //DLOG(fmt::sprintf("line continuation in comment is ignored: \"%.*s\"\n", (int)strlen(buffer) - 1, buffer));
             continuation = nullptr;
         }
 
@@ -605,13 +570,13 @@ static bool read_file(FILE *fstr, char *buf, parser_ctx &ctx) {
             char v_value[4096] = {'\0'};
 
             if (sscanf(value, "%511s %4095[^\n]", v_key, v_value) < 1) {
-                ELOG(fmt::sprintf("Failed to parse variable specification '%s', skipping it.\n",  value));
+                //ELOG(fmt::sprintf("Failed to parse variable specification '%s', skipping it.\n",  value));
                 invalid_sets = true;
                 continue;
             }
 
             if (v_key[0] != '$') {
-                ELOG("Malformed variable assignment, name has to start with $\n");
+                //ELOG("Malformed variable assignment, name has to start with $\n");
                 invalid_sets = true;
                 continue;
             }
@@ -632,13 +597,13 @@ static bool read_file(FILE *fstr, char *buf, parser_ctx &ctx) {
             fallback[0] = '\0';
 
             if (sscanf(value, "%511s %511s %4095[^\n]", v_key, res_name, fallback) < 1) {
-                ELOG(fmt::sprintf("Failed to parse resource specification '%s', skipping it.\n",  value));
+                //ELOG(fmt::sprintf("Failed to parse resource specification '%s', skipping it.\n",  value));
                 invalid_sets = true;
                 continue;
             }
 
             if (v_key[0] != '$') {
-                ELOG("Malformed variable assignment, name has to start with $\n");
+                //ELOG("Malformed variable assignment, name has to start with $\n");
                 invalid_sets = true;
                 continue;
             }
@@ -698,18 +663,18 @@ static char* replace_variables(char *n, char *buf, __off_t size, parser_ctx &ctx
 }
 
 
-OldParser::OldParser(const char *filename, struct parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, parent_ctx.load_type, applier) {
+OldParser::OldParser(const char *filename, ResourceDatabase &resourceDatabase, struct parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, resourceDatabase, parent_ctx.load_type, applier) {
     this->parent_ctx = &parent_ctx;
     this->ctx.variables = parent_ctx.variables;
 }
 
-OldParser::OldParser(const char *filename, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier), filename(filename), ctx(applier, load_type) {
+OldParser::OldParser(const char *filename, ResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier), filename(filename), ctx(applier, resourceDatabase, load_type), resourceDatabase(resourceDatabase) {
     this->old_dir = get_current_dir_name();
     char *dir = nullptr;
     /* dirname(3) might modify the buffer, so make a copy: */
     char *dirbuf = sstrdup(filename);
     if ((dir = dirname(dirbuf)) != nullptr) {
-        LOG(fmt::sprintf("Changing working directory to config file directory %s\n",  dir));
+        //LOG(fmt::sprintf("Changing working directory to config file directory %s\n",  dir));
         if (chdir(dir) == -1) {
             throw std::runtime_error(fmt::sprintf("chdir(%s) failed: %s\n", dir, strerror(errno)));
         }
@@ -737,6 +702,7 @@ OldParser::~OldParser() {
  *
  */
 parse_file_result_t OldParser::parse_file() {
+    char *current_config = nullptr; // TODO: fixme
     struct stat stbuf{};
 
     if (fstat(fd, &stbuf) == -1) {
@@ -758,9 +724,9 @@ parse_file_result_t OldParser::parse_file() {
     bool invalid_sets;
 
     try {
-        invalid_sets = read_file(fstr, buf, ctx);
+        invalid_sets = read_file(fstr, resourceDatabase, buf, ctx);
     } catch (const std::exception &e) {
-        ELOG(fmt::sprintf("Failed to read config file: %s\n", e.what()));
+        //ELOG(fmt::sprintf("Failed to read config file: %s\n", e.what()));
         return PARSE_FILE_FAILED;
     }
 
@@ -775,23 +741,24 @@ parse_file_result_t OldParser::parse_file() {
     replace_variables(n, buf, stbuf.st_size, ctx);
 
     bool has_errors = parse_config(ctx, n, filename);
+    this->included_files = ctx.included_files;
     if (ctx.has_errors) {
         has_errors = true;
     }
 
 #ifndef TEST_PARSER
-    if (has_duplicate_bindings()) {
-        has_errors = true;
-    }
+    //if (has_duplicate_bindings()) {
+    //    has_errors = true;
+    //}
 #endif
 
     auto use_nagbar = (ctx.load_type != config_load_t::C_VALIDATE);
 
     if (use_nagbar && (has_errors || invalid_sets)) {
 #ifndef TEST_PARSER
-        ELOG(fmt::sprintf("FYI: You are using i3 version %s\n", I3_VERSION));
+        //ELOG(fmt::sprintf("FYI: You are using i3 version %s\n", I3_VERSION));
 
-        start_config_error_nagbar(has_errors || invalid_sets);
+        //start_config_error_nagbar(has_errors || invalid_sets);
 #endif
     }
 
@@ -804,6 +771,7 @@ parse_file_result_t OldParser::parse_file() {
     return PARSE_FILE_SUCCESS;
 }
 
-parser_ctx::parser_ctx(BaseConfigApplier &applier, config_load_t load_type)
-    : applier(applier), load_type(load_type) {
+parser_ctx::parser_ctx(BaseConfigApplier &applier, ResourceDatabase &resourceDatabase, config_load_t load_type)
+    : applier(applier), load_type(load_type), resourceDatabase(resourceDatabase) {
+    this->criteria_state = applier.criteria_init(0);
 }

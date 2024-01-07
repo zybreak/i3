@@ -22,9 +22,9 @@ module;
 
 #include <xcb/xcb.h>
 #include <filesystem>
-
+struct criteria_state;
 #include "config/old/config_parser.h"
-#include "config/new/config_parser.h"
+//#include "config/new/config_parser.h"
 #include "config/config_applier.h"
 module i3;
 
@@ -163,6 +163,7 @@ static void free_configuration() {
 
     free(config.ipc_socket_path);
     free(config.restart_state_path);
+    included_files.clear();
 }
 
 Barconfig::~Barconfig() {
@@ -285,6 +286,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
         ConfigApplier configListener{};
 
         if (global.new_parser) {
+            /*
             std::string filename = resolved_path;
             std::istream *stream;
             std::ifstream if_stream{};
@@ -298,9 +300,12 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
 
             NewParser np{ resourceDatabase, stream, load_type, configListener };
             result = np.parse_file();
+             */
         } else {
-            OldParser op = OldParser{ resolved_path, load_type, configListener };
+            ResourceDatabase resourceDatabase{**global.x};
+            OldParser op = OldParser{ resolved_path, resourceDatabase, load_type, configListener };
             result = op.parse_file();
+            included_files = op.included_files;
         }
         if (result == PARSE_FILE_FAILED) {
             errx(EXIT_FAILURE, "Could not open configuration file: %s\n", strerror((*__errno_location())));

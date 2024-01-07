@@ -2,6 +2,17 @@ export module i3:internal;
 
 export {
 
+/**
+ * Bitmask for matching XCB_XKB_GROUP_1 to XCB_XKB_GROUP_4.
+ */
+enum i3_xkb_group_mask_t {
+    I3_XKB_GROUP_MASK_ANY = 0,
+    I3_XKB_GROUP_MASK_1 = (1 << 0),
+    I3_XKB_GROUP_MASK_2 = (1 << 1),
+    I3_XKB_GROUP_MASK_3 = (1 << 2),
+    I3_XKB_GROUP_MASK_4 = (1 << 3)
+};
+
 enum xcursor_cursor_t {
     XCURSOR_CURSOR_POINTER = 0,
     XCURSOR_CURSOR_RESIZE_HORIZONTAL,

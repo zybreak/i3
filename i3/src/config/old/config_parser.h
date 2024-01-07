@@ -13,6 +13,8 @@
 
 #include "parser_stack.h"
 #include "../base_parser.h"
+#include "config/configuration.h"
+#include "../resource_database.h"
 
 /**
  * Holds a user-assigned variable for parsing the configuration file. The key
@@ -28,10 +30,12 @@ struct Variable {
 
 class parser_ctx {
    public:
+    ResourceDatabase &resourceDatabase;
+    std::vector<std::string> included_files{};
     config_load_t load_type;
     BaseConfigApplier &applier;
     int state;
-    criteria_state criteria_state{};
+    criteria_state *criteria_state;
 
     /* A list which contains the states that lead to the current state, e.g.
    * INITIAL, WORKSPACE_LAYOUT.
@@ -52,7 +56,7 @@ class parser_ctx {
 
     bool has_errors{false};
 
-    parser_ctx(BaseConfigApplier &applier, config_load_t load_type);
+    parser_ctx(BaseConfigApplier &applier, ResourceDatabase &resourceDatabase, config_load_t load_type);
 
     ~parser_ctx() = default;
 };
@@ -78,7 +82,7 @@ struct ConfigResultIR {
 /**
  * launch nagbar to indicate errors in the configuration file.
  */
-void start_config_error_nagbar(bool has_errors);
+//void start_config_error_nagbar(bool has_errors);
 
 /**
  * Parses the given file by first replacing the variables, then calling
@@ -90,6 +94,7 @@ void start_config_error_nagbar(bool has_errors);
  */
 class OldParser : public BaseParser {
 private:
+    ResourceDatabase &resourceDatabase;
     const char *filename;
     char *old_dir;
     int fd;
@@ -97,8 +102,9 @@ private:
 public:
     struct parser_ctx *parent_ctx = nullptr;
     struct parser_ctx ctx;
-    OldParser(const char *filename, struct parser_ctx &parent_ctx, BaseConfigApplier &applier);
-    OldParser(const char *filename, config_load_t load_type, BaseConfigApplier &applier);
+    std::vector<std::string> included_files{};
+    OldParser(const char *filename, ResourceDatabase &resourceDatabase, struct parser_ctx &parent_ctx, BaseConfigApplier &applier);
+    OldParser(const char *filename, ResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier);
     ~OldParser() override;
     parse_file_result_t parse_file() override;
 };

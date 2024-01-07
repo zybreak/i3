@@ -24,6 +24,8 @@ class Output;
 class Rect;
 class X;
 
+export {
+
 enum output_close_far_t {
     CLOSEST_OUTPUT = 0,
     FARTHEST_OUTPUT = 1
@@ -212,3 +214,4 @@ Output *get_output_next_wrap(direction_t direction, Output *current);
  *
  */
 Output *create_root_output(xcb_connection_t *conn);
+}

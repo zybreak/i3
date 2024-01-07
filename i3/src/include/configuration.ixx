@@ -15,6 +15,7 @@ module;
 #include <vector>
 #include <memory>
 #include "i3.h"
+#include "config/configuration.h"
 export module i3:configuration;
 
 import :draw;
@@ -391,12 +392,6 @@ struct Barbinding {
 
     /** If true, the command will be executed after the button is released. */
     bool release;
-};
-
-enum class config_load_t {
-    C_VALIDATE,
-    C_LOAD,
-    C_RELOAD,
 };
 
 /**

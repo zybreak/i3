@@ -7,6 +7,9 @@
  * config_directives.c: all config storing functions (see config_parser.c)
  *
  */
+
+struct criteria_state;
+
 #include <cassert>
 #include <cerrno>
 #include <climits>
@@ -23,8 +26,9 @@
 
 #include <wordexp.h>
 
+#include <fmt/printf.h>
+
 import utils;
-import i3;
 
 static bool str_to_bool(const char *s, const char *v) {
     if (s == nullptr) {
@@ -44,12 +48,12 @@ static const char * null_to_empty_str(const char *s) {
 
 namespace cfg {
     void include(struct criteria_state *criteria_state, struct ConfigResultIR &result, const char *pattern) {
-        DLOG(fmt::sprintf("include %s\n",  pattern));
+        //DLOG(fmt::sprintf("include %s\n",  pattern));
 
         wordexp_t p;
         const int ret = wordexp(pattern, &p, 0);
         if (ret != 0) {
-            ELOG(fmt::sprintf("wordexp(%s): error %d\n",  pattern, ret));
+            //ELOG(fmt::sprintf("wordexp(%s): error %d\n",  pattern, ret));
             result.has_errors = true;
             return;
         }
@@ -57,30 +61,30 @@ namespace cfg {
         for (size_t i = 0; i < p.we_wordc; i++) {
             char resolved_path[PATH_MAX] = {'\0'};
             if (realpath(w[i], resolved_path) == nullptr) {
-                ELOG(fmt::sprintf("realpath(%s): %s\n",  w[i], strerror(errno)));
+                //ELOG(fmt::sprintf("realpath(%s): %s\n",  w[i], strerror(errno)));
                 result.has_errors = true;
                 continue;
             }
 
-            auto skip = std::ranges::find_if(included_files, [&resolved_path](auto & included_file) {
+            auto skip = std::ranges::find_if(result.ctx.included_files, [&resolved_path](auto & included_file) {
                 return (strcmp(included_file.c_str(), resolved_path) == 0);
             });
-            if (skip != included_files.end()) {
-                LOG(fmt::sprintf("Skipping file %s (already included)\n",  resolved_path));
+            if (skip != result.ctx.included_files.end()) {
+                //LOG(fmt::sprintf("Skipping file %s (already included)\n",  resolved_path));
                 continue;
             }
 
-            LOG(fmt::sprintf("Including config file %s\n",  resolved_path));
+            //LOG(fmt::sprintf("Including config file %s\n",  resolved_path));
 
             try {
-                OldParser parser{resolved_path, result.ctx, result.ctx.applier};
+                OldParser parser{resolved_path, result.ctx.resourceDatabase, result.ctx, result.ctx.applier};
                 switch (parser.parse_file()) {
                     case PARSE_FILE_SUCCESS:
-                        included_files.emplace_back(resolved_path);
+                        result.ctx.included_files.emplace_back(resolved_path);
                         break;
 
                     case PARSE_FILE_FAILED:
-                        ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, strerror(errno)));
+                        //ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, strerror(errno)));
                         /* fallthrough */
 
                     case PARSE_FILE_CONFIG_ERRORS:
@@ -93,7 +97,7 @@ namespace cfg {
                         break;
                 }
             } catch (std::exception &e) {
-                ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, e.what()));
+                //ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, e.what()));
                 result.has_errors = true;
             }
         }
@@ -106,14 +110,11 @@ namespace cfg {
      *
      */
     void criteria_init(struct criteria_state *criteria_state, struct ConfigResultIR &result, int _state) {
-        criteria_state->criteria_next_state = _state;
-
-        DLOG(fmt::sprintf("Initializing criteria, current_match = %p, state = %d\n",  (void*)&(criteria_state->current_match), _state));
-        criteria_state->current_match = Match();
+        criteria_state = result.ctx.applier.criteria_init(_state);
     }
 
     void criteria_pop_state(struct criteria_state *criteria_state, struct ConfigResultIR &result) {
-        result.next_state = criteria_state->criteria_next_state;
+        result.next_state = result.ctx.applier.criteria_pop_state(criteria_state);
     }
     /*
      * Interprets a ctype=cvalue pair and adds it to the current match
@@ -121,7 +122,7 @@ namespace cfg {
      *
      */
     void criteria_add(struct criteria_state *criteria_state, struct ConfigResultIR &result, const char *ctype, const char *cvalue) {
-        criteria_state->current_match.parse_property(ctype, cvalue);
+        result.ctx.applier.criteria_add(criteria_state, ctype, cvalue);
     }
 
     void font(struct criteria_state *criteria_state, struct ConfigResultIR &result, const char *font) {
@@ -151,13 +152,8 @@ namespace cfg {
     }
 
     void for_window(struct criteria_state *criteria_state, struct ConfigResultIR &result, const char *command) {
-        if (criteria_state->current_match.match_is_empty()) {
-            //ELOG("Match is empty, ignoring this for_window statement\n");
-            return;
-        }
-        //DLOG(fmt::sprintf("\t should execute command %s for the criteria mentioned above\n",  command));
-        Match match(criteria_state->current_match);
-        result.ctx.applier.for_window(match, command);
+
+        result.ctx.applier.for_window(criteria_state, command);
     }
 
     void floating_minimum_size(struct criteria_state *criteria_state, struct ConfigResultIR &result, const long width, const long height) {
@@ -247,42 +243,15 @@ namespace cfg {
     }
 
     void assign_output(struct criteria_state *criteria_state, struct ConfigResultIR &result, const char *output) {
-        if (criteria_state->current_match.match_is_empty()) {
-            ELOG("Match is empty, ignoring this assignment\n");
-            return;
-        }
-
-        if (criteria_state->current_match.window_mode != WM_ANY) {
-            ELOG("Assignments using window mode (floating/tiling) is not supported\n");
-            return;
-        }
-
-        DLOG(fmt::sprintf("New assignment, using above criteria, to output \"%s\".\n", output));
-        Match match(criteria_state->current_match);
-        result.ctx.applier.assign_output(match, output);
+        result.ctx.applier.assign_output(criteria_state, output);
     }
 
     void assign(struct criteria_state *criteria_state, struct ConfigResultIR &result, const char *workspace, bool is_number) {
-        if (criteria_state->current_match.match_is_empty()) {
-            ELOG("Match is empty, ignoring this assignment\n");
-            return;
-        }
-
-        if (criteria_state->current_match.window_mode != WM_ANY) {
-            ELOG("Assignments using window mode (floating/tiling) is not supported\n");
-            return;
-        }
-        Match match(criteria_state->current_match);
-        result.ctx.applier.assign(match, workspace, is_number);
+        result.ctx.applier.assign(criteria_state, workspace, is_number);
     }
 
     void no_focus(struct criteria_state *criteria_state, struct ConfigResultIR &result) {
-        if (criteria_state->current_match.match_is_empty()) {
-            ELOG("Match is empty, ignoring this assignment\n");
-            return;
-        }
-        Match match(criteria_state->current_match);
-        result.ctx.applier.no_focus(match);
+        result.ctx.applier.no_focus(criteria_state);
     }
 
     void ipc_kill_timeout(struct criteria_state *criteria_state, struct ConfigResultIR &result, const long timeout_ms) {

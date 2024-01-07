@@ -2,7 +2,7 @@
 
 #include "config/base_parser.h"
 #include "../base_config_applier.h"
-#include "resource_database.h"
+#include "../resource_database.h"
 
 void start_config_error_nagbar(bool has_errors);
 

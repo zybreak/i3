@@ -3,18 +3,22 @@
 #include <string>
 #include <iostream>
 
-import i3;
-
 class BaseConfigApplier {
 public:
 
     virtual ~BaseConfigApplier() = default;
 
+    virtual criteria_state* criteria_init(int _state) = 0;
+
+    virtual int criteria_pop_state(criteria_state *criteria_state) = 0;
+
+    virtual void criteria_add(criteria_state *criteria_state, const char *ctype, const char *cvalue) = 0;
+
     virtual void font(const std::string &font) = 0;
 
     virtual void exec(const std::string &exectype, bool no_startup_id, const std::string &command) = 0;
 
-    virtual void for_window(Match &current_match, const std::string &command) = 0;
+    virtual void for_window(criteria_state *criteria_state, const std::string &command) = 0;
 
     virtual void floating_minimum_size(long width, long height) = 0;
 
@@ -42,11 +46,11 @@ public:
 
     virtual void hide_edge_borders(const std::string &borders) = 0;
 
-    virtual void assign_output(Match &current_match, const std::string &output) = 0;
+    virtual void assign_output(criteria_state *criteria_state, const std::string &output) = 0;
 
-    virtual void assign(Match &current_match, const std::string &workspace, bool is_number) = 0;
+    virtual void assign(criteria_state *criteria_state, const std::string &workspace, bool is_number) = 0;
 
-    virtual void no_focus(Match &current_match) = 0;
+    virtual void no_focus(criteria_state *criteria_state) = 0;
 
     virtual void ipc_socket(const std::string &path) = 0;
 

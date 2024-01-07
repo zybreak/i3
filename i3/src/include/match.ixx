@@ -98,6 +98,7 @@ public:
     Match(const Match &src);
     Match(Match &&src) noexcept;
     Match& operator=(Match &&src) noexcept;
+    Match& operator=(const Match &src) noexcept;
     ~Match();
     /**
      * Interprets a ctype=cvalue pair and adds it to the given match specification.

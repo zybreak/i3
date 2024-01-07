@@ -7,6 +7,9 @@
  * config_directives.c: all config storing functions (see config_parser.c)
  *
  */
+
+struct criteria_state;
+
 #include <cassert>
 #include <cerrno>
 #include <climits>
@@ -31,6 +34,24 @@ import utils;
 import i3;
 
 using namespace std::literals;
+
+criteria_state* ConfigApplier::criteria_init(int _state) {
+    criteria_state *st = new criteria_state();
+    st->criteria_next_state = _state;
+
+    //DLOG(fmt::sprintf("Initializing criteria, current_match = %p, state = %d\n",  (void*)&(criteria_state->current_match), _state));
+    st->current_match = Match();
+
+    return st;
+}
+
+int ConfigApplier::criteria_pop_state(criteria_state *criteria_state) {
+    return criteria_state->criteria_next_state;
+}
+
+void ConfigApplier::criteria_add(criteria_state *criteria_state, const char *ctype, const char *cvalue) {
+    criteria_state->current_match.parse_property(ctype, cvalue);
+}
 
 void ConfigApplier::font(const std::string &font) {
     config.font = load_font(**global.x, global.x->root_screen, font.c_str(), true);
@@ -82,14 +103,14 @@ void ConfigApplier::exec(const std::string &exectype, bool no_startup_id,
     }
 }
 
-void ConfigApplier::for_window(Match &current_match, const std::string &command) {
-    if (current_match.match_is_empty()) {
+void ConfigApplier::for_window(criteria_state *criteria_state, const std::string &command) {
+    if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this for_window statement\n");
         return;
     }
-    DLOG(fmt::sprintf("\t should execute command %s for the criteria mentioned above\n", command));
+    DLOG(fmt::sprintf("\t should execute command %s for the criteria mentioned above\n",  command));
     auto assignment = std::make_unique<CommandAssignment>();
-    assignment->match = new Match(current_match);
+    assignment->match = new Match(criteria_state->current_match);
     assignment->command = command;
     global.assignments.push_back(std::move(assignment));
 }
@@ -315,58 +336,58 @@ void ConfigApplier::color(const std::string &colorclass, const std::string &bord
 #undef APPLY_COLORS
 }
 
-void ConfigApplier::assign_output(Match &current_match, const std::string &output) {
-    if (current_match.match_is_empty()) {
+void ConfigApplier::assign_output(criteria_state *criteria_state, const std::string &output) {
+    if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;
     }
 
-    if (current_match.window_mode != WM_ANY) {
+    if (criteria_state->current_match.window_mode != WM_ANY) {
         ELOG("Assignments using window mode (floating/tiling) is not supported\n");
         return;
     }
 
      DLOG(fmt::sprintf("New assignment, using above criteria, to output \"%s\".\n", output));
     auto assignment = std::make_unique<OutputAssignment>();
-    assignment->match = new Match(current_match);
+    assignment->match = new Match(criteria_state->current_match);
     assignment->type = A_TO_OUTPUT;
     assignment->output = output;
     global.assignments.push_back(std::move(assignment));
 }
 
-void ConfigApplier::assign(Match &current_match, const std::string &workspace, bool is_number) {
-    if (current_match.match_is_empty()) {
+void ConfigApplier::assign(criteria_state *criteria_state, const std::string &workspace, bool is_number) {
+    if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;
     }
 
-    if (current_match.window_mode != WM_ANY) {
+    if (criteria_state->current_match.window_mode != WM_ANY) {
         ELOG("Assignments using window mode (floating/tiling) is not supported\n");
         return;
     }
 
     if (is_number && ws_name_to_number(workspace) == -1) {
-         ELOG(fmt::sprintf("Could not parse initial part of \"%s\" as a number.\n", workspace));
+        ELOG(fmt::sprintf("Could not parse initial part of \"%s\" as a number.\n", workspace));
         return;
     }
 
-     DLOG(fmt::sprintf("New assignment, using above criteria, to workspace \"%s\".\n", workspace));
+    DLOG(fmt::sprintf("New assignment, using above criteria, to workspace \"%s\".\n", workspace));
     auto assignment = std::make_unique<WorkspaceAssignment>();
-    assignment->match = new Match(current_match);
+    assignment->match = new Match(criteria_state->current_match);
     assignment->type = is_number ? A_TO_WORKSPACE_NUMBER : A_TO_WORKSPACE;
     assignment->workspace = workspace;
     global.assignments.push_back(std::move(assignment));
 }
 
-void ConfigApplier::no_focus(Match &current_match) {
-    if (current_match.match_is_empty()) {
+void ConfigApplier::no_focus(criteria_state *criteria_state) {
+    if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;
     }
 
     DLOG("New assignment, using above criteria, to ignore focus on manage.\n");
     auto assignment = std::make_unique<Assignment>();
-    assignment->match = new Match(current_match);
+    assignment->match = new Match(criteria_state->current_match);
     assignment->type = A_NO_FOCUS;
     global.assignments.push_back(std::move(assignment));
 }

@@ -17,6 +17,7 @@ module;
 export module i3:bindings;
 
 import :x;
+import :util;
 
 export {
 
@@ -33,14 +34,6 @@ enum input_type_t {
  *
  */
 const char *DEFAULT_BINDING_MODE = "default";
-
-/**
- * The lower 16 bits contain a xcb_key_but_mask_t, the higher 16 bits contain
- * an i3_xkb_group_mask_t. This type is necessary for the fallback logic to
- * work when handling XKB groups (see ticket #1775) and makes the code which
- * locates keybindings upon KeyPress/KeyRelease events simpler.
- */
-typedef uint32_t i3_event_state_mask_t;
 
 /**
  * Stores a resolved keycode (from a keysym), including the modifier mask. Will
@@ -73,17 +66,6 @@ enum binding_upon_t {
      * KeyPress (!) happens, so that users can release the modifier keys
      * before releasing the actual key. */
     B_UPON_KEYRELEASE_IGNORE_MODS = 2,
-};
-
-/**
- * Bitmask for matching XCB_XKB_GROUP_1 to XCB_XKB_GROUP_4.
- */
-enum i3_xkb_group_mask_t {
-    I3_XKB_GROUP_MASK_ANY = 0,
-    I3_XKB_GROUP_MASK_1 = (1 << 0),
-    I3_XKB_GROUP_MASK_2 = (1 << 1),
-    I3_XKB_GROUP_MASK_3 = (1 << 2),
-    I3_XKB_GROUP_MASK_4 = (1 << 3)
 };
 
 /**

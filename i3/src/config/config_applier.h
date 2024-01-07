@@ -38,6 +38,12 @@ private:
     bool current_mode_pango_markup;
 
 public:
+    criteria_state* criteria_init(int _state) override;
+
+    int criteria_pop_state(criteria_state *criteria_state) override;
+
+    void criteria_add(criteria_state *criteria_state, const char *ctype, const char *cvalue) override;
+
     void font(const std::string &font) override;
 
     void binding(const std::string &bindtype, const std::string &modifiers,
@@ -53,7 +59,7 @@ public:
     void exec(const std::string &exectype, bool no_startup_id,
                   const std::string &command) override;
 
-    void for_window(Match &current_match, const std::string &command) override;
+    void for_window(criteria_state *criteria_state, const std::string &command) override;
 
     void floating_minimum_size(long width, long height) override;
 
@@ -97,11 +103,11 @@ public:
 
     void color(const std::string &colorclass, const std::string &border, const std::string &background, const std::string &text, const std::string &indicator, const std::string &child_border) override;
 
-    void assign_output(Match &current_match, const std::string &output) override;
+    void assign_output(criteria_state *criteria_state, const std::string &output) override;
 
-    void assign(Match &current_match, const std::string &workspace, bool is_number) override;
+    void assign(criteria_state *criteria_state, const std::string &workspace, bool is_number) override;
 
-    void no_focus(Match &current_match) override;
+    void no_focus(criteria_state *criteria_state) override;
 
     void ipc_kill_timeout(long timeout_ms) override;
 };

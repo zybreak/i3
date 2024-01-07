@@ -39,6 +39,7 @@
 #include "../command_result_ir.h"
 #include "../command_result.h"
 #include "../base_commands_applier.h"
+#include "../commands_parser.h"
 
 import utils;
 

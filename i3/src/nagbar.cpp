@@ -8,7 +8,7 @@ module;
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 #include "atoms.h"
-#include "config_parser.h"
+//#include "config_parser.h"
 
 #include <libgen.h>
 #include <clocale>

@@ -94,6 +94,27 @@ Match::Match(Match &&src) noexcept {
     std::swap(this->workspace, src.workspace);
 }
 
+Match& Match::operator=(const Match &src) noexcept {
+    this->error = src.error;
+    this->window_type = src.window_type;
+    this->urgent = src.urgent;
+    this->dock = src.dock;
+    this->id = src.id;
+    this->window_mode = src.window_mode;
+    this->con_id = src.con_id;
+    this->match_all_windows = src.match_all_windows;
+    this->insert_where = src.insert_where;
+    this->restart_mode = src.restart_mode;
+    this->title = src.title;
+    this->application = src.application;
+    this->window_class = src.window_class;
+    this->instance = src.instance;
+    this->window_role = src.window_role;
+    this->workspace = src.workspace;
+
+    return *this;
+}
+
 Match& Match::operator=(Match &&src) noexcept {
     std::swap(this->error, src.error);
     std::swap(this->window_type, src.window_type);

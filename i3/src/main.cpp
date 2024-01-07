@@ -7,6 +7,7 @@
  * main.c: Initialization, main loop
  *
  */
+struct criteria_state;
 #include <config.h>
 
 #include <cstdint>
@@ -32,6 +33,7 @@
 #include <unistd.h>
 #include <string>
 #include <fmt/core.h>
+#include <fmt/printf.h>
 #include <filesystem>
 #include <xpp/xpp.hpp>
 #include <xpp/proto/randr.hpp>
@@ -49,6 +51,12 @@
 import i3ipc;
 import i3;
 import utils;
+
+#define FREE(pointer)   \
+    do {                \
+        free(pointer);  \
+        pointer = NULL; \
+    } while (0)
 
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;

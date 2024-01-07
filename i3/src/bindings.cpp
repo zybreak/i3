@@ -636,7 +636,7 @@ out:
     xkb_state_unref(dummy_state_numlock_no_shift);
 
     if (has_errors) {
-        start_config_error_nagbar(true);
+        //start_config_error_nagbar(true); TODO: move this method
     }
 }
 
