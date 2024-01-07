@@ -225,7 +225,7 @@ static void handle_run_command(ipc_client *client, uint8_t *message, int size, u
     nlohmann::json gen;
 
     auto commandsApplier = CommandsApplier{};
-    CommandResult result = parse_command(command, &gen, client, commandsApplier);
+    CommandResult result{}; //parse_command(command, &gen, client, commandsApplier);
 
     if (result.needs_tree_render) {
         tree_render();
