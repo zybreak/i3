@@ -48,7 +48,7 @@ import utils;
 
 static std::vector<ipc_client*> all_clients{};
 
-static void ipc_client_timeout(ev_timer *w, int revents);
+static void ipc_client_timeout(EV_P_ ev_timer *w, int revents);
 static void ipc_socket_writeable_cb(ev_io *w, int revents);
 
 static ev_tstamp kill_timeout = 10.0;
@@ -75,16 +75,16 @@ static void ipc_push_pending(ipc_client *client) {
         FREE(client->buffer);
         client->buffer_size = 0;
         if (client->timeout) {
-            ev_timer_stop(client->timeout);
+            ev_timer_stop(main_loop, client->timeout);
             delete client->timeout;
         }
-        ev_io_stop(client->write_callback);
+        ev_io_stop(main_loop, client->write_callback);
         return;
     }
 
     /* Otherwise, make sure that the io callback is enabled and create a new
      * timer if needed. */
-    ev_io_start(client->write_callback);
+    ev_io_start(main_loop, client->write_callback);
 
     if (!client->timeout) {
         auto *timeout = new ev_timer();
@@ -92,13 +92,13 @@ static void ipc_push_pending(ipc_client *client) {
         timeout->data = client;
         client->timeout = timeout;
         ev_set_priority(timeout, EV_MINPRI);
-        ev_timer_start(client->timeout);
+        ev_timer_start(main_loop, client->timeout);
     } else if (result > 0) {
         /* Keep the old timeout when nothing is written. Otherwise, we would
          * keep a dead connection by continuously renewing its timeouts. */
-        ev_timer_stop(client->timeout);
+        ev_timer_stop(main_loop, client->timeout);
         ev_timer_set(client->timeout, kill_timeout, 0.0);
-        ev_timer_start(client->timeout);
+        ev_timer_start(main_loop, client->timeout);
     }
     if (result == 0) {
         return;
@@ -138,12 +138,12 @@ static void ipc_send_client_message(ipc_client *client, const uint32_t message_t
 }
 
 ipc_client::~ipc_client() {
-    ev_io_stop(read_callback);
+    ev_io_stop(main_loop, read_callback);
     delete read_callback;
-    ev_io_stop(write_callback);
+    ev_io_stop(main_loop, write_callback);
     delete write_callback;
     if (timeout) {
-        ev_timer_stop(timeout);
+        ev_timer_stop(main_loop, timeout);
         delete timeout;
     }
 
@@ -1070,7 +1070,7 @@ handler_t handlers[13] = {
  * at the moment.
  *
  */
-static void ipc_receive_message(ev_io *w, int revents) {
+static void ipc_receive_message(EV_P_ ev_io *w, int revents) {
     uint32_t message_type;
     uint32_t message_length;
     uint8_t *message = nullptr;
@@ -1180,7 +1180,7 @@ static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents) {
  * the list of clients.
  *
  */
-void ipc_new_client(ev_io *w, int revents) {
+void ipc_new_client(EV_P_ ev_io *w, int revents) {
     struct sockaddr_un peer{};
     socklen_t len = sizeof(struct sockaddr_un);
     int fd;
@@ -1206,7 +1206,7 @@ void ipc_new_client(ev_io *w, int revents) {
  *
  */
 
-ipc_client::ipc_client(int fd) {
+ipc_client::ipc_client(EV_P_ int fd) {
     this->fd = fd;
 
     read_callback = new ev_io{};
@@ -1219,10 +1219,10 @@ ipc_client::ipc_client(int fd) {
     ev_io_init(write_callback, ipc_socket_writeable_cb, fd, EV_WRITE);
 }
 
-ipc_client *ipc_new_client_on_fd(int fd) {
+ipc_client *ipc_new_client_on_fd(EV_P_ int fd) {
     set_nonblock(fd);
 
-    auto *client = new ipc_client(fd);
+    auto *client = new ipc_client(EV_A_ fd);
 
     DLOG(fmt::sprintf("IPC: new client connected on fd %d\n",  fd));
     all_clients.push_back(client);

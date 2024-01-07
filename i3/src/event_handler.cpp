@@ -1,4 +1,5 @@
 module;
+#include <err.h>
 #include "i3.h"
 #include <xcb/xcb.h>
 #include <fmt/printf.h>
@@ -14,7 +15,7 @@ static ev_io *xcb_watcher;
  * See also man libev(3): "ev_prepare" and "ev_check" - customise your event loop
  *
  */
-static void xcb_got_event(ev_io *w, int revents) {
+static void xcb_got_event(EV_P_ ev_io *w, int revents) {
     /* empty, because xcb_prepare_cb are used */
 }
 
@@ -25,7 +26,7 @@ static void xcb_got_event(ev_io *w, int revents) {
  * iteration, and hence another xcb_prepare_cb invocation.
  *
  */
-static void xcb_prepare_cb(ev_prepare *w, int revents) {
+static void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
     /* Process all queued (and possibly new) events before the event loop
        sleeps. */
     xcb_generic_event_t *event;
@@ -64,12 +65,12 @@ static void xcb_prepare_cb(ev_prepare *w, int revents) {
 void main_set_x11_cb(bool enable) {
     DLOG(fmt::sprintf("Setting main X11 callback to enabled=%d\n",  enable));
     if (enable) {
-        ev_prepare_start(xcb_prepare);
+        ev_prepare_start(main_loop, xcb_prepare);
         /* Trigger the watcher explicitly to handle all remaining X11 events.
          * drag_pointer()’s event handler exits in the middle of the loop. */
-        ev_feed_event(xcb_prepare, 0);
+        ev_feed_event(main_loop, xcb_prepare, 0);
     } else {
-        ev_prepare_stop(xcb_prepare);
+        ev_prepare_stop(main_loop, xcb_prepare);
     }
 }
 
@@ -79,7 +80,7 @@ void main_set_x11_cb(bool enable) {
  * Exits the program gracefully.
  *
  */
-void handle_term_signal(ev_signal *signal, int revents) {
+void handle_term_signal(EV_P_ ev_signal *signal, int revents) {
     /* We exit gracefully here in the sense that cleanup handlers
      * installed via atexit are invoked. */
     exit(128 + signal->signum);
@@ -105,32 +106,39 @@ void setup_term_handlers() {
     ev_signal_init(&signal_watchers[4], handle_term_signal, SIGUSR1);
     ev_signal_init(&signal_watchers[5], handle_term_signal, SIGUSR1);
     for (auto &signal_watcher : signal_watchers) {
-        ev_signal_start(&signal_watcher);
+        ev_signal_start(main_loop, &signal_watcher);
         /* The signal handlers should not block ev_run from returning
          * and so none of the signal handlers should hold a reference to
          * the main loop. */
-        ev_unref();
+        ev_unref(main_loop);
     }
 }
 
 
 EventHandler::EventHandler(X *x) {
 
+    /* Initialize the libev event loop. This needs to be done before loading
+     * the config file because the parser will install an ev_child watcher
+     * for the nagbar when config errors are found. */
+    main_loop = ev_default_loop(0);
+    if (main_loop == nullptr) {
+        errx(EXIT_FAILURE, "Could not initialize libev. Bad LIBEV_FLAGS?\n");
+    }
+
     xcb_watcher = new ev_io();
     xcb_prepare = new ev_prepare;
 
     ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(**x), EV_READ);
-    ev_io_start(xcb_watcher);
+    ev_io_start(main_loop, xcb_watcher);
 
     ev_prepare_init(xcb_prepare, xcb_prepare_cb);
-    ev_prepare_start(xcb_prepare);
+    ev_prepare_start(main_loop, xcb_prepare);
 }
 
 void EventHandler::mainLoop() {
-    ev_default_loop(0);
-    ev_loop(0);
+    ev_run(main_loop, 0);
 }
 
 EventHandler::~EventHandler() {
-    ev_loop_destroy();
+    ev_loop_destroy(main_loop);
 }

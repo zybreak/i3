@@ -68,4 +68,4 @@ target_include_directories(libev PUBLIC
         "${CMAKE_CURRENT_BINARY_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}")
 
-add_compile_definitions(EV_MULTIPLICITY=0)
+add_compile_definitions(EV_MULTIPLICITY=1 EV_COMPAT3=0)

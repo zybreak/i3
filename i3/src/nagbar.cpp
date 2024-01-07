@@ -35,8 +35,8 @@ import utils;
  * it exited (or could not be started, depending on the exit code).
  *
  */
-static void nagbar_exited(ev_child *watcher, int revents) {
-    ev_child_stop(watcher);
+static void nagbar_exited(EV_P_ ev_child *watcher, int revents) {
+    ev_child_stop(EV_A_ watcher);
 
     int exitcode = WEXITSTATUS(watcher->rstatus);
     if (!WIFEXITED(watcher->rstatus)) {
@@ -616,7 +616,7 @@ void start_nagbar(pid_t *nagbar_pid,
         auto *child = new ev_child();
         ev_child_init(child, &nagbar_exited, pid, 0);
         child->data = nagbar_pid;
-        ev_child_start(child);
+        ev_child_start(main_loop, child);
     }
 }
 

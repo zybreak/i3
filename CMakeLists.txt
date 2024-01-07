@@ -39,6 +39,7 @@ add_custom_target(Config ALL
             'GENERATED_config_tokens.h'
             'GENERATED_config_call.h')
 
+add_compile_definitions(EV_MULTIPLICITY=1 EV_COMPAT3=0)
 add_subdirectory(lib/i3_ipc)
 add_subdirectory(lib/xpp)
 add_subdirectory(lib/libev)

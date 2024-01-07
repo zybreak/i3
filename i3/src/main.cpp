@@ -295,7 +295,7 @@ static void init_ipc() {
     } else {
         auto *ipc_io = new ev_io();
         ev_io_init(ipc_io, ipc_new_client, ipc_socket, EV_READ);
-        ev_io_start(ipc_io);
+        ev_io_start(main_loop, ipc_io);
     }
 }
 
@@ -303,7 +303,7 @@ static void confirm_restart() {
     const int restart_fd = parse_restart_fd();
     if (restart_fd != -1) {
         DLOG(fmt::sprintf("serving restart fd %d",  restart_fd));
-        ipc_client *client = ipc_new_client_on_fd(restart_fd);
+        ipc_client *client = ipc_new_client_on_fd(main_loop, restart_fd);
         ipc_confirm_restart(client);
         unsetenv("_I3_RESTART_FD");
     }

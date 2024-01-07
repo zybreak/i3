@@ -156,7 +156,7 @@ void start_application(const std::string_view command, bool no_startup_id) {
         auto *timeout = new ev_timer();
         ev_timer_init(timeout, startup_timeout, 60.0, 0.);
         timeout->data = context;
-        ev_timer_start(timeout);
+        ev_timer_start(main_loop, timeout);
 
         LOG(fmt::sprintf("startup id = %s\n",  sn_launcher_context_get_startup_id(context)));
 

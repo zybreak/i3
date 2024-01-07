@@ -56,10 +56,10 @@ static ev_prepare *xcb_prepare;
 static void restore_handle_event(int type, xcb_generic_event_t *event);
 
 /* Documentation for these functions can be found in src/main.c, starting at xcb_got_event */
-static void restore_xcb_got_event(ev_io *w, int revents) {
+static void restore_xcb_got_event(EV_P_ ev_io *w, int revents) {
 }
 
-static void restore_xcb_prepare_cb(ev_prepare *w, int revents) {
+static void restore_xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
     xcb_generic_event_t *event;
 
     if (xcb_connection_has_error(restore_conn)) {
@@ -99,8 +99,8 @@ void restore_connect() {
     if (restore_conn != nullptr) {
         /* This is not the initial connect, but a reconnect, most likely
          * because our X11 connection was killed (e.g. by a user with xkill. */
-        ev_io_stop(xcb_watcher);
-        ev_prepare_stop(xcb_prepare);
+        ev_io_stop(main_loop, xcb_watcher);
+        ev_prepare_stop(main_loop, xcb_prepare);
 
         states.clear();
 
@@ -129,10 +129,10 @@ void restore_connect() {
     xcb_prepare = new ev_prepare{};
 
     ev_io_init(xcb_watcher, restore_xcb_got_event, xcb_get_file_descriptor(restore_conn), EV_READ);
-    ev_io_start(xcb_watcher);
+    ev_io_start(main_loop, xcb_watcher);
 
     ev_prepare_init(xcb_prepare, restore_xcb_prepare_cb);
-    ev_prepare_start(xcb_prepare);
+    ev_prepare_start(main_loop, xcb_prepare);
 }
 
 static void update_placeholder_contents(x_connection *conn, placeholder_state *state) {

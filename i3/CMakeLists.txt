@@ -174,4 +174,4 @@ target_include_directories(i3 PUBLIC ${include_dirs} "${CMAKE_CURRENT_SOURCE_DIR
 
 add_subdirectory(test)
 
-add_compile_definitions(EV_MULTIPLICITY=0)
+add_compile_definitions(EV_MULTIPLICITY=1 EV_COMPAT3=0)

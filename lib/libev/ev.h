@@ -174,7 +174,7 @@ typedef EV_TSTAMP_T ev_tstamp;
 /* support multiple event loops? */
 #if EV_MULTIPLICITY
 struct ev_loop;
-# define EV_P  struct ev_loop *loop               /* a loop as sole parameter in a declaration */
+# define EV_P  ev_loop *loop               /* a loop as sole parameter in a declaration */
 # define EV_P_ EV_P,                              /* a loop as first of multiple parameters */
 # define EV_A  loop                               /* a loop as sole argument to a function call */
 # define EV_A_ EV_A,                              /* a loop as first of multiple arguments */

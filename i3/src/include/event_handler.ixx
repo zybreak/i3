@@ -5,6 +5,9 @@ export module i3:event_handler;
 class X;
 
 export {
+
+ev_loop *main_loop;
+
 class EventHandler {
    public:
     explicit EventHandler(X *x);
@@ -28,7 +31,7 @@ void main_set_x11_cb(bool enable);
  * Exits the program gracefully.
  *
  */
-void handle_term_signal(ev_signal *signal, int revents);
+void handle_term_signal(EV_P_ ev_signal *signal, int revents);
 
 /*
  * Set up handlers for all signals with default action "Term", see signal(7)

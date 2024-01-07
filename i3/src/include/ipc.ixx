@@ -10,6 +10,7 @@
 module;
 
 #include <config.h>
+#include "i3.h"
 
 #include <nlohmann/json.hpp>
 
@@ -31,13 +32,13 @@ struct ipc_client {
      * event has been sent by i3. */
     bool first_tick_sent{};
 
-    struct ev_io *read_callback;
-    struct ev_io *write_callback;
-    struct ev_timer *timeout{};
+    ev_io *read_callback;
+    ev_io *write_callback;
+    ev_timer *timeout{};
     uint8_t *buffer{};
     size_t buffer_size{};
 
-    ipc_client(int fd);
+    ipc_client(EV_P_ int fd);
     ~ipc_client();
 };
 
@@ -62,7 +63,7 @@ typedef void (*handler_t)(ipc_client *, uint8_t *, int, uint32_t, uint32_t);
  * the list of clients.
  *
  */
-void ipc_new_client(ev_io *w, int revents);
+void ipc_new_client(EV_P_ ev_io *w, int revents);
 
 /**
  * ipc_new_client_on_fd() only sets up the event handler
@@ -72,7 +73,7 @@ void ipc_new_client(ev_io *w, int revents);
  * This variant is useful for the inherited IPC connection when restarting.
  *
  */
-ipc_client *ipc_new_client_on_fd(int fd);
+ipc_client *ipc_new_client_on_fd(EV_P_ int fd);
 
 /**
  * Sends the specified event to all IPC clients which are currently connected
