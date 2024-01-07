@@ -42,7 +42,7 @@
 #pragma clang diagnostic ignored "-Wextern-initializer"
 
 /* this big block deduces configuration from config.h */
-#include "config.h"
+#include "ev_config.h"
 
 # if HAVE_FLOOR
 #  ifndef EV_USE_FLOOR
@@ -1003,7 +1003,7 @@ typedef struct
 #if EV_FEATURE_API
 # define EV_RELEASE_CB if (ecb_expect_false (release_cb)) release_cb (EV_A)
 # define EV_ACQUIRE_CB if (ecb_expect_false (acquire_cb)) acquire_cb (EV_A)
-# define EV_INVOKE_PENDING invoke_cb (EV_A)
+# define EV_INVOKE_PENDING
 #else
 # define EV_RELEASE_CB (void)0
 # define EV_ACQUIRE_CB (void)0
@@ -2189,7 +2189,9 @@ loop_init (EV_P_ unsigned int flags) EV_NOEXCEPT
       if (!backend && (flags & EVBACKEND_POLL    )) backend = poll_init      (EV_A_ flags);
 #endif
 #if EV_USE_SELECT
-      if (!backend && (flags & EVBACKEND_SELECT  )) backend = select_init    (EV_A_ flags);
+      if (!backend && (flags & EVBACKEND_SELECT  )) {
+          backend = select_init(EV_A_ flags);
+      }
 #endif
 
       ev_prepare_init (&pending_w, pendingcb);

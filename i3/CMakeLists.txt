@@ -173,3 +173,5 @@ target_link_libraries(i3 PUBLIC i3_lib libi3ipc i3_config_old i3_commands_old)
 target_include_directories(i3 PUBLIC ${include_dirs} "${CMAKE_CURRENT_SOURCE_DIR}/src/config/old")
 
 add_subdirectory(test)
+
+add_compile_definitions(EV_MULTIPLICITY=0)

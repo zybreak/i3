@@ -7,6 +7,7 @@ module i3;
 /* We keep the xcb_prepare watcher around to be able to enable and disable it
  * temporarily for drag_pointer(). */
 static ev_prepare *xcb_prepare;
+static ev_io *xcb_watcher;
 
 /*
  * This callback is only a dummy, see xcb_prepare_cb.
@@ -115,7 +116,7 @@ void setup_term_handlers() {
 
 EventHandler::EventHandler(X *x) {
 
-    auto *xcb_watcher = new ev_io();
+    xcb_watcher = new ev_io();
     xcb_prepare = new ev_prepare;
 
     ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(**x), EV_READ);
@@ -126,6 +127,7 @@ EventHandler::EventHandler(X *x) {
 }
 
 void EventHandler::mainLoop() {
+    ev_default_loop(0);
     ev_loop(0);
 }
 

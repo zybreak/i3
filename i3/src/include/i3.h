@@ -9,7 +9,6 @@
  */
 #pragma once
 
-#define EV_MULTIPLICITY 0
 #include <ev.h>
 
 #include <config.h>

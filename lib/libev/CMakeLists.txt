@@ -54,7 +54,7 @@ int main() {
 " HAVE_KERNEL_RWF_T)
 
 
-configure_file(config.h.in config.h)
+configure_file(config.h.in ev_config.h)
 
 add_library(libev STATIC)
 target_sources(libev PUBLIC
@@ -68,3 +68,4 @@ target_include_directories(libev PUBLIC
         "${CMAKE_CURRENT_BINARY_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}")
 
+add_compile_definitions(EV_MULTIPLICITY=0)

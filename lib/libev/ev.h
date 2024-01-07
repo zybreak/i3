@@ -53,7 +53,7 @@
 #endif
 #define EV_THROW EV_NOEXCEPT /* pre-4.25, do not use in new code */
 
-EV_CPP(extern "C" {)
+//EV_CPP(extern "C" {)
 
 /*****************************************************************************/
 
@@ -854,7 +854,7 @@ EV_API_DECL void ev_async_send     (EV_P_ ev_async *w) EV_NOEXCEPT;
 
 #endif
 
-EV_CPP(})
+//EV_CPP(})
 
 #endif
 
