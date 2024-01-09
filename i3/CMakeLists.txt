@@ -118,6 +118,7 @@ target_sources(i3_lib PUBLIC
         src/include/bindings.ixx
         src/include/click.ixx
         src/include/configuration.ixx
+        src/commands/commands.ixx
         src/include/con.ixx
         src/include/util.ixx
         src/include/x.ixx
@@ -169,7 +170,7 @@ add_dependencies(i3_lib libi3ipc)
 add_executable(i3
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
 #target_link_libraries(i3 PUBLIC i3_lib libi3ipc i3_config_new i3_config_old)
-target_link_libraries(i3 PUBLIC i3_lib libi3ipc i3_config_old i3_commands_old)
+target_link_libraries(i3 PUBLIC i3_lib libi3ipc)
 target_include_directories(i3 PUBLIC ${include_dirs} "${CMAKE_CURRENT_SOURCE_DIR}/src/config/old")
 
 add_subdirectory(test)

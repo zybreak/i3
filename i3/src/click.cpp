@@ -16,7 +16,6 @@ module;
 #include <xcb/xcb.h>
 
 #include "i3.h"
-#include "commands_parser.h"
 #include <fmt/printf.h>
 module i3;
 

@@ -23,6 +23,7 @@
  * instead of actually calling any function).
  *
  */
+module;
 #include <cerrno>
 #include <climits>
 
@@ -36,10 +37,8 @@
 
 #include "parser_stack.h"
 #include "commands.h"
-#include "../command_result_ir.h"
 #include "../command_result.h"
-#include "../base_commands_applier.h"
-#include "../commands_parser.h"
+module i3_commands_old;
 
 import utils;
 
@@ -52,8 +51,6 @@ import utils;
  ******************************************************************************/
 
 #include "GENERATED_command_enums.h"
-
-struct ipc_client;
 
 struct cmdp_token {
     const char *name;
@@ -80,14 +77,13 @@ struct cmdp_token_ptr {
  * The (small) stack where identified literals are stored during the parsing
  * of a single command (like $workspace).
  ******************************************************************************/
-static struct CommandResultIR subcommand_output;
-static struct CommandResultIR command_output;
+static CommandResultIR subcommand_output;
+static CommandResultIR command_output;
 
-//#include "criteria_state.h"
 #include "GENERATED_command_call.h"
 
 [[nodiscard("PURE FUN")]]
-static cmdp_state next_state(const cmdp_token &token, stack &stack, struct criteria_state *criteria_state) {
+static cmdp_state next_state(const cmdp_token &token, stack &stack, criteria_state *criteria_state) {
     if (token.next_state == __CALL) {
         subcommand_output.json_gen = command_output.json_gen;
         subcommand_output.client = command_output.client;

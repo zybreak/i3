@@ -9,9 +9,36 @@
  *
  */
 module;
+#include <ev.h>
 #include <string_view>
+#include <string>
+#include <vector>
 
 export module i3ipc;
+
+export class ipc_client {
+   private:
+    ev_loop *loop;
+   public:
+    int fd;
+
+    /* The events which this client wants to receive */
+    std::vector<std::string> events{};
+
+    /* For clients which subscribe to the tick event: whether the first tick
+     * event has been sent by i3. */
+    bool first_tick_sent{};
+
+    ev_io *read_callback;
+    ev_io *write_callback;
+    ev_timer *timeout{};
+    uint8_t *buffer{};
+    size_t buffer_size{};
+
+    ipc_client(ev_loop *loop, int fd, void (*read_callback_t)(ev_loop *loop, ev_io *w, int revents), void (*write_callback_t)(ev_loop *loop, ev_io *w, int revents));
+    ~ipc_client();
+};
+
 
 export namespace i3ipc {
 

@@ -16,8 +16,6 @@
 #include <queue>
 
 #include "i3_ipc/i3-ipc.h"
-//#include "commands.h"
-#include "commands_parser.h"
 
 #include <fcntl.h>
 #include <unistd.h>

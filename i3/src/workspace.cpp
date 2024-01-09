@@ -18,7 +18,6 @@ module;
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
-#include "commands_parser.h"
 module i3;
 
 import :output;

@@ -21,7 +21,6 @@ module;
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
-#include "commands_parser.h"
 
 #include <fcntl.h>
 #include <clocale>
@@ -137,19 +136,6 @@ static void ipc_send_client_message(ipc_client *client, const uint32_t message_t
     }
 }
 
-ipc_client::~ipc_client() {
-    ev_io_stop(main_loop, read_callback);
-    delete read_callback;
-    ev_io_stop(main_loop, write_callback);
-    delete write_callback;
-    if (timeout) {
-        ev_timer_stop(main_loop, timeout);
-        delete timeout;
-    }
-
-    free(buffer);
-}
-
 static void free_ipc_client(ipc_client *client, int exempt_fd) {
     if (client->fd != exempt_fd) {
         DLOG(fmt::sprintf("Disconnecting client on fd %d\n",  client->fd));
@@ -225,7 +211,7 @@ static void handle_run_command(ipc_client *client, uint8_t *message, int size, u
     nlohmann::json gen;
 
     auto commandsApplier = CommandsApplier{};
-    CommandResult result{}; //parse_command(command, &gen, client, commandsApplier);
+    CommandResult result = parse_command(command, &gen, client, commandsApplier);
 
     if (result.needs_tree_render) {
         tree_render();
@@ -1197,32 +1183,10 @@ void ipc_new_client(EV_P_ ev_io *w, int revents) {
     ipc_new_client_on_fd(EV_A_ fd);
 }
 
-/*
- * ipc_new_client_on_fd() only sets up the event handler
- * for activity on the new connection and inserts the file descriptor into
- * the list of clients.
- *
- * This variant is useful for the inherited IPC connection when restarting.
- *
- */
-
-ipc_client::ipc_client(EV_P_ int fd) {
-    this->fd = fd;
-
-    read_callback = new ev_io{};
-    read_callback->data = this;
-    ev_io_init(read_callback, ipc_receive_message, fd, EV_READ);
-    ev_io_start(EV_A_ read_callback);
-
-    write_callback = new ev_io{};
-    write_callback->data = this;
-    ev_io_init(write_callback, ipc_socket_writeable_cb, fd, EV_WRITE);
-}
-
 ipc_client *ipc_new_client_on_fd(EV_P_ int fd) {
     set_nonblock(fd);
 
-    auto *client = new ipc_client(EV_A_ fd);
+    auto *client = new ipc_client(EV_A_ fd, ipc_receive_message, ipc_socket_writeable_cb);
 
     DLOG(fmt::sprintf("IPC: new client connected on fd %d\n",  fd));
     all_clients.push_back(client);

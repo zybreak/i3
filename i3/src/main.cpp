@@ -304,7 +304,7 @@ static void confirm_restart() {
     if (restart_fd != -1) {
         DLOG(fmt::sprintf("serving restart fd %d",  restart_fd));
         ipc_client *client = ipc_new_client_on_fd(main_loop, restart_fd);
-        ipc_confirm_restart(client);
+        //ipc_confirm_restart(client); TODO FIXME
         unsetenv("_I3_RESTART_FD");
     }
 }

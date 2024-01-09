@@ -51,6 +51,7 @@ export import :i3string;
 export import :log;
 export import :regex;
 export import :tree;
+export import :commands;
 
 export import :internal;
 

@@ -3,6 +3,8 @@
 #include <string>
 #include <iostream>
 
+struct criteria_state;
+
 class BaseConfigApplier {
 public:
 

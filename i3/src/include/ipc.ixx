@@ -16,31 +16,13 @@ module;
 
 export module i3:ipc;
 
+import i3ipc;
+
 struct Binding;
 struct Barconfig;
 class Con;
 
 export {
-
-struct ipc_client {
-    int fd;
-
-    /* The events which this client wants to receive */
-    std::vector<std::string> events{};
-
-    /* For clients which subscribe to the tick event: whether the first tick
-     * event has been sent by i3. */
-    bool first_tick_sent{};
-
-    ev_io *read_callback;
-    ev_io *write_callback;
-    ev_timer *timeout{};
-    uint8_t *buffer{};
-    size_t buffer_size{};
-
-    ipc_client(EV_P_ int fd);
-    ~ipc_client();
-};
 
 /*
  * Callback type for the different message types.

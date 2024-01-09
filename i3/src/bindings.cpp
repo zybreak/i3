@@ -18,7 +18,6 @@ module;
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
-#include "commands_parser.h"
 #include "config_parser.h"
 #include "commands_applier.h"
 
@@ -792,7 +791,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
 
     Binding bind_cp = *bind;
     auto commandsApplier = CommandsApplier{};
-    CommandResult result{}; //parse_command(command, nullptr, nullptr, commandsApplier);
+    CommandResult result = parse_command(command, nullptr, nullptr, commandsApplier);
 
     if (result.needs_tree_render) {
         tree_render();

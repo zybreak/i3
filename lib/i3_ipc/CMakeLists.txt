@@ -1,6 +1,6 @@
 add_library(libi3ipc STATIC)
 target_sources(libi3ipc PUBLIC
-        src/ipc_connect.cpp src/ipc_recv_message.cpp src/ipc_send_message.cpp
+        src/ipc_connect.cpp src/ipc_recv_message.cpp src/ipc_send_message.cpp src/i3-ipc.cpp
         INTERFACE
         i3_ipc/i3-ipc.h
         PUBLIC
@@ -12,3 +12,5 @@ target_compile_options(libi3ipc PUBLIC "-pthread" "-fsized-deallocation")
 target_include_directories(libi3ipc PUBLIC
         "${PROJECT_BINARY_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}")
+
+target_link_libraries(libi3ipc PUBLIC libev)

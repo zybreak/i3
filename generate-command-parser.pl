@@ -134,8 +134,8 @@ open(my $callfh, '>', "GENERATED_${prefix}_call.h");
 my $resultname = uc(substr($prefix, 0, 1)) . substr($prefix, 1) . 'ResultIR';
 say $callfh '#pragma once';
 #say $callfh '#include "criteria_state.h"';
-say $callfh 'struct criteria_state;';
-say $callfh "static void GENERATED_call(struct criteria_state *criteria_state, struct stack &stack, const int call_identifier, struct $resultname &result) {";
+#say $callfh 'struct criteria_state;';
+say $callfh "static void GENERATED_call(criteria_state *criteria_state, stack &stack, const int call_identifier, $resultname &result) {";
 say $callfh '    switch (call_identifier) {';
 my $call_id = 0;
 for my $state (@keys) {
