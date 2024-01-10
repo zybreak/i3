@@ -13,4 +13,5 @@ target_include_directories(libi3ipc PUBLIC
         "${PROJECT_BINARY_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}")
 
-target_link_libraries(libi3ipc PUBLIC libev)
+find_package(libev)
+target_link_libraries(libi3ipc PUBLIC libev::libev)
