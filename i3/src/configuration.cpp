@@ -209,6 +209,18 @@ void INIT_COLOR(Colortriple &x, const char *cborder, const char *cbackground, co
     x.child_border = draw_util_hex_to_color(**global.x, global.x->root_screen, cbackground);
 }
 
+/**
+ * Launch nagbar to indicate errors in the configuration file.
+ */
+static void start_config_error_nagbar(bool has_errors) {
+    const char *font_pattern = config.font->pattern ? config.font->pattern : "fixed";
+    auto type = has_errors ? TYPE_ERROR : TYPE_WARNING;
+    const char *text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
+
+    std::vector<button_t> buttons{};
+    start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type);
+}
+
 /*
  * (Re-)loads the configuration file (sets useful defaults before).
  *
@@ -281,7 +293,6 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     FREE(current_config);
 
     ResourceDatabase resourceDatabase{*global.x->conn};
-    parse_file_result_t result;
     try {
         ConfigApplier configListener{};
 
@@ -304,18 +315,23 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
         } else {
             ResourceDatabase resourceDatabase{**global.x};
             OldParser op = OldParser{ resolved_path, resourceDatabase, load_type, configListener };
-            result = op.parse_file();
+            op.parse_file();
             included_files = op.included_files;
             current_config = op.current_config;
-        }
-        if (result == PARSE_FILE_FAILED) {
-            errx(EXIT_FAILURE, "Could not open configuration file: %s\n", strerror((*__errno_location())));
         }
         if (has_duplicate_bindings()) {
             errx(EXIT_FAILURE, "Duplicate bindings in configuration file: %s\n", strerror((*__errno_location())));
         }
     } catch (const std::exception &e) {
         errx(EXIT_FAILURE, "Error parsing configuration file: %s\n", e.what());
+    } catch (const std::domain_error &e) {
+        auto use_nagbar = (load_type != config_load_t::C_VALIDATE);
+
+        if (use_nagbar) {
+            ELOG(fmt::sprintf("FYI: You are using i3 version %s\n", I3_VERSION));
+
+            start_config_error_nagbar(true);
+        }
     }
 
     extract_workspace_names_from_bindings();
@@ -338,7 +354,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
         xcb_flush(**global.x);
     }
 
-    return result == PARSE_FILE_SUCCESS;
+    return PARSE_FILE_SUCCESS;
 }
 
 

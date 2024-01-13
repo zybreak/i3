@@ -76,28 +76,12 @@ namespace cfg {
 
             //LOG(fmt::sprintf("Including config file %s\n",  resolved_path));
 
+            OldParser parser{resolved_path, result.ctx.resourceDatabase, result.ctx, result.ctx.applier};
             try {
-                OldParser parser{resolved_path, result.ctx.resourceDatabase, result.ctx, result.ctx.applier};
-                switch (parser.parse_file()) {
-                    case PARSE_FILE_SUCCESS:
-                        result.ctx.included_files.emplace_back(resolved_path);
-                        break;
-
-                    case PARSE_FILE_FAILED:
-                        //ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, strerror(errno)));
-                        /* fallthrough */
-
-                    case PARSE_FILE_CONFIG_ERRORS:
-                        result.has_errors = true;
-                        break;
-
-                    default:
-                        /* missing case statement */
-                        assert(false);
-                        break;
-                }
+                parser.parse_file();
+                //ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, strerror(errno)));
+                result.ctx.included_files.emplace_back(resolved_path);
             } catch (std::exception &e) {
-                //ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, e.what()));
                 result.has_errors = true;
             }
         }

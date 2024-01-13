@@ -80,11 +80,6 @@ struct ConfigResultIR {
 };
 
 /**
- * launch nagbar to indicate errors in the configuration file.
- */
-//void start_config_error_nagbar(bool has_errors);
-
-/**
  * Parses the given file by first replacing the variables, then calling
  * parse_config and launching i3-nagbar if use_nagbar is true.
  *
@@ -107,5 +102,5 @@ public:
     OldParser(const char *filename, ResourceDatabase &resourceDatabase, struct parser_ctx &parent_ctx, BaseConfigApplier &applier);
     OldParser(const char *filename, ResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier);
     ~OldParser() override;
-    parse_file_result_t parse_file() override;
+    void parse_file() override;
 };

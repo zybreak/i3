@@ -15,5 +15,5 @@ class BaseParser {
     explicit BaseParser(BaseConfigApplier &applier) : applier(applier) {};
     BaseParser() = delete;
     virtual ~BaseParser() = default;
-    virtual parse_file_result_t parse_file() = 0;
+    virtual void parse_file() = 0;
 };

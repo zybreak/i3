@@ -30,6 +30,7 @@ struct criteria_state;
 #include <climits>
 #include <sstream>
 #include <map>
+#include <stdexcept>
 
 #include <cstdint>
 #include <cstdio>
@@ -455,18 +456,6 @@ bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *
     return has_errors;
 }
 
-/**
- * Launch nagbar to indicate errors in the configuration file.
- */
-//void start_config_error_nagbar(bool has_errors) {
-//    const char *font_pattern = config.font->pattern ? config.font->pattern : "fixed";
-//    auto type = has_errors ? TYPE_ERROR : TYPE_WARNING;
-//    const char *text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
-
-//    std::vector<button_t> buttons{};
-//    start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type);
-//}
-
 /*
  * Inserts or updates a variable assignment depending on whether it already exists.
  *
@@ -527,8 +516,7 @@ static size_t count_extra_bytes(const char *buf, __off_t size, parser_ctx &ctx) 
     return extra_bytes;
 }
 
-static bool read_file(FILE *fstr, ResourceDatabase &resourceDatabase, char *buf, parser_ctx &ctx) {
-    bool invalid_sets = false;
+static void read_file(FILE *fstr, ResourceDatabase &resourceDatabase, char *buf, parser_ctx &ctx) {
     char buffer[4096], key[512], value[4096], *continuation = nullptr;
 
     while (!feof(fstr)) {
@@ -537,10 +525,10 @@ static bool read_file(FILE *fstr, ResourceDatabase &resourceDatabase, char *buf,
         if (fgets(continuation, sizeof(buffer) - (continuation - buffer), fstr) == nullptr) {
             if (feof(fstr))
                 break;
-            throw std::runtime_error("Unexpected EOF");
+            throw std::domain_error("Unexpected EOF");
         }
         if (buffer[strlen(buffer) - 1] != '\n' && !feof(fstr)) {
-            //ELOG(fmt::sprintf("Your line continuation is too long, it exceeds %zd bytes\n",  sizeof(buffer)));
+            throw std::domain_error(fmt::sprintf("Your line continuation is too long, it exceeds %zd bytes\n",  sizeof(buffer)));
         }
 
         /* sscanf implicitly strips whitespace. */
@@ -570,15 +558,11 @@ static bool read_file(FILE *fstr, ResourceDatabase &resourceDatabase, char *buf,
             char v_value[4096] = {'\0'};
 
             if (sscanf(value, "%511s %4095[^\n]", v_key, v_value) < 1) {
-                //ELOG(fmt::sprintf("Failed to parse variable specification '%s', skipping it.\n",  value));
-                invalid_sets = true;
-                continue;
+                throw std::domain_error(fmt::sprintf("Failed to parse variable specification '%s', skipping it.\n",  value));
             }
 
             if (v_key[0] != '$') {
-                //ELOG("Malformed variable assignment, name has to start with $\n");
-                invalid_sets = true;
-                continue;
+                throw std::domain_error("Malformed variable assignment, name has to start with $\n");
             }
 
             upsert_variable(ctx.variables, v_key, v_value);
@@ -597,15 +581,11 @@ static bool read_file(FILE *fstr, ResourceDatabase &resourceDatabase, char *buf,
             fallback[0] = '\0';
 
             if (sscanf(value, "%511s %511s %4095[^\n]", v_key, res_name, fallback) < 1) {
-                //ELOG(fmt::sprintf("Failed to parse resource specification '%s', skipping it.\n",  value));
-                invalid_sets = true;
-                continue;
+                throw std::domain_error(fmt::sprintf("Failed to parse resource specification '%s', skipping it.\n",  value));
             }
 
             if (v_key[0] != '$') {
-                //ELOG("Malformed variable assignment, name has to start with $\n");
-                invalid_sets = true;
-                continue;
+                throw std::domain_error("Malformed variable assignment, name has to start with $\n");
             }
 #ifndef TEST_PARSER
             char *res_value = resourceDatabase.get_resource(res_name, fallback);
@@ -616,8 +596,6 @@ static bool read_file(FILE *fstr, ResourceDatabase &resourceDatabase, char *buf,
             continue;
         }
     }
-
-    return invalid_sets;
 }
 
 /* Allocate a new buffer and copy the file over to the new one,
@@ -701,11 +679,11 @@ OldParser::~OldParser() {
  * parse_config and possibly launching i3-nagbar.
  *
  */
-parse_file_result_t OldParser::parse_file() {
+void OldParser::parse_file() {
     struct stat stbuf{};
 
     if (fstat(fd, &stbuf) == -1) {
-        return PARSE_FILE_FAILED;
+        throw std::runtime_error("");
     }
 
     char *buf = (char*)calloc(stbuf.st_size + 1, 1);
@@ -714,20 +692,13 @@ parse_file_result_t OldParser::parse_file() {
     if (current_config == nullptr) {
         current_config = (char*)scalloc(stbuf.st_size + 1, 1);
         if ((ssize_t)fread(current_config, 1, stbuf.st_size, fstr) != stbuf.st_size) {
-            return PARSE_FILE_FAILED;
+            throw std::runtime_error("");
         }
         rewind(fstr);
     }
 #endif
 
-    bool invalid_sets;
-
-    try {
-        invalid_sets = read_file(fstr, resourceDatabase, buf, ctx);
-    } catch (const std::exception &e) {
-        //ELOG(fmt::sprintf("Failed to read config file: %s\n", e.what()));
-        return PARSE_FILE_FAILED;
-    }
+    read_file(fstr, resourceDatabase, buf, ctx);
 
     /* For every custom variable, see how often it occurs in the file and
      * how much extra bytes it requires when replaced. */
@@ -745,29 +716,12 @@ parse_file_result_t OldParser::parse_file() {
         has_errors = true;
     }
 
-#ifndef TEST_PARSER
-    //if (has_duplicate_bindings()) {
-    //    has_errors = true;
-    //}
-#endif
-
-    auto use_nagbar = (ctx.load_type != config_load_t::C_VALIDATE);
-
-    if (use_nagbar && (has_errors || invalid_sets)) {
-#ifndef TEST_PARSER
-        //ELOG(fmt::sprintf("FYI: You are using i3 version %s\n", I3_VERSION));
-
-        //start_config_error_nagbar(has_errors || invalid_sets);
-#endif
-    }
-
     free(n);
     free(buf);
 
     if (has_errors) {
-        return PARSE_FILE_CONFIG_ERRORS;
+        throw std::domain_error("");
     }
-    return PARSE_FILE_SUCCESS;
 }
 
 parser_ctx::parser_ctx(BaseConfigApplier &applier, ResourceDatabase &resourceDatabase, config_load_t load_type)

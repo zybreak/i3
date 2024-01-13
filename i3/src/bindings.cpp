@@ -55,6 +55,18 @@ struct resolve {
     xkb_state *xkb_state_numlock_no_shift;
 };
 
+/**
+ * Launch nagbar to indicate errors in the configuration file.
+ */
+static void start_config_error_nagbar(bool has_errors) {
+    const char *font_pattern = config.font->pattern ? config.font->pattern : "fixed";
+    auto type = has_errors ? TYPE_ERROR : TYPE_WARNING;
+    const char *text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
+
+    std::vector<button_t> buttons{};
+    start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type);
+}
+
 /*
  * Creates a dynamically allocated copy of bind.
  */
@@ -635,7 +647,7 @@ out:
     xkb_state_unref(dummy_state_numlock_no_shift);
 
     if (has_errors) {
-        //start_config_error_nagbar(true); TODO: move this method
+        start_config_error_nagbar(true);
     }
 }
 

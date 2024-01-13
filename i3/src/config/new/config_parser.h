@@ -4,8 +4,6 @@
 #include "../base_config_applier.h"
 #include "../resource_database.h"
 
-void start_config_error_nagbar(bool has_errors);
-
 class NewParser : public BaseParser {
 public:
     NewParser(const ResourceDatabase& resourceDatabase, std::istream *stream, config_load_t load_type, BaseConfigApplier &applier);
