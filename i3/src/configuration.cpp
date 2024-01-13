@@ -306,9 +306,13 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
             OldParser op = OldParser{ resolved_path, resourceDatabase, load_type, configListener };
             result = op.parse_file();
             included_files = op.included_files;
+            current_config = op.current_config;
         }
         if (result == PARSE_FILE_FAILED) {
             errx(EXIT_FAILURE, "Could not open configuration file: %s\n", strerror((*__errno_location())));
+        }
+        if (has_duplicate_bindings()) {
+            errx(EXIT_FAILURE, "Duplicate bindings in configuration file: %s\n", strerror((*__errno_location())));
         }
     } catch (const std::exception &e) {
         errx(EXIT_FAILURE, "Error parsing configuration file: %s\n", e.what());

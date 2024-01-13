@@ -100,6 +100,7 @@ private:
     int fd;
     FILE *fstr;
 public:
+    char *current_config = nullptr;
     struct parser_ctx *parent_ctx = nullptr;
     struct parser_ctx ctx;
     std::vector<std::string> included_files{};

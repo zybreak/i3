@@ -702,7 +702,6 @@ OldParser::~OldParser() {
  *
  */
 parse_file_result_t OldParser::parse_file() {
-    char *current_config = nullptr; // TODO: fixme
     struct stat stbuf{};
 
     if (fstat(fd, &stbuf) == -1) {
