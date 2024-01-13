@@ -83,7 +83,6 @@ list(APPEND i3_src
         src/startup.cpp
         src/dpi.cpp
         src/draw_util.cpp
-        src/root_atom_contents.cpp
         src/tree.cpp
         src/util.cpp
         src/window.cpp
