@@ -1013,7 +1013,7 @@ static void handle_sync(ipc_client *client, uint8_t *message, int size, uint32_t
     }
 
     DLOG(fmt::sprintf("received IPC sync request (rnd = %d, window = 0x%08x)\n",  state.rnd, state.window));
-    sync_respond(state.window, state.rnd);
+    sync_respond(global.x,state.window, state.rnd);
     std::string reply = "{\"success\":true}";
     ipc_send_client_message(client, I3_IPC_REPLY_TYPE_SYNC, reply);
 }

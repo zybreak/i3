@@ -762,7 +762,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
     } else if (event->type == A_I3_SYNC) {
         xcb_window_t window = event->data.data32[0];
         uint32_t rnd = event->data.data32[1];
-        sync_respond(window, rnd);
+        sync_respond(global.x, window, rnd);
     } else if (event->type == A__NET_REQUEST_FRAME_EXTENTS) {
         /*
          * A client can request an estimate for the frame size which the window

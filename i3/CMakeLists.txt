@@ -53,7 +53,6 @@ list(APPEND include_dirs
 list(APPEND i3_src
         src/assignments.cpp
         src/atoms.cpp
-        src/autostarts.cpp
         src/bindings.cpp
         src/click.cpp
         src/commands/commands_parser.cpp
@@ -65,7 +64,6 @@ list(APPEND i3_src
         src/ewmh.cpp
         src/floating.cpp
         src/font.cpp
-        src/format_placeholders.cpp
         src/property_handlers.cpp
         src/ipc.cpp
         src/is_background_set.cpp
@@ -77,26 +75,21 @@ list(APPEND i3_src
         src/output.cpp
         src/program_arguments.cpp
         src/randr.cpp
-        src/rect.cpp
         src/regex.cpp
         src/render.cpp
         src/resize.cpp
         src/restore_layout.cpp
         src/sighandler.cpp
         src/startup.cpp
-        src/string.cpp
         src/dpi.cpp
         src/draw_util.cpp
-        src/log.cpp
         src/root_atom_contents.cpp
-        src/sync.cpp
         src/tree.cpp
         src/util.cpp
         src/window.cpp
         src/workspace.cpp
         src/xcb.cpp
         src/x.cpp
-        src/keysyms.cpp
         src/event_handler.cpp
         )
 
@@ -114,54 +107,54 @@ target_sources(i3_lib PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES
         src/i3-lib.ixx
-        src/include/assignments.ixx
-        src/include/autostarts.ixx
-        src/include/bindings.ixx
-        src/include/click.ixx
-        src/include/configuration.ixx
+        src/assignments.ixx
+        src/autostarts.ixx
+        src/bindings.ixx
+        src/click.ixx
+        src/configuration.ixx
         src/commands/commands.ixx
-        src/include/con.ixx
-        src/include/util.ixx
-        src/include/x.ixx
-        src/include/workspace.ixx
-        src/include/keysyms.ixx
-        src/include/event_handler.ixx
-        src/include/shape.ixx
-        src/include/xkb.ixx
-        src/include/handlers.ixx
-        src/include/criteria_state.ixx
-        src/include/resize.ixx
-        src/include/window.ixx
-        src/include/match.ixx
-        src/include/tree.ixx
-        src/include/startup.ixx
-        src/include/draw.ixx
-        src/include/sync.ixx
-        src/include/output.ixx
-        src/include/rect.ixx
-        src/include/render.ixx
-        src/include/randr.ixx
-        src/include/font.ixx
-        src/include/format_placeholders.ixx
-        src/include/xcb.ixx
-        src/include/drag.ixx
-        src/include/dpi.ixx
-        src/include/get_visualtype.ixx
-        src/include/ewmh.ixx
-        src/include/floating.ixx
-        src/include/move.ixx
-        src/include/sighandler.ixx
-        src/include/ipc.ixx
-        src/include/load_layout.ixx
-        src/include/restore_layout.ixx
-        src/include/program_arguments.ixx
-        src/include/root_atom_contents.ixx
-        src/include/nagbar.ixx
-        src/include/manage.ixx
-        src/include/i3string.ixx
-        src/include/log.ixx
-        src/include/i3_regex.ixx
-        src/include/internal.ixx
+        src/con.ixx
+        src/util.ixx
+        src/x.ixx
+        src/workspace.ixx
+        src/keysyms.ixx
+        src/event_handler.ixx
+        src/shape.ixx
+        src/xkb.ixx
+        src/handlers.ixx
+        src/criteria_state.ixx
+        src/resize.ixx
+        src/window.ixx
+        src/match.ixx
+        src/tree.ixx
+        src/startup.ixx
+        src/draw.ixx
+        src/sync.ixx
+        src/output.ixx
+        src/rect.ixx
+        src/render.ixx
+        src/randr.ixx
+        src/font.ixx
+        src/format_placeholders.ixx
+        src/xcb.ixx
+        src/drag.ixx
+        src/dpi.ixx
+        src/get_visualtype.ixx
+        src/ewmh.ixx
+        src/floating.ixx
+        src/move.ixx
+        src/sighandler.ixx
+        src/ipc.ixx
+        src/load_layout.ixx
+        src/restore_layout.ixx
+        src/program_arguments.ixx
+        src/root_atom_contents.ixx
+        src/nagbar.ixx
+        src/manage.ixx
+        src/i3string.ixx
+        src/log.ixx
+        src/i3_regex.ixx
+        src/internal.ixx
         )
 target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_old i3_commands_old utils xpp)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
