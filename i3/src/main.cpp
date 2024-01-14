@@ -213,8 +213,9 @@ void do_tree_init(const program_arguments &args, const xcb_get_geometry_reply_t 
             rmdir(dir);
         }
     }
-    if (needs_tree_init)
+    if (needs_tree_init) {
         tree_init(greply);
+    }
 }
 
 static void set_screenshot_as_wallpaper(x_connection *conn, xcb_screen_t *screen) {
@@ -333,8 +334,9 @@ static void ignore_restart_events(x_connection *conn) {
             /* We still need to handle MapRequests which are sent in the
              * timespan starting from when we register as a window manager and
              * this piece of code which drops events. */
-            if (type == XCB_MAP_REQUEST)
+            if (type == XCB_MAP_REQUEST) {
                 global.handlers->handle_event(type, event.get());
+            }
         }
         manage_existing_windows(global.x->root);
     }
@@ -385,8 +387,9 @@ int main(int argc, char *argv[]) {
     getrlimit(RLIMIT_CORE, &global.original_rlimit_core);
 
     /* Disable output buffering to make redirects in .xsession actually useful for debugging */
-    if (!isatty(fileno(stdout)))
+    if (!isatty(fileno(stdout))) {
         setbuf(stdout, nullptr);
+    }
 
     srand(time(nullptr));
 
@@ -434,10 +437,11 @@ int main(int argc, char *argv[]) {
 
     if (config.ipc_socket_path == nullptr) {
         /* Fall back to a file name in /tmp/ based on the PID */
-        if ((config.ipc_socket_path = getenv("I3SOCK")) == nullptr)
+        if ((config.ipc_socket_path = getenv("I3SOCK")) == nullptr) {
             config.ipc_socket_path = get_process_filename("ipc-socket");
-        else
+        } else {
             config.ipc_socket_path = sstrdup(config.ipc_socket_path);
+        }
     }
 
     try {
