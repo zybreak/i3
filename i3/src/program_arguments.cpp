@@ -2,6 +2,8 @@ module;
 #include "i3.h"
 
 #include <getopt.h>
+#include <optional>
+#include <string>
 module i3;
 
 program_arguments parse_args(int argc, char *argv[]) {
@@ -57,14 +59,9 @@ program_arguments parse_args(int argc, char *argv[]) {
                     break;
                 } else if (strcmp(long_options[option_index].name, "get-socketpath") == 0 ||
                            strcmp(long_options[option_index].name, "get_socketpath") == 0) {
-                    char *socket_path = root_atom_contents("I3_SOCKET_PATH", nullptr, 0);
+                    std::optional<std::string> socket_path = root_atom_contents("I3_SOCKET_PATH", nullptr, 0);
                     if (socket_path) {
-                        printf("%s\n", socket_path);
-                        /* With -O2 (i.e. the buildtype=debugoptimized meson
-                         * option, which we set by default), gcc 9.2.1 optimizes
-                         * away socket_path at this point, resulting in a Leak
-                         * Sanitizer report. An explicit free helps: */
-                        free(socket_path);
+                        printf("%s\n", socket_path->c_str());
                         exit(EXIT_SUCCESS);
                     }
 

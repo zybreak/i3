@@ -162,7 +162,7 @@ void handle_extra_args(int argc, char *argv[])  {
         optind++;
     }
     DLOG(fmt::sprintf("Command is: %s (%zd bytes)\n",  payload, payload.length()));
-    char *socket_path = root_atom_contents("I3_SOCKET_PATH", nullptr, 0);
+    std::optional<std::string> socket_path = root_atom_contents("I3_SOCKET_PATH", nullptr, 0);
     if (!socket_path) {
         ELOG("Could not get i3 IPC socket path\n");
         exit(1);
@@ -174,8 +174,7 @@ void handle_extra_args(int argc, char *argv[])  {
 
     struct sockaddr_un addr{};
     addr.sun_family = AF_LOCAL;
-    strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
-    FREE(socket_path);
+    strncpy(addr.sun_path, socket_path->c_str(), sizeof(addr.sun_path) - 1);
     if (connect(sockfd, (const struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0)
         err(EXIT_FAILURE, "Could not connect to i3");
 

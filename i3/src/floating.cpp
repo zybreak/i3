@@ -23,12 +23,6 @@ module i3;
 
 import utils;
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 /*
  * Calculates sum of heights and sum of widths of all currently active outputs
  *
@@ -567,7 +561,7 @@ void floating_move_to_pointer(Con *con) {
     /* Determine where to put the window. */
     int32_t x = reply->root_x - con->rect.width / 2;
     int32_t y = reply->root_y - con->rect.height / 2;
-    FREE(reply);
+    free(reply);
 
     /* Correct target coordinates to be in-bounds. */
     x = std::max(x, (int32_t)output->rect.x);

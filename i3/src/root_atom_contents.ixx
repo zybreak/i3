@@ -1,8 +1,9 @@
 module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
-#include <string.h>
-#include <math.h>
+#include <string>
+#include <optional>
+#include <cmath>
 export module i3:root_atom_contents;
 
 import utils;
@@ -14,11 +15,8 @@ import utils;
  * If the provided XCB connection is NULL, a new connection will be
  * established.
  *
- * The memory for the contents is dynamically allocated and has to be
- * free()d by the caller.
- *
  */
-export char *root_atom_contents(const char *atomname, xcb_connection_t *provided_conn, int screen) {
+export std::optional<std::string> root_atom_contents(const char *atomname, xcb_connection_t *provided_conn, int screen) {
     xcb_intern_atom_cookie_t atom_cookie;
     xcb_intern_atom_reply_t *atom_reply;
     char *content = nullptr;
@@ -28,7 +26,7 @@ export char *root_atom_contents(const char *atomname, xcb_connection_t *provided
     if (provided_conn == nullptr &&
         ((conn = xcb_connect(nullptr, &screen)) == nullptr ||
          xcb_connection_has_error(conn))) {
-        return nullptr;
+        return std::nullopt;
     }
 
     atom_cookie = xcb_intern_atom(conn, 0, strlen(atomname), atomname);
@@ -81,5 +79,5 @@ out_atom:
 out_conn:
     if (provided_conn == nullptr)
         xcb_disconnect(conn);
-    return content;
+    return std::make_optional<std::string>(content);
 }
