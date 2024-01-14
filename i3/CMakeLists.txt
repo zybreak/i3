@@ -66,7 +66,6 @@ list(APPEND i3_src
         src/font.cpp
         src/property_handlers.cpp
         src/ipc.cpp
-        src/is_background_set.cpp
         src/load_layout.cpp
         src/nagbar.cpp
         src/manage.cpp
@@ -144,6 +143,7 @@ target_sources(i3_lib PUBLIC
         src/move.ixx
         src/sighandler.ixx
         src/ipc.ixx
+        src/is_background_set.ixx
         src/load_layout.ixx
         src/restore_layout.ixx
         src/program_arguments.ixx

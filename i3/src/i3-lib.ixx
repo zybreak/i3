@@ -52,14 +52,13 @@ export import :log;
 export import :regex;
 export import :tree;
 export import :commands;
+export import :is_background_set;
 
 export import :internal;
 
 export namespace i3 {
 
 }
-
-export bool is_background_set(x_connection *conn, xcb_screen_t *screen);
 
 export struct global_t {
     std::string current_socketpath{};

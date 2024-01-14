@@ -10,7 +10,9 @@ module;
 #include <cairo.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
-module i3;
+export module i3:is_background_set;
+
+import :x;
 
 /**
  * Find the region in the given window that is not covered by a mapped child
@@ -106,7 +108,7 @@ static uint32_t flicker_window_at(x_connection *conn, xcb_screen_t *screen, uint
     return result;
 }
 
-bool is_background_set(x_connection *conn, xcb_screen_t *screen) {
+export bool is_background_set(x_connection *conn, xcb_screen_t *screen) {
     uint16_t x, y;
     find_unobscured_pixel(conn, screen->root, screen->width_in_pixels, screen->height_in_pixels, &x, &y);
 
