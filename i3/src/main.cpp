@@ -52,12 +52,6 @@ import i3ipc;
 import i3;
 import utils;
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;
 
@@ -117,7 +111,7 @@ static std::tuple<std::string, int> create_socket(const char *filename) {
 
     (void)fcntl(sockfd, F_SETFD, FD_CLOEXEC);
 
-    struct sockaddr_un addr{};
+    struct sockaddr_un addr {};
     addr.sun_family = AF_LOCAL;
     strncpy(addr.sun_path, resolved.c_str(), sizeof(addr.sun_path) - 1);
     if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
@@ -143,13 +137,13 @@ static int parse_restart_fd() {
 
     long int fd = -1;
     if (!parse_long(restart_fd, &fd, 10)) {
-         ELOG(fmt::sprintf("Malformed _I3_RESTART_FD \"%s\"\n", restart_fd));
+        ELOG(fmt::sprintf("Malformed _I3_RESTART_FD \"%s\"\n", restart_fd));
         return -1;
     }
     return (int)fd;
 }
 
-void handle_extra_args(int argc, char *argv[])  {
+void handle_extra_args(int argc, char *argv[]) {
     /* We enable verbose mode so that the user knows what’s going on.
      * This should make it easier to find mistakes when the user passes
      * arguments by mistake. */
@@ -161,7 +155,7 @@ void handle_extra_args(int argc, char *argv[])  {
         payload.append(argv[optind]).append(" ");
         optind++;
     }
-    DLOG(fmt::sprintf("Command is: %s (%zd bytes)\n",  payload, payload.length()));
+    DLOG(fmt::sprintf("Command is: %s (%zd bytes)\n", payload, payload.length()));
     std::optional<std::string> socket_path = root_atom_contents("I3_SOCKET_PATH", nullptr, 0);
     if (!socket_path) {
         ELOG("Could not get i3 IPC socket path\n");
@@ -172,14 +166,14 @@ void handle_extra_args(int argc, char *argv[])  {
     if (sockfd == -1)
         err(EXIT_FAILURE, "Could not create socket");
 
-    struct sockaddr_un addr{};
+    struct sockaddr_un addr {};
     addr.sun_family = AF_LOCAL;
     strncpy(addr.sun_path, socket_path->c_str(), sizeof(addr.sun_path) - 1);
     if (connect(sockfd, (const struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0)
         err(EXIT_FAILURE, "Could not connect to i3");
 
     if (i3ipc::ipc_send_message(sockfd, strlen(payload.c_str()), I3_IPC_MESSAGE_TYPE_RUN_COMMAND,
-                         (uint8_t *)payload.c_str()) == -1)
+                                (uint8_t *)payload.c_str()) == -1)
         err(EXIT_FAILURE, "IPC: write()");
 
     uint32_t reply_length;
@@ -194,7 +188,9 @@ void handle_extra_args(int argc, char *argv[])  {
     if (reply_type != I3_IPC_REPLY_TYPE_COMMAND)
         errx(EXIT_FAILURE, "IPC: received reply of type %d but expected %d (COMMAND)", reply_type, I3_IPC_REPLY_TYPE_COMMAND);
     printf("%.*s\n", reply_length, reply);
-    FREE(reply);
+    if (reply != nullptr) {
+        free(reply);
+    }
 }
 
 void enable_coredumps() {
@@ -206,7 +202,7 @@ void enable_coredumps() {
 void do_tree_init(const program_arguments &args, const xcb_get_geometry_reply_t *greply) {
     bool needs_tree_init = true;
     if (!args.layout_path.empty()) {
-         LOG(fmt::sprintf("Trying to restore the layout from \"%s\".\n", args.layout_path));
+        LOG(fmt::sprintf("Trying to restore the layout from \"%s\".\n", args.layout_path));
         needs_tree_init = !tree_restore(args.layout_path, greply);
         if (args.delete_layout_path) {
             unlink(args.layout_path.c_str());
@@ -231,8 +227,8 @@ static void set_screenshot_as_wallpaper(x_connection *conn, xcb_screen_t *screen
 
     uint32_t list[]{XCB_GX_COPY, (uint32_t)~0, XCB_FILL_STYLE_SOLID, XCB_SUBWINDOW_MODE_INCLUDE_INFERIORS};
     conn->create_gc(gc, screen->root,
-            XCB_GC_FUNCTION | XCB_GC_PLANE_MASK | XCB_GC_FILL_STYLE | XCB_GC_SUBWINDOW_MODE,
-            list);
+                    XCB_GC_FUNCTION | XCB_GC_PLANE_MASK | XCB_GC_FILL_STYLE | XCB_GC_SUBWINDOW_MODE,
+                    list);
 
     conn->copy_area(screen->root, pixmap, gc, 0, 0, 0, 0, width, height);
     uint32_t value_list[]{pixmap};
@@ -271,11 +267,11 @@ static Output *get_focused_output() {
     if (pointerreply.get() == nullptr) {
         ELOG("Could not query pointer position, using first screen\n");
     } else {
-        DLOG(fmt::sprintf("Pointer at %d, %d\n",  pointerreply->root_x, pointerreply->root_y));
+        DLOG(fmt::sprintf("Pointer at %d, %d\n", pointerreply->root_x, pointerreply->root_y));
         output = global.randr->get_output_containing(pointerreply->root_x, pointerreply->root_y);
         if (!output) {
             ELOG(fmt::sprintf("ERROR: No screen at (%d, %d), starting on the first screen\n",
-                 pointerreply->root_x, pointerreply->root_y));
+                              pointerreply->root_x, pointerreply->root_y));
         }
     }
     if (!output) {
@@ -301,7 +297,7 @@ static void init_ipc() {
 static void confirm_restart() {
     const int restart_fd = parse_restart_fd();
     if (restart_fd != -1) {
-        DLOG(fmt::sprintf("serving restart fd %d",  restart_fd));
+        DLOG(fmt::sprintf("serving restart fd %d", restart_fd));
         ipc_client *client = ipc_new_client_on_fd(main_loop, restart_fd);
         ipc_confirm_restart(client);
         unsetenv("_I3_RESTART_FD");
@@ -369,10 +365,10 @@ static void fix_empty_background(x_connection *conn) {
 static void start_i3bar() {
     for (auto &barconfig : barconfigs) {
         std::string command = fmt::format("{} {} --bar_id={} --socket=\"{}\"",
-                  barconfig->i3bar_command ? barconfig->i3bar_command : "exec i3bar",
-                  barconfig->verbose ? "-V" : "",
-                  barconfig->id, global.current_socketpath);
-        LOG(fmt::sprintf("Starting bar process: %s\n",  command));
+                                          barconfig->i3bar_command ? barconfig->i3bar_command : "exec i3bar",
+                                          barconfig->verbose ? "-V" : "",
+                                          barconfig->id, global.current_socketpath);
+        LOG(fmt::sprintf("Starting bar process: %s\n", command));
         start_application(command, true);
     }
 }
@@ -381,7 +377,6 @@ int main(int argc, char *argv[]) {
     /* Keep a symbol pointing to the I3_VERSION string constant so that we have
      * it in gdb backtraces. */
     static const char *_i3_version __attribute__((used)) = I3_VERSION;
-
 
     setlocale(LC_ALL, "");
 
@@ -449,7 +444,7 @@ int main(int argc, char *argv[]) {
         uint32_t valueList[]{ROOT_EVENT_MASK};
         x->conn->change_window_attributes_checked(x->root, XCB_CW_EVENT_MASK, valueList);
     } catch (std::exception &e) {
-        ELOG(fmt::sprintf("Another window manager seems to be running (X error %s)\n",  e.what()));
+        ELOG(fmt::sprintf("Another window manager seems to be running (X error %s)\n", e.what()));
         exit(EXIT_FAILURE);
     }
 
@@ -458,7 +453,7 @@ int main(int argc, char *argv[]) {
         ELOG("Could not get geometry of the root window, exiting\n");
         return 1;
     }
-    DLOG(fmt::sprintf("root geometry reply: (%d, %d) %d x %d\n",  greply->x, greply->y, greply->width, greply->height));
+    DLOG(fmt::sprintf("root geometry reply: (%d, %d) %d x %d\n", greply->x, greply->y, greply->width, greply->height));
 
     x->xcursor_load_cursors();
 
@@ -525,7 +520,6 @@ int main(int argc, char *argv[]) {
 
     if (args.autostart) {
         fix_empty_background(*x);
-
     }
 
 #if defined(__OpenBSD__)
