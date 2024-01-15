@@ -24,7 +24,7 @@ module;
 #include <filesystem>
 struct criteria_state;
 #include "config/old/config_parser.h"
-//#include "config/new/config_parser.h"
+#include "config/new/config_parser.h"
 #include "config/config_applier.h"
 module i3;
 
@@ -297,7 +297,6 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
         ConfigApplier configListener{};
 
         if (global.new_parser) {
-            /*
             std::string filename = resolved_path;
             std::istream *stream;
             std::ifstream if_stream{};
@@ -310,8 +309,9 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
             }
 
             NewParser np{ resourceDatabase, stream, load_type, configListener };
-            result = np.parse_file();
-             */
+            np.parse_file();
+            //included_files = np.included_files;
+            //current_config = np.current_config;
         } else {
             ResourceDatabase resourceDatabase{**global.x};
             OldParser op = OldParser{ resolved_path, resourceDatabase, load_type, configListener };
@@ -322,8 +322,6 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
         if (has_duplicate_bindings()) {
             errx(EXIT_FAILURE, "Duplicate bindings in configuration file: %s\n", strerror((*__errno_location())));
         }
-    } catch (const std::exception &e) {
-        errx(EXIT_FAILURE, "Error parsing configuration file: %s\n", e.what());
     } catch (const std::domain_error &e) {
         auto use_nagbar = (load_type != config_load_t::C_VALIDATE);
 
@@ -332,6 +330,8 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
 
             start_config_error_nagbar(true);
         }
+    } catch (const std::exception &e) {
+        errx(EXIT_FAILURE, "Error parsing configuration file: %s\n", e.what());
     }
 
     extract_workspace_names_from_bindings();

@@ -94,7 +94,7 @@ list(APPEND i3_src
 
 #add_subdirectory(src/commands/new)
 add_subdirectory(src/commands/old)
-#add_subdirectory(src/config/new)
+add_subdirectory(src/config/new)
 add_subdirectory(src/config/old)
 add_subdirectory(src/utils)
 
@@ -155,7 +155,7 @@ target_sources(i3_lib PUBLIC
         src/i3_regex.ixx
         src/internal.ixx
         )
-target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_old i3_commands_old utils xpp)
+target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_new i3_config_old i3_commands_old utils xpp)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
 target_compile_options(i3_lib PUBLIC ${compile_options})
 add_dependencies(i3_lib libi3ipc)

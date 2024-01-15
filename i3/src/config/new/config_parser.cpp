@@ -13,6 +13,8 @@
 #include <xcb/xcb_xrm.h>
 #include <regex>
 
+struct criteria_state;
+
 using namespace std;
 using namespace antlr4;
 using namespace std::literals;
@@ -94,20 +96,20 @@ private:
         return replaced;
     }
 
-    Match handle_criteria(configGrammar::CriteriaContext *pContext) {
-        Match current_match{};
+    criteria_state* handle_criteria(configGrammar::CriteriaContext *pContext) {
+        criteria_state* st = applier.criteria_init(0);
 
         for (auto &c : pContext->criterion()) {
             if (c->value_criterion() != nullptr) {
-                current_match.parse_property(
+                applier.criteria_add(st,
                         c->value_criterion()->children[0]->getText().c_str(),
                         c->value_criterion()->children[1]->getText().c_str());
             } else {
-                current_match.parse_property(c->children[0]->getText().c_str(), nullptr);
+                applier.criteria_add(st, c->children[0]->getText().c_str(), nullptr);
             }
         }
 
-        return current_match;
+        return st;
     }
 
 public:
@@ -195,7 +197,7 @@ public:
     }
 
     void enterNo_focus(configGrammar::No_focusContext *ctx) override {
-        Match match = handle_criteria(ctx->criteria());
+        auto match = handle_criteria(ctx->criteria());
         applier.no_focus(match);
     }
 
@@ -220,7 +222,7 @@ public:
                          % fn::transform([](auto *x) { return toString(x); })
                          % fn::to_vector();
 
-        Match match = handle_criteria(ctx->criteria());
+        auto match = handle_criteria(ctx->criteria());
         for (auto argument : arguments) {
             applier.for_window(match, replace_var(std::move(argument)));
         }
@@ -342,7 +344,7 @@ class ErrorListener : public BaseErrorListener {
 
 };
 
-parse_file_result_t NewParser::parse_file() {
+void NewParser::parse_file() {
 
     ANTLRInputStream input{*stream};
     configLexer lexer{&input};
@@ -374,6 +376,4 @@ parse_file_result_t NewParser::parse_file() {
 
     StatementListener listener{applier, std::move(variableListener.variables)};
     tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
-
-    return parse_file_result_t::PARSE_FILE_SUCCESS;
 }
