@@ -1,10 +1,10 @@
+module;
 #include <iostream>
 #include <antlr4-runtime.h>
 #include "parser-specs/configLexer.h"
 #include "parser-specs/configGrammar.h"
 #include "parser-specs/configGrammarBaseListener.h"
 #include "../base_config_applier.h"
-#include "config_parser.h"
 #include "lib/fn.hpp"
 #include "../resource_database.h"
 #include <ranges>
@@ -12,8 +12,7 @@
 #include <algorithm>
 #include <xcb/xcb_xrm.h>
 #include <regex>
-
-struct criteria_state;
+module i3_config_new;
 
 using namespace std;
 using namespace antlr4;

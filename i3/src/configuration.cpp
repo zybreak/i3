@@ -24,11 +24,11 @@ module;
 #include <filesystem>
 struct criteria_state;
 #include "config/old/config_parser.h"
-#include "config/new/config_parser.h"
 #include "config/config_applier.h"
 module i3;
 
 import utils;
+import i3_config_new;
 
 #define FREE(pointer)   \
     do {                \
