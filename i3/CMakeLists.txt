@@ -20,9 +20,6 @@ list(APPEND libraries X11 X11::xcb X11::xcb_cursor X11::xcb_shape X11::xcb_xrm X
 find_package(PCRE CONFIG)
 list(APPEND libraries pcre2::pcre2)
 
-find_package(spdlog CONFIG)
-list(APPEND libraries spdlog::spdlog)
-
 pkg_check_modules(cairo_dep REQUIRED cairo>=1.14.4)
 list(APPEND libraries ${cairo_dep_LINK_LIBRARIES})
 list(APPEND include_dirs ${cairo_dep_INCLUDE_DIRS})
