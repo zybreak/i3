@@ -28,10 +28,10 @@
 
 #include <fmt/printf.h>
 
-#include "config/configuration.h"
+#include "base_resource_database.h"
 
 
-class ResourceDatabase {
+class ResourceDatabase : public BaseResourceDatabase {
     xcb_xrm_database_t *database = nullptr;
     xcb_connection_t *conn;
    public:
@@ -39,7 +39,7 @@ class ResourceDatabase {
     explicit ResourceDatabase(xcb_connection_t *conn) : conn(conn) {
     }
 
-    char* get_resource(char *name, const char *fallback) {
+    char* get_resource(char *name, const char *fallback) override {
         if (conn == nullptr) {
             return nullptr;
         }

@@ -52,9 +52,7 @@ struct criteria_state;
 
 #include <fmt/printf.h>
 
-#include "config/configuration.h"
-
-#include "../resource_database.h"
+#include "base_resource_database.h"
 
 import utils;
 
@@ -516,7 +514,7 @@ static size_t count_extra_bytes(const char *buf, __off_t size, parser_ctx &ctx) 
     return extra_bytes;
 }
 
-static void read_file(FILE *fstr, ResourceDatabase &resourceDatabase, char *buf, parser_ctx &ctx) {
+static void read_file(FILE *fstr, BaseResourceDatabase &resourceDatabase, char *buf, parser_ctx &ctx) {
     char buffer[4096], key[512], value[4096], *continuation = nullptr;
 
     while (!feof(fstr)) {
@@ -641,12 +639,12 @@ static char* replace_variables(char *n, char *buf, __off_t size, parser_ctx &ctx
 }
 
 
-OldParser::OldParser(const char *filename, ResourceDatabase &resourceDatabase, struct parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, resourceDatabase, parent_ctx.load_type, applier) {
+OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, struct parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, resourceDatabase, parent_ctx.load_type, applier) {
     this->parent_ctx = &parent_ctx;
     this->ctx.variables = parent_ctx.variables;
 }
 
-OldParser::OldParser(const char *filename, ResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier), filename(filename), ctx(applier, resourceDatabase, load_type), resourceDatabase(resourceDatabase) {
+OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), ctx(applier, resourceDatabase, load_type) {
     this->old_dir = get_current_dir_name();
     char *dir = nullptr;
     /* dirname(3) might modify the buffer, so make a copy: */
@@ -724,7 +722,7 @@ void OldParser::parse_file() {
     }
 }
 
-parser_ctx::parser_ctx(BaseConfigApplier &applier, ResourceDatabase &resourceDatabase, config_load_t load_type)
+parser_ctx::parser_ctx(BaseConfigApplier &applier, BaseResourceDatabase &resourceDatabase, config_load_t load_type)
     : applier(applier), load_type(load_type), resourceDatabase(resourceDatabase) {
     this->criteria_state = applier.criteria_init(0);
 }

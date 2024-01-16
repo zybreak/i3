@@ -313,7 +313,6 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
             //included_files = np.included_files;
             //current_config = np.current_config;
         } else {
-            ResourceDatabase resourceDatabase{**global.x};
             OldParser op = OldParser{ resolved_path, resourceDatabase, load_type, configListener };
             op.parse_file();
             included_files = op.included_files;

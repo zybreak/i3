@@ -4,14 +4,17 @@ module;
 #include "parser-specs/configLexer.h"
 #include "parser-specs/configGrammar.h"
 #include "parser-specs/configGrammarBaseListener.h"
-#include "../base_config_applier.h"
+#include "base_config_applier.h"
 #include "lib/fn.hpp"
-#include "../resource_database.h"
+#include "base_resource_database.h"
 #include <ranges>
 #include <utility>
 #include <algorithm>
 #include <xcb/xcb_xrm.h>
 #include <regex>
+#include "base_parser.h"
+#include "fmt/core.h"
+#include "fmt/printf.h"
 module i3_config_new;
 
 using namespace std;
@@ -52,11 +55,11 @@ static string toString(antlr4::tree::ParseTree *p) {
 
 class VariableListener : public configGrammarBaseListener {
 private:
-    ResourceDatabase resourceDatabase;
+    const BaseResourceDatabase &resourceDatabase;
 public:
     std::map<std::string, std::string> variables{};
 
-    explicit VariableListener(const ResourceDatabase &resourceDatabase) : resourceDatabase(resourceDatabase) {
+    explicit VariableListener(const BaseResourceDatabase &rd) : resourceDatabase(rd) {
     }
 
     void enterSet(configGrammar::SetContext *ctx) override {
@@ -331,8 +334,7 @@ public:
 
 };
 
-NewParser::NewParser(const ResourceDatabase& resourceDatabase, std::istream *stream, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier), stream(stream), load_type(load_type), resourceDatabase(resourceDatabase) {
-
+NewParser::NewParser(BaseResourceDatabase &rd, std::istream *stream, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, rd), stream(stream), load_type(load_type)  {
 }
 
 class ErrorListener : public BaseErrorListener {

@@ -15,7 +15,7 @@ module;
 #include <vector>
 #include <memory>
 #include "i3.h"
-#include "config/configuration.h"
+#include "base_parser.h"
 export module i3:configuration;
 
 import :draw;

@@ -94,6 +94,7 @@ list(APPEND i3_src
 
 #add_subdirectory(src/commands/new)
 add_subdirectory(src/commands/old)
+add_subdirectory(src/config/base)
 add_subdirectory(src/config/new)
 add_subdirectory(src/config/old)
 add_subdirectory(src/utils)

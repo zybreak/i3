@@ -12,8 +12,7 @@
 #include <config.h>
 
 #include "parser_stack.h"
-#include "../base_parser.h"
-#include "config/configuration.h"
+#include "base_parser.h"
 #include "../resource_database.h"
 
 /**
@@ -30,7 +29,7 @@ struct Variable {
 
 class parser_ctx {
    public:
-    ResourceDatabase &resourceDatabase;
+    BaseResourceDatabase &resourceDatabase;
     std::vector<std::string> included_files{};
     config_load_t load_type;
     BaseConfigApplier &applier;
@@ -56,7 +55,7 @@ class parser_ctx {
 
     bool has_errors{false};
 
-    parser_ctx(BaseConfigApplier &applier, ResourceDatabase &resourceDatabase, config_load_t load_type);
+    parser_ctx(BaseConfigApplier &applier, BaseResourceDatabase &resourceDatabase, config_load_t load_type);
 
     ~parser_ctx() = default;
 };
@@ -89,7 +88,6 @@ struct ConfigResultIR {
  */
 class OldParser : public BaseParser {
 private:
-    ResourceDatabase &resourceDatabase;
     const char *filename;
     char *old_dir;
     int fd;
@@ -99,8 +97,8 @@ public:
     struct parser_ctx *parent_ctx = nullptr;
     struct parser_ctx ctx;
     std::vector<std::string> included_files{};
-    OldParser(const char *filename, ResourceDatabase &resourceDatabase, struct parser_ctx &parent_ctx, BaseConfigApplier &applier);
-    OldParser(const char *filename, ResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier);
+    OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, struct parser_ctx &parent_ctx, BaseConfigApplier &applier);
+    OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier);
     ~OldParser() override;
     void parse_file() override;
 };

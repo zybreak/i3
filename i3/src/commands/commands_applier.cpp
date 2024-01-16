@@ -25,7 +25,8 @@
 #include <algorithm>
 #include "commands_applier.h"
 #include "command_result_ir.h"
-#include "config/configuration.h"
+
+#include "base_parser.h"
 
 #include <fmt/printf.h>
 
