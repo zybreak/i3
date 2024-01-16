@@ -354,7 +354,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
         xcb_flush(**global.x);
     }
 
-    return PARSE_FILE_SUCCESS;
+    return true;
 }
 
 
