@@ -1,12 +1,21 @@
-from conan import ConanFile
+from conan import ConanFile;
 import os
-from conan.tools.cmake import cmake_layout
+from conan.tools.cmake import cmake_layout, CMake, CMakeToolchain;
 
 class i3(ConanFile):
     name = "i3"
     version = "1.0"
     settings = "os", "compiler", "build_type", "arch"
-    generators = "CMakeDeps", "CMakeToolchain"
+    generators = "CMakeDeps"
+    build_policy = "missing"
+    package_type = "application"
+
+
+    def generate(self):
+        tc = CMakeToolchain(self)
+        tc.generator = "Ninja Multi-Config"
+        tc.generate()
+
 
     def requirements(self):
         self.requires("zlib/1.2.13")
@@ -17,5 +26,6 @@ class i3(ConanFile):
         self.requires("glib/2.76.2")
         self.requires("gtest/1.13.0")
 
-    #def layout(self):
-        #cmake_layout(self)
+
+    def layout(self):
+        cmake_layout(self)
