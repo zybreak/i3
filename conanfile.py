@@ -1,0 +1,21 @@
+from conan import ConanFile
+import os
+from conan.tools.cmake import cmake_layout
+
+class i3(ConanFile):
+    name = "i3"
+    version = "1.0"
+    settings = "os", "compiler", "build_type", "arch"
+    generators = "CMakeDeps", "CMakeToolchain"
+
+    def requirements(self):
+        self.requires("zlib/1.2.13")
+        self.requires("libev/4.33")
+        self.requires("pcre2/10.42")
+        self.requires("fmt/9.1.0")
+        self.requires("antlr4-cppruntime/4.11.1")
+        self.requires("glib/2.76.2")
+        self.requires("gtest/1.13.0")
+
+    #def layout(self):
+        #cmake_layout(self)
