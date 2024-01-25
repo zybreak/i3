@@ -17,6 +17,8 @@ module;
 #include "fmt/printf.h"
 module i3_config_new;
 
+import log;
+
 using namespace std;
 using namespace antlr4;
 using namespace std::literals;
@@ -117,7 +119,7 @@ private:
 public:
     StatementListener(BaseConfigApplier &listener, std::map<std::string, std::string> &&variables) : applier{listener}, variables{variables} {
         for (auto &v : variables) {
-            std::cout << "set " << v.first << " = \"" << v.second << "\"" << std::endl;
+            DLOG(fmt::format("set {} = \"{}\"", v.first, v.second));
         }
     }
 
@@ -328,7 +330,7 @@ public:
     void visitTerminal(antlr4::tree::TerminalNode *node) override {}
 
     void visitErrorNode(antlr4::tree::ErrorNode *node) override {
-        cout << "ERROR: " << node->getText() << endl;
+        ELOG(node->getText());
         throw std::runtime_error("error");
     }
 
@@ -340,7 +342,7 @@ NewParser::NewParser(BaseResourceDatabase &rd, std::istream *stream, config_load
 class ErrorListener : public BaseErrorListener {
     void syntaxError(Recognizer *recognizer, Token * offendingSymbol, size_t line, size_t charPositionInLine,
                              const std::string &msg, std::exception_ptr e) override {
-        std::cout << "ERROR " << fmt::sprintf("(%d:%d): ", line, charPositionInLine) << msg << std::endl;
+        ELOG(fmt::sprintf("(%d:%d): %s", line, charPositionInLine, msg));
     }
 
 };

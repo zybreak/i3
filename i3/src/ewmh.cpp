@@ -18,6 +18,8 @@ module;
 xcb_window_t ewmh_window;
 module i3;
 
+import log;
+
 /*
  * Updates _NET_CURRENT_DESKTOP with the current desktop number.
  *

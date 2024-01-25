@@ -35,7 +35,7 @@ module;
 
 #include <fmt/printf.h>
 module i3;
-
+import log;
 import i3ipc;
 import utils;
 

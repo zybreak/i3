@@ -32,6 +32,7 @@ struct criteria_state;
 
 import utils;
 import i3;
+import log;
 
 using namespace std::literals;
 

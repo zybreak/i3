@@ -15,6 +15,7 @@ module;
 #include "i3_ipc/i3-ipc.h"
 module i3;
 
+import log;
 /*
  * Returns the lowest container in the tree that has both a and b as descendants.
  *

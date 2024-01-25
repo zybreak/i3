@@ -41,6 +41,7 @@ module;
 module i3;
 
 import utils;
+import log;
 
 /*
  * Returns true if the name consists of only digits.

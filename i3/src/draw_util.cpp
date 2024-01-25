@@ -19,6 +19,7 @@ module;
 module i3;
 
 import utils;
+import log;
 
 /* Forward declarations */
 static void draw_util_set_source_color(surface_t *surface, color_t color);

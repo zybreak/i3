@@ -1,6 +1,3 @@
-//
-// Created by zybreak on 2024-01-07.
-//
 #pragma once
 
 class BaseResourceDatabase {

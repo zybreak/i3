@@ -32,7 +32,7 @@ module;
 module i3;
 
 import utils;
-
+import log;
 typedef struct placeholder_state {
     /** The X11 placeholder window. */
     xcb_window_t window{};

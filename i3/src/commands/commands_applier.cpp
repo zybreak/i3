@@ -32,6 +32,7 @@
 
 import utils;
 import i3;
+import log;
 
 static void ysuccess(nlohmann::json *json_gen, bool success) {
     if (json_gen != nullptr) {

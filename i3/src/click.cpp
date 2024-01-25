@@ -20,6 +20,7 @@ module;
 module i3;
 
 import :output;
+import log;
 
 enum click_destination_t {
     CLICK_BORDER = 0,

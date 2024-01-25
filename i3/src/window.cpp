@@ -24,6 +24,8 @@ module;
 #include <float.h>
 module i3;
 
+import log;
+
 import utils;
 
 #define FREE(pointer)   \

@@ -31,6 +31,7 @@ module;
 module i3;
 
 import utils;
+import log;
 
 static xkb_context *context;
 static xkb_keymap *keymap;

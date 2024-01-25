@@ -18,6 +18,7 @@ module;
 module i3;
 
 import utils;
+import log;
 
 #define FREE(pointer)   \
     do {                \

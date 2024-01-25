@@ -4,6 +4,8 @@
 
 import i3;
 
+import log;
+
 /* Define all atoms as global variables */
 #define xmacro(atom) xcb_atom_t A_##atom;
     I3_NET_SUPPORTED_ATOMS_XMACRO

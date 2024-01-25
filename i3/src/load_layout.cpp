@@ -20,6 +20,7 @@ module;
 module i3;
 
 import utils;
+import log;
 
 /* TODO: refactor the whole parsing thing */
 

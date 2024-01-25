@@ -6,6 +6,7 @@ module;
 #include <string>
 module i3;
 
+import log;
 program_arguments parse_args(int argc, char *argv[]) {
     program_arguments args{};
 

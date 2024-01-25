@@ -23,6 +23,7 @@ module;
 module i3;
 
 import :con;
+import log;
 
 /* Forward declarations */
 static std::vector<int> precalculate_sizes(Con *con, render_params *p);

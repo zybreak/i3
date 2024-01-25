@@ -29,6 +29,7 @@ module i3;
 import :output;
 import :format_placeholders;
 import utils;
+import log;
 
 /*
  * Returns the content container below the given output container.

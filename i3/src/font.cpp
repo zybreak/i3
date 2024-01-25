@@ -17,6 +17,7 @@ module;
 module i3;
 
 import utils;
+import log;
 
 static const i3Font *savedFont = nullptr;
 

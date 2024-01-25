@@ -36,6 +36,7 @@ module;
 module i3;
 
 import utils;
+import log;
 
 static std::vector<std::unique_ptr<Startup_Sequence>> startup_sequences{};
 

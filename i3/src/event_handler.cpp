@@ -5,6 +5,8 @@ module;
 #include <fmt/printf.h>
 module i3;
 
+import log;
+
 /* We keep the xcb_prepare watcher around to be able to enable and disable it
  * temporarily for drag_pointer(). */
 static ev_prepare *xcb_prepare;

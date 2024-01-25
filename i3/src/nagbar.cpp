@@ -30,6 +30,7 @@ module i3;
 
 import utils;
 
+import log;
 /*
  * Handler which will be called when we get a SIGCHLD for the nagbar, meaning
  * it exited (or could not be started, depending on the exit code).

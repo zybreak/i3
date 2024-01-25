@@ -37,6 +37,8 @@ list(APPEND libraries glib::gobject-2.0)
 find_package(fmt CONFIG REQUIRED)
 list(APPEND libraries fmt::fmt)
 
+find_package(spdlog CONFIG REQUIRED)
+
 find_package(nlohmann_json 3.11.2 REQUIRED)
 list(APPEND libraries nlohmann_json::nlohmann_json)
 
@@ -99,6 +101,16 @@ add_subdirectory(src/config/new)
 add_subdirectory(src/config/old)
 add_subdirectory(src/utils)
 
+add_library(i3_log STATIC)
+target_sources(i3_log PUBLIC
+        PUBLIC
+        FILE_SET cxx_modules TYPE CXX_MODULES
+        FILES
+        src/log/log.ixx
+)
+target_link_libraries(i3_log PUBLIC spdlog::spdlog)
+target_compile_options(i3_log PUBLIC "-pthread" "-fsized-deallocation")
+
 add_library(i3_lib STATIC)
 target_sources(i3_lib PUBLIC
         ${i3_src}
@@ -152,11 +164,10 @@ target_sources(i3_lib PUBLIC
         src/nagbar.ixx
         src/manage.ixx
         src/i3string.ixx
-        src/log.ixx
         src/i3_regex.ixx
         src/internal.ixx
         )
-target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_new i3_config_old i3_commands_old utils xpp)
+target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_new i3_config_old i3_commands_old utils xpp i3_log)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
 target_compile_options(i3_lib PUBLIC ${compile_options})
 add_dependencies(i3_lib libi3ipc)

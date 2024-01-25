@@ -29,6 +29,7 @@ struct criteria_state;
 #include <fmt/printf.h>
 
 import utils;
+import log;
 
 static bool str_to_bool(const char *s, const char *v) {
     if (s == nullptr) {
@@ -48,12 +49,12 @@ static const char * null_to_empty_str(const char *s) {
 
 namespace cfg {
     void include(struct criteria_state *criteria_state, struct ConfigResultIR &result, const char *pattern) {
-        //DLOG(fmt::sprintf("include %s\n",  pattern));
+        DLOG(fmt::sprintf("include %s\n",  pattern));
 
         wordexp_t p;
         const int ret = wordexp(pattern, &p, 0);
         if (ret != 0) {
-            //ELOG(fmt::sprintf("wordexp(%s): error %d\n",  pattern, ret));
+            ELOG(fmt::sprintf("wordexp(%s): error %d\n",  pattern, ret));
             result.has_errors = true;
             return;
         }
@@ -61,7 +62,7 @@ namespace cfg {
         for (size_t i = 0; i < p.we_wordc; i++) {
             char resolved_path[PATH_MAX] = {'\0'};
             if (realpath(w[i], resolved_path) == nullptr) {
-                //ELOG(fmt::sprintf("realpath(%s): %s\n",  w[i], strerror(errno)));
+                ELOG(fmt::sprintf("realpath(%s): %s\n",  w[i], strerror(errno)));
                 result.has_errors = true;
                 continue;
             }
@@ -70,16 +71,16 @@ namespace cfg {
                 return (strcmp(included_file.c_str(), resolved_path) == 0);
             });
             if (skip != result.ctx.included_files.end()) {
-                //LOG(fmt::sprintf("Skipping file %s (already included)\n",  resolved_path));
+                LOG(fmt::sprintf("Skipping file %s (already included)\n",  resolved_path));
                 continue;
             }
 
-            //LOG(fmt::sprintf("Including config file %s\n",  resolved_path));
+            LOG(fmt::sprintf("Including config file %s\n",  resolved_path));
 
             OldParser parser{resolved_path, result.ctx.resourceDatabase, result.ctx, result.ctx.applier};
             try {
                 parser.parse_file();
-                //ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, strerror(errno)));
+                ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, strerror(errno)));
                 result.ctx.included_files.emplace_back(resolved_path);
             } catch (std::exception &e) {
                 result.has_errors = true;

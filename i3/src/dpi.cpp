@@ -12,6 +12,8 @@ module;
 #include <fmt/printf.h>
 module i3;
 
+import log;
+
 static double dpi;
 
 static double init_dpi_fallback(xcb_screen_t *root_screen) {

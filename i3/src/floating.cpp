@@ -22,6 +22,7 @@ module;
 module i3;
 
 import utils;
+import log;
 
 /*
  * Calculates sum of heights and sum of widths of all currently active outputs

@@ -17,6 +17,7 @@ module;
 #include <fmt/printf.h>
 
 module i3;
+import log;
 
 /*
  * This is an ugly data structure which we need because there is no standard

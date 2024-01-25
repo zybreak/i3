@@ -29,6 +29,7 @@ module i3;
 
 import utils;
 import i3_config_new;
+import log;
 
 #define FREE(pointer)   \
     do {                \
@@ -234,6 +235,7 @@ static void start_config_error_nagbar(bool has_errors) {
  *
  */
 bool load_configuration(const std::string *override_configpath, config_load_t load_type) {
+    DLOG("WHAT");
     if (load_type == config_load_t::C_RELOAD) {
         free_configuration();
     }

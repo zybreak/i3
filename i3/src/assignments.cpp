@@ -16,7 +16,7 @@ module;
 module i3;
 
 import :window;
-import :log;
+import log;
 import :assignments;
 import :tree;
 

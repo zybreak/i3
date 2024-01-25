@@ -21,6 +21,7 @@ module;
 module i3;
 
 import :output;
+import log;
 
 import utils;
 

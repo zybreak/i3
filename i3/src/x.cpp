@@ -38,6 +38,7 @@ module;
 module i3;
 
 import utils;
+import log;
 
 #define COLOR_TRANSPARENT ((color_t){.red = 0.0, .green = 0.0, .blue = 0.0, .colorpixel = 0})
 
@@ -1265,7 +1266,7 @@ void x_push_changes(Con *con) {
 
             free(pointerreply);
         }
-        global.x->warp_to = nullptr;
+        global.x->warp_to = std::nullopt;
     }
 
     //DLOG("Re-enabling EnterNotify\n");
@@ -1418,8 +1419,9 @@ void x_set_i3_atoms() {
  *
  */
 void x_set_warp_to(Rect *rect) {
-    if (config.mouse_warping != POINTER_WARPING_NONE)
-        global.x->warp_to = rect;
+    if (config.mouse_warping != POINTER_WARPING_NONE) {
+        global.x->warp_to = (rect != nullptr) ? std::optional{*rect} : std::nullopt;
+    }
 }
 
 /*

@@ -21,7 +21,7 @@ module;
 export module i3:sync;
 
 import utils;
-import :log;
+import log;
 import :x;
 
 export void sync_respond(X *x, xcb_window_t window, uint32_t rnd) {

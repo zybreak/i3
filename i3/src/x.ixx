@@ -23,6 +23,7 @@ module;
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_aux.h>
 #include <xpp/xpp.hpp>
+#include <optional>
 export module i3:x;
 
 import :rect;
@@ -95,7 +96,7 @@ class X {
 
     unsigned int xcb_numlock_mask;
     /* Stores coordinates to warp mouse pointer to if set */
-    Rect *warp_to;
+    std::optional<Rect> warp_to{};
 
     std::deque<con_state*> state_head{};
     std::deque<con_state*> old_state_head{};

@@ -5,7 +5,7 @@ module;
 #include <fmt/printf.h>
 export module i3:autostarts;
 
-import :log;
+import log;
 import :startup;
 
 /**

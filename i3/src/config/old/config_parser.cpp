@@ -55,6 +55,7 @@ struct criteria_state;
 #include "base_resource_database.h"
 
 import utils;
+import log;
 
 /*******************************************************************************
  * The data structures used for parsing. Essentially the current state and a
@@ -203,8 +204,8 @@ static void unhandled_token(const std::string &input, const char *filename, int 
         position[(copywalk - error_line)] = (copywalk >= *walk ? '^' : (*copywalk == '\t' ? '\t' : ' '));
     position[(copywalk - error_line)] = '\0';
 
-    //ELOG(fmt::sprintf("CONFIG: Expected one of these tokens: %s\n", possible_tokens));
-    //ELOG(fmt::sprintf("CONFIG: (in file %s)\n", filename));
+    ELOG(fmt::sprintf("CONFIG: Expected one of these tokens: %s\n", possible_tokens));
+    ELOG(fmt::sprintf("CONFIG: (in file %s)\n", filename));
     char *error_copy = single_line(error_line);
 
     /* Print context lines *before* the error, if any. */
@@ -214,14 +215,14 @@ static void unhandled_token(const std::string &input, const char *filename, int 
         if (linecnt > 2) {
             const char *context_p2_start = start_of_line(context_p1_start - 2, input);
             char *context_p2_line = single_line(context_p2_start);
-            //ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 2, context_p2_line));
+            ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 2, context_p2_line));
             free(context_p2_line);
         }
-        //ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 1, context_p1_line));
+        ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 1, context_p1_line));
         free(context_p1_line);
     }
-    //ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt, error_copy));
-    //ELOG(fmt::sprintf("CONFIG:           %s\n",  position));
+    ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt, error_copy));
+    ELOG(fmt::sprintf("CONFIG:           %s\n",  position));
     free(error_copy);
     /* Print context lines *after* the error, if any. */
     for (int i = 0; i < 2; i++) {
@@ -229,7 +230,7 @@ static void unhandled_token(const std::string &input, const char *filename, int 
         if (error_line_end != nullptr && *(error_line_end + 1) != '\0') {
             error_line = error_line_end + 1;
             error_copy = single_line(error_line);
-            //ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt + i + 1, error_copy));
+            ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt + i + 1, error_copy));
             free(error_copy);
         }
     }
@@ -262,14 +263,13 @@ static void unhandled_token(const std::string &input, const char *filename, int 
     assert(error_token_found);
 }
 
-/* Dump the entire config file into the debug log. We cannot just use
- * //DLOG(fmt::sprintf("%s",  input)); because one log message must not exceed 4 KiB. */
+/* Dump the entire config file into the debug log. */
 static void log_config(const std::string &input) {
     std::istringstream iss(input);
 
     int linecnt = 1;
     for (std::string line; std::getline(iss, line); linecnt++) {
-        //DLOG(fmt::sprintf("CONFIG(line %3d): %s\n",  linecnt, line));
+        DLOG(fmt::sprintf("CONFIG(line %3d): %s\n",  linecnt, line));
     }
 }
 
@@ -464,13 +464,13 @@ static void upsert_variable(std::vector<std::shared_ptr<Variable>> &variables, c
             continue;
         }
 
-        //DLOG(fmt::sprintf("Updated variable: %s = %s -> %s\n",  key, current->value, value));
+        DLOG(fmt::sprintf("Updated variable: %s = %s -> %s\n",  key, current->value, value));
         FREE(current->value);
         current->value = sstrdup(value);
         return;
     }
 
-    //DLOG(fmt::sprintf("Defined new variable: %s = %s\n",  key, value));
+    DLOG(fmt::sprintf("Defined new variable: %s = %s\n",  key, value));
     auto n = std::make_shared<Variable>();
     auto loc = variables.begin();
     n->key = sstrdup(key);
@@ -540,7 +540,7 @@ static void read_file(FILE *fstr, BaseResourceDatabase &resourceDatabase, char *
             if (!comment) {
                 continue;
             }
-            //DLOG(fmt::sprintf("line continuation in comment is ignored: \"%.*s\"\n", (int)strlen(buffer) - 1, buffer));
+            DLOG(fmt::sprintf("line continuation in comment is ignored: \"%.*s\"\n", (int)strlen(buffer) - 1, buffer));
             continuation = nullptr;
         }
 
@@ -650,7 +650,7 @@ OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabas
     /* dirname(3) might modify the buffer, so make a copy: */
     char *dirbuf = sstrdup(filename);
     if ((dir = dirname(dirbuf)) != nullptr) {
-        //LOG(fmt::sprintf("Changing working directory to config file directory %s\n",  dir));
+        LOG(fmt::sprintf("Changing working directory to config file directory %s\n",  dir));
         if (chdir(dir) == -1) {
             throw std::runtime_error(fmt::sprintf("chdir(%s) failed: %s\n", dir, strerror(errno)));
         }

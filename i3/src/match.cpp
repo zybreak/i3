@@ -28,7 +28,7 @@ module i3;
 import utils;
 import :regex;
 import :match;
-import :log;
+import log;
 import :con;
 import :window;
 import :util;

@@ -39,6 +39,8 @@ module;
 #include <fmt/printf.h>
 module i3;
 
+import log;
+
 #define _NET_WM_STATE_REMOVE 0
 #define _NET_WM_STATE_ADD 1
 #define _NET_WM_STATE_TOGGLE 2

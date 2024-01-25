@@ -8,6 +8,7 @@
  *
  */
 struct criteria_state;
+#include <spdlog/spdlog.h>
 #include <config.h>
 
 #include <cstdint>
@@ -51,6 +52,7 @@ struct criteria_state;
 import i3ipc;
 import i3;
 import utils;
+import log;
 
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;
@@ -392,6 +394,7 @@ int main(int argc, char *argv[]) {
     }
 
     srand(time(nullptr));
+    set_formatting();
 
     auto args = parse_args(argc, argv);
 
