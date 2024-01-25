@@ -294,13 +294,16 @@ bool window_supports_protocol(xcb_window_t window, xcb_atom_t atom) {
     bool result = false;
 
     cookie = xcb_icccm_get_wm_protocols(**global.x, window, A_WM_PROTOCOLS);
-    if (xcb_icccm_get_wm_protocols_reply(**global.x, cookie, &protocols, nullptr) != 1)
+    if (xcb_icccm_get_wm_protocols_reply(**global.x, cookie, &protocols, nullptr) != 1) {
         return false;
+    }
 
     /* Check if the client’s protocols have the requested atom set */
-    for (uint32_t i = 0; i < protocols.atoms_len; i++)
-        if (protocols.atoms[i] == atom)
+    for (uint32_t i = 0; i < protocols.atoms_len; i++) {
+        if (protocols.atoms[i] == atom) {
             result = true;
+        }
+    }
 
     xcb_icccm_get_wm_protocols_reply_wipe(&protocols);
 
@@ -442,18 +445,21 @@ void x_draw_decoration(Con *con) {
          parent->layout != L_TABBED) ||
         parent->type == CT_OUTPUT ||
         parent->type == CT_DOCKAREA ||
-        con->type == CT_FLOATING_CON)
+        con->type == CT_FLOATING_CON) {
         return;
+    }
 
     /* Skip containers whose height is 0 (for example empty dockareas) */
-    if (con->rect.height == 0)
+    if (con->rect.height == 0) {
         return;
+    }
 
     /* Skip containers whose pixmap has not yet been created (can happen when
      * decoration rendering happens recursively for a window for which
      * x_push_node() was not yet called) */
-    if (leaf && con->frame_buffer.id == XCB_NONE)
+    if (leaf && con->frame_buffer.id == XCB_NONE) {
         return;
+    }
 
     /* 1: build deco_params and compare with cache */
     auto *p = new deco_render_params();
@@ -498,8 +504,9 @@ void x_draw_decoration(Con *con) {
     delete con->deco_render_params;
     con->deco_render_params = p;
 
-    if (con->window != nullptr && con->window->name_x_changed)
+    if (con->window != nullptr && con->window->name_x_changed) {
         con->window->name_x_changed = false;
+    }
 
     parent->pixmap_recreated = false;
     con->pixmap_recreated = false;
@@ -696,8 +703,9 @@ void x_deco_recurse(Con *con) {
     }
 
     if ((con->type != CT_ROOT && con->type != CT_OUTPUT) &&
-        (!leaf || con->mapped))
+        (!leaf || con->mapped)) {
         x_draw_decoration(con);
+    }
 }
 
 /*
@@ -711,8 +719,9 @@ static void set_hidden_state(Con *con) {
 
     con_state *state = state_for_frame(con->frame.id);
     bool should_be_hidden = con->con_is_hidden();
-    if (should_be_hidden == state->is_hidden)
-        return;
+    if (should_be_hidden == state->is_hidden) {
+            return;
+    }
 
     if (should_be_hidden) {
         DLOG(fmt::sprintf("setting _NET_WM_STATE_HIDDEN for con = %p\n",  (void*)con));
@@ -870,8 +879,9 @@ void x_push_node(Con *con) {
             }
         }
         rect.height = max_y + max_height;
-        if (rect.height == 0)
+        if (rect.height == 0) {
             con->mapped = false;
+        }
     }
 
     bool need_reshape = false;
@@ -924,8 +934,9 @@ void x_push_node(Con *con) {
     /* The root con and output cons will never require a pixmap. In particular for the
      * __i3 output, this will likely not work anyway because it might be ridiculously
      * large, causing an XCB_ALLOC error. */
-    if (con->type == CT_ROOT || con->type == CT_OUTPUT)
+    if (con->type == CT_ROOT || con->type == CT_OUTPUT) {
         is_pixmap_needed = false;
+    }
 
     bool fake_notify = false;
     /* Set new position if rect changed (and if height > 0) or if the pixmap
@@ -956,8 +967,9 @@ void x_push_node(Con *con) {
             }
 
             uint16_t win_depth = global.x->root_depth;
-            if (con->window)
+            if (con->window) {
                 win_depth = con->window->depth;
+            }
 
             /* Ensure we have valid dimensions for our surface. */
             // TODO This is probably a bug in the condition above as we should never enter this path
@@ -985,11 +997,12 @@ void x_push_node(Con *con) {
             // TODO Should this work the same way for L_TABBED?
             if (!con->parent ||
                 con->parent->layout != L_STACKED ||
-                con::first(con->parent->focus_head) == con)
+                con::first(con->parent->focus_head) == con) {
                 /* Render the decoration now to make the correct decoration visible
                  * from the very first moment. Later calls will be cached, so this
                  * doesn’t hurt performance. */
                 x_deco_recurse(con);
+            }
         }
 
         DLOG(fmt::sprintf("setting rect (%d, %d, %d, %d)\n",  rect.x, rect.y, rect.width, rect.height));
@@ -1137,8 +1150,9 @@ static void x_push_node_unmaps(Con *con) {
  * TODO: Remove once #1185 has been fixed
  */
 static bool is_con_attached(Con *con) {
-    if (con->parent == nullptr)
+    if (con->parent == nullptr) {
         return false;
+    }
 
     return std::ranges::any_of(con->parent->nodes_head, [&con](Con* current){ return current == con;});
 }
@@ -1200,8 +1214,9 @@ void x_push_changes(Con *con) {
     /* X11 correctly represents the stack if we push it from bottom to top */
     for (auto it = global.x->state_head.rbegin(); it != global.x->state_head.rend(); ++it) {
         auto &state = *it;
-        if ((state->con) && state->con->con_has_managed_window())
+        if ((state->con) && state->con->con_has_managed_window()) {
             memcpy(walk++, &(state->con->window->id), sizeof(xcb_window_t));
+        }
 
         // LOG(fmt::sprintf("stack: 0x%08x\n",  state->id));
         auto prev = std::next(it);
@@ -1210,8 +1225,9 @@ void x_push_changes(Con *con) {
             old_state_head_it = global.x->old_state_head.end();
         }
         auto old_prev = std::prev(old_state_head_it);
-        if (prev != global.x->state_head.rend() && old_prev != global.x->old_state_head.end() && *prev != *old_prev)
+        if (prev != global.x->state_head.rend() && old_prev != global.x->old_state_head.end() && *prev != *old_prev) {
             order_changed = true;
+        }
         if ((state->initial || order_changed) && prev != global.x->state_head.rend()) {
             stacking_changed = true;
             // LOG(fmt::sprintf("Stacking 0x%08x above 0x%08x\n",  prev->id, state->id));
@@ -1280,8 +1296,9 @@ void x_push_changes(Con *con) {
     x_deco_recurse(con);
 
     xcb_window_t to_focus = global.focused->frame.id;
-    if (global.focused->window != nullptr)
+    if (global.focused->window != nullptr) {
         to_focus = global.focused->window->id;
+    }
 
     if (global.x->focused_id != to_focus) {
         if (!global.focused->mapped) {
@@ -1298,8 +1315,9 @@ void x_push_changes(Con *con) {
 
                 change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->window->id : XCB_WINDOW_NONE), global.x->last_focused);
 
-                if (to_focus != global.x->last_focused && is_con_attached(global.focused))
+                if (to_focus != global.x->last_focused && is_con_attached(global.focused)) {
                     ipc_send_window_event("focus", global.focused);
+                }
             } else {
                 DLOG(fmt::sprintf("Updating focus (focused: %p / %s) to X11 window 0x%08x\n",  (void*)global.focused, global.focused->name, to_focus));
                 /* We remove XCB_EVENT_MASK_FOCUS_CHANGE from the event mask to get
@@ -1317,8 +1335,9 @@ void x_push_changes(Con *con) {
 
                 change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->window->id : XCB_WINDOW_NONE), global.x->last_focused);
 
-                if (to_focus != XCB_NONE && to_focus != global.x->last_focused && global.focused->window != nullptr && is_con_attached(global.focused))
+                if (to_focus != XCB_NONE && to_focus != global.x->last_focused && global.focused->window != nullptr && is_con_attached(global.focused)) {
                     ipc_send_window_event("focus", global.focused);
+                }
             }
 
             global.x->focused_id = global.x->last_focused = to_focus;

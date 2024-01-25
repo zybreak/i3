@@ -40,8 +40,9 @@ namespace i3ipc {
         uint32_t read_bytes = 0;
         while (read_bytes < to_read) {
             int n = read(sockfd, msg + read_bytes, to_read - read_bytes);
-            if (n == -1)
+            if (n == -1) {
                 return -1;
+            }
             if (n == 0) {
                 if (read_bytes == 0) {
                     return -2;
@@ -62,8 +63,9 @@ namespace i3ipc {
         walk += strlen(I3_IPC_MAGIC);
         memcpy(reply_length, walk, sizeof(uint32_t));
         walk += sizeof(uint32_t);
-        if (message_type != nullptr)
+        if (message_type != nullptr) {
             memcpy(message_type, walk, sizeof(uint32_t));
+        }
 
         *reply = (uint8_t*)malloc(*reply_length);
 
@@ -71,8 +73,9 @@ namespace i3ipc {
         while (read_bytes < *reply_length) {
             const int n = read(sockfd, *reply + read_bytes, *reply_length - read_bytes);
             if (n == -1) {
-                if (errno == EINTR || errno == EAGAIN)
+                if (errno == EINTR || errno == EAGAIN) {
                     continue;
+                }
                 return -1;
             }
             if (n == 0) {

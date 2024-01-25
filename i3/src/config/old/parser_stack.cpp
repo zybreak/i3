@@ -7,8 +7,9 @@ import utils;
 
 void clear_stack(stack &ctx) {
     for (auto & c : ctx.stack) {
-        if (c.type == stack_entry::STACK_STR)
+        if (c.type == stack_entry::STACK_STR) {
             free(c.val.str);
+        }
         c.identifier = nullptr;
         c.val.str = nullptr;
         c.val.num = 0;
@@ -17,20 +18,24 @@ void clear_stack(stack &ctx) {
 
 const char *get_string(stack &stack, const char *identifier) {
     for (auto & c : stack.stack) {
-        if (c.identifier == nullptr)
+        if (c.identifier == nullptr) {
             break;
-        if (strcmp(identifier, c.identifier) == 0)
+        }
+        if (strcmp(identifier, c.identifier) == 0) {
             return c.val.str;
+        }
     }
     return nullptr;
 }
 
 long get_long(stack &stack, const char *identifier) {
     for (auto & c : stack.stack) {
-        if (c.identifier == nullptr)
+        if (c.identifier == nullptr) {
             break;
-        if (strcmp(identifier, c.identifier) == 0)
+        }
+        if (strcmp(identifier, c.identifier) == 0) {
             return c.val.num;
+        }
     }
 
     return 0;
@@ -66,8 +71,9 @@ void push_long(stack &ctx, const char *identifier, long num) {
  */
 void push_string(stack &stack, const char *identifier, char *str) {
     for (auto & c : stack.stack) {
-        if (c.identifier != nullptr)
+        if (c.identifier != nullptr) {
             continue;
+        }
         /* Found a free slot, let’s store it here. */
         c.identifier = identifier;
         c.val.str = str;
@@ -94,8 +100,9 @@ void push_string(stack &stack, const char *identifier, char *str) {
 void push_string_append(stack &ctx, const char *identifier, const char *str) {
     for (auto & c : ctx.stack) {
         if (c.identifier != nullptr &&
-            strcmp(c.identifier, identifier) != 0)
+            strcmp(c.identifier, identifier) != 0) {
             continue;
+        }
         if (c.identifier == nullptr) {
             /* Found a free slot, let’s store it here. */
             c.identifier = identifier;

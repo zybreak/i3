@@ -213,18 +213,20 @@ Output *get_output_next_wrap(direction_t direction, Output *current) {
     /* If no output can be found, wrap */
     if (!best) {
         direction_t opposite;
-        if (direction == D_RIGHT)
+        if (direction == D_RIGHT) {
             opposite = D_LEFT;
-        else if (direction == D_LEFT)
+        } else if (direction == D_LEFT) {
             opposite = D_RIGHT;
-        else if (direction == D_DOWN)
+        } else if (direction == D_DOWN) {
             opposite = D_UP;
-        else
+        } else {
             opposite = D_DOWN;
+        }
         best = global.randr->get_output_next(opposite, current, FARTHEST_OUTPUT);
     }
-    if (!best)
+    if (!best) {
         best = current;
+    }
     DLOG(fmt::sprintf("current = %s, best = %s\n",  current->output_primary_name(), best->output_primary_name()));
     return best;
 }

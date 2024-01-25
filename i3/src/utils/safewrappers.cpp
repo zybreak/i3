@@ -24,36 +24,41 @@ module utils;
  */
 void *smalloc(size_t size) {
     void *result = malloc(size);
-    if (result == nullptr)
+    if (result == nullptr) {
         err(EXIT_FAILURE, "malloc(%zd)", size);
+    }
     return result;
 }
 
 void *scalloc(size_t num, size_t size) {
     void *result = calloc(num, size);
-    if (result == nullptr)
+    if (result == nullptr) {
         err(EXIT_FAILURE, "calloc(%zd, %zd)", num, size);
+    }
     return result;
 }
 
 void *srealloc(void *ptr, size_t size) {
     void *result = realloc(ptr, size);
-    if (result == nullptr && size > 0)
+    if (result == nullptr && size > 0) {
         err(EXIT_FAILURE, "realloc(%zd)", size);
+    }
     return result;
 }
 
 char *sstrdup(const char *str) {
     char *result = strdup(str);
-    if (result == nullptr)
+    if (result == nullptr) {
         err(EXIT_FAILURE, "strdup()");
+    }
     return result;
 }
 
 char *sstrndup(const char *str, size_t size) {
     char *result = strndup(str, size);
-    if (result == nullptr)
+    if (result == nullptr) {
         err(EXIT_FAILURE, "strndup()");
+    }
     return result;
 }
 
@@ -62,8 +67,9 @@ int sasprintf(char **strp, const char *fmt, ...) {
     int result;
 
     va_start(args, fmt);
-    if ((result = vasprintf(strp, fmt, args)) == -1)
+    if ((result = vasprintf(strp, fmt, args)) == -1) {
         err(EXIT_FAILURE, "asprintf(%s)", fmt);
+    }
     va_end(args);
     return result;
 }

@@ -77,7 +77,8 @@ out:
 out_atom:
     free(atom_reply);
 out_conn:
-    if (provided_conn == nullptr)
+    if (provided_conn == nullptr) {
         xcb_disconnect(conn);
+    }
     return std::make_optional<std::string>(content);
 }

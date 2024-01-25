@@ -21,8 +21,9 @@ static unsigned long get_buffer_len(const std::string &format, std::vector<place
     unsigned long buffer_len = format.length() + 1;
     for (const char *walk = format.c_str(); *walk != '\0'; walk++) {
         for (auto &placeholder : placeholders) {
-            if (!CS_STARTS_WITH(walk, placeholder.name.c_str()))
+            if (!CS_STARTS_WITH(walk, placeholder.name.c_str())) {
                 continue;
+            }
 
             buffer_len = buffer_len - placeholder.name.size() + placeholder.value.size();
             walk += placeholder.name.size() - 1;
@@ -38,8 +39,9 @@ static unsigned long get_buffer_len(const std::string &format, std::vector<place
  *
  */
 export std::string format_placeholders(const std::string &format, std::vector<placeholder_t> &placeholders) {
-    if (format.empty())
+    if (format.empty()) {
         return "";
+    }
 
     /* We have to first iterate over the string to see how much buffer space
      * we need to allocate. */
@@ -66,8 +68,9 @@ export std::string format_placeholders(const std::string &format, std::vector<pl
             break;
         }
 
-        if (!matched)
+        if (!matched) {
             *(outwalk++) = *walk;
+        }
     }
 
     *outwalk = '\0';

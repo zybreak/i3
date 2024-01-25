@@ -110,11 +110,13 @@ static void handle_button_release(const std::vector<button_t> &buttons, xcb_butt
     printf("button released on x = %d, y = %d\n",
             event->event_x, event->event_y);
     /* If the user hits the close button, we exit(0) */
-    if (event->event_x >= btn_close.x && event->event_x < btn_close.x + btn_close.width)
+    if (event->event_x >= btn_close.x && event->event_x < btn_close.x + btn_close.width) {
         exit(0);
+    }
     const button_t *button = get_button_at(buttons, event->event_x, event->event_y);
-    if (!button)
+    if (!button) {
         return;
+    }
 
     /* We need to create a custom script containing our actual command
      * since not every terminal emulator which is contained in
@@ -380,8 +382,9 @@ static void draw_nagbar(i3String *prompt,
 
     int screens;
     if ((conn = xcb_connect(nullptr, &screens)) == nullptr ||
-        xcb_connection_has_error(conn))
+        xcb_connection_has_error(conn)) {
         errx(EXIT_FAILURE, "Cannot open display");
+    }
 
 /* Place requests for the atoms we need as soon as possible */
 #define xmacro(atom) \
@@ -629,14 +632,17 @@ void start_nagbar(pid_t *nagbar_pid,
  *
  */
 void kill_nagbar(pid_t nagbar_pid, bool wait_for_it) {
-    if (nagbar_pid == -1)
+    if (nagbar_pid == -1) {
         return;
+    }
 
-    if (kill(nagbar_pid, SIGTERM) == -1)
+    if (kill(nagbar_pid, SIGTERM) == -1) {
         warn("kill(configerror_nagbar) failed");
+    }
 
-    if (!wait_for_it)
+    if (!wait_for_it) {
         return;
+    }
 
     /* When restarting, we don’t enter the ev main loop anymore and after the
      * exec(), our old pid is no longer watched. So, ev won’t handle SIGCHLD

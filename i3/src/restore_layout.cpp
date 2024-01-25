@@ -217,9 +217,10 @@ static void open_placeholder_window(x_connection *conn, Con *con) {
         /* Set the same name as was stored in the layout file. While perhaps
          * slightly confusing in the first instant, this brings additional
          * clarity to which placeholder is waiting for which actual window. */
-        if (!con->name.empty())
+        if (!con->name.empty()) {
             xcb_change_property(restore_conn, XCB_PROP_MODE_REPLACE, placeholder,
                                 A__NET_WM_NAME, A_UTF8_STRING, 8, con->name.length(), con->name.c_str());
+        }
         DLOG(fmt::sprintf("Created placeholder window 0x%08x for leaf container %p / %s\n",
              placeholder, (void*)con, con->name));
 
@@ -279,8 +280,9 @@ void restore_open_placeholder_windows(Con *parent) {
 bool restore_kill_placeholder(xcb_window_t placeholder) {
     for (auto state_ptr = states.begin(); state_ptr != states.end(); ++state_ptr) {
         auto &state = *state_ptr;
-        if (state->window != placeholder)
+        if (state->window != placeholder) {
             continue;
+        }
 
         xcb_destroy_window(restore_conn, state->window);
         draw_util_surface_free(restore_conn, &(state->surface));
@@ -295,8 +297,9 @@ bool restore_kill_placeholder(xcb_window_t placeholder) {
 
 static void expose_event(xcb_expose_event_t *event) {
     for (auto &state : states) {
-        if (state->window != event->window)
+        if (state->window != event->window) {
             continue;
+        }
 
         DLOG(fmt::sprintf("refreshing window 0x%08x contents (con %p)\n",  state->window, (void*)state->con));
 
@@ -316,8 +319,9 @@ static void expose_event(xcb_expose_event_t *event) {
  */
 static void configure_notify(xcb_configure_notify_event_t *event) {
     for (auto &state : states) {
-        if (state->window != event->window)
+        if (state->window != event->window) {
             continue;
+        }
 
         DLOG(fmt::sprintf("ConfigureNotify: window 0x%08x has now width=%d, height=%d (con %p)\n",
              state->window, event->width, event->height, (void*)state->con));

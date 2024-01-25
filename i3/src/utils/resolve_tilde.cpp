@@ -30,9 +30,9 @@ namespace utils {
         int res = glob(head.c_str(), GLOB_TILDE, nullptr, &globbuf);
 
         /* no match, or many wildcard matches are bad */
-        if (res == GLOB_NOMATCH || globbuf.gl_pathc != 1)
+        if (res == GLOB_NOMATCH || globbuf.gl_pathc != 1) {
             result = path;
-        else if (res != 0) {
+        } else if (res != 0) {
             err(EXIT_FAILURE, "glob() failed");
         } else {
             result = globbuf.gl_pathv[0];

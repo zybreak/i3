@@ -39,8 +39,9 @@ static void render_con_dockarea(Con *con, Con *child, render_params *p);
  */
 int render_deco_height() {
     int deco_height = config.font->height + 4;
-    if (config.font->height & 0x01)
+    if (config.font->height & 0x01) {
         ++deco_height;
+    }
     return deco_height;
 }
 
@@ -161,12 +162,13 @@ void render_con(Con *con) {
                 render_con(child);
             }
 
-            if (params.children != 1)
+            if (params.children != 1) {
                 /* Raise the stack con itself. This will put the stack
                  * decoration on top of every stack window. That way, when a
                  * new window is opened in the stack, the old window will not
                  * obscure part of the decoration (it’s unmapped afterwards). */
                 x_raise_con(con);
+            }
         }
     }
 }
@@ -249,19 +251,21 @@ static void render_root(Con *con, Con *fullscreen) {
                             break;
                         }
                         Con *next_transient = con_by_window_id(transient_con->window->transient_for);
-                        if (next_transient == nullptr)
+                        if (next_transient == nullptr) {
                             break;
+                        }
                         /* Some clients (e.g. x11-ssh-askpass) actually set
                          * WM_TRANSIENT_FOR to their own window id, so break instead of
                          * looping endlessly. */
-                        if (transient_con == next_transient)
+                        if (transient_con == next_transient) {
                             break;
+                        }
                         transient_con = next_transient;
                     }
 
-                    if (!is_transient_for)
+                    if (!is_transient_for) {
                         continue;
-                    else {
+                    } else {
                         DLOG(fmt::sprintf("Rendering floating child even though in fullscreen mode: "
                                           "floating->transient_for (0x%08x) --> fullscreen->id (0x%08x)\n",
                                           floating_child->window->transient_for, fullscreen->window->id));
@@ -326,8 +330,9 @@ static void render_output(Con *con) {
     /* First pass: determine the height of all CT_DOCKAREAs (the sum of their
      * children) and figure out how many pixels we have left for the rest */
     for (auto &child : con->nodes_head) {
-        if (child->type != CT_DOCKAREA)
+        if (child->type != CT_DOCKAREA) {
             continue;
+        }
 
         child->rect.height = 0;
         for (auto &dockchild : child->nodes_head) {

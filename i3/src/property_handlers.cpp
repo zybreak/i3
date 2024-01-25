@@ -106,8 +106,9 @@ static void check_crossing_screen_boundary(uint32_t x, uint32_t y) {
     Output *output;
 
     /* If the user disable focus follows mouse, we have nothing to do here */
-    if (config.disable_focus_follows_mouse)
+    if (config.disable_focus_follows_mouse) {
         return;
+    }
 
     if ((output = global.randr->get_output_containing(x, y)) == nullptr) {
         ELOG("ERROR: No such screen\n");
@@ -128,8 +129,9 @@ static void check_crossing_screen_boundary(uint32_t x, uint32_t y) {
     next->con_focus();
 
     /* If the focus changed, we re-render to get updated decorations */
-    if (old_focused != global.focused)
+    if (old_focused != global.focused) {
         tree_render();
+    }
 }
 
 /*
@@ -549,12 +551,14 @@ void PropertyHandlers::handle_destroy_notify_event(xcb_destroy_notify_event_t *e
 }
 
 static bool window_name_changed(i3Window *window, char *old_name) {
-    if ((old_name == nullptr) && (window->name == nullptr))
+    if ((old_name == nullptr) && (window->name == nullptr)) {
         return false;
+    }
 
     /* Either the old or the new one is NULL, but not both. */
-    if ((old_name == nullptr) ^ (window->name == nullptr))
+    if ((old_name == nullptr) ^ (window->name == nullptr)) {
         return true;
+    }
 
     return (strcmp(old_name, window->name->get_utf8()) != 0);
 }
@@ -572,8 +576,9 @@ static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
 
     x_push_changes(global.croot);
 
-    if (window_name_changed(con->window, old_name))
+    if (window_name_changed(con->window, old_name)) {
         ipc_send_window_event("title", con);
+    }
 
     FREE(old_name);
 
@@ -594,9 +599,9 @@ static bool handle_windowname_change_legacy(Con *con, xcb_get_property_reply_t *
 
     x_push_changes(global.croot);
 
-    if (window_name_changed(con->window, old_name))
+    if (window_name_changed(con->window, old_name)) {
         ipc_send_window_event("title", con);
-
+    }
     FREE(old_name);
 
     return true;

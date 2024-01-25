@@ -20,9 +20,11 @@ namespace utils {
         if (**walk == '"') {
             beginning++;
             (*walk)++;
-            for (; **walk != '\0' && **walk != '"'; (*walk)++)
-                if (**walk == '\\' && *(*walk + 1) != '\0')
+            for (; **walk != '\0' && **walk != '"'; (*walk)++) {
+                if (**walk == '\\' && *(*walk + 1) != '\0') {
                     (*walk)++;
+                }
+            }
         } else {
             if (!as_word) {
                 /* For a string (starting with 's'), the delimiters are
@@ -31,8 +33,9 @@ namespace utils {
                  * end a command. */
                 while (**walk != ';' && **walk != ',' &&
                        **walk != '\0' && **walk != '\r' &&
-                       **walk != '\n')
+                       **walk != '\n') {
                     (*walk)++;
+                }
             } else {
                 /* For a word, the delimiters are white space (' ' or
                  * '\t'), closing square bracket (]), comma (,) and
@@ -40,12 +43,14 @@ namespace utils {
                 while (**walk != ' ' && **walk != '\t' &&
                        **walk != ']' && **walk != ',' &&
                        **walk != ';' && **walk != '\r' &&
-                       **walk != '\n' && **walk != '\0')
+                       **walk != '\n' && **walk != '\0') {
                     (*walk)++;
+                }
             }
         }
-        if (*walk == beginning)
+        if (*walk == beginning) {
             return nullptr;
+        }
 
         char *str = (char*)scalloc(*walk - beginning + 1, 1);
         /* We copy manually to handle escaping of characters. */
@@ -56,8 +61,9 @@ namespace utils {
             /* We only handle escaped double quotes and backslashes to not break
              * backwards compatibility with people using \w in regular expressions
              * etc. */
-            if (beginning[inpos] == '\\' && (beginning[inpos + 1] == '"' || beginning[inpos + 1] == '\\'))
+            if (beginning[inpos] == '\\' && (beginning[inpos + 1] == '"' || beginning[inpos + 1] == '\\')) {
                 inpos++;
+            }
             str[outpos] = beginning[inpos];
         }
 

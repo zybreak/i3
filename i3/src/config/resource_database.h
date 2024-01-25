@@ -71,7 +71,7 @@ class ResourceDatabase : public BaseResourceDatabase {
     }
 
     ~ResourceDatabase() {
-        if (database) {
+        if (database != nullptr) {
             xcb_xrm_database_free(database);
         }
     }

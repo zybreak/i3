@@ -184,8 +184,9 @@ void start_application(const std::string_view command, bool no_startup_id) {
         signal(SIGPIPE, SIG_DFL);
         if (fork() == 0) {
             /* Setup the environment variable(s) */
-            if (!no_startup_id)
+            if (!no_startup_id) {
                 sn_launcher_context_setup_child_process(context);
+            }
             setenv("I3SOCK", global.current_socketpath.c_str(), 1);
 
             execl(_PATH_BSHELL, _PATH_BSHELL, "-c", command.data(), NULL);
@@ -271,8 +272,9 @@ std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3
      * here and don’t save it in the 'cwindow'. */
     if (startup_id_reply == nullptr || xcb_get_property_value_length(startup_id_reply) == 0) {
         DLOG(fmt::sprintf("No _NET_STARTUP_ID set on window 0x%08x\n",  cwindow->id));
-        if (cwindow->leader == XCB_NONE)
+        if (cwindow->leader == XCB_NONE) {
             return startup_sequences.end();
+        }
 
         /* This is a special case that causes the leader's startup sequence
          * to only be returned if it has never been mapped, useful primarily
@@ -325,8 +327,9 @@ std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3
  */
 char *startup_workspace_for_window(i3Window *cwindow, xcb_get_property_reply_t *startup_id_reply) {
     auto seq_ptr = startup_sequence_get(cwindow, startup_id_reply, false);
-    if (seq_ptr == startup_sequences.end())
+    if (seq_ptr == startup_sequences.end()) {
         return nullptr;
+    }
 
     /* If the startup sequence's time span has elapsed, delete it. */
     time_t current_time = time(nullptr);

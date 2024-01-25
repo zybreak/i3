@@ -104,8 +104,9 @@ static cmdp_state next_state(const cmdp_token &token, stack &stack, criteria_sta
         auto state = (cmdp_state)subcommand_output.next_state;
         /* If any subcommand requires a tree_render(), we need to make the
          * whole parser result request a tree_render(). */
-        if (subcommand_output.needs_tree_render)
+        if (subcommand_output.needs_tree_render) {
             command_output.needs_tree_render = true;
+        }
         clear_stack(stack);
         return state;
     }
@@ -138,12 +139,14 @@ bool handle_number(const char **walk, const cmdp_token &token, cmdp_state *state
     errno = 0;
     long int num = strtol(*walk, &end, 10);
     if ((errno == ERANGE && (num == LONG_MIN || num == LONG_MAX)) ||
-        (errno != 0 && num == 0))
+        (errno != 0 && num == 0)) {
         return false;
+    }
 
     /* No valid numbers found */
-    if (end == *walk)
+    if (end == *walk) {
         return false;
+    }
 
     if (token.identifier != nullptr) {
         push_long(stack, token.identifier, num);
@@ -163,8 +166,9 @@ bool handle_word(const char **walk, const cmdp_token &token, cmdp_state *state, 
         }
         /* If we are at the end of a quoted string, skip the ending
                      * double quote. */
-        if (**walk == '"')
+        if (**walk == '"') {
             (*walk)++;
+        }
         *state = next_state(token, stack, criteria_state);
         return true;
     }
@@ -178,8 +182,9 @@ bool handle_end(const char **walk, const cmdp_token &token, cmdp_state *state, s
                      * datastructure for commands which do *not* specify any
                      * criteria, we re-initialize the criteria system after
                      * every command. */
-        if (**walk == '\0' || **walk == ';')
+        if (**walk == '\0' || **walk == ';') {
             cmd::criteria_init(criteria_state, subcommand_output);
+        }
         (*walk)++;
         return true;
     }
@@ -191,8 +196,9 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
     /* Figure out how much memory we will need to fill in the names of
              * all tokens afterwards. */
     size_t tokenlen = 0;
-    for (int c = 0; c < ptr.n; c++)
+    for (int c = 0; c < ptr.n; c++) {
         tokenlen += strlen(ptr.array[c].name) + strlen("'', ");
+    }
 
     /* Build up a decent error message. We include the problem, the
              * full input, and underline the position where the parser
@@ -283,8 +289,9 @@ CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, i
         /* skip whitespace and newlines before every token */
         while ((*walk == ' ' || *walk == '\t' ||
                 *walk == '\r' || *walk == '\n') &&
-               *walk != '\0')
+               *walk != '\0') {
             walk++;
+        }
 
         cmdp_token_ptr &ptr = tokens[state];
         bool token_handled = false;

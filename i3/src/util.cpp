@@ -50,9 +50,11 @@ import log;
 __attribute__((pure))
 bool name_is_digits(const char *name) {
     /* positive integers and zero are interpreted as numbers */
-    for (size_t i = 0; i < strlen(name); i++)
-        if (!isdigit(name[i]))
+    for (size_t i = 0; i < strlen(name); i++) {
+        if (!isdigit(name[i])) {
             return false;
+        }
+    }
 
     return true;
 }
@@ -116,8 +118,8 @@ bool update_if_necessary(uint32_t *destination, const uint32_t new_value) {
  */
 static char **add_argument(char **original, const char *opt_char, const char *opt_arg, const char *opt_name) {
     int num_args;
-    for (num_args = 0; original[num_args] != nullptr; num_args++)
-        ;
+    for (num_args = 0; original[num_args] != nullptr; num_args++) {
+    }
     char **result = (char**)scalloc(num_args + 3, sizeof(char *));
 
     /* copy the arguments, but skip the ones we'll replace */
@@ -130,8 +132,9 @@ static char **add_argument(char **original, const char *opt_char, const char *op
         }
         if (!strcmp(original[i], opt_char) ||
             (opt_name && !strcmp(original[i], opt_name))) {
-            if (opt_arg)
+            if (opt_arg) {
                 skip_next = true;
+            }
             continue;
         }
         result[write_index++] = sstrdup(original[i]);
@@ -155,8 +158,9 @@ static ssize_t writeall(int fd, const void *buf, size_t count) {
     while (written < count) {
         const ssize_t n = write(fd, ((char *)buf) + written, count - written);
         if (n == -1) {
-            if (errno == EINTR || errno == EAGAIN)
+            if (errno == EINTR || errno == EAGAIN) {
                 continue;
+            }
             return n;
         }
         written += (size_t)n;
@@ -177,10 +181,11 @@ static std::string store_restart_layout() {
     std::string filename;
     if (config.restart_state_path == nullptr) {
         auto f = get_process_filename("restart-state");
-        if (!f)
+        if (!f) {
             return "";
-        else
+        } else {
             filename = f;
+        }
     } else {
         auto f = utils::resolve_tilde(config.restart_state_path);
         filename = f;
@@ -191,8 +196,9 @@ static std::string store_restart_layout() {
     char *filenamecopy = sstrdup(filename.c_str());
     char *base = dirname(filenamecopy);
      DLOG(fmt::sprintf("Creating \"%s\" for storing the restart layout\n", base));
-    if (mkdirp(base, DEFAULT_DIR_MODE) != 0)
-         ELOG(fmt::sprintf("Could not create \"%s\" for storing the restart layout, layout will be lost.\n", base));
+    if (mkdirp(base, DEFAULT_DIR_MODE) != 0) {
+        ELOG(fmt::sprintf("Could not create \"%s\" for storing the restart layout, layout will be lost.\n", base));
+    }
     free(filenamecopy);
 
     int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
@@ -369,11 +375,12 @@ static uint32_t get_mod_mask_for(uint32_t keysym,
     modmap = xcb_get_modifier_mapping_keycodes(modmap_reply);
 
     /* Get the list of keycodes for the given symbol */
-    if (!(codes = xcb_key_symbols_get_keycode(symbols, keysym)))
+    if (!(codes = xcb_key_symbols_get_keycode(symbols, keysym))) {
         return 0;
+    }
 
     /* Loop through all modifiers (Mod1-Mod5, Shift, Control, Lock) */
-    for (int mod = 0; mod < 8; mod++)
+    for (int mod = 0; mod < 8; mod++) {
         for (int j = 0; j < modmap_reply->keycodes_per_modifier; j++) {
             /* Store the current keycode (for modifier 'mod') */
             mod_code = modmap[(mod * modmap_reply->keycodes_per_modifier) + j];
@@ -388,6 +395,7 @@ static uint32_t get_mod_mask_for(uint32_t keysym,
                 return (1 << mod);
             }
         }
+    }
 
     return 0;
 }
@@ -408,8 +416,9 @@ uint32_t aio_get_mod_mask_for(uint32_t keysym, xcb_key_symbols_t *symbols) {
 
     /* Get the current modifier mapping (this is blocking!) */
     cookie = xcb_get_modifier_mapping(**global.x);
-    if (!(modmap_r = xcb_get_modifier_mapping_reply(**global.x, cookie, nullptr)))
+    if (!(modmap_r = xcb_get_modifier_mapping_reply(**global.x, cookie, nullptr))) {
         return 0;
+    }
 
     uint32_t result = get_mod_mask_for(keysym, symbols, modmap_r);
     free(modmap_r);

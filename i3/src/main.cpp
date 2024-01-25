@@ -165,30 +165,35 @@ void handle_extra_args(int argc, char *argv[]) {
     }
 
     int sockfd = socket(AF_LOCAL, SOCK_STREAM, 0);
-    if (sockfd == -1)
+    if (sockfd == -1) {
         err(EXIT_FAILURE, "Could not create socket");
+    }
 
     struct sockaddr_un addr {};
     addr.sun_family = AF_LOCAL;
     strncpy(addr.sun_path, socket_path->c_str(), sizeof(addr.sun_path) - 1);
-    if (connect(sockfd, (const struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0)
+    if (connect(sockfd, (const struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0) {
         err(EXIT_FAILURE, "Could not connect to i3");
+    }
 
     if (i3ipc::ipc_send_message(sockfd, strlen(payload.c_str()), I3_IPC_MESSAGE_TYPE_RUN_COMMAND,
-                                (uint8_t *)payload.c_str()) == -1)
+                                (uint8_t *)payload.c_str()) == -1) {
         err(EXIT_FAILURE, "IPC: write()");
+    }
 
     uint32_t reply_length;
     uint32_t reply_type;
     uint8_t *reply;
     int ret;
     if ((ret = i3ipc::ipc_recv_message(sockfd, &reply_type, &reply_length, &reply)) != 0) {
-        if (ret == -1)
+        if (ret == -1) {
             err(EXIT_FAILURE, "IPC: read()");
+        }
         exit(1);
     }
-    if (reply_type != I3_IPC_REPLY_TYPE_COMMAND)
+    if (reply_type != I3_IPC_REPLY_TYPE_COMMAND) {
         errx(EXIT_FAILURE, "IPC: received reply of type %d but expected %d (COMMAND)", reply_type, I3_IPC_REPLY_TYPE_COMMAND);
+    }
     printf("%.*s\n", reply_length, reply);
     if (reply != nullptr) {
         free(reply);
