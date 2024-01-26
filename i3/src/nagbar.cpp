@@ -620,7 +620,7 @@ void start_nagbar(pid_t *nagbar_pid,
         auto *child = new ev_child();
         ev_child_init(child, &nagbar_exited, pid, 0);
         child->data = nagbar_pid;
-        ev_child_start(main_loop, child);
+        ev_child_start(global.eventHandler->main_loop, child);
     }
 }
 

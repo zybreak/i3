@@ -298,7 +298,7 @@ static void init_ipc() {
     } else {
         auto *ipc_io = new ev_io();
         ev_io_init(ipc_io, ipc_new_client, ipc_socket, EV_READ);
-        ev_io_start(main_loop, ipc_io);
+        ev_io_start(global.eventHandler->main_loop, ipc_io);
     }
 }
 
@@ -306,7 +306,7 @@ static void confirm_restart() {
     const int restart_fd = parse_restart_fd();
     if (restart_fd != -1) {
         DLOG(fmt::sprintf("serving restart fd %d", restart_fd));
-        ipc_client *client = ipc_new_client_on_fd(main_loop, restart_fd);
+        ipc_client *client = ipc_new_client_on_fd(global.eventHandler->main_loop, restart_fd);
         ipc_confirm_restart(client);
         unsetenv("_I3_RESTART_FD");
     }
@@ -479,12 +479,14 @@ int main(int argc, char *argv[]) {
      * introduced in 1.1. */
     global.shape = new Shape(x);
 
-    auto eventHandler = new EventHandler(x);
-    global.eventHandler = eventHandler;
+    PropertyHandlers propertyHandlers {x};
+
+    EventHandler eventHandler{x, propertyHandlers};
+    global.eventHandler = &eventHandler;
 
     restore_connect();
 
-    global.handlers = new PropertyHandlers(x);
+    global.handlers = &propertyHandlers;
 
     ewmh_setup_hints();
 
@@ -543,7 +545,7 @@ int main(int argc, char *argv[]) {
         setup_signal_handler();
     }
 
-    setup_term_handlers();
+    eventHandler.setup_term_handlers();
     /* Ignore SIGPIPE to survive errors when an IPC client disconnects
      * while we are sending them a message */
     signal(SIGPIPE, SIG_IGN);
@@ -563,5 +565,5 @@ int main(int argc, char *argv[]) {
      * when calling exit() */
     atexit(i3_exit);
 
-    eventHandler->mainLoop();
+    eventHandler.loop();
 }

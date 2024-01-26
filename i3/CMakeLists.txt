@@ -89,7 +89,6 @@ list(APPEND i3_src
         src/workspace.cpp
         src/xcb.cpp
         src/x.cpp
-        src/event_handler.cpp
         )
 
 
