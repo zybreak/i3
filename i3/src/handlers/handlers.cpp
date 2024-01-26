@@ -31,7 +31,6 @@ module;
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-monitor.h>
 #include <memory>
-#include <mutex>
 #include <algorithm>
 #include <ranges>
 #include <span>
@@ -53,11 +52,6 @@ import log;
 
 import :output;
 import utils;
-
-/* After mapping/unmapping windows, a notify event is generated. However, we don’t want it,
-   since it’d trigger an infinite loop of switching between the different windows when
-   changing workspaces */
-static std::mutex mtx;
 
 /*
  * Adds the given sequence to the list of events which are ignored.
@@ -261,9 +255,9 @@ void PropertyHandlers::handle_mapping_notify(xcb_mapping_notify_event_t *event) 
 
     global.x->xcb_numlock_mask = global.keysyms->get_numlock_mask();
 
-    ungrab_all_keys(*global.x);
+    ungrab_all_keys(*x);
     translate_keysyms();
-    grab_all_keys(*global.x);
+    grab_all_keys(*x);
 }
 
 /*
@@ -317,8 +311,8 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
         COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_SIBLING, sibling);
         COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_STACK_MODE, stack_mode);
 
-        xcb_configure_window(**global.x, event->window, mask, values);
-        xcb_flush(**global.x);
+        xcb_configure_window(**x, event->window, mask, values);
+        xcb_flush(**x);
 
         return;
     }
@@ -484,7 +478,7 @@ void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event
         if (con->ignore_unmap > 0)
             con->ignore_unmap--;
         /* See the end of this function. */
-        cookie = xcb_get_input_focus(**global.x);
+        cookie = xcb_get_input_focus(**x);
         DLOG(fmt::sprintf("ignore_unmap = %d for frame of container %p\n", con->ignore_unmap, (void *)con));
         goto ignore_end;
     }
@@ -641,7 +635,7 @@ void PropertyHandlers::handle_expose_event(xcb_expose_event_t *event) {
      * only tell us that the X server lost (parts of) the window contents. */
     draw_util_copy_surface(&(parent->frame_buffer), &(parent->frame),
                            0, 0, 0, 0, parent->rect.width, parent->rect.height);
-    xcb_flush(**global.x);
+    xcb_flush(**x);
 }
 
 enum NET_WM {
@@ -1012,7 +1006,7 @@ static bool handle_clientleader_change(Con *con, xcb_get_property_reply_t *prop)
 void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
     DLOG(fmt::sprintf("focus change in, for window 0x%08x\n", event->event));
 
-    if (event->event == global.x->root) {
+    if (event->event == x->root) {
         DLOG("Received focus in for root window, refocusing the focused window.\n");
         global.focused->con_focus();
         global.x->focused_id = XCB_NONE;
@@ -1037,7 +1031,7 @@ void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
 
     /* Floating windows should be refocused to ensure that they are on top of
      * other windows. */
-    if (global.x->focused_id == event->event && !con->con_inside_floating()) {
+    if (x->focused_id == event->event && !con->con_inside_floating()) {
         DLOG("focus matches the currently focused window, not doing anything\n");
         return;
     }
@@ -1063,7 +1057,7 @@ void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
  *
  */
 void PropertyHandlers::handle_configure_notify(xcb_configure_notify_event_t *event) {
-    if (event->event != global.x->root) {
+    if (event->event != x->root) {
         DLOG(fmt::sprintf("ConfigureNotify for non-root window 0x%08x, ignoring\n", event->event));
         return;
     }

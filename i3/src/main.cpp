@@ -74,7 +74,6 @@ static void i3_exit() {
     kill_nagbar(global.config_error_nagbar_pid, false);
     kill_nagbar(global.command_error_nagbar_pid, false);
 
-    delete global.eventHandler;
 #ifdef I3_ASAN_ENABLED
     __lsan_do_leak_check();
 #endif

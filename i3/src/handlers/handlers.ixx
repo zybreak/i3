@@ -13,6 +13,7 @@ module;
 
 #include <vector>
 #include <memory>
+#include <mutex>
 
 #include <xcb/randr.h>
 export module i3:handlers;
@@ -47,26 +48,31 @@ export {
     // TODO: zybreak Rename to EventHandlers
     class PropertyHandlers {
        private:
+        X *x;
+
+        /* After mapping/unmapping windows, a notify event is generated. However, we don’t want it,
+           since it’d trigger an infinite loop of switching between the different windows when
+           changing workspaces */
+        std::mutex mtx{};
+
         std::vector<property_handler_t> property_handlers{};
         std::vector<std::unique_ptr<Ignore_Event>> ignore_events{};
         void handle_enter_notify(xcb_enter_notify_event_t *event);
-        static void handle_motion_notify(xcb_motion_notify_event_t *event);
-        static void handle_mapping_notify(xcb_mapping_notify_event_t *event);
+        void handle_motion_notify(xcb_motion_notify_event_t *event);
+        void handle_mapping_notify(xcb_mapping_notify_event_t *event);
         void handle_map_request(xcb_map_request_event_t *event);
-        static void handle_configure_request(xcb_configure_request_event_t *event);
-        static void handle_screen_change(xcb_generic_event_t *e);
+        void handle_configure_request(xcb_configure_request_event_t *event);
+        void handle_screen_change(xcb_generic_event_t *e);
         void handle_unmap_notify_event(xcb_unmap_notify_event_t *event);
         void handle_destroy_notify_event(xcb_destroy_notify_event_t *event);
-        static void handle_expose_event(xcb_expose_event_t *event);
+        void handle_expose_event(xcb_expose_event_t *event);
         void handle_client_message(xcb_client_message_event_t *event);
-        static void handle_focus_in(xcb_focus_in_event_t *event);
-        static void handle_configure_notify(xcb_configure_notify_event_t *event);
+        void handle_focus_in(xcb_focus_in_event_t *event);
+        void handle_configure_notify(xcb_configure_notify_event_t *event);
         void property_notify(xcb_property_notify_event_t *event);
-        static void handle_key_press(xcb_key_press_event_t *event);
+        void handle_key_press(xcb_key_press_event_t *event);
 
        public:
-        X *x;
-
         PropertyHandlers() = delete;
 
         /**
