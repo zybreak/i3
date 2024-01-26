@@ -10,6 +10,7 @@ import :handlers;
 import :x;
 
 export {
+    // TODO: zybreak Rename to Event or EventLoop or something
     class EventHandler {
        private:
         PropertyHandlers &handlers;
@@ -22,7 +23,8 @@ export {
        public:
         ev_loop *main_loop;
 
-        explicit EventHandler(X *x, PropertyHandlers &handlers);
+        EventHandler() = delete;
+        EventHandler(X *x, PropertyHandlers &handlers);
         ~EventHandler();
 
         void loop();

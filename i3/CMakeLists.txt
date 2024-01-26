@@ -66,7 +66,7 @@ list(APPEND i3_src
         src/ewmh.cpp
         src/floating.cpp
         src/font.cpp
-        src/property_handlers.cpp
+        src/handlers.cpp
         src/ipc.cpp
         src/load_layout.cpp
         src/nagbar.cpp

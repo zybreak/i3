@@ -44,6 +44,7 @@ export {
         }
     };
 
+    // TODO: zybreak Rename to EventHandlers
     class PropertyHandlers {
        private:
         std::vector<property_handler_t> property_handlers{};
@@ -65,6 +66,8 @@ export {
 
        public:
         X *x;
+
+        PropertyHandlers() = delete;
 
         /**
          * Sets the appropriate atoms for the property handlers after the atoms were
