@@ -76,7 +76,6 @@ list(APPEND i3_src
         src/output.cpp
         src/program_arguments.cpp
         src/randr.cpp
-        src/regex.cpp
         src/render.cpp
         src/resize.cpp
         src/restore_layout.cpp
