@@ -17,32 +17,10 @@ module;
 #include <xcb/randr.h>
 export module i3:handlers;
 
-import :x;
-
 class Con;
-
-const int _NET_MOVERESIZE_WINDOW_X = (1 << 8);
-const int _NET_MOVERESIZE_WINDOW_Y = (1 << 9);
-const int _NET_MOVERESIZE_WINDOW_WIDTH = (1 << 10);
-const int _NET_MOVERESIZE_WINDOW_HEIGHT = (1 << 11);
-
-enum NET_WM {
-   _NET_WM_MOVERESIZE_SIZE_TOPLEFT = 0,
-   _NET_WM_MOVERESIZE_SIZE_TOP,
-   _NET_WM_MOVERESIZE_SIZE_TOPRIGHT,
-   _NET_WM_MOVERESIZE_SIZE_RIGHT,
-   _NET_WM_MOVERESIZE_SIZE_BOTTOMRIGHT,
-   _NET_WM_MOVERESIZE_SIZE_BOTTOM,
-   _NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT,
-   _NET_WM_MOVERESIZE_SIZE_LEFT,
-   _NET_WM_MOVERESIZE_MOVE,          /* movement only */
-   _NET_WM_MOVERESIZE_SIZE_KEYBOARD, /* size via keyboard */
-   _NET_WM_MOVERESIZE_MOVE_KEYBOARD, /* move via keyboard */
-   _NET_WM_MOVERESIZE_CANCEL         /* cancel operation */
-};
+class X;
 
 export {
-
     struct Ignore_Event {
         int sequence;
         int response_type;
@@ -69,36 +47,26 @@ export {
     // TODO: zybreak Rename to EventHandlers
     class PropertyHandlers {
        private:
-        X *x;
-
         std::vector<property_handler_t> property_handlers{};
         std::vector<std::unique_ptr<Ignore_Event>> ignore_events{};
         void handle_enter_notify(xcb_enter_notify_event_t *event);
-        void handle_motion_notify(xcb_motion_notify_event_t *event);
-        void handle_mapping_notify(xcb_mapping_notify_event_t *event);
+        static void handle_motion_notify(xcb_motion_notify_event_t *event);
+        static void handle_mapping_notify(xcb_mapping_notify_event_t *event);
         void handle_map_request(xcb_map_request_event_t *event);
-        void handle_configure_request(xcb_configure_request_event_t *event);
-        void handle_screen_change(xcb_generic_event_t *e);
+        static void handle_configure_request(xcb_configure_request_event_t *event);
+        static void handle_screen_change(xcb_generic_event_t *e);
         void handle_unmap_notify_event(xcb_unmap_notify_event_t *event);
         void handle_destroy_notify_event(xcb_destroy_notify_event_t *event);
-        void handle_expose_event(xcb_expose_event_t *event);
+        static void handle_expose_event(xcb_expose_event_t *event);
         void handle_client_message(xcb_client_message_event_t *event);
-        void handle_focus_in(xcb_focus_in_event_t *event);
-        void handle_configure_notify(xcb_configure_notify_event_t *event);
+        static void handle_focus_in(xcb_focus_in_event_t *event);
+        static void handle_configure_notify(xcb_configure_notify_event_t *event);
         void property_notify(xcb_property_notify_event_t *event);
-        void handle_key_press(xcb_key_press_event_t *event);
-
-
-        /* ---- utility ---- */
-        /*
-         * Called with coordinates of an enter_notify event or motion_notify event
-         * to check if the user crossed virtual screen boundaries and adjust the
-         * current workspace, if so.
-         *
-         */
-        void check_crossing_screen_boundary(uint32_t x, uint32_t y);
+        static void handle_key_press(xcb_key_press_event_t *event);
 
        public:
+        X *x;
+
         PropertyHandlers() = delete;
 
         /**

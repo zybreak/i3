@@ -66,21 +66,7 @@ list(APPEND i3_src
         src/ewmh.cpp
         src/floating.cpp
         src/font.cpp
-        src/handlers/handlers.cpp
-        src/handlers/handle_client_message.cpp
-        src/handlers/handle_configure_notify.cpp
-        src/handlers/handle_configure_request.cpp
-        src/handlers/handle_destroy.cpp
-        src/handlers/handle_enter.cpp
-        src/handlers/handle_expose.cpp
-        src/handlers/handle_focus_in.cpp
-        src/handlers/handle_key_press.cpp
-        src/handlers/handle_map.cpp
-        src/handlers/handle_mapping.cpp
-        src/handlers/handle_motion.cpp
-        src/handlers/handle_property_notify.cpp
-        src/handlers/handle_screen_change.cpp
-        src/handlers/handle_unmap.cpp
+        src/handlers.cpp
         src/ipc.cpp
         src/load_layout.cpp
         src/nagbar.cpp
@@ -144,7 +130,7 @@ target_sources(i3_lib PUBLIC
         src/event_handler.ixx
         src/shape.ixx
         src/xkb.ixx
-        src/handlers/handlers.ixx
+        src/handlers.ixx
         src/criteria_state.ixx
         src/resize.ixx
         src/window.ixx
