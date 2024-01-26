@@ -66,7 +66,7 @@ list(APPEND i3_src
         src/ewmh.cpp
         src/floating.cpp
         src/font.cpp
-        src/handlers.cpp
+        src/handlers/handlers.cpp
         src/ipc.cpp
         src/load_layout.cpp
         src/nagbar.cpp
@@ -130,7 +130,7 @@ target_sources(i3_lib PUBLIC
         src/event_handler.ixx
         src/shape.ixx
         src/xkb.ixx
-        src/handlers.ixx
+        src/handlers/handlers.ixx
         src/criteria_state.ixx
         src/resize.ixx
         src/window.ixx
