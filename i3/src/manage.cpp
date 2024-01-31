@@ -362,7 +362,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             /* If it was started on a specific workspace, we want to open it there. */
             DLOG(fmt::sprintf("Using workspace on which this application was started (%s)\n", startup_ws));
             nc = con_descend_tiling_focused(workspace_get(startup_ws));
-            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", (void *)startup_ws, (void *)nc, nc->name));
+            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", startup_ws, (void *)nc, nc->name));
             if (nc->type == CT_WORKSPACE)
                 nc = tree_open_con(nc, cwindow);
             else
