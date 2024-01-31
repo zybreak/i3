@@ -82,7 +82,7 @@ list(APPEND i3_src
         src/sighandler.cpp
         src/startup.cpp
         src/dpi.cpp
-        src/draw_util.cpp
+        src/draw.cpp
         src/tree.cpp
         src/util.cpp
         src/window.cpp
