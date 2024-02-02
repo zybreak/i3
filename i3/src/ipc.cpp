@@ -38,6 +38,7 @@ module i3;
 import log;
 import i3ipc;
 import utils;
+import regex;
 
 #define FREE(pointer)   \
     do {                \

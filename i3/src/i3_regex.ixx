@@ -15,7 +15,7 @@ module;
 #include <pcre2.h>
 #include <string_view>
 #include <fmt/printf.h>
-export module i3:regex;
+export module regex;
 
 import utils;
 import log;

@@ -26,7 +26,7 @@ module;
 module i3;
 
 import utils;
-import :regex;
+import regex;
 import :match;
 import log;
 import :con;

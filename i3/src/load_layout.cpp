@@ -21,6 +21,7 @@ module i3;
 
 import utils;
 import log;
+import regex;
 
 /* TODO: refactor the whole parsing thing */
 

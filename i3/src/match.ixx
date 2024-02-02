@@ -16,9 +16,10 @@ module;
 #include <xcb/xcb.h>
 export module i3:match;
 
+import regex;
+
 class Con;
 class i3Window;
-class Regex;
 
 export {
 
