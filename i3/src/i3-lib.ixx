@@ -8,7 +8,6 @@ export module i3;
 export import :assignments;
 export import :autostarts;
 export import :bindings;
-export import :click;
 export import :configuration;
 export import :con;
 export import :util;

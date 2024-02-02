@@ -59,6 +59,16 @@ export {
         std::vector<std::unique_ptr<Ignore_Event>> ignore_events{};
 
         /**
+         * The button press X callback. This function determines whether the floating
+         * modifier is pressed and where the user clicked (decoration, border, inside
+         * the window).
+         *
+         * Then, route_click is called on the appropriate con.
+         *
+         */
+        void handle_button_press(xcb_button_press_event_t *event);
+
+        /**
          * When the user moves the mouse pointer onto a window, this callback gets called.
          */
         void handle_enter_notify(xcb_enter_notify_event_t *event);

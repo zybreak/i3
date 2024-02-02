@@ -341,7 +341,7 @@ done:
  * Then, route_click is called on the appropriate con.
  *
  */
-void handle_button_press(xcb_button_press_event_t *event) {
+void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
     Con *con;
     DLOG(fmt::sprintf("Button %d (state %d) %s on window 0x%08x (child 0x%08x) at (%d, %d) (root %d, %d)\n",
                       event->detail, event->state, (event->response_type == XCB_BUTTON_PRESS ? "press" : "release"),

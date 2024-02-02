@@ -131,7 +131,6 @@ target_sources(i3_lib PUBLIC
         src/shape.ixx
         src/xkb.ixx
         src/handlers/handlers.ixx
-        src/handlers/click.ixx
         src/criteria_state.ixx
         src/resize.ixx
         src/window.ixx
