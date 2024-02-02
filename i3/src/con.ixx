@@ -15,7 +15,7 @@ module;
 #include <xcb/xproto.h>
 export module i3:con;
 
-import :rect;
+import rect;
 import :draw;
 import :internal;
 

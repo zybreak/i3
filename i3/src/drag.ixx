@@ -14,8 +14,9 @@ module;
 
 export module i3:drag;
 
+import rect;
+
 class Con;
-class Rect;
 
 export {
 

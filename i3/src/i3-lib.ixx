@@ -26,7 +26,6 @@ export import :startup;
 export import :draw;
 export import :sync;
 export import :output;
-export import :rect;
 export import :render;
 export import :randr;
 export import :font;

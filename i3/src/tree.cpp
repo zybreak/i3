@@ -29,6 +29,7 @@ module i3;
 import :output;
 import log;
 import utils;
+import rect;
 
 /*
  * Loads tree from 'path' (used for in-place restarts).

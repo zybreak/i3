@@ -39,6 +39,7 @@ import log;
 import i3ipc;
 import utils;
 import regex;
+import rect;
 
 #define FREE(pointer)   \
     do {                \

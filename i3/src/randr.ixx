@@ -19,9 +19,9 @@ module;
 export module i3:randr;
 
 import :internal;
+import rect;
 
 class Output;
-class Rect;
 class X;
 
 export {

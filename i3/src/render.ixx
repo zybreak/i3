@@ -12,7 +12,7 @@ module;
 #include <vector>
 export module i3:render;
 
-import :rect;
+import rect;
 
 class Con;
 

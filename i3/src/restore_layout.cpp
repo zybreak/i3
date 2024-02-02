@@ -33,6 +33,8 @@ module i3;
 
 import utils;
 import log;
+import rect;
+
 typedef struct placeholder_state {
     /** The X11 placeholder window. */
     xcb_window_t window{};

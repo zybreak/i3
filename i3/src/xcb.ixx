@@ -16,7 +16,7 @@ module;
 #include "atoms.h"
 
 export module i3:xcb;
-
+import rect;
 import :internal;
 
 /* from X11/keysymdef.h */
@@ -52,7 +52,6 @@ export const uint32_t ROOT_EVENT_MASK = (XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | 
 
 
 export {
-    struct Rect;
     class Con;
 
     /**

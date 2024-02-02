@@ -17,7 +17,7 @@ module;
 #include <xcb/randr.h>
 export module i3:output;
 
-import :rect;
+import rect;
 
 class Con;
 

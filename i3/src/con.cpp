@@ -30,6 +30,7 @@ import :output;
 import :format_placeholders;
 import utils;
 import log;
+import rect;
 
 /*
  * Returns the content container below the given output container.

@@ -1,7 +1,7 @@
 module;
 #include <cstdint>
 #include <compare>
-export module i3:rect;
+export module rect;
 
 export {
     /**
@@ -14,7 +14,8 @@ export {
      * typecasts.
      *
      */
-    struct Rect {
+    class Rect {
+       public:
         uint32_t x{};
         uint32_t y{};
         uint32_t width{};

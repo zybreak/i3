@@ -39,6 +39,7 @@ module;
 module i3;
 
 import log;
+import rect;
 
 #define _NET_WM_STATE_REMOVE 0
 #define _NET_WM_STATE_ADD 1

@@ -23,6 +23,7 @@ module i3;
 
 import utils;
 import log;
+import rect;
 
 /*
  * Calculates sum of heights and sum of widths of all currently active outputs

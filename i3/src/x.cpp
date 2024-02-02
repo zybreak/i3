@@ -39,6 +39,7 @@ module i3;
 
 import utils;
 import log;
+import rect;
 
 #define COLOR_TRANSPARENT ((color_t){.red = 0.0, .green = 0.0, .blue = 0.0, .colorpixel = 0})
 

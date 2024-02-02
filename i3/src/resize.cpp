@@ -18,6 +18,7 @@ module;
 
 module i3;
 import log;
+import rect;
 
 /*
  * This is an ugly data structure which we need because there is no standard

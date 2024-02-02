@@ -19,6 +19,7 @@ module i3;
 
 import utils;
 import log;
+import rect;
 
 #define FREE(pointer)   \
     do {                \

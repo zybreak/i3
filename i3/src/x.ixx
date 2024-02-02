@@ -26,7 +26,7 @@ module;
 #include <optional>
 export module i3:x;
 
-import :rect;
+import rect;
 import :internal;
 
 class Con;
