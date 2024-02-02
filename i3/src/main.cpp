@@ -53,6 +53,7 @@ import i3ipc;
 import i3;
 import utils;
 import log;
+import program_arguments;
 
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;

@@ -1,6 +1,6 @@
 module;
 #include <string>
-export module i3:program_arguments;
+export module program_arguments;
 
 export {
     // program arguments

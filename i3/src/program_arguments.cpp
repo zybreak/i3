@@ -4,7 +4,9 @@ module;
 #include <getopt.h>
 #include <optional>
 #include <string>
-module i3;
+module program_arguments;
+
+import i3;
 
 import log;
 program_arguments parse_args(int argc, char *argv[]) {
