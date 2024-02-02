@@ -56,7 +56,6 @@ list(APPEND i3_src
         src/assignments.cpp
         src/atoms.cpp
         src/bindings.cpp
-        src/click.cpp
         src/commands/commands_parser.cpp
         src/commands/commands_applier.cpp
         src/con.cpp
@@ -66,6 +65,8 @@ list(APPEND i3_src
         src/ewmh.cpp
         src/floating.cpp
         src/font.cpp
+        src/handlers/click.cpp
+        src/handlers/client_message.cpp
         src/handlers/handlers.cpp
         src/ipc.cpp
         src/load_layout.cpp
@@ -119,7 +120,6 @@ target_sources(i3_lib PUBLIC
         src/assignments.ixx
         src/autostarts.ixx
         src/bindings.ixx
-        src/click.ixx
         src/configuration.ixx
         src/commands/commands.ixx
         src/con.ixx
@@ -131,6 +131,7 @@ target_sources(i3_lib PUBLIC
         src/shape.ixx
         src/xkb.ixx
         src/handlers/handlers.ixx
+        src/handlers/click.ixx
         src/criteria_state.ixx
         src/resize.ixx
         src/window.ixx
