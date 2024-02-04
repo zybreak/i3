@@ -11,18 +11,12 @@
  * match_matches_window() to find the windows affected by this command.
  *
  */
-#include "i3string.h"
-#include "log.h"
-#include "draw.h"
-#include "font.h"
-#include "dpi.h"
 
-#include "configuration.h"
-#include "con.h"
-#include "match.h"
 #include "config_parser.h"
 
 import utils;
+import i3;
+import log;
 
 bool Match::match_is_empty() {
     return false;

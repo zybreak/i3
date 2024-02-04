@@ -28,10 +28,9 @@ target_compile_options(test.commands_parser PUBLIC ${compile_options} -DTEST_PAR
 #target_include_directories(test.commands_parser_new PUBLIC ${include_dirs} "../src/commands/old" "../src/config/new")
 
 add_executable(test.config_parser
-    config_parser.cpp
-    mock.cpp
+        test_config_parser.cpp
 )
-target_link_libraries(test.config_parser PUBLIC ${libraries} i3_config_old)
+target_link_libraries(test.config_parser PUBLIC ${libraries} i3_config_old i3_lib)
 target_include_directories(test.config_parser PUBLIC ${include_dirs} "../src/config/old")
 target_compile_options(test.config_parser PUBLIC ${compile_options} -DTEST_PARSER)
 

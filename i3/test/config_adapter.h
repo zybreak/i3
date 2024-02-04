@@ -2,15 +2,15 @@
 
 #include <string>
 #include <iostream>
-#include "../i3/src/include/match.h"
-#include "../i3/src/config/new/base_config_applier.h"
+#include "base_config_applier.h"
+
+import i3;
 
 using namespace std::literals;
 
-
 class ConfigApplierAdapter : public BaseConfigApplier {
 private:
-    std::ostream out;
+    std::ostream &out;
 
     static std::string bool2str(bool b, const std::string &s) {
         return (b) ? s : "(null)"s;
@@ -20,7 +20,19 @@ private:
         return (s.empty()) ? "(null)"s : s;
     }
 public:
-    explicit ConfigApplierAdapter(std::stringbuf *ss) : out(ss) {
+    explicit ConfigApplierAdapter(std::ostream &out) : out(out) {
+    }
+
+    criteria_state* criteria_init(int _state) override {
+        return nullptr;
+    }
+
+    int criteria_pop_state(criteria_state *criteria_state) override {
+        return 0;
+    }
+
+    void criteria_add(criteria_state *criteria_state, const char *ctype, const char *cvalue) override {
+
     }
 
     void font(const std::string &font) override {
@@ -31,7 +43,7 @@ public:
         out << "cfg::exec(" << exectype << ", " << bool2str(no_startup_id, "--no-startup-id") << ", " << command << ")" << std::endl;
     }
 
-    void for_window(Match &current_match, const std::string &command) override {
+    void for_window(criteria_state *criteria_state, const std::string &command) override {
         out << "cfg::for_window(" << command << ")" << std::endl;
     }
 
@@ -85,15 +97,15 @@ public:
         out << "cfg::hide_edge_borders(" << borders << ")" << std::endl;
     }
 
-    void assign_output(Match &current_match, const std::string &output) override {
+    void assign_output(criteria_state *criteria_state, const std::string &output) override {
         out << "cfg::assign_output(" << output << ")" << std::endl;
     }
 
-    void assign(Match &current_match, const std::string &workspace, bool is_number) override {
+    void assign(criteria_state *criteria_state, const std::string &workspace, bool is_number) override {
         out << "cfg::assign(" << workspace << ", " << is_number << ")" << std::endl;
     }
 
-    void no_focus(Match &current_match) override {
+    void no_focus(criteria_state *criteria_state) override {
         out << "cfg::no_focus()" << std::endl;
     }
 
