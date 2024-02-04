@@ -42,5 +42,9 @@ int main(int argc, char *argv[]) {
 
     OldParser p(filename, resourceDatabase, config_load_t::C_LOAD, applier);
 
-    p.parse_file();
+    try {
+        p.parse_file();
+    } catch (std::exception &e) {
+        err(EXIT_FAILURE, e.what());
+    }
 }
