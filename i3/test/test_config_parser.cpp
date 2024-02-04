@@ -2,8 +2,12 @@
 #include "config_adapter.h"
 #include "test_resource_database.h"
 #include <err.h>
+#include <cstdlib>
 
 import i3;
+
+int fd;
+char filename[] = "/tmp/i3-config-parser-test-XXXXXX";
 
 bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *filename);
 
@@ -20,11 +24,23 @@ int main(int argc, char *argv[]) {
         content += c;
     }
 
-    ConfigApplierAdapter applier{std::cout};
+    if ((fd = mkstemp(filename)) == -1) {
+        err(EXIT_FAILURE, "mkstemp");
+    }
 
+    std::atexit([]() {
+        close(fd);
+        unlink(filename);
+    });
+
+    if (write(fd, content.c_str(), content.size()) == -1) {
+        err(EXIT_FAILURE, "write");
+    }
+
+    ConfigApplierAdapter applier{std::cout};
     TestResourceDatabase resourceDatabase{};
 
-    parser_ctx ctx{applier, resourceDatabase, config_load_t::C_LOAD};
+    OldParser p(filename, resourceDatabase, config_load_t::C_LOAD, applier);
 
-    parse_config(ctx, content, "<stdin>");
+    p.parse_file();
 }
