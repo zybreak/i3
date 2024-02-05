@@ -301,8 +301,9 @@ static nlohmann::json dump_binding(Binding *bind) {
     j["input_code"] = bind->keycode;
     j["input_type"] = bind->input_type == B_KEYBOARD ? "keyboard" : "mouse";
 
-    if (!bind->symbol.empty())
+    if (!bind->symbol.empty()) {
         j["symbol"] = bind->symbol;
+    }
 
     j["command"] = bind->command;
 
@@ -334,13 +335,14 @@ static std::string type(Con *con) {
 }
 
 static std::string orientation(Con *con) {
-    if (!con->con_is_split())
+    if (!con->con_is_split()) {
         return "none";
-    else {
-        if (con_orientation(con) == HORIZ)
+    } else {
+        if (con_orientation(con) == HORIZ) {
             return "horizontal";
-        else
+        } else {
             return "vertical";
+        }
     }
 }
 
@@ -462,8 +464,9 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
 
     j["scratchpad_state"] = scratchpad_state(con);
 
-    if (con->percent > 0.0)
+    if (con->percent > 0.0) {
         j["percent"] = con->percent;
+    }
 
     j["urgent"] = con->urgent;
     j["focused"] = (con == global.focused);
@@ -487,8 +490,9 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
 
     if (con->window && con->window->name) {
         j["name"] = con->window->name->get_utf8();
-    } else if (!con->name.empty())
+    } else if (!con->name.empty()) {
         j["name"] = con->name;
+    }
 
     if (!con->title_format.empty()) {
         j["title_format"] = con->title_format;
@@ -529,8 +533,9 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
             map["title"] = con->window->name->get_utf8();
         }
 
-        if (con->window->transient_for != XCB_NONE)
+        if (con->window->transient_for != XCB_NONE) {
             j["transient_for"] = con->window->transient_for;
+        }
 
         j["window_properties"] = map;
     }
@@ -559,8 +564,9 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
     for (auto &match : con->swallow) {
         /* We will generate a new restart_mode match specification after this
          * loop, so skip this one. */
-        if (match->restart_mode)
+        if (match->restart_mode) {
             continue;
+        }
 
         auto map = nlohmann::json::object();
 
@@ -569,11 +575,21 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
             map["insert_where"] = match->insert_where;
         }
 
-        if (match->window_class != nullptr) map["window_class"] = match->window_class->pattern;
-        if (match->instance != nullptr)     map["instance"] = match->instance->pattern;
-        if (match->window_role != nullptr)  map["window_role"] = match->window_role->pattern;
-        if (match->title != nullptr)        map["title"] = match->title->pattern;
-        if (match->machine != nullptr)      map["machine"] = match->machine->pattern;
+        if (match->window_class != nullptr) {
+            map["window_class"] = match->window_class->pattern;
+        }
+        if (match->instance != nullptr) {
+            map["instance"] = match->instance->pattern;
+        }
+        if (match->window_role != nullptr) {
+            map["window_role"] = match->window_role->pattern;
+        }
+        if (match->title != nullptr) {
+            map["title"] = match->title->pattern;
+        }
+        if (match->machine != nullptr) {
+            map["machine"] = match->machine->pattern;
+        }
 
         swallows.push_back(map);
     }
@@ -602,8 +618,9 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
 static nlohmann::json dump_bar_bindings(Barconfig *config) {
     auto a = nlohmann::json::array();
 
-    if (config->bar_bindings.empty())
+    if (config->bar_bindings.empty()) {
         return a;
+    }
 
     for (auto &current : config->bar_bindings) {
         a.push_back({
@@ -792,8 +809,9 @@ static void handle_get_outputs(ipc_client *client, uint8_t *message, int size, u
         o["primary"] = output->primary;
         o["rect"] = dump_rect(output->rect);
         Con *ws = nullptr;
-        if (output->con && (ws = output->con->con_get_fullscreen_con(CF_OUTPUT)))
+        if (output->con && (ws = output->con->con_get_fullscreen_con(CF_OUTPUT))) {
             o["current_workspace"] = ws->name;
+        }
 
         a.push_back(o);
     }
@@ -1081,9 +1099,9 @@ static void ipc_receive_message(EV_P_ ev_io *w, int revents) {
         return;
     }
 
-    if (message_type >= (sizeof(handlers) / sizeof(handler_t)))
+    if (message_type >= (sizeof(handlers) / sizeof(handler_t))) {
         DLOG(fmt::sprintf("Unhandled message type: %d\n",  message_type));
-    else {
+    } else {
         handler_t h = handlers[message_type];
         h(client, message, 0, message_length, message_type);
     }

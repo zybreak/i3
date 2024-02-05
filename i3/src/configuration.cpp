@@ -114,7 +114,7 @@ static std::string get_config_path(const std::string *override_configpath, bool 
             break;
         }
 
-        std::string tok = utils::resolve_tilde(std::string(first, found).c_str());
+        std::string tok = utils::resolve_tilde(std::string(first, found));
         tok += "/i3/config";
 
         if (std::filesystem::exists(tok)) {
@@ -270,8 +270,9 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     config.default_orientation = NO_ORIENTATION;
 
     /* Set default urgency reset delay to 500ms */
-    if (config.workspace_urgency_timer == 0)
+    if (config.workspace_urgency_timer == 0) {
         config.workspace_urgency_timer = 0.5;
+    }
 
     config.focus_wrapping = FOCUS_WRAPPING_ON;
 

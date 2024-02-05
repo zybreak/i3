@@ -336,14 +336,16 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
 
             nc = con_descend_tiling_focused(assigned_ws);
             DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", assigned_ws->name, (void *)nc, nc->name));
-            if (nc->type == CT_WORKSPACE)
+            if (nc->type == CT_WORKSPACE) {
                 nc = tree_open_con(nc, cwindow);
-            else
+            } else {
                 nc = tree_open_con(nc->parent, cwindow);
+            }
 
             /* set the urgency hint on the window if the workspace is not visible */
-            if (!workspace_is_visible(assigned_ws))
+            if (!workspace_is_visible(assigned_ws)) {
                 urgency_hint = true;
+            }
         } else if (cwindow->wm_desktop != NET_WM_DESKTOP_NONE &&
                    cwindow->wm_desktop != NET_WM_DESKTOP_ALL &&
                    (wm_desktop_ws = ewmh_get_workspace_by_index(cwindow->wm_desktop)) != nullptr) {
@@ -355,27 +357,30 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
                               (void *)wm_desktop_ws, wm_desktop_ws->name, cwindow->wm_desktop));
 
             nc = con_descend_tiling_focused(wm_desktop_ws);
-            if (nc->type == CT_WORKSPACE)
+            if (nc->type == CT_WORKSPACE) {
                 nc = tree_open_con(nc, cwindow);
-            else
+            } else {
                 nc = tree_open_con(nc->parent, cwindow);
+            }
         } else if (startup_ws) {
             /* If it was started on a specific workspace, we want to open it there. */
             DLOG(fmt::sprintf("Using workspace on which this application was started (%s)\n", startup_ws));
             nc = con_descend_tiling_focused(workspace_get(startup_ws));
             DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", startup_ws, (void *)nc, nc->name));
-            if (nc->type == CT_WORKSPACE)
+            if (nc->type == CT_WORKSPACE) {
                 nc = tree_open_con(nc, cwindow);
-            else
+            } else {
                 nc = tree_open_con(nc->parent, cwindow);
+            }
         } else {
             /* If not, insert it at the currently focused position */
             if (global.focused->type == CT_CON && global.focused->con_accepts_window()) {
                 LOG(fmt::sprintf("using current container, focused = %p, focused->name = %s\n",
                                  (void *)global.focused, global.focused->name));
                 nc = global.focused;
-            } else
+            } else {
                 nc = tree_open_con(nullptr, cwindow);
+            }
         }
         auto outputAssignmentOpt = assignment_for(cwindow, A_TO_OUTPUT);
         if (outputAssignmentOpt.has_value()) {
@@ -437,8 +442,9 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
              * of an output, move the window to that output. This is
              * needed e.g. for LibreOffice Impress multi-monitor
              * presentations to work out of the box. */
-            if (output != nullptr)
+            if (output != nullptr) {
                 con_move_to_output(nc, output, false);
+            }
             con_toggle_fullscreen(nc, CF_OUTPUT);
         }
         fs = nullptr;
@@ -496,8 +502,9 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         want_floating = true;
     }
 
-    if (xcb_reply_contains_atom(state_reply, A__NET_WM_STATE_STICKY))
+    if (xcb_reply_contains_atom(state_reply, A__NET_WM_STATE_STICKY)) {
         nc->sticky = true;
+    }
 
     /* We ignore the hint for an internal workspace because windows in the
      * scratchpad also have this value, but upon restarting i3 we don't want
@@ -531,29 +538,33 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
                     break;
                 }
                 Con *next_transient = con_by_window_id(transient_win->transient_for);
-                if (next_transient == nullptr)
+                if (next_transient == nullptr) {
                     break;
+                }
                 /* Some clients (e.g. x11-ssh-askpass) actually set
                  * WM_TRANSIENT_FOR to their own window id, so break instead of
                  * looping endlessly. */
-                if (transient_win == next_transient->window)
+                if (transient_win == next_transient->window) {
                     break;
+                }
                 transient_win = next_transient->window;
             }
         }
     }
 
     /* dock clients cannot be floating, that makes no sense */
-    if (cwindow->dock)
+    if (cwindow->dock) {
         want_floating = false;
+    }
 
     /* Store the requested geometry. The width/height gets raised to at least
      * 75x50 when entering floating mode, which is the minimum size for a
      * window to be useful (smaller windows are usually overlays/toolbars/…
      * which are not managed by the wm anyways). We store the original geometry
      * here because it’s used for dock clients. */
-    if (nc->geometry.width == 0)
+    if (nc->geometry.width == 0) {
         nc->geometry = (Rect){(uint32_t)geom->x, (uint32_t)geom->y, geom->width, geom->height};
+    }
 
     if (motif_border_style != BS_NORMAL) {
         DLOG(fmt::sprintf("MOTIF_WM_HINTS specifies decorations (border_style = %d)\n", motif_border_style));
@@ -806,8 +817,9 @@ void update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_bo
 #define MWM_DECOR_BORDER (1 << 1)
 #define MWM_DECOR_TITLE (1 << 3)
 
-    if (motif_border_style != nullptr)
+    if (motif_border_style != nullptr) {
         *motif_border_style = BS_NORMAL;
+    }
 
     if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
         return;
@@ -827,12 +839,13 @@ void update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_bo
     if (motif_border_style != nullptr &&
         motif_hints[MWM_HINTS_FLAGS_FIELD] & MWM_HINTS_DECORATIONS) {
         if (motif_hints[MWM_HINTS_DECORATIONS_FIELD] & MWM_DECOR_ALL ||
-            motif_hints[MWM_HINTS_DECORATIONS_FIELD] & MWM_DECOR_TITLE)
+            motif_hints[MWM_HINTS_DECORATIONS_FIELD] & MWM_DECOR_TITLE) {
             *motif_border_style = BS_NORMAL;
-        else if (motif_hints[MWM_HINTS_DECORATIONS_FIELD] & MWM_DECOR_BORDER)
+        } else if (motif_hints[MWM_HINTS_DECORATIONS_FIELD] & MWM_DECOR_BORDER) {
             *motif_border_style = BS_PIXEL;
-        else
+        } else {
             *motif_border_style = BS_NONE;
+        }
     }
 
 #undef MWM_HINTS_FLAGS_FIELD

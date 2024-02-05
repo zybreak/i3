@@ -146,24 +146,30 @@ void configure_binding(const std::string_view bindtype, const std::string_view m
     new_binding->command = command;
     new_binding->event_state_mask = event_state_from_str(modifiers.data());
     int group_bits_set = 0;
-    if ((new_binding->event_state_mask >> 16) & I3_XKB_GROUP_MASK_1)
+    if ((new_binding->event_state_mask >> 16) & I3_XKB_GROUP_MASK_1) {
         group_bits_set++;
-    if ((new_binding->event_state_mask >> 16) & I3_XKB_GROUP_MASK_2)
+    }
+    if ((new_binding->event_state_mask >> 16) & I3_XKB_GROUP_MASK_2) {
         group_bits_set++;
-    if ((new_binding->event_state_mask >> 16) & I3_XKB_GROUP_MASK_3)
+    }
+    if ((new_binding->event_state_mask >> 16) & I3_XKB_GROUP_MASK_3) {
         group_bits_set++;
-    if ((new_binding->event_state_mask >> 16) & I3_XKB_GROUP_MASK_4)
+    }
+    if ((new_binding->event_state_mask >> 16) & I3_XKB_GROUP_MASK_4) {
         group_bits_set++;
-    if (group_bits_set > 1)
+    }
+    if (group_bits_set > 1) {
         ELOG("Keybinding has more than one Group specified, but your X server is always in precisely one group. The keybinding can never trigger.\n");
+    }
 
     mode_from_name(modename.data(), pango_markup, std::move(new_binding));
 }
 
 static bool binding_in_current_group(const Binding *bind) {
     /* If no bits are set, the binding should be installed in every group. */
-    if ((bind->event_state_mask >> 16) == I3_XKB_GROUP_MASK_ANY)
+    if ((bind->event_state_mask >> 16) == I3_XKB_GROUP_MASK_ANY) {
         return true;
+    }
     switch (global.xkb_current_group) {
         case XCB_XKB_GROUP_1:
             return ((bind->event_state_mask >> 16) & I3_XKB_GROUP_MASK_1);
@@ -217,11 +223,13 @@ void ungrab_all_keys(x_connection *conn) {
  */
 void grab_all_keys(x_connection *conn) {
     for (auto &bind : current_mode->bindings) {
-        if (bind->input_type != B_KEYBOARD)
+        if (bind->input_type != B_KEYBOARD) {
             continue;
+        }
 
-        if (!binding_in_current_group(bind.get()))
+        if (!binding_in_current_group(bind.get())) {
             continue;
+        }
 
         /* The easy case: the user specified a keycode directly. */
         if (bind->keycode > 0) {
@@ -248,8 +256,9 @@ void regrab_all_buttons(x_connection *conn) {
     conn->grab_server();
 
     for (const auto &con : global.all_cons) {
-        if (con->window == nullptr)
+        if (con->window == nullptr) {
             continue;
+        }
 
         conn->ungrab_button(XCB_BUTTON_INDEX_ANY, con->window->id, XCB_BUTTON_MASK_ANY);
         xcb_grab_buttons(con->window->id, buttons);
@@ -270,10 +279,12 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
         /* On a press event, we first reset all B_UPON_KEYRELEASE_IGNORE_MODS
          * bindings back to B_UPON_KEYRELEASE */
         for (auto &bind : current_mode->bindings) {
-            if (bind->input_type != input_type)
+            if (bind->input_type != input_type) {
                 continue;
-            if (bind->release == B_UPON_KEYRELEASE_IGNORE_MODS)
+            }
+            if (bind->release == B_UPON_KEYRELEASE_IGNORE_MODS) {
                 bind->release = B_UPON_KEYRELEASE;
+            }
         }
     }
 
@@ -420,18 +431,22 @@ static void add_keycode_if_matches(xkb_keymap *keymap, xkb_keycode_t key, void *
         /* Check if Shift was specified, and try resolving the symbol without
          * shift, so that “bindsym $mod+Shift+a nop” actually works. */
         const xkb_layout_index_t layout = xkb_state_key_get_layout(resolving->state, key);
-        if (layout == XKB_LAYOUT_INVALID)
+        if (layout == XKB_LAYOUT_INVALID) {
             return;
-        if (xkb_state_key_get_level(resolving->state, key, layout) > 1)
+        }
+        if (xkb_state_key_get_level(resolving->state, key, layout) > 1) {
             return;
+        }
         /* Skip the Shift fallback for keypad keys, otherwise one cannot bind
          * KP_1 independent of KP_End. */
-        if (sym >= XKB_KEY_KP_Space && sym <= XKB_KEY_KP_Equal)
+        if (sym >= XKB_KEY_KP_Space && sym <= XKB_KEY_KP_Equal) {
             return;
+        }
         numlock_state = resolving->xkb_state_numlock_no_shift;
         sym = xkb_state_key_get_one_sym(resolving->xkb_state_no_shift, key);
-        if (sym != resolving->keysym)
+        if (sym != resolving->keysym) {
             return;
+        }
     }
     Binding *bind = resolving->bind;
 
@@ -501,12 +516,13 @@ void translate_keysyms() {
         }
 
         xkb_layout_index_t group = XCB_XKB_GROUP_1;
-        if ((bind->event_state_mask >> 16) & I3_XKB_GROUP_MASK_2)
+        if ((bind->event_state_mask >> 16) & I3_XKB_GROUP_MASK_2) {
             group = XCB_XKB_GROUP_2;
-        else if ((bind->event_state_mask >> 16) & I3_XKB_GROUP_MASK_3)
+        } else if ((bind->event_state_mask >> 16) & I3_XKB_GROUP_MASK_3) {
             group = XCB_XKB_GROUP_3;
-        else if ((bind->event_state_mask >> 16) & I3_XKB_GROUP_MASK_4)
+        } else if ((bind->event_state_mask >> 16) & I3_XKB_GROUP_MASK_4) {
             group = XCB_XKB_GROUP_4;
+        }
 
         DLOG(fmt::sprintf("Binding %p group = %d, event_state_mask = %d, &2 = %s, &3 = %s, &4 = %s\n",
              (void*)bind.get(),
@@ -625,14 +641,17 @@ void translate_keysyms() {
 
             /* check for duplicate bindings */
             for (auto &check : current_mode->bindings) {
-                if (check == bind)
+                if (check == bind) {
                     continue;
-                if (!check->symbol.empty())
+                }
+                if (!check->symbol.empty()) {
                     continue;
+                }
                 if (check->keycode != binding_keycode.keycode ||
                     check->event_state_mask != binding_keycode.modifiers ||
-                    check->release != bind->release)
+                    check->release != bind->release) {
                     continue;
+                }
                 has_errors = true;
                 ELOG(fmt::sprintf("Duplicate keybinding in config file:\n  keysym = %s, keycode = %d, state_mask = 0x%x\n",  bind->symbol, check->keycode, bind->event_state_mask));
             }
@@ -660,8 +679,9 @@ void switch_mode(const std::string_view &new_mode) {
     DLOG(fmt::sprintf("Switching to mode %s\n",  new_mode));
 
     for (auto &mode : modes) {
-        if (mode->name != new_mode)
+        if (mode->name != new_mode) {
             continue;
+        }
 
         ungrab_all_keys(*global.x);
         current_mode = mode.get();
@@ -671,8 +691,9 @@ void switch_mode(const std::string_view &new_mode) {
         /* Reset all B_UPON_KEYRELEASE_IGNORE_MODS bindings to avoid possibly
          * activating one of them. */
         for (auto &bind : current_mode->bindings) {
-            if (bind->release == B_UPON_KEYRELEASE_IGNORE_MODS)
+            if (bind->release == B_UPON_KEYRELEASE_IGNORE_MODS) {
                 bind->release = B_UPON_KEYRELEASE;
+            }
         }
 
         std::string event_msg = fmt::sprintf(R"({"change":"%s", "pango_markup":%s})", mode->name, (mode->pango_markup ? "true" : "false"));
@@ -824,8 +845,9 @@ static int fill_rmlvo_from_root(xkb_rule_names *xkb_names) {
     size_t content_max_words = 256;
 
     auto atom_reply = global.x->conn->intern_atom(0, strlen("_XKB_RULES_NAMES"), "_XKB_RULES_NAMES");
-    if (atom_reply->length == 0)
+    if (atom_reply->length == 0) {
         return -1;
+    }
 
     auto prop_reply = global.x->conn->get_property(false, global.x->root, atom_reply->atom,
                                                         XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
@@ -939,8 +961,9 @@ std::set<int> bindings_get_buttons_to_grab() {
 
     for (auto &bind : current_mode->bindings) {
         /* We are only interested in whole window mouse bindings. */
-        if (bind->input_type != B_MOUSE || !bind->whole_window)
+        if (bind->input_type != B_MOUSE || !bind->whole_window) {
             continue;
+        }
 
         long button;
         if (!parse_long(bind->symbol.c_str() + (sizeof("button") - 1), &button, 10)) {

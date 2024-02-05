@@ -26,30 +26,29 @@ export const uint32_t XCB_NUM_LOCK = 0xff7f;
    need to set slight variations of them (without XCB_EVENT_MASK_ENTER_WINDOW
    while rendering the layout) */
 /** The XCB_CW_EVENT_MASK for the child (= real window) */
-export const uint32_t CHILD_EVENT_MASK = (XCB_EVENT_MASK_PROPERTY_CHANGE |  \
-                          XCB_EVENT_MASK_STRUCTURE_NOTIFY | \
-                          XCB_EVENT_MASK_FOCUS_CHANGE);
+export const uint32_t CHILD_EVENT_MASK = (XCB_EVENT_MASK_PROPERTY_CHANGE |
+                                          XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+                                          XCB_EVENT_MASK_FOCUS_CHANGE);
 
 /** The XCB_CW_EVENT_MASK for its frame */
-export const uint32_t FRAME_EVENT_MASK = (XCB_EVENT_MASK_BUTTON_PRESS | /* …mouse is pressed/released */                       \
-                          XCB_EVENT_MASK_BUTTON_RELEASE |                                                        \
-                          XCB_EVENT_MASK_POINTER_MOTION |        /* …mouse is moved */                         \
-                          XCB_EVENT_MASK_EXPOSURE |              /* …our window needs to be redrawn */         \
-                          XCB_EVENT_MASK_STRUCTURE_NOTIFY |      /* …the frame gets destroyed */               \
-                          XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | /* …the application tries to resize itself */ \
-                          XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY |   /* …subwindows get notifies */                \
-                          XCB_EVENT_MASK_ENTER_WINDOW);           /* …user moves cursor inside our window */
+export const uint32_t FRAME_EVENT_MASK = (XCB_EVENT_MASK_BUTTON_PRESS | /* …mouse is pressed/released */
+                                          XCB_EVENT_MASK_BUTTON_RELEASE |
+                                          XCB_EVENT_MASK_POINTER_MOTION |        /* …mouse is moved */
+                                          XCB_EVENT_MASK_EXPOSURE |              /* …our window needs to be redrawn */
+                                          XCB_EVENT_MASK_STRUCTURE_NOTIFY |      /* …the frame gets destroyed */
+                                          XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT | /* …the application tries to resize itself */
+                                          XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY |   /* …subwindows get notifies */
+                                          XCB_EVENT_MASK_ENTER_WINDOW);          /* …user moves cursor inside our window */
 
-export const uint32_t ROOT_EVENT_MASK = (XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |                                       \
-                         XCB_EVENT_MASK_BUTTON_PRESS |                                                \
-                         XCB_EVENT_MASK_STRUCTURE_NOTIFY | /* when the user adds a screen (e.g. video \
-                                                            * projector), the root window gets a      \
-                                                            * ConfigureNotify */                      \
-                         XCB_EVENT_MASK_POINTER_MOTION |                                              \
-                         XCB_EVENT_MASK_PROPERTY_CHANGE |                                             \
-                         XCB_EVENT_MASK_FOCUS_CHANGE |                                                \
-                         XCB_EVENT_MASK_ENTER_WINDOW);
-
+export const uint32_t ROOT_EVENT_MASK = (XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
+                                         XCB_EVENT_MASK_BUTTON_PRESS |
+                                         XCB_EVENT_MASK_STRUCTURE_NOTIFY | /* when the user adds a screen (e.g. video \
+                                                                            * projector), the root window gets a      \
+                                                                            * ConfigureNotify */
+                                         XCB_EVENT_MASK_POINTER_MOTION |
+                                         XCB_EVENT_MASK_PROPERTY_CHANGE |
+                                         XCB_EVENT_MASK_FOCUS_CHANGE |
+                                         XCB_EVENT_MASK_ENTER_WINDOW);
 
 export {
     class Con;
@@ -130,5 +129,5 @@ export {
      * Grab the specified buttons on a window when managing it.
      *
      */
-    void xcb_grab_buttons(xcb_window_t window, std::set<int> &buttons);
+    void xcb_grab_buttons(xcb_window_t window, std::set<int> & buttons);
 }

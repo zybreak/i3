@@ -12,11 +12,10 @@ module;
 export module i3:sighandler;
 
 export {
-
-/**
- * Configured a signal handler to gracefully handle crashes and allow the user
- * to generate a backtrace and rescue their session.
- *
- */
-void setup_signal_handler();
+    /**
+     * Configured a signal handler to gracefully handle crashes and allow the user
+     * to generate a backtrace and rescue their session.
+     *
+     */
+    void setup_signal_handler();
 }

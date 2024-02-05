@@ -75,9 +75,9 @@ void EventHandler::xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
 
     while ((event = xcb_poll_for_event(**x)) != nullptr) {
         if (event->response_type == 0) {
-            if (handlers.event_is_ignored(event->sequence, 0))
+            if (handlers.event_is_ignored(event->sequence, 0)) {
                 DLOG(fmt::sprintf("Expected X11 Error received for sequence %x\n", event->sequence));
-            else {
+            } else {
                 auto *error = (xcb_generic_error_t *)event;
                 DLOG(fmt::sprintf("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
                                   error->sequence, error->error_code));

@@ -67,8 +67,9 @@ static uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen
 
     /* Lookup this colorpixel in the cache */
     for (const auto &colorpixel : colorpixels) {
-        if (strcmp(colorpixel->hex, hex) == 0)
+        if (strcmp(colorpixel->hex, hex) == 0) {
             return colorpixel->pixel;
+        }
     }
 
     int r16 = RGB_8_TO_16(r);
@@ -111,8 +112,9 @@ void draw_util_surface_init(xcb_connection_t *conn, surface_t *surface, xcb_draw
     surface->width = width;
     surface->height = height;
 
-    if (visual == nullptr)
+    if (visual == nullptr) {
         visual = global.x->visual_type;
+    }
 
     surface->gc = xcb_generate_id(conn);
     xcb_void_cookie_t gc_cookie = xcb_create_gc_checked(conn, surface->gc, surface->id, 0, nullptr);

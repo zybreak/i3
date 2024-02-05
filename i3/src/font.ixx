@@ -46,7 +46,7 @@ export {
      * font was previously loaded, it will be freed.
      *
      */
-    i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *pattern, const bool fallback);
+    i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *pattern, bool fallback);
 
     /**
      * Defines the font to be used for the forthcoming calls.
@@ -60,12 +60,6 @@ export {
      *
      */
     void free_font(xcb_connection_t *conn);
-
-    /**
-     * Defines the colors to be used for the forthcoming draw_text calls.
-     *
-     */
-    void set_font_colors(xcb_connection_t *conn, xcb_gcontext_t gc, color_t foreground, color_t background);
 
     /**
      * Draws text onto the specified X drawable (normally a pixmap) at the

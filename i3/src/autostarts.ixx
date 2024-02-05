@@ -19,7 +19,7 @@ export struct Autostart {
     /** Command, like in command mode */
     std::string command;
     /** no_startup_id flag for start_application(). Determines whether a
-         * startup notification context/ID should be created. */
+     * startup notification context/ID should be created. */
     bool no_startup_id;
 };
 
@@ -33,7 +33,7 @@ export void autostart() {
     while (!autostarts.empty()) {
         auto &exec = autostarts.front();
 
-        LOG(fmt::sprintf("auto-starting %s\n",  exec->command));
+        LOG(fmt::sprintf("auto-starting %s\n", exec->command));
         start_application(exec->command, exec->no_startup_id);
 
         autostarts.erase(autostarts.begin());
@@ -52,7 +52,7 @@ export void autostart_always() {
     while (!autostarts_always.empty()) {
         auto &exec_always = autostarts_always.front();
 
-        LOG(fmt::sprintf("auto-starting (always!) %s\n",  exec_always->command));
+        LOG(fmt::sprintf("auto-starting (always!) %s\n", exec_always->command));
         start_application(exec_always->command, exec_always->no_startup_id);
 
         autostarts_always.erase(autostarts_always.begin());

@@ -30,8 +30,9 @@ import rect;
  *
  */
 static Rect total_outputs_dimensions(xcb_screen_t *root_screen) {
-    if (global.randr->outputs.empty())
+    if (global.randr->outputs.empty()) {
         return (Rect){0, 0, root_screen->width_in_pixels, root_screen->height_in_pixels};
+    }
 
     /* Use Rect to encapsulate dimensions, ignoring x/y */
     Rect outputs_dimensions = {0, 0, 0, 0};
@@ -299,8 +300,9 @@ bool floating_enable(Con *con, bool automatic) {
     if (focus_before_parent) {
         if (focus_head_placeholder) {
             auto it = std::ranges::find(fh, focus_head_placeholder);
-            if (it != fh.end())
+            if (it != fh.end()) {
                 it++;
+            }
             fh.insert(it, nc);
         } else {
             fh.push_front(nc);
@@ -353,8 +355,9 @@ bool floating_enable(Con *con, bool automatic) {
     con->floating = FLOATING_USER_ON;
 
     /* 4: set the border style as specified with new_float */
-    if (automatic)
+    if (automatic) {
         con->border_style = config.default_floating_border;
+    }
 
     /* Add pixels for the decoration. */
     Rect border_style_rect = con_border_style_rect(con);
@@ -422,8 +425,9 @@ bool floating_enable(Con *con, bool automatic) {
     /* render the cons to get initial window_rect correct */
     render_con(nc);
 
-    if (set_focus)
+    if (set_focus) {
         con->con_activate();
+    }
 
     floating_set_hint_atom(nc, true);
     ipc_send_window_event("floating", con);
@@ -568,10 +572,12 @@ void floating_move_to_pointer(Con *con) {
     /* Correct target coordinates to be in-bounds. */
     x = std::max(x, (int32_t)output->rect.x);
     y = std::max(y, (int32_t)output->rect.y);
-    if (x + con->rect.width > output->rect.x + output->rect.width)
+    if (x + con->rect.width > output->rect.x + output->rect.width) {
         x = output->rect.x + output->rect.width - con->rect.width;
-    if (y + con->rect.height > output->rect.y + output->rect.height)
+    }
+    if (y + con->rect.height > output->rect.y + output->rect.height) {
         y = output->rect.y + output->rect.height - con->rect.height;
+    }
 
     /* Update container's coordinates to position it correctly. */
     floating_reposition(con, (Rect){(uint32_t)x, (uint32_t)y, con->rect.width, con->rect.height});
@@ -588,8 +594,9 @@ static void drag_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uint3
     xcb_flush(**global.x);
 
     /* Check if we cross workspace boundaries while moving */
-    if (!floating_maybe_reassign_ws(con))
+    if (!floating_maybe_reassign_ws(con)) {
         return;
+    }
     /* Ensure not to warp the pointer while dragging */
     x_set_warp_to(nullptr);
     tree_render();
@@ -625,8 +632,9 @@ void floating_drag_window(Con *con, const xcb_button_press_event_t *event, bool 
     }
 
     /* If this is a scratchpad window, don't auto center it from now on. */
-    if (con->scratchpad_state == SCRATCHPAD_FRESH)
+    if (con->scratchpad_state == SCRATCHPAD_FRESH) {
         con->scratchpad_state = SCRATCHPAD_CHANGED;
+    }
 
     tree_render();
 }
@@ -657,15 +665,17 @@ static void resize_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uin
 
     /* First guess: We resize by exactly the amount the mouse moved,
      * taking into account in which corner the client was grabbed */
-    if (corner & BORDER_LEFT)
+    if (corner & BORDER_LEFT) {
         dest_width = old_rect->width - (new_x - event->root_x);
-    else
+    } else {
         dest_width = old_rect->width + (new_x - event->root_x);
+    }
 
-    if (corner & BORDER_TOP)
+    if (corner & BORDER_TOP) {
         dest_height = old_rect->height - (new_y - event->root_y);
-    else
+    } else {
         dest_height = old_rect->height + (new_y - event->root_y);
+    }
 
     /* User wants to keep proportions, so we may have to adjust our values */
     if (params->proportional) {
@@ -680,11 +690,13 @@ static void resize_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uin
 
     /* If not the lower right corner is grabbed, we must also reposition
      * the client by exactly the amount we resized it */
-    if (corner & BORDER_LEFT)
+    if (corner & BORDER_LEFT) {
         dest_x = old_rect->x + (old_rect->width - con->rect.width);
+    }
 
-    if (corner & BORDER_TOP)
+    if (corner & BORDER_TOP) {
         dest_y = old_rect->y + (old_rect->height - con->rect.height);
+    }
 
     con->rect.x = dest_x;
     con->rect.y = dest_y;
@@ -707,10 +719,11 @@ void floating_resize_window(Con *con, const bool proportional,
      * a bitmask of the nearest borders (BORDER_LEFT, BORDER_RIGHT, …) */
     auto corner = (border_t)0;
 
-    if (event->event_x <= (int16_t)(con->rect.width / 2))
+    if (event->event_x <= (int16_t)(con->rect.width / 2)) {
         corner = (border_t)(corner | BORDER_LEFT);
-    else
+    } else {
         corner = (border_t)(corner | BORDER_RIGHT);
+    }
 
     int cursor = 0;
     if (event->event_y <= (int16_t)(con->rect.height / 2)) {
@@ -734,12 +747,14 @@ void floating_resize_window(Con *con, const bool proportional,
     }
 
     /* If the user cancels, undo the resize */
-    if (drag_result == DRAG_REVERT)
+    if (drag_result == DRAG_REVERT) {
         floating_reposition(con, initial_rect);
+    }
 
     /* If this is a scratchpad window, don't auto center it from now on. */
-    if (con->scratchpad_state == SCRATCHPAD_FRESH)
+    if (con->scratchpad_state == SCRATCHPAD_FRESH) {
         con->scratchpad_state = SCRATCHPAD_CHANGED;
+    }
 }
 
 /*
@@ -762,8 +777,9 @@ bool floating_reposition(Con *con, Rect newrect) {
     floating_maybe_reassign_ws(con);
 
     /* If this is a scratchpad window, don't auto center it from now on. */
-    if (con->scratchpad_state == SCRATCHPAD_FRESH)
+    if (con->scratchpad_state == SCRATCHPAD_FRESH) {
         con->scratchpad_state = SCRATCHPAD_CHANGED;
+    }
 
     tree_render();
     return true;
@@ -789,16 +805,19 @@ void floating_resize(Con *floating_con, uint32_t x, uint32_t y) {
     bool prefer_height = (rect.width == x);
     rect.width = x;
     rect.height = y;
-    if (wi)
+    if (wi) {
         rect.width += (wi - 1 - rect.width) % wi;
-    if (hi)
+    }
+    if (hi) {
         rect.height += (hi - 1 - rect.height) % hi;
+    }
 
     floating_check_size(floating_con, prefer_height);
 
     /* If this is a scratchpad window, don't auto center it from now on. */
-    if (floating_con->scratchpad_state == SCRATCHPAD_FRESH)
+    if (floating_con->scratchpad_state == SCRATCHPAD_FRESH) {
         floating_con->scratchpad_state = SCRATCHPAD_CHANGED;
+    }
 }
 
 /*

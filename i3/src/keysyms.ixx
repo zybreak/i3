@@ -9,6 +9,7 @@ import :x;
 export class Keysyms {
    private:
     X *x;
+
    public:
     xcb_key_symbols_t *keysyms;
 
@@ -21,7 +22,8 @@ export class Keysyms {
     void key_symbols_alloc();
 };
 
-Keysyms::Keysyms(X *x): x(x) {
+Keysyms::Keysyms(X *x)
+    : x(x) {
     keysyms = xcb_key_symbols_alloc(**x);
 }
 

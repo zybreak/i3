@@ -19,9 +19,9 @@ export class Xkb {
         auto xkb_ext = conn->extension<xpp::xkb::extension>();
         xkb_supported = xkb_ext->present;
         if (!xkb_supported) {
-            //DLOG("xkb is not present on this server\n");
+            // DLOG("xkb is not present on this server\n");
         } else {
-            //DLOG("initializing xcb-xkb\n");
+            // DLOG("initializing xcb-xkb\n");
             conn->xkb().use_extension(XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
             conn->xkb().select_events(
                 XCB_XKB_ID_USE_CORE_KBD,
@@ -52,19 +52,19 @@ export class Xkb {
             auto pcf_reply = conn->xkb().per_client_flags(XCB_XKB_ID_USE_CORE_KBD, mask, mask, 0, 0, 0);
 
             if (pcf_reply.get() == nullptr || !(pcf_reply->value & (XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE))) {
-                //ELOG("Could not set "
-                //     "XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE"
-                //     "\n");
+                // ELOG("Could not set "
+                //      "XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE"
+                //      "\n");
             }
             if (pcf_reply.get() == nullptr || !(pcf_reply->value & (XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED))) {
-                //ELOG("Could not set "
-                //     "XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED"
-                //     "\n");
+                // ELOG("Could not set "
+                //      "XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED"
+                //      "\n");
             }
             if (pcf_reply.get() == nullptr || !(pcf_reply->value & (XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT))) {
-                //ELOG("Could not set "
-                //     "XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT"
-                //     "\n");
+                // ELOG("Could not set "
+                //      "XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT"
+                //      "\n");
             }
 
             xkb_base = xkb_ext->first_event;
