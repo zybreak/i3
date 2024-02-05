@@ -9,7 +9,6 @@
  */
 module;
 
-#include <config.h>
 #include <deque>
 #include <set>
 #include <xcb/xcb.h>
@@ -130,9 +129,9 @@ struct Binding {
  * be parsed.
  *
  */
-void configure_binding(const std::string_view bindtype, const std::string_view modifiers, const std::string_view input_code,
+void configure_binding(std::string_view bindtype, std::string_view modifiers, std::string_view input_code,
                            bool release, bool border, bool whole_window,
-                           bool exclude_titlebar, const std::string_view command, const std::string_view modename,
+                           bool exclude_titlebar, std::string_view command, std::string_view modename,
                            bool pango_markup);
 
 /**

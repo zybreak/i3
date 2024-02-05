@@ -16,8 +16,6 @@ module;
 #include <fmt/printf.h>
 
 #include "atoms.h"
-
-#include <xcb/xcb.h>
 export module i3:sync;
 
 import utils;
