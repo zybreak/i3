@@ -120,6 +120,7 @@ target_sources(i3_lib PUBLIC
         src/assignments.ixx
         src/autostarts.ixx
         src/bindings.ixx
+        src/config/config_applier.ixx
         src/config/configuration.ixx
         src/config/resource_database.ixx
         src/commands/commands.ixx

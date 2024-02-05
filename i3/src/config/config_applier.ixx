@@ -7,9 +7,7 @@
  * config_directives.c: all config storing functions (see config_parser.c)
  *
  */
-
-#pragma once
-
+module;
 #include <cassert>
 #include <cerrno>
 #include <climits>
@@ -23,15 +21,16 @@
 #include "i3.h"
 
 #include <wordexp.h>
+export module i3:config_applier;
 
 import utils;
-import i3;
 import i3_config_base;
+import :criteria_state;
 
 /*******************************************************************************
  * Include functions.
  ******************************************************************************/
-class ConfigApplier : public BaseConfigApplier {
+export class ConfigApplier : public BaseConfigApplier {
 private:
     std::string current_mode{};
     bool current_mode_pango_markup;

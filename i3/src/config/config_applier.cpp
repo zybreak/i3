@@ -7,7 +7,7 @@
  * config_directives.c: all config storing functions (see config_parser.c)
  *
  */
-
+module;
 struct criteria_state;
 
 #include <cassert>
@@ -23,12 +23,11 @@ struct criteria_state;
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
-#include "config_applier.h"
 
 #include <wordexp.h>
+module i3;
 
 import utils;
-import i3;
 import log;
 import i3_config_base;
 
