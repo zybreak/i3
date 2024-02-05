@@ -7,6 +7,7 @@
  * bindings.c: Functions for configuring, finding and, running bindings.
  */
 module;
+struct criteria_state;
 #include <cassert>
 
 #include <cstdint>

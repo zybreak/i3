@@ -25,6 +25,8 @@ module;
 struct criteria_state;
 #include "config/old/config_parser.h"
 #include "config/config_applier.h"
+#include <fmt/printf.h>
+#include <iostream>
 module i3;
 
 import utils;

@@ -48,7 +48,7 @@ export import :i3string;
 export import :tree;
 export import :commands;
 export import :is_background_set;
-
+export import :resource_database;
 export import :internal;
 
 export namespace i3 {

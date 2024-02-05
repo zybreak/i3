@@ -11,9 +11,12 @@
 
 #include <config.h>
 
+#include <string>
+#include <vector>
+
 #include "parser_stack.h"
-#include "base_parser.h"
-#include "../resource_database.h"
+
+import i3_config_base;
 
 /**
  * Holds a user-assigned variable for parsing the configuration file. The key

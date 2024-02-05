@@ -25,14 +25,13 @@ struct criteria_state;
 #include "i3.h"
 #include "config_applier.h"
 #include "config_parser.h"
-#include "base_config_applier.h"
-#include "base_parser.h"
 
 #include <wordexp.h>
 
 import utils;
 import i3;
 import log;
+import i3_config_base;
 
 using namespace std::literals;
 

@@ -52,10 +52,9 @@ struct criteria_state;
 
 #include <fmt/printf.h>
 
-#include "base_resource_database.h"
-
 import utils;
 import log;
+import i3_config_base;
 
 /*******************************************************************************
  * The data structures used for parsing. Essentially the current state and a

@@ -1,11 +1,10 @@
-#pragma once
-
+module;
+struct criteria_state;
 #include <string>
 #include <iostream>
+export module i3_config_base:base_config_applier;
 
-struct criteria_state;
-
-class BaseConfigApplier {
+export class BaseConfigApplier {
 public:
 
     virtual ~BaseConfigApplier() = default;

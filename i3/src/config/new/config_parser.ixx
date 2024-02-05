@@ -1,8 +1,8 @@
 module;
-#include "base_parser.h"
-#include "base_config_applier.h"
-#include "base_resource_database.h"
+#include <iostream>
 export module i3_config_new;
+
+import i3_config_base;
 
 export class NewParser : public BaseParser {
 public:

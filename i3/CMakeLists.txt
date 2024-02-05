@@ -59,7 +59,7 @@ list(APPEND i3_src
         src/commands/commands_parser.cpp
         src/commands/commands_applier.cpp
         src/con.cpp
-        src/configuration.cpp
+        src/config/configuration.cpp
         src/config/config_applier.cpp
         src/drag.cpp
         src/ewmh.cpp
@@ -120,7 +120,8 @@ target_sources(i3_lib PUBLIC
         src/assignments.ixx
         src/autostarts.ixx
         src/bindings.ixx
-        src/configuration.ixx
+        src/config/configuration.ixx
+        src/config/resource_database.ixx
         src/commands/commands.ixx
         src/con.ixx
         src/util.ixx
@@ -165,7 +166,7 @@ target_sources(i3_lib PUBLIC
         src/i3_regex.ixx
         src/internal.ixx
         )
-target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_new i3_config_old i3_commands_old utils xpp i3_log)
+target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_base i3_config_new i3_config_old i3_commands_old utils xpp i3_log)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
 target_compile_options(i3_lib PUBLIC ${compile_options})
 add_dependencies(i3_lib libi3ipc)

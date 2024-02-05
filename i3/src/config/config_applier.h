@@ -22,12 +22,12 @@
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 #include "config_parser.h"
-#include "base_config_applier.h"
 
 #include <wordexp.h>
 
 import utils;
 import i3;
+import i3_config_base;
 
 /*******************************************************************************
  * Include functions.

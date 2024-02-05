@@ -1,37 +1,11 @@
-//
-// Created by zybreak on 2024-01-07.
-//
-
-#ifndef I3_RESOURCE_DATABASE_H
-#define I3_RESOURCE_DATABASE_H
-
-#include <cassert>
-#include <cerrno>
-#include <climits>
-#include <sstream>
-#include <map>
-
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
+module;
 #include <cstring>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#include "i3.h"
-
-#include <fcntl.h>
-#include <unistd.h>
-#include <libgen.h>
-
 #include <xcb/xcb_xrm.h>
+export module i3:resource_database;
 
-#include <fmt/printf.h>
+import i3_config_base;
 
-#include "base_resource_database.h"
-
-
-class ResourceDatabase : public BaseResourceDatabase {
+export class ResourceDatabase : public BaseResourceDatabase {
     xcb_xrm_database_t *database = nullptr;
     xcb_connection_t *conn;
    public:
@@ -70,11 +44,9 @@ class ResourceDatabase : public BaseResourceDatabase {
         return resource;
     }
 
-    ~ResourceDatabase() {
+    ~ResourceDatabase() override {
         if (database != nullptr) {
             xcb_xrm_database_free(database);
         }
     }
 };
-
-#endif  // I3_RESOURCE_DATABASE_H

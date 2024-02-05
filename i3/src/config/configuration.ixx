@@ -15,7 +15,6 @@ module;
 #include <vector>
 #include <memory>
 #include "i3.h"
-#include "base_parser.h"
 export module i3:configuration;
 
 import :draw;
@@ -23,6 +22,8 @@ import :bindings;
 import :con;
 import :font;
 import :internal;
+
+import i3_config_base;
 
 #define FREE(pointer)   \
     do {                \

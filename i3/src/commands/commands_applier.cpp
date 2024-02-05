@@ -26,14 +26,14 @@
 #include "commands_applier.h"
 #include "command_result_ir.h"
 
-#include "base_parser.h"
-
 #include <fmt/printf.h>
 
 import utils;
 import i3;
 import log;
 import rect;
+import i3_config_base;
+
 static void ysuccess(nlohmann::json *json_gen, bool success) {
     if (json_gen != nullptr) {
         json_gen->push_back({
