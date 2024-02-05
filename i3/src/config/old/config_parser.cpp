@@ -23,6 +23,7 @@
  *    nearest <error> token.
  *
  */
+module;
 struct criteria_state;
 
 #include <cassert>
@@ -39,10 +40,7 @@ struct criteria_state;
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "parser_stack.h"
 #include "i3.h"
-#include "config_directives.h"
-#include "config_parser.h"
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -51,6 +49,7 @@ struct criteria_state;
 #include <xcb/xcb_xrm.h>
 
 #include <fmt/printf.h>
+module i3_config_old;
 
 import utils;
 import log;
@@ -101,7 +100,7 @@ static void next_state(const cmdp_token *token, struct parser_ctx &ctx) {
     //printf("token = name %s identifier %s\n", token->name, token->identifier);
     //printf("next_state = %d\n", token->next_state);
     if (token->next_state == __CALL) {
-        struct ConfigResultIR subcommand_output = {
+        ConfigResultIR subcommand_output = {
             .ctx = ctx,
         };
         GENERATED_call(ctx.criteria_state, ctx.stack, token->extra.call_identifier, subcommand_output);
@@ -408,7 +407,7 @@ bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *
 
     reset_statelist(ctx);
 
-    struct ConfigResultIR subcommand_output = {
+    ConfigResultIR subcommand_output = {
         .ctx = ctx,
     };
 
@@ -721,7 +720,4 @@ void OldParser::parse_file() {
     }
 }
 
-parser_ctx::parser_ctx(BaseConfigApplier &applier, BaseResourceDatabase &resourceDatabase, config_load_t load_type)
-    : applier(applier), load_type(load_type), resourceDatabase(resourceDatabase) {
-    this->criteria_state = applier.criteria_init(0);
-}
+

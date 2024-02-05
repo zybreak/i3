@@ -24,7 +24,6 @@ struct criteria_state;
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 #include "config_applier.h"
-#include "config_parser.h"
 
 #include <wordexp.h>
 

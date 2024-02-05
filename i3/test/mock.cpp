@@ -49,18 +49,18 @@ namespace cmd{
 }
 
 namespace cfg{
-    void criteria_init(struct criteria_state &criteria_state, struct ConfigResultIR &result, int _state) {
+    void criteria_init(struct criteria_state &criteria_state, ConfigResultIR &result, int _state) {
         criteria_state.criteria_next_state = _state;
 
         DLOG(fmt::sprintf("Initializing criteria, current_match = %p, state = %d\n",  (void*)&(criteria_state.current_match), _state));
         criteria_state.current_match = Match();
     }
 
-    void criteria_pop_state(struct criteria_state &criteria_state, struct ConfigResultIR &result) {
+    void criteria_pop_state(struct criteria_state &criteria_state, ConfigResultIR &result) {
         result.next_state = criteria_state.criteria_next_state;
     }
 
-    void criteria_add(struct criteria_state &criteria_state, struct ConfigResultIR &result, const char *ctype, const char *cvalue) {
+    void criteria_add(struct criteria_state &criteria_state, ConfigResultIR &result, const char *ctype, const char *cvalue) {
         criteria_state.current_match.parse_property(ctype, cvalue);
     }
 }

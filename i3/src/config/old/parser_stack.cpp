@@ -1,7 +1,8 @@
+module;
 #include <cstdlib>
 #include <iostream>
 #include <cstring>
-#include "parser_stack.h"
+module i3_config_old;
 
 import utils;
 

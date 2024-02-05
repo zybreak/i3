@@ -24,7 +24,6 @@ struct criteria_state;
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
-#include "config_parser.h"
 
 #include <fcntl.h>
 #include <libgen.h>
@@ -54,6 +53,7 @@ import i3;
 import utils;
 import log;
 import program_arguments;
+import i3_config_base;
 
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;

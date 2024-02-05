@@ -23,7 +23,6 @@ module;
 #include <xcb/xcb.h>
 #include <filesystem>
 struct criteria_state;
-#include "config/old/config_parser.h"
 #include "config/config_applier.h"
 #include <fmt/printf.h>
 #include <iostream>
@@ -31,6 +30,7 @@ module i3;
 
 import utils;
 import i3_config_new;
+import i3_config_old;
 import log;
 
 #define FREE(pointer)   \

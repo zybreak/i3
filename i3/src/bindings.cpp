@@ -19,7 +19,6 @@ struct criteria_state;
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
-#include "config_parser.h"
 #include "commands_applier.h"
 
 #include <cmath>
