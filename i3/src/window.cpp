@@ -88,22 +88,22 @@ void i3Window::window_update_name(xcb_get_property_reply_t *prop) {
         return;
     }
 
-    delete name;
+    delete this->name;
 
     /* Truncate the name at the first zero byte. See #3515. */
     const int len = xcb_get_property_value_length(prop);
-    char *name = sstrndup((const char *)xcb_get_property_value(prop), len);
-    i3Window::name = new i3String{name};
-    free(name);
+    char *prop_name = sstrndup((const char *)xcb_get_property_value(prop), len);
+    this->name = new i3String{prop_name};
+    free(prop_name);
 
     Con *con = con_by_window_id(id);
     if (con != nullptr && !con->title_format.empty()) {
-        i3String *name = con_parse_title_format(con);
-        ewmh_update_visible_name(id, name->get_utf8());
-        delete name;
+        i3String *title = con_parse_title_format(con);
+        ewmh_update_visible_name(id, title->get_utf8());
+        delete title;
     }
     name_x_changed = true;
-    LOG(fmt::sprintf("_NET_WM_NAME changed to \"%s\"\n", i3Window::name->get_utf8()));
+    LOG(fmt::sprintf("_NET_WM_NAME changed to \"%s\"\n", this->name->get_utf8()));
 
     uses_net_wm_name = true;
 }
@@ -128,18 +128,18 @@ void i3Window::window_update_name_legacy(xcb_get_property_reply_t *prop) {
 
     delete name;
     const int len = xcb_get_property_value_length(prop);
-    char *name = sstrndup((const char *)xcb_get_property_value(prop), len);
-    i3Window::name = new i3String{name};
-    free(name);
+    char *prop_name = sstrndup((const char *)xcb_get_property_value(prop), len);
+    this->name = new i3String{prop_name};
+    free(prop_name);
 
     Con *con = con_by_window_id(id);
     if (con != nullptr && !con->title_format.empty()) {
-        i3String *name = con_parse_title_format(con);
-        ewmh_update_visible_name(id, i3Window::name->get_utf8());
-        delete name;
+        i3String *title = con_parse_title_format(con);
+        ewmh_update_visible_name(id, title->get_utf8());
+        delete title;
     }
 
-    LOG(fmt::sprintf("WM_NAME changed to \"%s\"\n", i3Window::name->get_utf8()));
+    LOG(fmt::sprintf("WM_NAME changed to \"%s\"\n", this->name->get_utf8()));
     LOG("Using legacy window title. Note that in order to get Unicode window "
         "titles in i3, the application has to set _NET_WM_NAME (UTF-8)\n");
 
@@ -157,14 +157,14 @@ void i3Window::window_update_leader(xcb_get_property_reply_t *prop) {
         return;
     }
 
-    auto *leader = (xcb_window_t*)xcb_get_property_value(prop);
-    if (leader == nullptr) {
+    auto *leader_prop = (xcb_window_t*)xcb_get_property_value(prop);
+    if (leader_prop == nullptr) {
         return;
     }
 
-    DLOG(fmt::sprintf("Client leader changed to %08x\n",  *leader));
+    DLOG(fmt::sprintf("Client leader changed to %08x\n",  *leader_prop));
 
-    this->leader = *leader;
+    this->leader = *leader_prop;
 }
 
 /*
@@ -416,8 +416,9 @@ bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_g
  *
  */
 void i3Window::window_update_hints(xcb_get_property_reply_t *prop, bool *urgency_hint) {
-    if (urgency_hint != nullptr)
+    if (urgency_hint != nullptr) {
         *urgency_hint = false;
+    }
 
     if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
         DLOG("WM_HINTS not set.\n");
@@ -436,8 +437,9 @@ void i3Window::window_update_hints(xcb_get_property_reply_t *prop, bool *urgency
          LOG(fmt::sprintf("WM_HINTS.input changed to \"%d\"\n", hints.input));
     }
 
-    if (urgency_hint != nullptr)
+    if (urgency_hint != nullptr) {
         *urgency_hint = (xcb_icccm_wm_hints_get_urgency(&hints) != 0);
+    }
 }
 
 /*

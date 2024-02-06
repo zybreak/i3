@@ -37,7 +37,7 @@ export class i3String {
     size_t num_bytes;
     bool pango_markup;
    public:
-    explicit i3String(const std::string &str);
+    explicit i3String(const std::string_view &str);
     ~i3String();
 
     /**
@@ -62,9 +62,9 @@ export class i3String {
     void set_markup(bool pango_markup);
 };
 
-i3String::i3String(const std::string &str) {
+i3String::i3String(const std::string_view &str) {
     /* g_utf8_make_valid NULL-terminates the string. */
-    this->utf8 = g_utf8_make_valid(str.c_str(), str.length());
+    this->utf8 = g_utf8_make_valid(str.data(), str.length());
 
     /* num_bytes < 0 means NULL-terminated string, need to calculate length */
     this->num_bytes = strlen(this->utf8);

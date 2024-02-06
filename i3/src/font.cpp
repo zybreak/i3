@@ -97,10 +97,11 @@ static void draw_text_pango(const char *text, size_t text_len,
     pango_layout_set_wrap(layout, PANGO_WRAP_CHAR);
     pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
 
-    if (pango_markup)
+    if (pango_markup) {
         pango_layout_set_markup(layout, text, text_len);
-    else
+    } else {
         pango_layout_set_text(layout, text, text_len);
+    }
 
     /* Do the drawing */
     cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
@@ -132,10 +133,11 @@ static int predict_text_width_pango(xcb_connection_t *conn, xcb_screen_t *root_s
     gint width;
     pango_layout_set_font_description(layout, savedFont->pango_desc);
 
-    if (pango_markup)
+    if (pango_markup) {
         pango_layout_set_markup(layout, text, text_len);
-    else
+    } else {
         pango_layout_set_text(layout, text, text_len);
+    }
 
     pango_cairo_update_layout(cr, layout);
     pango_layout_get_pixel_size(layout, &width, nullptr);
