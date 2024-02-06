@@ -40,15 +40,6 @@ import log;
 
 using namespace std::literals;
 
-std::string current_configpath{};
-char *current_config = nullptr;
-Config config;
-std::vector<std::unique_ptr<Mode>> modes{};
-std::vector<std::unique_ptr<Barconfig>> barconfigs{};
-std::vector<std::string> included_files{};
-/* The list of key bindings */
-struct Mode* current_mode = nullptr;
-
 /*
  * Get the path of the first configuration file found. If override_configpath is
  * specified, that path is returned and saved for further calls. Otherwise,

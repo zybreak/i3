@@ -32,17 +32,7 @@ import i3_config_base;
     } while (0)
 
 export {
-    typedef struct Mode Mode;
-    typedef struct Config Config;
-    typedef struct Barconfig Barconfig;
-    typedef struct Barbinding Barbinding;
-    extern std::string current_configpath;
-    extern char *current_config;
-    extern Config config;
-    extern std::vector<std::unique_ptr<Mode>> modes;
-    extern std::vector<std::unique_ptr<Barconfig>> barconfigs;
-    extern std::vector<std::string> included_files;
-    extern struct Mode *current_mode;
+
 
     /**
      * Mouse pointer warping modes.
@@ -269,6 +259,22 @@ export {
                                  P_TOP = 1 };
 
     /**
+     * Defines a mouse command to be executed instead of the default behavior when
+     * clicking on the non-statusline part of i3bar.
+     *
+     */
+    struct Barbinding {
+        /** The button to be used (e.g., 1 for "button1"). */
+        int input_code;
+
+        /** The command which is to be executed for this button. */
+        std::string command;
+
+        /** If true, the command will be executed after the button is released. */
+        bool release;
+    };
+
+    /**
      * Holds the status bar configuration (i3bar). One of these structures is
      * created for each 'bar' block in the config.
      *
@@ -380,21 +386,14 @@ export {
         ~Barconfig();
     };
 
-    /**
-     * Defines a mouse command to be executed instead of the default behavior when
-     * clicking on the non-statusline part of i3bar.
-     *
-     */
-    struct Barbinding {
-        /** The button to be used (e.g., 1 for "button1"). */
-        int input_code;
-
-        /** The command which is to be executed for this button. */
-        std::string command;
-
-        /** If true, the command will be executed after the button is released. */
-        bool release;
-    };
+    std::string current_configpath{};
+    char *current_config = nullptr;
+    Config config;
+    std::vector<std::unique_ptr<Mode>> modes{};
+    std::vector<std::unique_ptr<Barconfig>> barconfigs{};
+    std::vector<std::string> included_files{};
+    /* The list of key bindings */
+    Mode *current_mode{};
 
     /**
      * (Re-)loads the configuration file (sets useful defaults before).
