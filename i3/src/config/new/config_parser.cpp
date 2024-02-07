@@ -100,7 +100,7 @@ private:
     }
 
     criteria_state* handle_criteria(configGrammar::CriteriaContext *pContext) {
-        criteria_state* st = applier.criteria_init(0);
+        criteria_state* st = applier.criteria_create(0);
 
         for (auto &c : pContext->criterion()) {
             if (c->value_criterion() != nullptr) {

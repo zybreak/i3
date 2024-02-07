@@ -48,9 +48,11 @@ export {
 
         bool has_errors{false};
 
+        parser_ctx() = delete;
+
         parser_ctx(BaseConfigApplier &applier, BaseResourceDatabase &resourceDatabase, config_load_t load_type)
             : applier(applier), load_type(load_type), resourceDatabase(resourceDatabase) {
-            this->criteria_state = applier.criteria_init(0);
+            this->criteria_state = applier.criteria_create(-1);
         }
 
         ~parser_ctx() = default;

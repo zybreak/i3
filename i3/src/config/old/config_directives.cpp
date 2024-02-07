@@ -94,7 +94,7 @@ namespace cfg {
      *
      */
     void criteria_init(criteria_state *criteria_state, ConfigResultIR &result, int _state) {
-        criteria_state = result.ctx.applier.criteria_init(_state);
+        result.ctx.applier.criteria_init(criteria_state, _state);
     }
 
     void criteria_pop_state(criteria_state *criteria_state, ConfigResultIR &result) {

@@ -9,7 +9,9 @@ public:
 
     virtual ~BaseConfigApplier() = default;
 
-    virtual criteria_state* criteria_init(int _state) = 0;
+    virtual criteria_state* criteria_create(int _state) = 0;
+
+    virtual void criteria_init(criteria_state *criteria_state, int _state) = 0;
 
     virtual int criteria_pop_state(criteria_state *criteria_state) = 0;
 

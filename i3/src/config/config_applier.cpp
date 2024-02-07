@@ -33,22 +33,29 @@ import i3_config_base;
 
 using namespace std::literals;
 
-criteria_state* ConfigApplier::criteria_init(int _state) {
-    criteria_state *st = new criteria_state();
-    st->criteria_next_state = _state;
+criteria_state* ConfigApplier::criteria_create(int _state) {
+    criteria_state *st = new criteria_state(_state);
 
-    //DLOG(fmt::sprintf("Initializing criteria, current_match = %p, state = %d\n",  (void*)&(criteria_state->current_match), _state));
+    DLOG(fmt::sprintf("Creating criteria, current_match = %p, state = %d\n",  (void*)&(st->current_match), _state));
     st->current_match = Match();
 
     return st;
 }
 
-int ConfigApplier::criteria_pop_state(criteria_state *criteria_state) {
-    return criteria_state->criteria_next_state;
+void ConfigApplier::criteria_init(criteria_state *st, int _state) {
+    //criteria_state *st = new criteria_state();
+    st->criteria_next_state = _state;
+
+    DLOG(fmt::sprintf("Initializing criteria, current_match = %p, state = %d\n",  (void*)&(st->current_match), _state));
+    st->current_match = Match();
 }
 
-void ConfigApplier::criteria_add(criteria_state *criteria_state, const char *ctype, const char *cvalue) {
-    criteria_state->current_match.parse_property(ctype, cvalue);
+int ConfigApplier::criteria_pop_state(criteria_state *cs) {
+    return cs->criteria_next_state;
+}
+
+void ConfigApplier::criteria_add(criteria_state *cs, const char *ctype, const char *cvalue) {
+    cs->current_match.parse_property(ctype, cvalue);
 }
 
 void ConfigApplier::font(const std::string &font) {

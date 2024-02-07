@@ -36,11 +36,13 @@ private:
     bool current_mode_pango_markup;
 
 public:
-    criteria_state* criteria_init(int _state) override;
+    criteria_state* criteria_create(int _state) override;
 
-    int criteria_pop_state(criteria_state *criteria_state) override;
+    void criteria_init(criteria_state *cs, int _state) override;
 
-    void criteria_add(criteria_state *criteria_state, const char *ctype, const char *cvalue) override;
+    int criteria_pop_state(criteria_state *cs) override;
+
+    void criteria_add(criteria_state *cs, const char *ctype, const char *cvalue) override;
 
     void font(const std::string &font) override;
 
