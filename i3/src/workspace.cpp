@@ -485,7 +485,7 @@ void workspace_show(Con *workspace) {
 
         if (global.focused->urgency_timer == nullptr) {
             DLOG(fmt::sprintf("Deferring reset of urgency flag of con %p on newly shown workspace %p\n",
-                 (void*)global.focused, (void*)workspace));
+                              (void *)global.focused, (void *)workspace));
             global.focused->urgency_timer = new ev_timer{};
             /* use a repeating timer to allow for easy resets */
             ev_timer_init(global.focused->urgency_timer, workspace_defer_update_urgent_hint_cb,
@@ -494,11 +494,12 @@ void workspace_show(Con *workspace) {
             ev_timer_start(global.eventHandler->main_loop, global.focused->urgency_timer);
         } else {
             DLOG(fmt::sprintf("Resetting urgency timer of con %p on workspace %p\n",
-                 (void*)global.focused, (void*)workspace));
-            ev_timer_again(global.eventHandler->main_loop, global.focused->urgency_timer);
+                              (void *)global.focused, (void *)workspace));
+            ev_timer_again(global.eventHandler->main_loop, global.focused->urgency_timer);  // TODO zybreak crashes
         }
-    } else
+    } else {
         next->con_focus();
+    }
 
     ipc_send_workspace_event("focus", workspace, current);
 
