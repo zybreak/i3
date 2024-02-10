@@ -11,6 +11,7 @@
 module;
 #include <config.h>
 
+#include <vector>
 #include <fstream>
 #include <cassert>
 #include <err.h>

@@ -53,7 +53,7 @@ export {
         parser_ctx() = delete;
 
         parser_ctx(BaseConfigApplier &applier, BaseResourceDatabase &resourceDatabase, config_load_t load_type)
-            : applier(applier), load_type(load_type), resourceDatabase(resourceDatabase) {
+            : resourceDatabase(resourceDatabase), load_type(load_type), applier(applier) {
             this->criteria_state = applier.criteria_create(-1);
         }
 

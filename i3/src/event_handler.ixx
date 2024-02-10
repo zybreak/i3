@@ -156,7 +156,7 @@ void EventHandler::setup_term_handlers() {
     }
 }
 
-EventHandler::EventHandler(X *x, PropertyHandlers &handlers) : x(x), handlers(handlers) {
+EventHandler::EventHandler(X *x, PropertyHandlers &handlers) : handlers(handlers), x(x) {
     /* Initialize the libev event loop. This needs to be done before loading
      * the config file because the parser will install an ev_child watcher
      * for the nagbar when config errors are found. */

@@ -17,6 +17,7 @@ module;
 
 #include <cmath>
 #include <ranges>
+#include <vector>
 
 #include <fmt/printf.h>
 

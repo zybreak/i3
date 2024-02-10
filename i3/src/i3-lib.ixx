@@ -3,6 +3,7 @@ module;
 #include <string>
 #include <deque>
 #include <sys/resource.h>
+#include <memory>
 export module i3;
 
 export import :assignments;

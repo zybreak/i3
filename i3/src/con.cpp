@@ -176,8 +176,6 @@ void WorkspaceCon::con_attach(Con *parent, bool ignore_focus, Con *previous) {
 
 void FloatingCon::con_attach(Con *parent, bool ignore_focus, Con *previous) {
     this->parent = parent;
-    Con *current = previous;
-    auto &nodes_head = parent->nodes_head;
     auto &focus_head = parent->focus_head;
 
     DLOG("Inserting into floating containers\n");
@@ -456,7 +454,6 @@ void Con::con_activate_unblock() {
  *
  */
 void Con::con_close(kill_window_t kill_window) {
-    assert(this != nullptr);
     DLOG(fmt::sprintf("Closing con = %p.\n",  (void*)this));
 
     /* We never close output or root containers. */

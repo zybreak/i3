@@ -94,7 +94,7 @@ struct cmdp_token_ptr {
         pointer = NULL; \
     } while (0)
 
-static void next_state(const cmdp_token *token, struct parser_ctx &ctx) {
+static void next_state(const cmdp_token *token, parser_ctx &ctx) {
     cmdp_state _next_state = token->next_state;
 
     //printf("token = name %s identifier %s\n", token->name, token->identifier);
@@ -168,8 +168,9 @@ static std::string get_possible_tokens(const cmdp_token_ptr *ptr) {
         } else {
             /* Skip error tokens in error messages, they are used
              * internally only and might confuse users. */
-            if (strcmp(token->name, "error") == 0)
+            if (strcmp(token->name, "error") == 0) {
                 continue;
+            }
             /* Any other token is copied to the error message enclosed
              * with angle brackets. */
             possible_tokens.append(fmt::format("<{}>", token->name));
@@ -198,8 +199,9 @@ static void unhandled_token(const std::string &input, const char *filename, int 
     const char *copywalk;
     for (copywalk = error_line;
          *copywalk != '\n' && *copywalk != '\r' && *copywalk != '\0';
-         copywalk++)
+         copywalk++) {
         position[(copywalk - error_line)] = (copywalk >= *walk ? '^' : (*copywalk == '\t' ? '\t' : ' '));
+    }
     position[(copywalk - error_line)] = '\0';
 
     ELOG(fmt::sprintf("CONFIG: Expected one of these tokens: %s\n", possible_tokens));
@@ -236,8 +238,9 @@ static void unhandled_token(const std::string &input, const char *filename, int 
     has_errors = true;
 
     /* Skip the rest of this line, but continue parsing. */
-    while ((size_t)(*walk - input.c_str()) <= len && **walk != '\n')
+    while ((size_t)(*walk - input.c_str()) <= len && **walk != '\n') {
         (*walk)++;
+    }
 
     free(position);
     clear_stack(ctx.stack);
@@ -249,8 +252,9 @@ static void unhandled_token(const std::string &input, const char *filename, int 
     for (int i = ctx.statelist_idx - 1; (i >= 0) && !error_token_found; i--) {
         cmdp_token_ptr *errptr = &(tokens[ctx.statelist[i]]);
         for (int j = 0; j < errptr->n; j++) {
-            if (strcmp(errptr->array[j].name, "error") != 0)
+            if (strcmp(errptr->array[j].name, "error") != 0) {
                 continue;
+            }
             next_state(&(errptr->array[j]), ctx);
             error_token_found = true;
             break;
@@ -289,12 +293,14 @@ static bool handle_number(const char **walk, const cmdp_token *token, parser_ctx
     errno = 0;
     long int num = strtol(*walk, &end, 10);
     if ((errno == ERANGE && (num == LONG_MIN || num == LONG_MAX)) ||
-        (errno != 0 && num == 0))
+        (errno != 0 && num == 0)) {
         return false;
+    }
 
     /* No valid numbers found */
-    if (end == *walk)
+    if (end == *walk) {
         return false;
+    }
 
     if (token->identifier != nullptr) {
         push_long(ctx.stack, token->identifier, num);
@@ -312,12 +318,14 @@ static bool handle_word(const char **walk, const cmdp_token *token, parser_ctx &
     if (**walk == '"') {
         beginning++;
         (*walk)++;
-        while (**walk != '\0' && (**walk != '"' || *(*walk - 1) == '\\'))
+        while (**walk != '\0' && (**walk != '"' || *(*walk - 1) == '\\')) {
             (*walk)++;
+        }
     } else {
         if (token->name[0] == 's') {
-            while (**walk != '\0' && **walk != '\r' && **walk != '\n')
+            while (**walk != '\0' && **walk != '\r' && **walk != '\n') {
                 (*walk)++;
+            }
         } else {
             /* For a word, the delimiters are white space (' ' or
                          * '\t'), closing square bracket (]), comma (,) and
@@ -325,8 +333,9 @@ static bool handle_word(const char **walk, const cmdp_token *token, parser_ctx &
             while (**walk != ' ' && **walk != '\t' &&
                    **walk != ']' && **walk != ',' &&
                    **walk != ';' && **walk != '\r' &&
-                   **walk != '\n' && **walk != '\0')
+                   **walk != '\n' && **walk != '\0') {
                 (*walk)++;
+            }
         }
     }
     if (*walk != beginning) {
@@ -339,8 +348,9 @@ static bool handle_word(const char **walk, const cmdp_token *token, parser_ctx &
             /* We only handle escaped double quotes to not break
                          * backwards compatibility with people using \w in
                          * regular expressions etc. */
-            if (beginning[inpos] == '\\' && beginning[inpos + 1] == '"')
+            if (beginning[inpos] == '\\' && beginning[inpos + 1] == '"') {
                 inpos++;
+            }
             str[outpos] = beginning[inpos];
         }
         if (token->identifier) {
@@ -349,8 +359,9 @@ static bool handle_word(const char **walk, const cmdp_token *token, parser_ctx &
         free(str);
         /* If we are at the end of a quoted string, skip the ending
                      * double quote. */
-        if (**walk == '"')
+        if (**walk == '"') {
             (*walk)++;
+        }
         next_state(token, ctx);
         return true;
     }
@@ -359,8 +370,9 @@ static bool handle_word(const char **walk, const cmdp_token *token, parser_ctx &
 }
 
 static bool handle_line(const char **walk, const cmdp_token *token, parser_ctx &ctx) {
-    while (**walk != '\0' && **walk != '\n' && **walk != '\r')
+    while (**walk != '\0' && **walk != '\n' && **walk != '\r') {
         (*walk)++;
+    }
     next_state(token, ctx);
     (*walk)++;
     return true;
@@ -397,7 +409,7 @@ Variable::~Variable() {
     FREE(value);
 }
 
-bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *filename) {
+bool parse_config(parser_ctx &ctx, const std::string &input, const char *filename) {
     bool has_errors = false;
     const char *walk = input.c_str();
     const size_t len = input.size();
@@ -418,8 +430,9 @@ bool parse_config(struct parser_ctx &ctx, const std::string &input, const char *
     while ((size_t)(walk - input.c_str()) <= len) {
         /* Skip whitespace before every token, newlines are relevant since they
          * separate configuration directives. */
-        while ((*walk == ' ' || *walk == '\t') && *walk != '\0')
+        while ((*walk == ' ' || *walk == '\t') && *walk != '\0') {
             walk++;
+        }
 
         //printf("remaining input: %s\n", walk);
 
@@ -476,8 +489,9 @@ static void upsert_variable(std::vector<std::shared_ptr<Variable>> &variables, c
     /* ensure that the correct variable is matched in case of one being
      * the prefix of another */
     while (loc != variables.end()) {
-        if (strlen(n->key) >= strlen((*loc)->key))
+        if (strlen(n->key) >= strlen((*loc)->key)) {
             break;
+        }
         ++loc;
     }
 
@@ -516,11 +530,13 @@ static void read_file(FILE *fstr, BaseResourceDatabase &resourceDatabase, char *
     char buffer[4096], key[512], value[4096], *continuation = nullptr;
 
     while (!feof(fstr)) {
-        if (!continuation)
+        if (!continuation) {
             continuation = buffer;
+        }
         if (fgets(continuation, sizeof(buffer) - (continuation - buffer), fstr) == nullptr) {
-            if (feof(fstr))
+            if (feof(fstr)) {
                 break;
+            }
             throw std::domain_error("Unexpected EOF");
         }
         if (buffer[strlen(buffer) - 1] != '\n' && !feof(fstr)) {
@@ -601,7 +617,7 @@ static char* replace_variables(char *n, char *buf, __off_t size, parser_ctx &ctx
     destwalk = n;
     while (walk < (buf + size)) {
         std::map<char*, char*> next_match{};
-        struct Variable *nearest = nullptr;
+        Variable *nearest = nullptr;
         /* Find the next variable */
         for (auto &variable : ctx.variables) {
             char *match = strcasestr(walk, variable->key);
@@ -611,8 +627,9 @@ static char* replace_variables(char *n, char *buf, __off_t size, parser_ctx &ctx
         }
         long distance = size;
         for (auto &variable : ctx.variables) {
-            if (!next_match.contains(variable->key))
+            if (!next_match.contains(variable->key)) {
                 continue;
+            }
             if ((next_match[variable->key] - walk) < distance) {
                 distance = (next_match[variable->key] - walk);
                 nearest = variable.get();
@@ -637,7 +654,7 @@ static char* replace_variables(char *n, char *buf, __off_t size, parser_ctx &ctx
 }
 
 
-OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, struct parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, resourceDatabase, parent_ctx.load_type, applier) {
+OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, resourceDatabase, parent_ctx.load_type, applier) {
     this->parent_ctx = &parent_ctx;
     this->ctx.variables = parent_ctx.variables;
 }

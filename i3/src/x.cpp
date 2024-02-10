@@ -367,8 +367,6 @@ static void x_draw_title_border(Con *con, struct deco_render_params *p) {
 static void x_draw_decoration_after_title(Con *con, struct deco_render_params *p) {
     assert(con->parent != nullptr);
 
-    Rect *dr = &(con->deco_rect);
-
     /* Redraw the border. */
     x_draw_title_border(con, p);
 }

@@ -41,10 +41,10 @@ export {
 
        public:
         char *current_config = nullptr;
-        struct parser_ctx *parent_ctx = nullptr;
-        struct parser_ctx ctx;
+        parser_ctx *parent_ctx = nullptr;
+        parser_ctx ctx;
         std::vector<std::string> included_files{};
-        OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, struct parser_ctx &parent_ctx, BaseConfigApplier &applier);
+        OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier);
         OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier);
         ~OldParser() override;
         void parse_file() override;
