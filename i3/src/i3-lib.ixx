@@ -56,7 +56,14 @@ export namespace i3 {
 
 }
 
-export struct global_t {
+export class Global {
+   private:
+    Global() = default;
+
+   public:
+    Global(Global const &) = delete;
+    Global &operator=(Global const &) = delete;
+
     std::string current_socketpath{};
 
     Con *focused;
@@ -98,6 +105,12 @@ export struct global_t {
     bool new_parser;
     PropertyHandlers *handlers;
     EventHandler *eventHandler;
+
+    static Global& instance() {
+        static Global inst{};
+
+        return inst;
+    }
 };
 
-export struct global_t global {};
+export Global &global = Global::instance();
