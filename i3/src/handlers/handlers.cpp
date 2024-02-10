@@ -36,6 +36,7 @@ module;
 #include <span>
 #include <config.h>
 #include <fmt/printf.h>
+#include <mutex>
 module i3;
 
 import log;
