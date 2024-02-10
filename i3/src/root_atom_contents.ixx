@@ -4,6 +4,7 @@ module;
 #include <string>
 #include <optional>
 #include <cmath>
+#include <cstring>
 export module i3:root_atom_contents;
 
 import utils;

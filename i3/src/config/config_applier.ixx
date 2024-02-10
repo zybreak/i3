@@ -21,6 +21,7 @@ module;
 #include "i3.h"
 
 #include <wordexp.h>
+#include <string>
 export module i3:config_applier;
 
 import utils;

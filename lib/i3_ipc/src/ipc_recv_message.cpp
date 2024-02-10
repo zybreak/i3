@@ -9,6 +9,7 @@ module;
 #include "../i3_ipc/i3-ipc.h"
 
 #include <cstdlib>
+#include <cstdint>
 #include <sys/un.h>
 #include <string_view>
 

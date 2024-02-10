@@ -1,9 +1,9 @@
 module;
 
 #include <vector>
-
-#include "unistd.h"
-#include "sys/types.h"
+#include <unistd.h>
+#include <sys/types.h>
+#include <cstdint>
 
 export module i3:nagbar;
 

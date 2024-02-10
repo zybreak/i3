@@ -13,6 +13,7 @@ module;
 #include <config.h>
 
 #include <string>
+#include <cstdint>
 
 export module i3:workspace;
 

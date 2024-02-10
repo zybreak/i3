@@ -16,6 +16,7 @@ module;
 #include <deque>
 
 #include <xcb/randr.h>
+#include <string>
 export module i3:randr;
 
 import :internal;

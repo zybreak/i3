@@ -12,6 +12,7 @@ module;
 #include <config.h>
 
 #include <string>
+#include <cstring>
 
 #include <err.h>
 #include <xcb/xcb_keysyms.h>

@@ -1,6 +1,8 @@
 module;
 struct criteria_state;
 #include <vector>
+#include <string>
+#include <memory>
 export module i3_config_old:parser_ctx;
 
 import i3_config_base;

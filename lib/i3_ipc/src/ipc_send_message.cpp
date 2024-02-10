@@ -7,6 +7,7 @@
  */
 module;
 #include <cstdlib>
+#include <cstdint>
 #include <string_view>
 
 #include <cerrno>
