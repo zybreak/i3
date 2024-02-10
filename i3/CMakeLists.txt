@@ -75,7 +75,6 @@ list(APPEND i3_src
         src/match.cpp
         src/move.cpp
         src/output.cpp
-        src/program_arguments.cpp
         src/randr.cpp
         src/render.cpp
         src/resize.cpp
