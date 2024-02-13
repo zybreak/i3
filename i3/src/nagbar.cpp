@@ -400,7 +400,7 @@ static void draw_nagbar(i3String *prompt,
     root_screen = xcb_aux_get_screen(conn, screens);
     global.x->root = root_screen->root;
 
-    if (bar_type == TYPE_ERROR) {
+    if (bar_type == bar_type_t::TYPE_ERROR) {
         /* Red theme for error messages */
         color_button_background = draw_util_hex_to_color(conn, root_screen, "#680a0a");
         color_background = draw_util_hex_to_color(conn, root_screen, "#900000");

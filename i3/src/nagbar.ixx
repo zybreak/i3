@@ -10,9 +10,9 @@ export module i3:nagbar;
 class i3String;
 
 export {
-    enum bar_type_t {
-        TYPE_ERROR = 0,
-        TYPE_WARNING = 1
+    enum class bar_type_t {
+        TYPE_ERROR,
+        TYPE_WARNING
     };
 
     struct button_t {
@@ -35,7 +35,7 @@ export {
                       std::vector<button_t> & buttons,
                       const char *prompt,
                       const char *pattern = "pango:monospace 8",
-                      bar_type_t bar_type = TYPE_ERROR,
+                      bar_type_t bar_type = bar_type_t::TYPE_ERROR,
                       bool position_on_primary = false);
 
     /**
