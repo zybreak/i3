@@ -70,7 +70,7 @@ list(APPEND i3_src
         src/handlers/handlers.cpp
         src/ipc.cpp
         src/load_layout.cpp
-        src/nagbar.cpp
+        src/nagbar/nagbar.cpp
         src/manage.cpp
         src/match.cpp
         src/move.cpp
@@ -160,7 +160,7 @@ target_sources(i3_lib PUBLIC
         src/restore_layout.ixx
         src/program_arguments.ixx
         src/root_atom_contents.ixx
-        src/nagbar.ixx
+        src/nagbar/nagbar.ixx
         src/manage.ixx
         src/i3string.ixx
         src/i3_regex.ixx
