@@ -408,6 +408,7 @@ static void workspace_defer_update_urgent_hint_cb(EV_P_ ev_timer *w, int revents
 
     ev_timer_stop(global.eventHandler->main_loop, con->urgency_timer);
     delete con->urgency_timer;
+    con->urgency_timer = nullptr;
 
     if (con->urgent) {
         DLOG(fmt::sprintf("Resetting urgency flag of con %p by timer\n",  (void*)con));
@@ -430,8 +431,9 @@ void workspace_show(Con *workspace) {
      * currently on. */
     for (auto &c : workspace->parent->nodes_head) {
         current = c;
-        if (current->fullscreen_mode == CF_OUTPUT)
+        if (current->fullscreen_mode == CF_OUTPUT) {
             old = current;
+        }
         current->fullscreen_mode = CF_NONE;
     }
 
@@ -495,7 +497,7 @@ void workspace_show(Con *workspace) {
         } else {
             DLOG(fmt::sprintf("Resetting urgency timer of con %p on workspace %p\n",
                               (void *)global.focused, (void *)workspace));
-            ev_timer_again(global.eventHandler->main_loop, global.focused->urgency_timer);  // TODO zybreak crashes
+            ev_timer_again(global.eventHandler->main_loop, global.focused->urgency_timer);
         }
     } else {
         next->con_focus();

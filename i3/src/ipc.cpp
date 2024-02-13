@@ -78,6 +78,7 @@ static void ipc_push_pending(ipc_client *client) {
         if (client->timeout) {
             ev_timer_stop(global.eventHandler->main_loop, client->timeout);
             delete client->timeout;
+            client->timeout = nullptr;
         }
         ev_io_stop(global.eventHandler->main_loop, client->write_callback);
         return;

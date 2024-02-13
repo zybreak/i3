@@ -420,6 +420,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     xcb_window_t old_frame = XCB_NONE;
     if (nc->window != cwindow && nc->window != nullptr) {
         delete nc->window;
+        nc->window = nullptr;
         old_frame = _match_depth(cwindow, nc);
     }
     nc->window = cwindow;
@@ -761,6 +762,7 @@ Con *remanage_window(Con *con) {
         _remove_matches(nc);
     }
     delete nc->window;
+    nc->window = nullptr;
 
     xcb_window_t old_frame = _match_depth(con->window, nc);
 

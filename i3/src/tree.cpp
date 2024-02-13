@@ -229,6 +229,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
         workspace_update_urgent_flag(ws);
         ev_timer_stop(global.eventHandler->main_loop, con->urgency_timer);
         delete con->urgency_timer;
+        con->urgency_timer = nullptr;
     }
 
     if (con->type != CT_FLOATING_CON) {
@@ -265,8 +266,9 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
     }
 
     /* check if the parent container is empty now and close it */
-    if (!dont_kill_parent)
+    if (!dont_kill_parent) {
         parent->on_remove_child();
+    }
 
     return true;
 }
