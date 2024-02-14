@@ -155,9 +155,6 @@ static int predict_text_width_pango(i3Font *savedFont, xcb_connection_t *conn, x
  *
  */
 i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *pattern, const bool fallback) {
-    /* if any font was previously loaded, free it now */
-    //free_font(conn);
-
     auto *font = new i3Font{};
     font->pattern = nullptr;
 
@@ -187,29 +184,6 @@ i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char 
             return font;
         }
     }
-}
-
-/*
- * Defines the font to be used for the forthcoming calls.
- *
- */
-void set_font(i3Font *font) {
-    //savedFont = font;
-}
-
-/*
- * Frees the resources taken by the current font. If no font was previously
- * loaded, it simply returns.
- *
- */
-void free_font(i3Font *savedFont, xcb_connection_t *conn) {
-    /* if there is no saved font, simply return */
-    if (savedFont == nullptr)
-        return;
-
-    free(savedFont->pattern);
-    /* Free the font description */
-    pango_font_description_free(savedFont->pango_desc);
 }
 
 /*

@@ -153,7 +153,10 @@ static void free_configuration() {
     }
 
     /* Get rid of the current font */
-    free_font(config.font, **global.x);
+    if (config.font != nullptr) {
+        delete config.font;
+        config.font = nullptr;
+    }
 
     free(config.ipc_socket_path);
     free(config.restart_state_path);
@@ -334,7 +337,6 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     if (config.font == nullptr && load_type != config_load_t::C_VALIDATE) {
         ELOG("You did not specify required configuration option \"font\"\n");
         config.font = load_font(**global.x, global.x->root_screen, "fixed", true);
-        set_font(config.font);
     }
 
     if (load_type == config_load_t::C_RELOAD) {

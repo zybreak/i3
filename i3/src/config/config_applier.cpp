@@ -60,7 +60,6 @@ void ConfigApplier::criteria_add(criteria_state *cs, const char *ctype, const ch
 
 void ConfigApplier::font(const std::string &font) {
     config.font = load_font(**global.x, global.x->root_screen, font.c_str(), true);
-    set_font(config.font);
 }
 
 void ConfigApplier::binding(const std::string &bindtype, const std::string &modifiers,

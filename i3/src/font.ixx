@@ -24,6 +24,15 @@ export {
 
         /** The pango font description */
         PangoFontDescription *pango_desc;
+
+        ~i3Font() {
+            if (pattern != nullptr) {
+                free(pattern);
+            }
+            if (pango_desc != nullptr) {
+                pango_font_description_free(pango_desc);
+            }
+        }
     };
 
 
@@ -47,19 +56,6 @@ export {
      *
      */
     i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *pattern, bool fallback);
-
-    /**
-     * Defines the font to be used for the forthcoming calls.
-     *
-     */
-    void set_font(i3Font *font);
-
-    /**
-     * Frees the resources taken by the current font. If no font was previously
-     * loaded, it simply returns.
-     *
-     */
-    void free_font(i3Font *savedFont, xcb_connection_t *conn);
 
     /**
      * Draws text onto the specified X drawable (normally a pixmap) at the

@@ -384,7 +384,6 @@ class Nagbar {
 
         init_dpi(conn, root_screen);
         font = load_font(conn, root_screen, pattern.c_str(), true);
-        set_font(font);
 
         /* Place requests for the atoms we need as soon as possible */
         ATOM_cookie = xcb_intern_atom(conn, 0, strlen("ATOM"), "ATOM");
