@@ -207,9 +207,9 @@ void INIT_COLOR(Colortriple &x, const char *cborder, const char *cbackground, co
  * Launch nagbar to indicate errors in the configuration file.
  */
 static void start_config_error_nagbar(bool has_errors) {
-    const char *font_pattern = config.font->pattern ? config.font->pattern : "fixed";
-    auto type = has_errors ? TYPE_ERROR : TYPE_WARNING;
-    const char *text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
+    std::string font_pattern = config.font->pattern ? config.font->pattern : "fixed";
+    auto type = has_errors ? bar_type_t::TYPE_ERROR : bar_type_t::TYPE_WARNING;
+    std::string text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
 
     std::vector<button_t> buttons{};
     start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type);

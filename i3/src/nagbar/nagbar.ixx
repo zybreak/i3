@@ -32,9 +32,9 @@ export {
      *
      */
     void start_nagbar(pid_t * nagbar_pid,
-                      std::vector<button_t> & buttons,
-                      const char *prompt,
-                      const char *pattern = "pango:monospace 8",
+                      std::vector<button_t> buttons,
+                      std::string prompt,
+                      std::string pattern = "pango:monospace 8",
                       bar_type_t bar_type = bar_type_t::TYPE_ERROR,
                       bool position_on_primary = false);
 

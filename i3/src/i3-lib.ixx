@@ -76,7 +76,6 @@ export class Global {
 
     int xkb_current_group;
 
-    bool run_atexit{true};
     pid_t config_error_nagbar_pid = -1;
     pid_t command_error_nagbar_pid = -1;
 

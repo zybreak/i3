@@ -2058,7 +2058,10 @@ void CommandsApplier::nagbar(struct criteria_state *criteria_state, struct Comma
         });
     }
 
-    start_nagbar(nullptr, buttons, message, font, strcmp(type, "warning") == 0 ? TYPE_WARNING : TYPE_ERROR, strcmp(primary, "true") == 0);
+    std::string message_str = message;
+    std::string font_str = font;
+
+    start_nagbar(nullptr, buttons, message_str, font_str, strcmp(type, "warning") == 0 ? bar_type_t::TYPE_WARNING : bar_type_t::TYPE_ERROR, strcmp(primary, "true") == 0);
     ysuccess(cmd_output.json_gen, true);
 }
 

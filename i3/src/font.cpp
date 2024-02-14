@@ -247,6 +247,23 @@ void draw_text(xcb_connection_t *conn, i3String *text, xcb_drawable_t drawable, 
 }
 
 /*
+ * Draws text onto the specified X drawable (normally a pixmap) at the
+ * specified coordinates (from the top left corner of the leftmost, uppermost
+ * glyph) and using the provided gc.
+ *
+ * Text must be specified as an i3String.
+ *
+ */
+void draw_text(xcb_connection_t *conn, const char *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
+               cairo_surface_t *surface, int x, int y, int max_width) {
+    assert(savedFont != nullptr);
+
+    /* Render the text using Pango */
+    draw_text_pango(text, strlen(text),
+                    drawable, surface, x, y, max_width, false);
+}
+
+/*
  * Predict the text width in pixels for the given text. Text must be
  * specified as an i3String.
  *

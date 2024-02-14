@@ -73,4 +73,17 @@ export {
      */
     void draw_text(xcb_connection_t *conn, i3String *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
                    cairo_surface_t *surface, int x, int y, int max_width);
+
+    /**
+     * Draws text onto the specified X drawable (normally a pixmap) at the
+     * specified coordinates (from the top left corner of the leftmost, uppermost
+     * glyph) and using the provided gc.
+     *
+     * The given cairo surface must refer to the specified X drawable.
+     *
+     * Text must be specified as an i3String.
+     *
+     */
+    void draw_text(xcb_connection_t *conn, const char *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
+                   cairo_surface_t *surface, int x, int y, int max_width);
 }

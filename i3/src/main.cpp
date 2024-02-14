@@ -63,10 +63,6 @@ int listen_fds;
  *
  */
 static void i3_exit() {
-    if (!global.run_atexit) {
-        return;
-    }
-
     ipc_shutdown(SHUTDOWN_REASON_EXIT, -1);
     unlink(config.ipc_socket_path);
     xcb_disconnect(**global.x);
