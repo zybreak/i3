@@ -183,7 +183,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
 
     // TODO: render the watch symbol in a bigger font
     i3String *line = new i3String{"⌚"};
-    int text_width = predict_text_width(*conn, global.x->root_screen, line);
+    int text_width = predict_text_width(config.font, *conn, global.x->root_screen, line);
     int x = (state->rect.width / 2) - (text_width / 2);
     int y = (state->rect.height / 2) - (config.font->height / 2);
     draw_util_text(*conn, line, &(state->surface), foreground, background, x, y, text_width);

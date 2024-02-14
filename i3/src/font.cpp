@@ -19,8 +19,6 @@ module i3;
 import utils;
 import log;
 
-static const i3Font *savedFont = nullptr;
-
 static xcb_visualtype_t *root_visual_type;
 static double pango_font_red;
 static double pango_font_green;
@@ -83,7 +81,7 @@ static bool load_pango_font(xcb_connection_t *conn, xcb_screen_t *root_screen, i
  * Draws text using Pango rendering.
  *
  */
-static void draw_text_pango(const char *text, size_t text_len,
+static void draw_text_pango(i3Font *savedFont, const char *text, size_t text_len,
                             xcb_drawable_t drawable, cairo_surface_t *surface,
                             int x, int y, int max_width, bool pango_markup) {
     /* Create the Pango layout */
@@ -122,7 +120,7 @@ static void draw_text_pango(const char *text, size_t text_len,
  * Calculate the text width using Pango rendering.
  *
  */
-static int predict_text_width_pango(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *text, size_t text_len, bool pango_markup) {
+static int predict_text_width_pango(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *root_screen, const char *text, size_t text_len, bool pango_markup) {
     /* Create a dummy Pango layout */
     /* root_visual_type is cached in load_pango_font */
     cairo_surface_t *surface = cairo_xcb_surface_create(conn, root_screen->root, root_visual_type, 1, 1);
@@ -158,7 +156,7 @@ static int predict_text_width_pango(xcb_connection_t *conn, xcb_screen_t *root_s
  */
 i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *pattern, const bool fallback) {
     /* if any font was previously loaded, free it now */
-    free_font(conn);
+    //free_font(conn);
 
     auto *font = new i3Font{};
     font->pattern = nullptr;
@@ -196,7 +194,7 @@ i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char 
  *
  */
 void set_font(i3Font *font) {
-    savedFont = font;
+    //savedFont = font;
 }
 
 /*
@@ -204,7 +202,7 @@ void set_font(i3Font *font) {
  * loaded, it simply returns.
  *
  */
-void free_font(xcb_connection_t *conn) {
+void free_font(i3Font *savedFont, xcb_connection_t *conn) {
     /* if there is no saved font, simply return */
     if (savedFont == nullptr)
         return;
@@ -212,8 +210,6 @@ void free_font(xcb_connection_t *conn) {
     free(savedFont->pattern);
     /* Free the font description */
     pango_font_description_free(savedFont->pango_desc);
-
-    savedFont = nullptr;
 }
 
 /*
@@ -221,8 +217,6 @@ void free_font(xcb_connection_t *conn) {
  *
  */
 void set_font_colors(xcb_connection_t *conn, xcb_gcontext_t gc, color_t foreground, color_t background) {
-    assert(savedFont != nullptr);
-
     /* Save the foreground font */
     pango_font_red = foreground.red;
     pango_font_green = foreground.green;
@@ -237,12 +231,10 @@ void set_font_colors(xcb_connection_t *conn, xcb_gcontext_t gc, color_t foregrou
  * Text must be specified as an i3String.
  *
  */
-void draw_text(xcb_connection_t *conn, i3String *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
+void draw_text(i3Font *savedFont, xcb_connection_t *conn, i3String *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
                cairo_surface_t *surface, int x, int y, int max_width) {
-    assert(savedFont != nullptr);
-
     /* Render the text using Pango */
-    draw_text_pango(text->get_utf8(), text->get_num_bytes(),
+    draw_text_pango(savedFont, text->get_utf8(), text->get_num_bytes(),
                     drawable, surface, x, y, max_width, text->is_pango_markup());
 }
 
@@ -254,12 +246,10 @@ void draw_text(xcb_connection_t *conn, i3String *text, xcb_drawable_t drawable, 
  * Text must be specified as an i3String.
  *
  */
-void draw_text(xcb_connection_t *conn, const char *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
+void draw_text(i3Font *savedFont, xcb_connection_t *conn, const char *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
                cairo_surface_t *surface, int x, int y, int max_width) {
-    assert(savedFont != nullptr);
-
     /* Render the text using Pango */
-    draw_text_pango(text, strlen(text),
+    draw_text_pango(savedFont, text, strlen(text),
                     drawable, surface, x, y, max_width, false);
 }
 
@@ -268,10 +258,8 @@ void draw_text(xcb_connection_t *conn, const char *text, xcb_drawable_t drawable
  * specified as an i3String.
  *
  */
-int predict_text_width(xcb_connection_t *conn, xcb_screen_t *root_screen, i3String *text) {
-    assert(savedFont != nullptr);
-
+int predict_text_width(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *root_screen, i3String *text) {
     /* Calculate extents using Pango */
-    return predict_text_width_pango(conn, root_screen, text->get_utf8(), text->get_num_bytes(),
+    return predict_text_width_pango(savedFont, conn, root_screen, text->get_utf8(), text->get_num_bytes(),
                                     text->is_pango_markup());
 }

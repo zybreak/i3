@@ -153,7 +153,7 @@ static void free_configuration() {
     }
 
     /* Get rid of the current font */
-    free_font(**global.x);
+    free_font(config.font, **global.x);
 
     free(config.ipc_socket_path);
     free(config.restart_state_path);

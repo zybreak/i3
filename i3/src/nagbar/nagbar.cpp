@@ -226,7 +226,7 @@ class Nagbar {
      *
      */
     int button_draw(button_t *button, int position) {
-        int text_width = predict_text_width(conn, root_screen, button->label);
+        int text_width = predict_text_width(font, conn, root_screen, button->label);
         button->width = text_width + 2 * BTN_PADDING + 2 * BTN_BORDER;
         button->x = position - button->width;
 

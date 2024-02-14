@@ -216,7 +216,7 @@ void draw_util_text(xcb_connection_t *conn, i3String *text, surface_t *surface, 
     CAIRO_SURFACE_FLUSH(surface->surface);
 
     set_font_colors(conn, surface->gc, fg_color, bg_color);
-    draw_text(conn, text, surface->id, surface->gc, surface->surface, x, y, max_width);
+    draw_text(config.font, conn, text, surface->id, surface->gc, surface->surface, x, y, max_width);
 
     /* Notify cairo that we (possibly) used another way to draw on the surface. */
     cairo_surface_mark_dirty(surface->surface);
@@ -238,7 +238,7 @@ void draw_util_text(xcb_connection_t *conn, const char *text, surface_t *surface
     CAIRO_SURFACE_FLUSH(surface->surface);
 
     set_font_colors(conn, surface->gc, fg_color, bg_color);
-    draw_text(conn, text, surface->id, surface->gc, surface->surface, x, y, max_width);
+    draw_text(config.font, conn, text, surface->id, surface->gc, surface->surface, x, y, max_width);
 
     /* Notify cairo that we (possibly) used another way to draw on the surface. */
     cairo_surface_mark_dirty(surface->surface);

@@ -164,7 +164,7 @@ static void sighandler_setup() {
     message_option_restart = new i3String{"- 'r' to restart i3 in-place"};
     message_option_forget = new i3String{"- 'f' to forget the previous layout and restart i3"};
 
-    int width_longest_message = predict_text_width(**global.x, global.x->root_screen, message_intro2);
+    int width_longest_message = predict_text_width(config.font, **global.x, global.x->root_screen, message_intro2);
 
     dialog_width = width_longest_message + 2 * border_width + 2 * margin;
     dialog_height = num_lines * config.font->height + 2 * border_width + 2 * margin;

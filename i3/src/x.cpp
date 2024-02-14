@@ -652,11 +652,11 @@ void x_draw_decoration(Con *con) {
              * where surface_width = deco_width - 2 * pad
              * so, offset = pad + (surface_width - predict_text_width) / 2 =
              * = … = (deco_width - predict_text_width) / 2 */
-            title_offset_x = std::max(title_padding, (deco_width - predict_text_width(**global.x, global.x->root_screen, title)) / 2);
+            title_offset_x = std::max(title_padding, (deco_width - predict_text_width(config.font, **global.x, global.x->root_screen, title)) / 2);
             break;
         case Config::ALIGN_RIGHT:
             /* (pad)[    text](pad) */
-            title_offset_x = std::max(title_padding, deco_width - title_padding - predict_text_width(**global.x, global.x->root_screen, title));
+            title_offset_x = std::max(title_padding, deco_width - title_padding - predict_text_width(config.font, **global.x, global.x->root_screen, title));
             break;
     }
 

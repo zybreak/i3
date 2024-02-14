@@ -32,7 +32,7 @@ export {
      * specified as an i3String.
      *
      */
-    int predict_text_width(xcb_connection_t *conn, xcb_screen_t *root_screen, i3String *text);
+    int predict_text_width(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *root_screen, i3String *text);
 
     /**
      * Defines the colors to be used for the forthcoming draw_text calls.
@@ -59,7 +59,7 @@ export {
      * loaded, it simply returns.
      *
      */
-    void free_font(xcb_connection_t *conn);
+    void free_font(i3Font *savedFont, xcb_connection_t *conn);
 
     /**
      * Draws text onto the specified X drawable (normally a pixmap) at the
@@ -71,7 +71,7 @@ export {
      * Text must be specified as an i3String.
      *
      */
-    void draw_text(xcb_connection_t *conn, i3String *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
+    void draw_text(i3Font *savedFont, xcb_connection_t *conn, i3String *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
                    cairo_surface_t *surface, int x, int y, int max_width);
 
     /**
@@ -84,6 +84,6 @@ export {
      * Text must be specified as an i3String.
      *
      */
-    void draw_text(xcb_connection_t *conn, const char *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
+    void draw_text(i3Font *savedFont, xcb_connection_t *conn, const char *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
                    cairo_surface_t *surface, int x, int y, int max_width);
 }
