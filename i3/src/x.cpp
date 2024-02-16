@@ -315,7 +315,7 @@ bool window_supports_protocol(xcb_window_t window, xcb_atom_t atom) {
  * Kills the given X11 window using WM_DELETE_WINDOW (if supported).
  *
  */
-void x_window_kill(xcb_window_t window, kill_window_t kill_window) {
+void x_window_kill(xcb_connection_t *c, xcb_window_t window, kill_window_t kill_window) {
     /* if this window does not support WM_DELETE_WINDOW, we kill it the hard way */
     if (!window_supports_protocol(window, A_WM_DELETE_WINDOW)) {
         if (kill_window == KILL_WINDOW) {
@@ -338,8 +338,8 @@ void x_window_kill(xcb_window_t window, kill_window_t kill_window) {
     ev.data.data32[1] = XCB_CURRENT_TIME;
 
     LOG("Sending WM_DELETE to the client\n");
-    xcb_send_event(**global.x, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)&ev);
-    xcb_flush(**global.x);
+    xcb_send_event(c, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)&ev);
+    xcb_flush(c);
 }
 
 static void x_draw_title_border(Con *con, struct deco_render_params *p) {

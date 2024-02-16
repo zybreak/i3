@@ -184,7 +184,7 @@ export {
      * Kills the given X11 window using WM_DELETE_WINDOW (if supported).
      *
      */
-    void x_window_kill(xcb_window_t window, kill_window_t kill_window);
+    void x_window_kill(xcb_connection_t *c, xcb_window_t window, kill_window_t kill_window);
 
     /**
      * Draws the decoration of the given container onto its parent.

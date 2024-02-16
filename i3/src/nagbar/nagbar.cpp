@@ -22,6 +22,7 @@ module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_cursor.h>
+#include <xcb/xproto.h>
 
 #include <thread>
 
@@ -33,31 +34,6 @@ module i3;
 import utils;
 
 import log;
-/*
- * Handler which will be called when we get a SIGCHLD for the nagbar, meaning
- * it exited (or could not be started, depending on the exit code).
- *
- */
-static void nagbar_exited(EV_P_ ev_child *watcher, int revents) {
-    ev_child_stop(EV_A_ watcher);
-
-    int exitcode = WEXITSTATUS(watcher->rstatus);
-    if (!WIFEXITED(watcher->rstatus)) {
-        ELOG(fmt::sprintf("i3-nagbar (%d) did not exit normally. This is not an error if the config was reloaded while a nagbar was active.\n",  watcher->pid));
-    } else if (exitcode != 0) {
-        ELOG(fmt::sprintf("i3-nagbar (%d) process exited with status %d\n",  watcher->pid, exitcode));
-    } else {
-        DLOG(fmt::sprintf("i3-nagbar (%d) process exited with status %d\n",  watcher->pid, exitcode));
-    }
-
-    auto *nagbar_pid = (pid_t*)watcher->data;
-    if (nagbar_pid != nullptr && *nagbar_pid == watcher->pid) {
-        /* Only reset if the watched nagbar is the active nagbar */
-        *nagbar_pid = -1;
-    }
-
-    delete watcher;
-}
 
 static const button_t *get_button_at(const std::vector<button_t> &buttons, int16_t x, int16_t y) {
     for (const auto &button : buttons) {
@@ -68,13 +44,6 @@ static const button_t *get_button_at(const std::vector<button_t> &buttons, int16
 
     return nullptr;
 }
-
-#define MSG_PADDING logical_px(root_screen, 8)
-#define BTN_PADDING logical_px(root_screen, 3)
-#define BTN_BORDER logical_px(root_screen, 3)
-#define BTN_GAP logical_px(root_screen, 20)
-#define CLOSE_BTN_GAP logical_px(root_screen, 15)
-#define BAR_BORDER logical_px(root_screen, 2)
 
 
 class Nagbar {
@@ -87,6 +56,14 @@ class Nagbar {
     std::string prompt;
     std::vector<button_t> buttons;
     bool running{true};
+    xcb_window_t win;
+
+    long MSG_PADDING;
+    long BTN_PADDING;
+    long BTN_BORDER;
+    long BTN_GAP;
+    long CLOSE_BTN_GAP;
+    long BAR_BORDER;
 
     /* Result of get_colorpixel() for the various colors. */
     color_t color_background;        /* background of the bar */
@@ -99,6 +76,12 @@ class Nagbar {
     xcb_atom_t A_CARDINAL;
     xcb_intern_atom_cookie_t ATOM_cookie;
     xcb_intern_atom_cookie_t CARDINAL_cookie;
+
+    void window_kill() {
+        xcb_destroy_window(conn, win);
+        xcb_flush(conn);
+    }
+
 
     void nagbar_handle_button_press(xcb_button_press_event_t *event) {
         LOG(fmt::sprintf("button pressed on x = %d, y = %d\n",
@@ -116,7 +99,8 @@ class Nagbar {
             event->event_x, event->event_y));
         /* If the user hits the close button, we exit(0) */
         if (event->event_x >= btn_close.x && event->event_x < btn_close.x + btn_close.width) {
-            running = false;
+            //running = false;
+            window_kill();
             return;
         }
         const button_t *button = get_button_at(buttons, event->event_x, event->event_y);
@@ -387,7 +371,14 @@ class Nagbar {
 
         /* Place requests for the atoms we need as soon as possible */
         ATOM_cookie = xcb_intern_atom(conn, 0, strlen("ATOM"), "ATOM");
-        CARDINAL_cookie = xcb_intern_atom(conn, 0, strlen("ATOM"), "ATOM");
+        CARDINAL_cookie = xcb_intern_atom(conn, 0, strlen("CARDINAL"), "CARDINAL");
+
+        MSG_PADDING = logical_px(root_screen, 8);
+        BTN_PADDING = logical_px(root_screen, 3);
+        BTN_BORDER = logical_px(root_screen, 3);
+        BTN_GAP = logical_px(root_screen, 20);
+        CLOSE_BTN_GAP = logical_px(root_screen, 15);
+        BAR_BORDER = logical_px(root_screen, 2);
     }
 
     ~Nagbar() {
@@ -412,7 +403,7 @@ class Nagbar {
         xcb_cursor_context_free(cursor_ctx);
 
         /* Open an input window */
-        auto win = xcb_generate_id(conn);
+        win = xcb_generate_id(conn);
 
         uint32_t mask, mask_list[3];
 
@@ -548,6 +539,16 @@ class Nagbar {
                     }
                     break;
                 }
+                case XCB_DESTROY_NOTIFY:
+                    running = false;
+                    LOG(fmt::sprintf("DESTROY\n"));
+                    break;
+                case XCB_UNMAP_NOTIFY:
+                    LOG(fmt::sprintf("UNMAP\n"));
+                    break;
+                default:
+                    LOG(fmt::sprintf("Unhandled event of type %d\n", type));
+                    break;
             }
 
             free(event);
@@ -561,47 +562,7 @@ static void draw_nagbar(std::string prompt,
                         bool position_on_primary,
                         std::string pattern) {
 
-    /* The following lines are a terribly horrible kludge. Because terminal
-     * emulators have different ways of interpreting the -e command line
-     * argument (some need -e "less /etc/fstab", others need -e less
-     * /etc/fstab), we need to write commands to a script and then just run
-     * that script. However, since on some machines, $XDG_RUNTIME_DIR and
-     * $TMPDIR are mounted with noexec, we cannot directly execute the script
-     * either.
-     *
-     * Initially, we tried to pass the command via the environment variable
-     * _I3_NAGBAR_CMD. But turns out that some terminal emulators such as
-     * xfce4-terminal run all windows from a single master process and only
-     * pass on the command (not the environment) to that master process.
-     *
-     * Therefore, we symlink i3-nagbar (which MUST reside on an executable
-     * filesystem) with a special name and run that symlink. When i3-nagbar
-     * recognizes it’s started as a binary ending in .nagbar_cmd, it strips off
-     * the .nagbar_cmd suffix and runs /bin/sh on argv[0]. That way, we can run
-     * a shell script on a noexec filesystem.
-     *
-     * From a security point of view, i3-nagbar is just an alias to /bin/sh in
-     * certain circumstances. This should not open any new security issues, I
-     * hope. */
-    char *cmd = nullptr;
-    /*
-    const size_t argv0_len = strlen(argv[0]);
-    if (argv0_len > strlen(".nagbar_cmd") &&
-        strcmp(argv[0] + argv0_len - strlen(".nagbar_cmd"), ".nagbar_cmd") == 0) {
-        unlink(argv[0]);
-        cmd = sstrdup(argv[0]);
-        *(cmd + argv0_len - strlen(".nagbar_cmd")) = '\0';
-        execl(_PATH_BSHELL, _PATH_BSHELL, cmd, NULL);
-        err(EXIT_FAILURE, "execl(%s, %s, %s)", _PATH_BSHELL, _PATH_BSHELL, cmd);
-    }
-    */
-
     Nagbar nagbar{bar_type, prompt, pattern, buttons};
-
-#if defined(__OpenBSD__)
-    if (pledge("stdio rpath wpath cpath getpw proc exec", NULL) == -1)
-        err(EXIT_FAILURE, "pledge");
-#endif
 
     nagbar.create_window(position_on_primary);
 
@@ -627,34 +588,8 @@ void start_nagbar(pid_t *nagbar_pid,
         return;
     }
 
-    new std::thread(draw_nagbar, prompt, buttons, bar_type, position_on_primary, pattern);
-
-#if 0
-    auto pid = fork();
-    if (pid == -1) {
-        warn("Could not fork()");
-        return;
-    }
-
-    if (pid == 0) {
-        /* child */
-        global.run_atexit = false;
-        draw_nagbar(new i3String{prompt}, buttons, bar_type, position_on_primary, pattern);
-    } else {
-        /* parent */
-        DLOG(fmt::sprintf("Starting i3-nagbar with PID %d\n",  pid));
-
-        if (nagbar_pid != nullptr) {
-            *nagbar_pid = pid;
-        }
-
-        /* install a child watcher */
-        auto *child = new ev_child();
-        ev_child_init(child, &nagbar_exited, pid, 0);
-        child->data = nagbar_pid;
-        ev_child_start(global.eventHandler->main_loop, child);
-    }
-#endif
+    auto nagbar_thread = std::thread(draw_nagbar, prompt, buttons, bar_type, position_on_primary, pattern);
+    nagbar_thread.detach();
 }
 
 /*

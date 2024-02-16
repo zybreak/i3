@@ -170,7 +170,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
 
     if (con->window != nullptr) {
         if (kill_window != DONT_KILL_WINDOW) {
-            x_window_kill(con->window->id, kill_window);
+            x_window_kill(**global.x, con->window->id, kill_window);
             return false;
         } else {
             xcb_void_cookie_t cookie;
