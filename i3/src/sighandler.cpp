@@ -258,10 +258,10 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     const int x = border_width + margin;
     const int max_width = dialog->dims.width - 2 * x;
 
-    draw_util_text(**global.x, message_intro, &(dialog->surface), white, black, x, y, max_width);
+    draw_util_text(**global.x, config.font, message_intro, &(dialog->surface), white, black, x, y, max_width);
     y += config.font->height;
 
-    draw_util_text(**global.x, message_intro2, &(dialog->surface), white, black, x, y, max_width);
+    draw_util_text(**global.x, config.font, message_intro2, &(dialog->surface), white, black, x, y, max_width);
     y += config.font->height;
 
     char *bt_color = (char*)"#FFFFFF";
@@ -270,13 +270,13 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     } else if (backtrace_done > 0) {
         bt_color = (char*)"#00AA00";
     }
-    draw_util_text(**global.x, message_option_backtrace, &(dialog->surface), draw_util_hex_to_color(**global.x, global.x->root_screen, bt_color), black, x, y, max_width);
+    draw_util_text(**global.x, config.font, message_option_backtrace, &(dialog->surface), draw_util_hex_to_color(**global.x, global.x->root_screen, bt_color), black, x, y, max_width);
     y += config.font->height;
 
-    draw_util_text(**global.x, message_option_restart, &(dialog->surface), white, black, x, y, max_width);
+    draw_util_text(**global.x, config.font, message_option_restart, &(dialog->surface), white, black, x, y, max_width);
     y += config.font->height;
 
-    draw_util_text(**global.x, message_option_forget, &(dialog->surface), white, black, x, y, max_width);
+    draw_util_text(**global.x, config.font, message_option_forget, &(dialog->surface), white, black, x, y, max_width);
     y += config.font->height;
 }
 

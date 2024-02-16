@@ -6,6 +6,7 @@ module;
 export module i3:draw;
 
 class i3String;
+class i3Font;
 
 export {
 
@@ -74,7 +75,7 @@ export {
      * drawing are used. This will be the case when using XCB to draw text.
      *
      */
-    void draw_util_text(xcb_connection_t *conn, i3String *text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width);
+    void draw_util_text(xcb_connection_t *conn, i3Font *font, i3String *text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width);
 
     /**
      * Draw the given text using libi3.
@@ -82,7 +83,7 @@ export {
      * drawing are used. This will be the case when using XCB to draw text.
      *
      */
-    void draw_util_text(xcb_connection_t *conn, const char *text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width);
+    void draw_util_text(xcb_connection_t *conn, i3Font *font, const char *text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width);
 
 
     /**

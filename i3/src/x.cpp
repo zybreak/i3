@@ -660,7 +660,7 @@ void x_draw_decoration(Con *con) {
             break;
     }
 
-    draw_util_text(**global.x, title, &(parent->frame_buffer),
+    draw_util_text(**global.x, config.font, title, &(parent->frame_buffer),
                    p->color->text, p->color->background,
                    con->deco_rect.x + text_offset_x + title_offset_x,
                    con->deco_rect.y + text_offset_y,

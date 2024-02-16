@@ -108,51 +108,7 @@ class Nagbar {
             return;
         }
 
-        /* We need to create a custom script containing our actual command
-     * since not every terminal emulator which is contained in
-     * i3-sensible-terminal supports -e with multiple arguments (and not
-     * all of them support -e with one quoted argument either).
-     *
-     * NB: The paths need to be unique, that is, don’t assume users close
-     * their nagbars at any point in time (and they still need to work).
-     * */
-        char *script_path = get_process_filename("nagbar-cmd");
-
-        int fd = open(script_path, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-        if (fd == -1) {
-            warn("Could not create temporary script to store the nagbar command");
-            return;
-        }
-        FILE *script = fdopen(fd, "w");
-        if (script == nullptr) {
-            warn("Could not fdopen() temporary script to store the nagbar command");
-            return;
-        }
-        fprintf(script, "#!%s\nrm %s\n%s", _PATH_BSHELL, script_path, button->action);
-        /* Also closes fd */
-        fclose(script);
-
-        char *link_path;
-        //char *exe_path = get_exe_path(argv0);
-        sasprintf(&link_path, "%s.nagbar_cmd", script_path);
-        //if (symlink(exe_path, link_path) == -1) {
-        //    err(EXIT_FAILURE, "Failed to symlink %s to %s", link_path, exe_path);
-        //}
-
-        char *terminal_cmd;
-        if (button->terminal) {
-            sasprintf(&terminal_cmd, "i3-sensible-terminal -e %s", link_path);
-        } else {
-            terminal_cmd = sstrdup(link_path);
-        }
-        LOG(fmt::sprintf("terminal_cmd = %s\n", terminal_cmd));
-
-        //start_application(terminal_cmd);
-
-        free(link_path);
-        free(terminal_cmd);
-        free(script_path);
-        //free(exe_path);
+        start_application(button->action, true);
 
         /* TODO: unset flag, re-render */
     }
@@ -227,7 +183,7 @@ class Nagbar {
                             text_width + 2 * BTN_PADDING,
                             font->height + 2 * BTN_PADDING);
         /* draw label */
-        draw_util_text(conn, button->label, &bar, color_text, color_button_background,
+        draw_util_text(conn, font, button->label, &bar, color_text, color_button_background,
                        position - button->width + BTN_BORDER + BTN_PADDING,
                        MSG_PADDING,
                        200);
@@ -305,7 +261,7 @@ class Nagbar {
         /* draw background */
         draw_util_clear_surface(&bar, color_background);
         /* draw message */
-        draw_util_text(conn, prompt.c_str(), &bar, color_text, color_background,
+        draw_util_text(conn, font, prompt.c_str(), &bar, color_text, color_background,
                        MSG_PADDING, MSG_PADDING,
                        bar.width - 2 * MSG_PADDING);
 
