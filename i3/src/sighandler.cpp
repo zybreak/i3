@@ -17,6 +17,7 @@ module;
 #include <unistd.h>
 #include <filesystem>
 #include <fmt/printf.h>
+#include <string>
 module i3;
 
 import utils;
@@ -54,11 +55,12 @@ static void sighandler_handle_expose();
 static void sighandler_draw_dialog(dialog_t *dialog);
 static void sighandler_handle_key_press(xcb_key_press_event_t *event);
 
-static i3String *message_intro;
-static i3String *message_intro2;
-static i3String *message_option_backtrace;
-static i3String *message_option_restart;
-static i3String *message_option_forget;
+static std::string message_intro{"i3 has just crashed. Please report a bug for this."};
+static std::string message_intro2{"To debug this problem, you can either attach gdb or choose from the following options:"};
+static std::string message_option_backtrace{"- 'b' to save a backtrace (requires gdb)"};
+static std::string message_option_restart{"- 'r' to restart i3 in-place"};
+static std::string message_option_forget{"- 'f' to forget the previous layout and restart i3"};
+
 static int dialog_width;
 static int dialog_height;
 
@@ -158,11 +160,6 @@ static void sighandler_setup() {
     margin = logical_px(global.x->root_screen, margin);
 
     int num_lines = 5;
-    message_intro = new i3String{"i3 has just crashed. Please report a bug for this."};
-    message_intro2 = new i3String{"To debug this problem, you can either attach gdb or choose from the following options:"};
-    message_option_backtrace = new i3String{"- 'b' to save a backtrace (requires gdb)"};
-    message_option_restart = new i3String{"- 'r' to restart i3 in-place"};
-    message_option_forget = new i3String{"- 'f' to forget the previous layout and restart i3"};
 
     int width_longest_message = predict_text_width(config.font, **global.x, global.x->root_screen, message_intro2);
 

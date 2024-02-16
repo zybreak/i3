@@ -2026,7 +2026,7 @@ i3String *con_parse_title_format(Con *con) {
         instance = "i3-frame";
         machine = "";
     } else {
-        title = pango_escape_markup((win->name == nullptr) ? "" : win->name->get_utf8());
+        title = pango_escape_markup(win->name);
         window_class = pango_escape_markup((win->class_class == nullptr) ? "" : win->class_class);
         instance = pango_escape_markup((win->class_instance == nullptr) ? "" : win->class_instance);
         machine = pango_escape_markup((win->machine == nullptr) ? "" : win->machine);

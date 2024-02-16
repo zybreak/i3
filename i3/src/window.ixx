@@ -13,6 +13,7 @@ module;
 #include <config.h>
 #include <deque>
 #include <xcb/xcb.h>
+#include <string>
 
 export module i3:window;
 
@@ -55,7 +56,7 @@ export {
         char *class_instance;
 
         /** The name of the window. */
-        i3String *name;
+        std::string name{};
 
         /** The WM_WINDOW_ROLE of this window (for example, the pidgin buddy window
          * sets "buddy list"). Useful to match specific windows in assignments or

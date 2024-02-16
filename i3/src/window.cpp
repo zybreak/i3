@@ -42,7 +42,6 @@ i3Window::~i3Window() {
     FREE(this->class_class);
     FREE(this->class_instance);
     FREE(this->machine);
-    delete this->name;
     cairo_surface_destroy(this->icon);
 }
 
@@ -88,12 +87,10 @@ void i3Window::window_update_name(xcb_get_property_reply_t *prop) {
         return;
     }
 
-    delete this->name;
-
     /* Truncate the name at the first zero byte. See #3515. */
     const int len = xcb_get_property_value_length(prop);
     char *prop_name = sstrndup((const char *)xcb_get_property_value(prop), len);
-    this->name = new i3String{prop_name};
+    this->name = prop_name;
     free(prop_name);
 
     Con *con = con_by_window_id(id);
@@ -103,7 +100,7 @@ void i3Window::window_update_name(xcb_get_property_reply_t *prop) {
         delete title;
     }
     name_x_changed = true;
-    LOG(fmt::sprintf("_NET_WM_NAME changed to \"%s\"\n", this->name->get_utf8()));
+    LOG(fmt::sprintf("_NET_WM_NAME changed to \"%s\"\n", this->name));
 
     uses_net_wm_name = true;
 }
@@ -126,10 +123,9 @@ void i3Window::window_update_name_legacy(xcb_get_property_reply_t *prop) {
         return;
     }
 
-    delete name;
     const int len = xcb_get_property_value_length(prop);
     char *prop_name = sstrndup((const char *)xcb_get_property_value(prop), len);
-    this->name = new i3String{prop_name};
+    this->name = prop_name;
     free(prop_name);
 
     Con *con = con_by_window_id(id);
@@ -139,7 +135,7 @@ void i3Window::window_update_name_legacy(xcb_get_property_reply_t *prop) {
         delete title;
     }
 
-    LOG(fmt::sprintf("WM_NAME changed to \"%s\"\n", this->name->get_utf8()));
+    LOG(fmt::sprintf("WM_NAME changed to \"%s\"\n", this->name));
     LOG("Using legacy window title. Note that in order to get Unicode window "
         "titles in i3, the application has to set _NET_WM_NAME (UTF-8)\n");
 

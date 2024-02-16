@@ -201,7 +201,7 @@ bool Match::match_matches_window(i3Window *window) const {
             }
         }
 
-        checkWindowField(this->title, window, [](i3Window *window) { return window->name != nullptr ? window->name->get_utf8() : nullptr; });
+        checkWindowField(this->title, window, [](i3Window *window) { return !window->name.empty() ? (char*)window->name.c_str() : nullptr; });
         checkWindowField(this->window_role, window, [](i3Window *window) { return window->role; });
 
         if (this->window_type != UINT32_MAX) {

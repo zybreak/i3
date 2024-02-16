@@ -543,16 +543,16 @@ void PropertyHandlers::handle_destroy_notify_event(xcb_destroy_notify_event_t *e
 }
 
 static bool window_name_changed(i3Window *window, char *old_name) {
-    if ((old_name == nullptr) && (window->name == nullptr)) {
+    if ((old_name == nullptr) && (window->name.empty())) {
         return false;
     }
 
     /* Either the old or the new one is NULL, but not both. */
-    if ((old_name == nullptr) ^ (window->name == nullptr)) {
+    if ((old_name == nullptr) ^ (window->name.empty())) {
         return true;
     }
 
-    return (strcmp(old_name, window->name->get_utf8()) != 0);
+    return (strcmp(old_name, window->name.c_str()) != 0);
 }
 
 /*
@@ -560,7 +560,7 @@ static bool window_name_changed(i3Window *window, char *old_name) {
  *
  */
 static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
-    char *old_name = (con->window->name != nullptr ? sstrdup(con->window->name->get_utf8()) : nullptr);
+    char *old_name = (!con->window->name.empty() ? sstrdup(con->window->name.c_str()) : nullptr);
 
     con->window->window_update_name(prop);
 
@@ -583,7 +583,7 @@ static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
  *
  */
 static bool handle_windowname_change_legacy(Con *con, xcb_get_property_reply_t *prop) {
-    char *old_name = (con->window->name != nullptr ? sstrdup(con->window->name->get_utf8()) : nullptr);
+    char *old_name = (!con->window->name.empty() ? sstrdup(con->window->name.c_str()) : nullptr);
 
     con->window->window_update_name_legacy(prop);
 

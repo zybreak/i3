@@ -27,6 +27,11 @@ export {
         /** The pango font description */
         PangoFontDescription *pango_desc;
 
+        i3Font() {
+            pattern = "fixed";
+            pango_desc = nullptr;
+        }
+
         ~i3Font() {
             if (pango_desc != nullptr) {
                 pango_font_description_free(pango_desc);

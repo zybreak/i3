@@ -212,7 +212,7 @@ void INIT_COLOR(Colortriple &x, const char *cborder, const char *cbackground, co
  * Launch nagbar to indicate errors in the configuration file.
  */
 static void start_config_error_nagbar(bool has_errors) {
-    std::string font_pattern = !config.font->pattern.empty() ? config.font->pattern : "fixed"s;
+    std::string font_pattern = config.font->pattern;
     auto type = has_errors ? bar_type_t::TYPE_ERROR : bar_type_t::TYPE_WARNING;
     std::string text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
 

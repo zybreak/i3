@@ -163,26 +163,22 @@ i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char 
         return font;
     }
 
+    const char *font_pattern = nullptr;
+
     /* Try to load a pango font if specified */
     if (strlen(pattern) > strlen("pango:") && !strncmp(pattern, "pango:", strlen("pango:"))) {
-        const char *font_pattern = pattern + strlen("pango:");
-        if (load_pango_font(conn, root_screen, font, font_pattern)) {
-            font->pattern = pattern;
-            return font;
-        }
+        font_pattern = pattern + strlen("pango:");
     } else if (strlen(pattern) > strlen("xft:") && !strncmp(pattern, "xft:", strlen("xft:"))) {
-        const char *font_pattern = pattern + strlen("xft:");
-        if (load_pango_font(conn, root_screen, font, font_pattern)) {
-            font->pattern = pattern;
-            return font;
-        }
+        font_pattern = pattern + strlen("xft:");
     } else {
-        const char *font_pattern = pattern;
-        if (load_pango_font(conn, root_screen, font, font_pattern)) {
-            font->pattern = pattern;
-            return font;
-        }
+        font_pattern = pattern;
     }
+
+    if (load_pango_font(conn, root_screen, font, font_pattern)) {
+        font->pattern = pattern;
+    }
+
+    return font;
 }
 
 /*

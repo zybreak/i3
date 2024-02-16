@@ -631,7 +631,7 @@ void x_draw_decoration(Con *con) {
             title = con_parse_title_format(con);
         }
     } else {
-        title = con->title_format.empty() ? win->name : con_parse_title_format(con);
+        title = con->title_format.empty() ? new i3String(win->name) : con_parse_title_format(con);
     }
     if (title == nullptr) {
         draw_util_copy_surface(&(con->frame_buffer), &(con->frame), 0, 0, 0, 0, con->rect.width, con->rect.height);

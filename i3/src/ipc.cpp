@@ -489,8 +489,8 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
     j["window_rect"] = dump_rect(con->window_rect);
     j["geometry"] = dump_rect(con->geometry);
 
-    if (con->window && con->window->name) {
-        j["name"] = con->window->name->get_utf8();
+    if (con->window && !con->window->name.empty()) {
+        j["name"] = con->window->name;
     } else if (!con->name.empty()) {
         j["name"] = con->name;
     }
@@ -530,8 +530,8 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
             map["machine"] = con->window->machine;
         }
 
-        if (con->window->name != nullptr) {
-            map["title"] = con->window->name->get_utf8();
+        if (!con->window->name.empty()) {
+            map["title"] = con->window->name.c_str();
         }
 
         if (con->window->transient_for != XCB_NONE) {
