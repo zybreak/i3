@@ -2,6 +2,7 @@ module;
 #include <pango/pango.h>
 #include <xcb/xcb.h>
 #include <cairo.h>
+#include <string>
 export module i3:font;
 
 struct color_t;
@@ -42,6 +43,8 @@ export {
      *
      */
     int predict_text_width(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *root_screen, i3String *text);
+
+    int predict_text_width(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *root_screen, std::string &text);
 
     /**
      * Defines the colors to be used for the forthcoming draw_text calls.

@@ -1,13 +1,13 @@
 module;
 
+#include <utility>
 #include <vector>
 #include <unistd.h>
 #include <sys/types.h>
 #include <cstdint>
+#include <string>
 
 export module i3:nagbar;
-
-class i3String;
 
 export {
     enum class bar_type_t {
@@ -15,12 +15,17 @@ export {
         TYPE_WARNING
     };
 
-    struct button_t {
-        i3String *label;
-        char *action;
-        int16_t x;
-        uint16_t width;
+    class button_t {
+       public:
+        std::string label;
+        std::string action;
+        int16_t x{};
+        uint16_t width{};
         bool terminal;
+
+        button_t() = delete;
+
+        button_t(std::string label, std::string action, bool terminal) : label(std::move(label)), action(std::move(action)), terminal(terminal) {}
     };
 
     /**

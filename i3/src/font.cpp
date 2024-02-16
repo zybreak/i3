@@ -237,3 +237,13 @@ int predict_text_width(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *
     return predict_text_width_pango(savedFont, conn, root_screen, text->get_utf8(), text->get_num_bytes(),
                                     text->is_pango_markup());
 }
+
+/*
+ * Predict the text width in pixels for the given text. Text must be
+ * specified as an i3String.
+ *
+ */
+int predict_text_width(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *root_screen, std::string &text) {
+    /* Calculate extents using Pango */
+    return predict_text_width_pango(savedFont, conn, root_screen, text.c_str(), text.length(), false);
+}

@@ -2051,11 +2051,11 @@ void CommandsApplier::nagbar(struct criteria_state *criteria_state, struct Comma
     std::vector<button_t> buttons{};
 
     if (labels != nullptr) {
-        buttons.push_back((button_t) {
-                .label = new i3String{labels},
-                .action = sstrdup(actions),
-                .terminal = strcmp(terminals, "true") == 0,
-        });
+        buttons.emplace_back(
+                labels,
+                actions,
+                strcmp(terminals, "true") == 0
+        );
     }
 
     std::string message_str = message;
