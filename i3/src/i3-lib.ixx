@@ -45,7 +45,6 @@ export import :restore_layout;
 export import :root_atom_contents;
 export import :nagbar;
 export import :manage;
-export import :i3string;
 export import :tree;
 export import :commands;
 export import :is_background_set;

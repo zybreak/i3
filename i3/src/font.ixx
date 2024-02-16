@@ -7,7 +7,6 @@ module;
 export module i3:font;
 
 struct color_t;
-class i3String;
 
 export {
     /**
@@ -45,8 +44,6 @@ export {
      * specified as an i3String.
      *
      */
-    int predict_text_width(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *root_screen, i3String *text);
-
     int predict_text_width(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *root_screen, std::string &text);
 
     /**
@@ -62,19 +59,6 @@ export {
      *
      */
     i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *pattern, bool fallback);
-
-    /**
-     * Draws text onto the specified X drawable (normally a pixmap) at the
-     * specified coordinates (from the top left corner of the leftmost, uppermost
-     * glyph) and using the provided gc.
-     *
-     * The given cairo surface must refer to the specified X drawable.
-     *
-     * Text must be specified as an i3String.
-     *
-     */
-    void draw_text(i3Font *savedFont, xcb_connection_t *conn, i3String *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
-                   cairo_surface_t *surface, int x, int y, int max_width);
 
     /**
      * Draws text onto the specified X drawable (normally a pixmap) at the

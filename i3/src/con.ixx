@@ -702,7 +702,7 @@ export {
      * Returns the window title considering the current title format.
      *
      */
-    i3String *con_parse_title_format(Con * con);
+    std::string con_parse_title_format(Con * con);
 
     /**
      * Returns given container's rect size depending on its orientation.

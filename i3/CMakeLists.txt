@@ -162,7 +162,6 @@ target_sources(i3_lib PUBLIC
         src/root_atom_contents.ixx
         src/nagbar/nagbar.ixx
         src/manage.ixx
-        src/i3string.ixx
         src/i3_regex.ixx
         src/internal.ixx
         )

@@ -7,7 +7,6 @@ module;
 #include <string>
 export module i3:draw;
 
-class i3String;
 class i3Font;
 
 export {
@@ -70,14 +69,6 @@ export {
      *
      */
     color_t draw_util_hex_to_color(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *color);
-
-    /**
-     * Draw the given text using libi3.
-     * This function also marks the surface dirty which is needed if other means of
-     * drawing are used. This will be the case when using XCB to draw text.
-     *
-     */
-    void draw_util_text(xcb_connection_t *conn, i3Font *font, i3String *text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width);
 
     /**
      * Draw the given text using libi3.

@@ -95,9 +95,8 @@ void i3Window::window_update_name(xcb_get_property_reply_t *prop) {
 
     Con *con = con_by_window_id(id);
     if (con != nullptr && !con->title_format.empty()) {
-        i3String *title = con_parse_title_format(con);
-        ewmh_update_visible_name(id, title->get_utf8());
-        delete title;
+        std::string title = con_parse_title_format(con);
+        ewmh_update_visible_name(id, title.c_str());
     }
     name_x_changed = true;
     LOG(fmt::sprintf("_NET_WM_NAME changed to \"%s\"\n", this->name));
@@ -130,9 +129,8 @@ void i3Window::window_update_name_legacy(xcb_get_property_reply_t *prop) {
 
     Con *con = con_by_window_id(id);
     if (con != nullptr && !con->title_format.empty()) {
-        i3String *title = con_parse_title_format(con);
-        ewmh_update_visible_name(id, title->get_utf8());
-        delete title;
+        std::string title = con_parse_title_format(con);
+        ewmh_update_visible_name(id, title.c_str());
     }
 
     LOG(fmt::sprintf("WM_NAME changed to \"%s\"\n", this->name));

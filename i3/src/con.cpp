@@ -2011,7 +2011,7 @@ std::string con_get_tree_representation(Con *con) {
  * Returns the container's title considering the current title format.
  *
  */
-i3String *con_parse_title_format(Con *con) {
+std::string con_parse_title_format(Con *con) {
     assert(!con->title_format.empty());
 
     i3Window *win = con->window;
@@ -2040,10 +2040,8 @@ i3String *con_parse_title_format(Con *con) {
     };
 
     std::string formatted_str = format_placeholders(con->title_format, placeholders);
-    i3String *formatted = new i3String{formatted_str};
-    formatted->set_markup(true);
 
-    return formatted;
+    return formatted_str;
 }
 
 /*

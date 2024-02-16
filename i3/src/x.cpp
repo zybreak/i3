@@ -622,18 +622,17 @@ void x_draw_decoration(Con *con) {
             icon_size);
     }
 
-    i3String *title = nullptr;
+    std::string title{};
     if (win == nullptr) {
         if (con->title_format.empty()) {
-            std::string _title = fmt::format("i3: {}", con_get_tree_representation(con));
-            title = new i3String{_title};
+            title = fmt::format("i3: {}", con_get_tree_representation(con));
         } else {
             title = con_parse_title_format(con);
         }
     } else {
-        title = con->title_format.empty() ? new i3String(win->name) : con_parse_title_format(con);
+        title = con->title_format.empty() ? win->name : con_parse_title_format(con);
     }
-    if (title == nullptr) {
+    if (title.empty()) {
         draw_util_copy_surface(&(con->frame_buffer), &(con->frame), 0, 0, 0, 0, con->rect.width, con->rect.height);
         return;
     }
@@ -665,11 +664,6 @@ void x_draw_decoration(Con *con) {
                    con->deco_rect.x + text_offset_x + title_offset_x,
                    con->deco_rect.y + text_offset_y,
                    deco_width - text_offset_x - 2 * title_padding);
-
-    if (win == nullptr || !con->title_format.empty()) {
-        delete title;
-        title = nullptr;
-    }
 
     x_draw_decoration_after_title(con, p);
     draw_util_copy_surface(&(con->frame_buffer), &(con->frame), 0, 0, 0, 0, con->rect.width, con->rect.height);

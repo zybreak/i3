@@ -18,7 +18,7 @@ module;
 export module i3:window;
 
 class Assignment;
-class i3String;
+
 export {
     enum border_style_t : unsigned int;
 

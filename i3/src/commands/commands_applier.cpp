@@ -1769,10 +1769,8 @@ void CommandsApplier::title_format(struct criteria_state *criteria_state, struct
             current->title_format = format;
 
             if (current->window != nullptr) {
-                i3String *formatted_title = con_parse_title_format(current);
-                ewmh_update_visible_name(current->window->id, formatted_title->get_utf8());
-                delete formatted_title;
-                formatted_title = nullptr;
+                std::string formatted_title = con_parse_title_format(current);
+                ewmh_update_visible_name(current->window->id, formatted_title.c_str());
             }
         } else {
             if (current->window != nullptr) {

@@ -200,37 +200,11 @@ void set_font_colors(xcb_connection_t *conn, xcb_gcontext_t gc, color_t foregrou
  * Text must be specified as an i3String.
  *
  */
-void draw_text(i3Font *savedFont, xcb_connection_t *conn, i3String *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
-               cairo_surface_t *surface, int x, int y, int max_width) {
-    /* Render the text using Pango */
-    draw_text_pango(savedFont, text->get_utf8(), text->get_num_bytes(),
-                    drawable, surface, x, y, max_width, text->is_pango_markup());
-}
-
-/*
- * Draws text onto the specified X drawable (normally a pixmap) at the
- * specified coordinates (from the top left corner of the leftmost, uppermost
- * glyph) and using the provided gc.
- *
- * Text must be specified as an i3String.
- *
- */
 void draw_text(i3Font *savedFont, xcb_connection_t *conn, std::string &text, xcb_drawable_t drawable, xcb_gcontext_t gc,
                cairo_surface_t *surface, int x, int y, int max_width) {
     /* Render the text using Pango */
     draw_text_pango(savedFont, text.c_str(), text.size(),
                     drawable, surface, x, y, max_width, false);
-}
-
-/*
- * Predict the text width in pixels for the given text. Text must be
- * specified as an i3String.
- *
- */
-int predict_text_width(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *root_screen, i3String *text) {
-    /* Calculate extents using Pango */
-    return predict_text_width_pango(savedFont, conn, root_screen, text->get_utf8(), text->get_num_bytes(),
-                                    text->is_pango_markup());
 }
 
 /*

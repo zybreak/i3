@@ -206,28 +206,6 @@ static void draw_util_set_source_color(surface_t *surface, color_t color) {
  * drawing are used. This will be the case when using XCB to draw text.
  *
  */
-void draw_util_text(xcb_connection_t *conn, i3Font *font, i3String *text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width) {
-    if ((surface)->id == 0L) {
-        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
-        return;
-    }
-
-    /* Flush any changes before we draw the text as this might use XCB directly. */
-    CAIRO_SURFACE_FLUSH(surface->surface);
-
-    set_font_colors(conn, surface->gc, fg_color, bg_color);
-    draw_text(font, conn, text, surface->id, surface->gc, surface->surface, x, y, max_width);
-
-    /* Notify cairo that we (possibly) used another way to draw on the surface. */
-    cairo_surface_mark_dirty(surface->surface);
-}
-
-/*
- * Draw the given text using libi3.
- * This function also marks the surface dirty which is needed if other means of
- * drawing are used. This will be the case when using XCB to draw text.
- *
- */
 void draw_util_text(xcb_connection_t *conn, i3Font *font, std::string &text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width) {
     if ((surface)->id == 0L) {
         ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
