@@ -138,7 +138,7 @@ Startup_Sequence::~Startup_Sequence() {
  * (and ID) should be created, which is the default and encouraged behavior.
  *
  */
-void start_application(const std::string_view &command, bool no_startup_id) {
+void start_application(const std::string_view command, bool no_startup_id) {
     SnLauncherContext *context = nullptr;
 
     if (!no_startup_id) {
@@ -150,7 +150,7 @@ void start_application(const std::string_view &command, bool no_startup_id) {
         /* Chop off everything starting from the first space (if there are any
          * spaces in the command), since we don’t want the parameters. */
         auto space = std::ranges::find(command, ' ');
-        const std::basic_string_view<char> &view = std::string_view(command.begin(), space);
+        const auto &view = std::string_view(command.begin(), space);
         sn_launcher_context_initiate(context, "i3", view.data(), global.last_timestamp);
 
         /* Trigger a timeout after 60 seconds */
