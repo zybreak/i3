@@ -65,8 +65,9 @@ xcb_window_t create_window(xcb_connection_t *conn, Rect dims,
     xcb_change_window_attributes(conn, result, XCB_CW_CURSOR, cursor_values);
 
     /* Map the window (= make it visible) */
-    if (map)
+    if (map) {
         xcb_map_window(conn, result);
+    }
 
     return result;
 }
@@ -77,8 +78,9 @@ xcb_window_t create_window(xcb_connection_t *conn, Rect dims,
  *
  */
 void fake_absolute_configure_notify(Con *con) {
-    if (con->window == nullptr)
+    if (con->window == nullptr) {
         return;
+    }
 
     /* Every X11 event is 32 bytes long. Therefore, XCB will copy 32 bytes.
      * In order to properly initialize these bytes, we allocate 32 bytes even
@@ -146,12 +148,14 @@ void xcb_set_window_rect(xcb_connection_t *conn, xcb_window_t window, Rect r) {
  *
  */
 xcb_atom_t xcb_get_preferred_window_type(xcb_get_property_reply_t *reply) {
-    if (reply == nullptr || xcb_get_property_value_length(reply) == 0)
+    if (reply == nullptr || xcb_get_property_value_length(reply) == 0) {
         return XCB_NONE;
+    }
 
     xcb_atom_t *atoms;
-    if ((atoms = (xcb_atom_t*)xcb_get_property_value(reply)) == nullptr)
+    if ((atoms = (xcb_atom_t *)xcb_get_property_value(reply)) == nullptr) {
         return XCB_NONE;
+    }
 
     for (int i = 0; i < xcb_get_property_value_length(reply) / (reply->format / 8); i++) {
         xcb_atom_t atom = atoms[i];
@@ -177,16 +181,20 @@ xcb_atom_t xcb_get_preferred_window_type(xcb_get_property_reply_t *reply) {
  *
  */
 bool xcb_reply_contains_atom(xcb_get_property_reply_t *prop, xcb_atom_t atom) {
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0)
+    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
         return false;
+    }
 
     xcb_atom_t *atoms;
-    if ((atoms = (xcb_atom_t*)xcb_get_property_value(prop)) == nullptr)
+    if ((atoms = (xcb_atom_t *)xcb_get_property_value(prop)) == nullptr) {
         return false;
+    }
 
-    for (int i = 0; i < xcb_get_property_value_length(prop) / (prop->format / 8); i++)
-        if (atoms[i] == atom)
+    for (int i = 0; i < xcb_get_property_value_length(prop) / (prop->format / 8); i++) {
+        if (atoms[i] == atom) {
             return true;
+        }
+    }
 
     return false;
 }
@@ -242,14 +250,16 @@ xcb_visualid_t get_visualid_by_depth(uint16_t depth) {
 
     depth_iter = xcb_screen_allowed_depths_iterator(global.x->root_screen);
     for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
-        if (depth_iter.data->depth != depth)
+        if (depth_iter.data->depth != depth) {
             continue;
+        }
 
         xcb_visualtype_iterator_t visual_iter;
 
         visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
-        if (!visual_iter.rem)
+        if (!visual_iter.rem) {
             continue;
+        }
         return visual_iter.data->visual_id;
     }
     return 0;
@@ -293,8 +303,9 @@ void xcb_remove_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_a
         const int current_size = xcb_get_property_value_length(reply) / (reply->format / 8);
         xcb_atom_t values[current_size];
         for (int i = 0; i < current_size; i++) {
-            if (atoms[i] != atom)
+            if (atoms[i] != atom) {
                 values[num++] = atoms[i];
+            }
         }
 
         xcb_change_property(conn, XCB_PROP_MODE_REPLACE, window, property, XCB_ATOM_ATOM, 32, num, values);

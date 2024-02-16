@@ -150,8 +150,9 @@ void insert_con_into(Con *con, Con *target, position_t position) {
         } else {
             /* Example layout: H [ A B* ], we move A up/down. 'target' will be H. */
             auto it = std::ranges::find(parent->focus_head, target);
-            if (std::next(it) != parent->focus_head.end())
+            if (std::next(it) != parent->focus_head.end()) {
                 it++;
+            }
             parent->focus_head.insert(it, con);
         }
     } else {
@@ -373,8 +374,9 @@ void tree_move(Con *con, direction_t direction) {
     /* This is the container *above* 'con' (an ancestor of con) which is inside
      * 'same_orientation' */
     Con *above = con;
-    while (above->parent != same_orientation)
+    while (above->parent != same_orientation) {
         above = above->parent;
+    }
 
     /* Enforce the fullscreen focus restrictions. */
     if (!con_fullscreen_permits_focusing(above->parent)) {

@@ -41,8 +41,6 @@ import utils;
 import log;
 import rect;
 
-#define COLOR_TRANSPARENT ((color_t){.red = 0.0, .green = 0.0, .blue = 0.0, .colorpixel = 0})
-
 void X::xcursor_load_cursors() {
     if (xcb_cursor_context_new(**global.x, global.x->root_screen, &ctx) < 0) {
         errx(EXIT_FAILURE, "Cannot allocate xcursor context");
@@ -573,7 +571,7 @@ void x_draw_decoration(Con *con) {
      * garbage left on there. This is important to avoid tearing when using
      * transparency. */
     if (con == con::first(con->parent->nodes_head)) {
-        draw_util_clear_surface(&(con->parent->frame_buffer), COLOR_TRANSPARENT);
+        draw_util_clear_surface(&(con->parent->frame_buffer), ((color_t){.red = 0.0, .green = 0.0, .blue = 0.0, .colorpixel = 0}));
         delete con->parent->deco_render_params;
         con->parent->deco_render_params = nullptr;
     }

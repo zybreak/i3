@@ -26,12 +26,6 @@ export {
         return (strncasecmp((string), (needle), strlen((needle))) == 0);
     }
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
     /**
      * Returns true if the name consists of only digits.
      *

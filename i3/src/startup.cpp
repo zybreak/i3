@@ -138,7 +138,7 @@ Startup_Sequence::~Startup_Sequence() {
  * (and ID) should be created, which is the default and encouraged behavior.
  *
  */
-void start_application(const std::string_view command, bool no_startup_id) {
+void start_application(const std::string_view &command, bool no_startup_id) {
     SnLauncherContext *context = nullptr;
 
     if (!no_startup_id) {

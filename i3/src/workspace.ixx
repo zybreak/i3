@@ -46,7 +46,7 @@ export {
      * back-and-forth switching.
      *
      */
-    extern std::string previous_workspace_name;
+    std::string previous_workspace_name{};
 
     /**
      * Returns the workspace with the given name or NULL if such a workspace does

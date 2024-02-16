@@ -17,25 +17,6 @@ import rect;
 class Con;
 
 export {
-    /**
-     * This is used to keep a state to pass around when rendering a con in render_con().
-     *
-     */
-    struct render_params {
-        /* A copy of the coordinates of the container which is being rendered. */
-        unsigned int x{};
-        unsigned int y{};
-
-        /* The computed height for decorations. */
-        int deco_height{};
-        /* Container rect, subtract container border. This is the actually usable space
-         * inside this container for clients. */
-        Rect rect{};
-        /* The number of children of the container which is being rendered. */
-        unsigned long children{};
-        /* A precalculated list of sizes of each child. */
-        std::vector<int> sizes{};
-    };
 
     /**
      * "Renders" the given container (and its children), meaning that all rects are
