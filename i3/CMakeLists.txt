@@ -58,7 +58,7 @@ list(APPEND i3_src
         src/bindings.cpp
         src/commands/commands_parser.cpp
         src/commands/commands_applier.cpp
-        src/con.cpp
+        src/con/con.cpp
         src/config/configuration.cpp
         src/config/config_applier.cpp
         src/drag.cpp
@@ -123,7 +123,7 @@ target_sources(i3_lib PUBLIC
         src/config/configuration.ixx
         src/config/resource_database.ixx
         src/commands/commands.ixx
-        src/con.ixx
+        src/con/con.ixx
         src/util.ixx
         src/x.ixx
         src/workspace.ixx
