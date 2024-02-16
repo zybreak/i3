@@ -36,6 +36,8 @@ import log;
 static xkb_context *context;
 static xkb_keymap *keymap;
 
+using namespace std::literals;
+
 struct resolve {
     /* The binding which we are resolving. */
     Binding *bind;
@@ -60,12 +62,12 @@ struct resolve {
  * Launch nagbar to indicate errors in the configuration file.
  */
 static void start_config_error_nagbar(bool has_errors) {
-    const char *font_pattern = config.font->pattern ? config.font->pattern : "fixed";
+    std::string font_pattern = !config.font->pattern.empty() ? config.font->pattern : "fixed"s;
     auto type = has_errors ? bar_type_t::TYPE_ERROR : bar_type_t::TYPE_WARNING;
     std::string text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
 
     std::vector<button_t> buttons{};
-    start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type);
+    start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type, false);
 }
 
 /*
@@ -833,7 +835,8 @@ CommandResult run_binding(Binding *bind, Con *con) {
 
     if (result.parse_error) {
         std::vector<button_t> buttons{};
-        start_nagbar(&global.command_error_nagbar_pid, buttons, "The configured command for this shortcut could not be run successfully.", config.font->pattern);
+        auto prompt = std::string("The configured command for this shortcut could not be run successfully.");
+        start_nagbar(&global.command_error_nagbar_pid, buttons, prompt, config.font->pattern, bar_type_t::TYPE_ERROR, false);
     }
 
     ipc_send_binding_event("run", &bind_cp);

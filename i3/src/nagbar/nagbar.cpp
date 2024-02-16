@@ -25,6 +25,7 @@ module;
 #include <xcb/xproto.h>
 
 #include <thread>
+#include <utility>
 
 #if defined(__OpenBSD__)
 #include <sys/cdefs.h>
@@ -261,7 +262,7 @@ class Nagbar {
         /* draw background */
         draw_util_clear_surface(&bar, color_background);
         /* draw message */
-        draw_util_text(conn, font, prompt.c_str(), &bar, color_text, color_background,
+        draw_util_text(conn, font, prompt, &bar, color_text, color_background,
                        MSG_PADDING, MSG_PADDING,
                        bar.width - 2 * MSG_PADDING);
 
@@ -289,8 +290,8 @@ class Nagbar {
 
     Nagbar() = delete;
 
-    Nagbar(bar_type_t bar_type, std::string &prompt, std::string &pattern, std::vector<button_t> buttons) : prompt(prompt), buttons(buttons) {
-        btn_close.label = new i3String{"X"};
+    Nagbar(bar_type_t bar_type, std::string prompt, std::string pattern, std::vector<button_t> &buttons) : prompt(prompt), buttons(buttons) {
+        btn_close.label = "X";
 
         int screens;
         if ((conn = xcb_connect(nullptr, &screens)) == nullptr ||
@@ -534,16 +535,11 @@ static void draw_nagbar(std::string prompt,
  *
  */
 void start_nagbar(pid_t *nagbar_pid,
-                  std::vector<button_t> buttons,
-                  std::string prompt,
-                  std::string pattern,
+                  std::vector<button_t> &buttons,
+                  std::string &prompt,
+                  std::string &pattern,
                   bar_type_t bar_type,
                   bool position_on_primary) {
-    if (nagbar_pid != nullptr && *nagbar_pid != -1) {
-        DLOG(fmt::sprintf("i3-nagbar already running (PID %d), not starting again.\n",  *nagbar_pid));
-        return;
-    }
-
     auto nagbar_thread = std::thread(draw_nagbar, prompt, buttons, bar_type, position_on_primary, pattern);
     nagbar_thread.detach();
 }

@@ -17,13 +17,13 @@ export {
 
     class button_t {
        public:
-        std::string label;
-        std::string action;
+        std::string label{};
+        std::string action{};
         int16_t x{};
         uint16_t width{};
-        bool terminal;
+        bool terminal{false};
 
-        button_t() = delete;
+        button_t() = default;
 
         button_t(std::string label, std::string action, bool terminal) : label(std::move(label)), action(std::move(action)), terminal(terminal) {}
     };
@@ -36,12 +36,12 @@ export {
      * kill_nagbar() to kill the bar later on.
      *
      */
-    void start_nagbar(pid_t * nagbar_pid,
-                      std::vector<button_t> buttons,
-                      std::string prompt,
-                      std::string pattern = "pango:monospace 8",
-                      bar_type_t bar_type = bar_type_t::TYPE_ERROR,
-                      bool position_on_primary = false);
+    void start_nagbar(pid_t *nagbar_pid,
+                      std::vector<button_t> &buttons,
+                      std::string &prompt,
+                      std::string &pattern,
+                      bar_type_t bar_type,
+                      bool position_on_primary);
 
     /**
      * Kills the i3-nagbar process, if nagbar_pid != -1.

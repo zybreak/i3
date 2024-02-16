@@ -3,6 +3,7 @@ module;
 #include <xcb/xcb.h>
 #include <cairo.h>
 #include <string>
+#include <string_view>
 export module i3:font;
 
 struct color_t;
@@ -21,15 +22,12 @@ export {
         int height;
 
         /** The pattern/name used to load the font. */
-        char *pattern;
+        std::string pattern;
 
         /** The pango font description */
         PangoFontDescription *pango_desc;
 
         ~i3Font() {
-            if (pattern != nullptr) {
-                free(pattern);
-            }
             if (pango_desc != nullptr) {
                 pango_font_description_free(pango_desc);
             }
@@ -83,6 +81,6 @@ export {
      * Text must be specified as an i3String.
      *
      */
-    void draw_text(i3Font *savedFont, xcb_connection_t *conn, const char *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
+    void draw_text(i3Font *savedFont, xcb_connection_t *conn, std::string &text, xcb_drawable_t drawable, xcb_gcontext_t gc,
                    cairo_surface_t *surface, int x, int y, int max_width);
 }

@@ -3,6 +3,8 @@ module;
 #include <compare>
 #include <pango/pango.h>
 #include <cairo/cairo-xcb.h>
+#include <string_view>
+#include <string>
 export module i3:draw;
 
 class i3String;
@@ -83,7 +85,7 @@ export {
      * drawing are used. This will be the case when using XCB to draw text.
      *
      */
-    void draw_util_text(xcb_connection_t *conn, i3Font *font, const char *text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width);
+    void draw_util_text(xcb_connection_t *conn, i3Font *font, std::string &text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width);
 
 
     /**

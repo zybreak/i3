@@ -156,7 +156,6 @@ static int predict_text_width_pango(i3Font *savedFont, xcb_connection_t *conn, x
  */
 i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *pattern, const bool fallback) {
     auto *font = new i3Font{};
-    font->pattern = nullptr;
 
     /* No XCB connction, return early because we're just validating the
      * configuration file. */
@@ -168,19 +167,19 @@ i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char 
     if (strlen(pattern) > strlen("pango:") && !strncmp(pattern, "pango:", strlen("pango:"))) {
         const char *font_pattern = pattern + strlen("pango:");
         if (load_pango_font(conn, root_screen, font, font_pattern)) {
-            font->pattern = sstrdup(pattern);
+            font->pattern = pattern;
             return font;
         }
     } else if (strlen(pattern) > strlen("xft:") && !strncmp(pattern, "xft:", strlen("xft:"))) {
         const char *font_pattern = pattern + strlen("xft:");
         if (load_pango_font(conn, root_screen, font, font_pattern)) {
-            font->pattern = sstrdup(pattern);
+            font->pattern = pattern;
             return font;
         }
     } else {
         const char *font_pattern = pattern;
         if (load_pango_font(conn, root_screen, font, font_pattern)) {
-            font->pattern = sstrdup(pattern);
+            font->pattern = pattern;
             return font;
         }
     }
@@ -220,10 +219,10 @@ void draw_text(i3Font *savedFont, xcb_connection_t *conn, i3String *text, xcb_dr
  * Text must be specified as an i3String.
  *
  */
-void draw_text(i3Font *savedFont, xcb_connection_t *conn, const char *text, xcb_drawable_t drawable, xcb_gcontext_t gc,
+void draw_text(i3Font *savedFont, xcb_connection_t *conn, std::string &text, xcb_drawable_t drawable, xcb_gcontext_t gc,
                cairo_surface_t *surface, int x, int y, int max_width) {
     /* Render the text using Pango */
-    draw_text_pango(savedFont, text, strlen(text),
+    draw_text_pango(savedFont, text.c_str(), text.size(),
                     drawable, surface, x, y, max_width, false);
 }
 
