@@ -183,7 +183,7 @@ bool handle_end(const char **walk, const cmdp_token &token, cmdp_state *state, s
                      * criteria, we re-initialize the criteria system after
                      * every command. */
         if (**walk == '\0' || **walk == ';') {
-            cmd::criteria_init(criteria_state, subcommand_output);
+            cmd::criteria_init(criteria_state, command_output);
         }
         (*walk)++;
         return true;
@@ -264,14 +264,14 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier &applier) {
+CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier *applier) {
     //DLOG(fmt::sprintf("COMMAND: *%.4000s*\n",  input));
     cmdp_state state = INITIAL;
     stack stack{};
-    struct criteria_state* criteria_state = applier.create_criteria_state();
+    struct criteria_state* criteria_state = applier->create_criteria_state(state);
     auto result = CommandResult{};
 
-    command_output.applier = &applier;
+    command_output.applier = applier;
     command_output.client = client;
 
     /* A YAJL JSON generator used for formatting replies. */

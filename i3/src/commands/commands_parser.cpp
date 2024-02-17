@@ -50,6 +50,6 @@ import i3_commands_old;
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult parse_command(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier &applier) {
+CommandResult parse_command(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier *applier) {
     return parse_command_old(input, gen, client, applier);
 }

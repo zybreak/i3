@@ -18,7 +18,7 @@ class BaseCommandsApplier {
 
     virtual ~BaseCommandsApplier() = default;
 
-    virtual criteria_state* create_criteria_state() = 0;
+    virtual criteria_state* create_criteria_state(int _state) = 0;
 
     /*
      * Initializes the specified 'Match' data structure and the initial state of

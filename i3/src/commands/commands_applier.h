@@ -13,7 +13,7 @@
 class CommandsApplier : public BaseCommandsApplier {
    public:
 
-    criteria_state* create_criteria_state() override;
+    criteria_state* create_criteria_state(int _state) override;
 
     /*
      * Initializes the specified 'Match' data structure and the initial state of

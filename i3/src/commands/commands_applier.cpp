@@ -213,8 +213,8 @@ static void con_toggle_layout(Con *con, const char *toggle_mode) {
 }
 
 
-criteria_state* CommandsApplier::create_criteria_state() {
-    return new criteria_state(0);
+criteria_state* CommandsApplier::create_criteria_state(int _state) {
+    return new criteria_state(_state);
 };
 
 /*
