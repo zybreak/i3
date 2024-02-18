@@ -1,16 +1,16 @@
-#pragma once
-
+module;
+class BaseCommandsApplier;
+class ipc_client;
 #include <nlohmann/json.hpp>
-#include "base_commands_applier.h"
-
-struct ipc_client;
+export module i3_commands_base:command_result_ir;
 
 /**
  * Holds an intermediate represenation of the result of a call to any command.
  * When calling parse_command("floating enable, border none"), the parser will
  * internally use this struct when calling cmd_floating and cmd_border.
  */
-struct CommandResultIR {
+export class CommandResultIR {
+   public:
     BaseCommandsApplier *applier;
 
     /* The JSON generator to append a reply to (may be NULL). */

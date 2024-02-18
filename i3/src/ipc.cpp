@@ -30,16 +30,17 @@ module;
 
 #include <nlohmann/json.hpp>
 #include <ranges>
-#include "commands_applier.h"
 #include "atoms.h"
 
 #include <fmt/printf.h>
 module i3;
+
 import log;
 import i3ipc;
 import utils;
 import regex;
 import rect;
+import i3_commands_base;
 
 #define FREE(pointer)   \
     do {                \

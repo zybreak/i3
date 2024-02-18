@@ -11,14 +11,14 @@ module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
 #include <optional>
-
-#include "commands_applier.h"
 module i3;
 
 import :window;
 import log;
 import :assignments;
 import :tree;
+import :commands_applier;
+import i3_commands_base;
 
 Assignment::~Assignment() {
     delete this->match;

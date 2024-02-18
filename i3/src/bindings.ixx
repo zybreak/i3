@@ -12,11 +12,12 @@ module;
 #include <deque>
 #include <set>
 #include <xcb/xcb.h>
-#include "command_result.h"
+#include <string_view>
 export module i3:bindings;
 
 import :x;
 import :util;
+import i3_commands_base;
 
 export {
     /**

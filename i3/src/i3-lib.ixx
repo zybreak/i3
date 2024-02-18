@@ -50,6 +50,7 @@ export import :commands;
 export import :is_background_set;
 export import :resource_database;
 export import :config_applier;
+export import :commands_applier;
 export import :internal;
 
 export namespace i3 {

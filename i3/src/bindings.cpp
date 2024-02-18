@@ -19,7 +19,6 @@ struct criteria_state;
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
-#include "commands_applier.h"
 
 #include <cmath>
 
@@ -32,6 +31,7 @@ module i3;
 
 import utils;
 import log;
+import i3_commands_base;
 
 static xkb_context *context;
 static xkb_keymap *keymap;

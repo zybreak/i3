@@ -34,11 +34,12 @@
 module;
 #include <string>
 #include <nlohmann/json.hpp>
-#include "base_commands_applier.h"
 module i3;
 
 import i3ipc;
 import i3_commands_old;
+import i3_commands_base;
+import :commands;
 
 //CommandResult parse_command_new(const std::string &input, nlohmann::json *gen, ipc_client *client);
 

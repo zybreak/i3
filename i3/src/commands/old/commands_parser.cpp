@@ -24,6 +24,8 @@
  *
  */
 module;
+struct criteria_state;
+
 #include <cerrno>
 #include <climits>
 
@@ -35,11 +37,10 @@ module;
 #include <fmt/printf.h>
 #include <nlohmann/json.hpp>
 
-#include "parser_stack.h"
-#include "commands.h"
-#include "../command_result.h"
 module i3_commands_old;
 
+import i3_commands_base;
+import i3ipc;
 import utils;
 
 /*******************************************************************************
