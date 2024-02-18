@@ -304,6 +304,13 @@ void ewmh_update_focused(xcb_window_t window, bool is_focused) {
  *
  */
 void ewmh_setup_hints() {
+
+    std::array<xcb_atom_t, 35> supported_atoms{
+#define xmacro(atom) A_##atom,
+        I3_NET_SUPPORTED_ATOMS_XMACRO
+#undef xmacro
+    };
+
     /* Set up the window manager’s name. According to EWMH, section "Root Window
      * Properties", to indicate that an EWMH-compliant window manager is
      * present, a child window has to be created (and kept alive as long as the
@@ -330,7 +337,7 @@ void ewmh_setup_hints() {
     /* I’m not entirely sure if we need to keep _NET_WM_NAME on root. */
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, A__NET_WM_NAME, A_UTF8_STRING, 8, strlen("i3"), "i3");
 
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, A__NET_SUPPORTED, XCB_ATOM_ATOM, 32, /* number of atoms */ supported_atoms->size(), supported_atoms->data());
+    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, A__NET_SUPPORTED, XCB_ATOM_ATOM, 32, /* number of atoms */ supported_atoms.size(), supported_atoms.data());
 
     /* We need to map this window to be able to set the input focus to it if no other window is available to be focused. */
     xcb_map_window(**global.x, ewmh_window);
@@ -346,8 +353,9 @@ void ewmh_setup_hints() {
  *
  */
 Con *ewmh_get_workspace_by_index(uint32_t idx) {
-    if (idx == NET_WM_DESKTOP_NONE)
+    if (idx == NET_WM_DESKTOP_NONE) {
         return nullptr;
+    }
 
     uint32_t current_index = 0;
 

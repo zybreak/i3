@@ -67,7 +67,5 @@ I3_NET_SUPPORTED_ATOMS_XMACRO
 I3_REST_ATOMS_XMACRO
 #undef xmacro
 
-extern std::array<xcb_atom_t, 35> supported_atoms[];
-
 /* Setup NetWM atoms */
 void setup_atoms();

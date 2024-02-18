@@ -12,12 +12,6 @@ import log;
     I3_REST_ATOMS_XMACRO
 #undef xmacro
 
-std::array<xcb_atom_t, 35> supported_atoms[] = {
-#define xmacro(atom) {A_##atom},
-    I3_NET_SUPPORTED_ATOMS_XMACRO
-#undef xmacro
-};
-
 /* Setup NetWM atoms */
 void setup_atoms() {
 #define xmacro(name) \
