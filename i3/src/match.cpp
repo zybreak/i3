@@ -33,12 +33,6 @@ import :con;
 import :window;
 import :util;
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 /* From sys/time.h, not sure if it’s available on all systems. */
 template<typename Comp = std::ranges::less>
 static bool i3_timercmp(timeval a, timeval b, Comp cmp) {
@@ -336,7 +330,7 @@ bool Match::match_matches_window(i3Window *window) const {
  *
  */
 Match::~Match() {
-    FREE(this->error);
+    free(this->error);
     delete this->title;
     delete this->application;
     delete this->window_class;

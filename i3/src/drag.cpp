@@ -108,7 +108,10 @@ static bool drain_drag_events(EV_P_ struct drag_x11_cb *dragloop) {
 
             case XCB_MOTION_NOTIFY:
                 /* motion_notify events are saved for later */
-                FREE(last_motion_notify);
+                do {
+                    free(last_motion_notify);
+                    last_motion_notify = __null;
+                } while (0);
                 last_motion_notify = (xcb_motion_notify_event_t *)event;
                 break;
 
@@ -162,7 +165,10 @@ static bool drain_drag_events(EV_P_ struct drag_x11_cb *dragloop) {
             dragloop->event,
             dragloop->extra);
     }
-    FREE(last_motion_notify);
+    do {
+        free(last_motion_notify);
+        last_motion_notify = __null;
+    } while (0);
 
     xcb_flush(**global.x);
     return dragloop->result != DRAGGING;

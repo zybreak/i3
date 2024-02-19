@@ -34,13 +34,6 @@ import i3_config_old;
 import log;
 
 using namespace std::literals;
-
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 using namespace std::literals;
 
 /*
@@ -167,37 +160,37 @@ static void free_configuration() {
 
 Barconfig::~Barconfig() {
     Barconfig *barconfig = this;
-    FREE(barconfig->id);
 
     barconfig->outputs.clear();
     barconfig->bar_bindings.clear();
     barconfig->tray_outputs.clear();
 
-    FREE(barconfig->socket_path);
-    FREE(barconfig->status_command);
-    FREE(barconfig->i3bar_command);
-    FREE(barconfig->font);
-    FREE(barconfig->colors.background);
-    FREE(barconfig->colors.statusline);
-    FREE(barconfig->colors.separator);
-    FREE(barconfig->colors.focused_background);
-    FREE(barconfig->colors.focused_statusline);
-    FREE(barconfig->colors.focused_separator);
-    FREE(barconfig->colors.focused_workspace_border);
-    FREE(barconfig->colors.focused_workspace_bg);
-    FREE(barconfig->colors.focused_workspace_text);
-    FREE(barconfig->colors.active_workspace_border);
-    FREE(barconfig->colors.active_workspace_bg);
-    FREE(barconfig->colors.active_workspace_text);
-    FREE(barconfig->colors.inactive_workspace_border);
-    FREE(barconfig->colors.inactive_workspace_bg);
-    FREE(barconfig->colors.inactive_workspace_text);
-    FREE(barconfig->colors.urgent_workspace_border);
-    FREE(barconfig->colors.urgent_workspace_bg);
-    FREE(barconfig->colors.urgent_workspace_text);
-    FREE(barconfig->colors.binding_mode_border);
-    FREE(barconfig->colors.binding_mode_bg);
-    FREE(barconfig->colors.binding_mode_text);
+    free(barconfig->id);
+    free(barconfig->socket_path);
+    free(barconfig->status_command);
+    free(barconfig->i3bar_command);
+    free(barconfig->font);
+    free(barconfig->colors.background);
+    free(barconfig->colors.statusline);
+    free(barconfig->colors.separator);
+    free(barconfig->colors.focused_background);
+    free(barconfig->colors.focused_statusline);
+    free(barconfig->colors.focused_separator);
+    free(barconfig->colors.focused_workspace_border);
+    free(barconfig->colors.focused_workspace_bg);
+    free(barconfig->colors.focused_workspace_text);
+    free(barconfig->colors.active_workspace_border);
+    free(barconfig->colors.active_workspace_bg);
+    free(barconfig->colors.active_workspace_text);
+    free(barconfig->colors.inactive_workspace_border);
+    free(barconfig->colors.inactive_workspace_bg);
+    free(barconfig->colors.inactive_workspace_text);
+    free(barconfig->colors.urgent_workspace_border);
+    free(barconfig->colors.urgent_workspace_bg);
+    free(barconfig->colors.urgent_workspace_text);
+    free(barconfig->colors.binding_mode_border);
+    free(barconfig->colors.binding_mode_bg);
+    free(barconfig->colors.binding_mode_text);
 }
 
 void INIT_COLOR(Colortriple &x, const char *cborder, const char *cbackground, const char *ctext, const char *cindicator) {
@@ -290,7 +283,8 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     included_files.emplace_back(resolved_path);
 
     LOG(fmt::sprintf("Parsing configfile %s\n",  resolved_path));
-    FREE(current_config);
+    free(current_config);
+    current_config = nullptr;
 
     ResourceDatabase resourceDatabase{*global.x->conn};
     try {

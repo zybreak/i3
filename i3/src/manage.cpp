@@ -627,7 +627,10 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         if (reply != nullptr && reply->bounding_shaped) {
             cwindow->shaped = true;
         }
-        FREE(reply);
+        do {
+            free(reply);
+            reply = __null;
+        } while (0);
     }
 
     /* Check if any assignments match */

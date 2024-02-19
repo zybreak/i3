@@ -25,12 +25,6 @@ import :internal;
 
 import i3_config_base;
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 export {
 
 

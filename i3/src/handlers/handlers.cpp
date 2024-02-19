@@ -41,13 +41,6 @@ module i3;
 
 import log;
 import rect;
-
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 import :output;
 import utils;
 
@@ -572,7 +565,10 @@ static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
         ipc_send_window_event("title", con);
     }
 
-    FREE(old_name);
+    do {
+        free(old_name);
+        old_name = __null;
+    } while (0);
 
     return true;
 }
@@ -594,7 +590,10 @@ static bool handle_windowname_change_legacy(Con *con, xcb_get_property_reply_t *
     if (window_name_changed(con->window, old_name)) {
         ipc_send_window_event("title", con);
     }
-    FREE(old_name);
+    do {
+        free(old_name);
+        old_name = __null;
+    } while (0);
 
     return true;
 }

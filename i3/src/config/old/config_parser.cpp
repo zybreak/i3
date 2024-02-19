@@ -88,12 +88,6 @@ struct cmdp_token_ptr {
 
 #include "GENERATED_config_call.h"
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 static void next_state(const cmdp_token *token, parser_ctx &ctx) {
     cmdp_state _next_state = token->next_state;
 
@@ -405,8 +399,14 @@ static void reset_statelist(parser_ctx &ctx) {
 }
 
 Variable::~Variable() {
-    FREE(key);
-    FREE(value);
+    do {
+        free(key);
+        key = __null;
+    } while (0);
+    do {
+        free(value);
+        value = __null;
+    } while (0);
 }
 
 bool parse_config(parser_ctx &ctx, const std::string &input, const char *filename) {
@@ -476,7 +476,10 @@ static void upsert_variable(std::vector<std::shared_ptr<Variable>> &variables, c
         }
 
         DLOG(fmt::sprintf("Updated variable: %s = %s -> %s\n",  key, current->value, value));
-        FREE(current->value);
+        do {
+            free(current->value);
+            current->value = __null;
+        } while (0);
         current->value = sstrdup(value);
         return;
     }

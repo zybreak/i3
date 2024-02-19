@@ -24,12 +24,6 @@ import utils;
 import log;
 import rect;
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 class dialog_t {
    public:
     xcb_window_t id{};
@@ -84,7 +78,7 @@ static int sighandler_backtrace() {
     /* Find a unique filename for the backtrace (since the PID of i3 stays the
      * same), so that we don’t overwrite earlier backtraces. */
     do {
-        FREE(filename);
+        free(filename);
         sasprintf(&filename, "%s/i3-backtrace.%d.%d.txt", tmpdir, pid_parent, suffix);
         suffix++;
     } while (std::filesystem::exists(filename));

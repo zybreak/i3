@@ -46,13 +46,6 @@ export {
     };
 }
 
-
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 /*
  * Creates a new 'regex' struct containing the given pattern and a PCRE
  * compiled regular expression. Also, calls pcre_study because this regex will
@@ -105,8 +98,8 @@ Regex& Regex::operator=(Regex &&other) noexcept {
  *
  */
 Regex::~Regex() {
-    FREE(this->pattern);
-    FREE(this->regex);
+    free(this->pattern);
+    free(this->regex);
 }
 
 /*

@@ -33,12 +33,6 @@ import utils;
 import log;
 import rect;
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 /*
  * Get a specific output by its internal X11 id. Used by randr_query_outputs
  * to check if the output is new (only in the first scan) or if we are
@@ -618,7 +612,8 @@ bool RandR::randr_query_outputs_15() {
                         free(oname);
                     }
                 }
-                FREE(info);
+                free(info);
+                info = nullptr;
             }
 
             /* Insert the monitor name last, so that it's used as the primary name */

@@ -289,7 +289,10 @@ void xcb_remove_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_a
                                    xcb_get_property(conn, false, window, property, XCB_GET_PROPERTY_TYPE_ANY, 0, 4096),
                                  nullptr);
     if (reply == nullptr || xcb_get_property_value_length(reply) == 0) {
-        FREE(reply);
+        do {
+            free(reply);
+            reply = __null;
+        } while (0);
         xcb_ungrab_server(conn);
         return;
     }
@@ -312,7 +315,10 @@ void xcb_remove_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_a
     }
 
 release_grab:
-    FREE(reply);
+    do {
+        free(reply);
+        reply = __null;
+    } while (0);
     xcb_ungrab_server(conn);
 }
 
