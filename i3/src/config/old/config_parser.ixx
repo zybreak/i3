@@ -40,10 +40,10 @@ export {
         FILE *fstr;
 
        public:
-        char *current_config = nullptr;
+        config_load_t load_type;
         parser_ctx *parent_ctx = nullptr;
         parser_ctx ctx;
-        std::vector<std::string> included_files{};
+        std::vector<std::unique_ptr<IncludedFile>> included_files{};
         OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier);
         OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier);
         ~OldParser() override;

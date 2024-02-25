@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 rm -rf build
-ccache -c
+ccache -C
 #CONAN_PROFILE=default
 CONAN_PROFILE=clang
 mkdir build

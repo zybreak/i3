@@ -109,6 +109,8 @@ export {
         xcb_screen_t *root_screen;
         /* The screen (0 when you are using DISPLAY=:0) of the connection 'conn' */
         int conn_screen;
+        xcb_atom_t wm_sn;
+        xcb_window_t wm_sn_selection_owner;
         xcb_window_t root;
 
         explicit X();

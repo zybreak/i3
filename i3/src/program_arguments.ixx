@@ -19,6 +19,7 @@ export {
         bool delete_layout_path{false};
         bool disable_signalhandler{false};
         bool only_check_config{false};
+        bool replace_wm{false};
     };
 
     program_arguments parse_args(int argc, char *argv[]);
@@ -37,10 +38,11 @@ program_arguments parse_args(int argc, char *argv[]) {
         {"disable-signalhandler", no_argument, nullptr, 0},
         {"user-new-parser", no_argument, nullptr, 'p'},
         {"get_socketpath", no_argument, nullptr, 0},
+        {"replace", no_argument, nullptr, 'r'},
         {nullptr, 0, nullptr, 0}};
     int option_index = 0, opt;
 
-    while ((opt = getopt_long(argc, argv, "pc:CvmaL:hld:V", long_options, &option_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "pc:CvmaL:hld:Vr", long_options, &option_index)) != -1) {
         switch (opt) {
             case 'a':
                 LOG("Autostart disabled using -a\n");
@@ -70,6 +72,9 @@ program_arguments parse_args(int argc, char *argv[]) {
             case 'd':
                 LOG("Enabling debug logging\n");
                 set_debug_logging(true);
+                break;
+            case 'r':
+                args.replace_wm = true;
                 break;
             case 0:
                 if (strcmp(long_options[option_index].name, "disable-signalhandler") == 0) {
@@ -101,6 +106,9 @@ program_arguments parse_args(int argc, char *argv[]) {
                 fprintf(stderr, "\t-L <file>   path to the serialized layout during restarts\n");
                 fprintf(stderr, "\t-v          display version and exit\n");
                 fprintf(stderr, "\t-V          enable verbose mode\n");
+                fprintf(stderr, "\t--replace\n"
+                                "\tReplace an existing window manager.\n");
+                fprintf(stderr, "\n");
                 fprintf(stderr, "\n");
                 fprintf(stderr, "\t--get-socketpath\n"
                                 "\tRetrieve the i3 IPC socket path from X11, print it, then exit.\n");

@@ -381,11 +381,10 @@ export {
     };
 
     std::string current_configpath{};
-    char *current_config = nullptr;
     Config config;
     std::vector<std::unique_ptr<Mode>> modes{};
     std::vector<std::unique_ptr<Barconfig>> barconfigs{};
-    std::vector<std::string> included_files{};
+    std::vector<std::unique_ptr<IncludedFile>> included_files{};
     /* The list of key bindings */
     Mode *current_mode{};
 

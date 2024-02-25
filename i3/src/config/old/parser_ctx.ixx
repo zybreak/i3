@@ -1,4 +1,5 @@
 module;
+class OldParser;
 struct criteria_state;
 #include <vector>
 #include <string>
@@ -24,10 +25,7 @@ export {
 
     class parser_ctx {
        public:
-        BaseResourceDatabase &resourceDatabase;
-        std::vector<std::string> included_files{};
-        config_load_t load_type;
-        BaseConfigApplier &applier;
+        OldParser *parser;
         int state;
         criteria_state *criteria_state;
 
@@ -52,10 +50,7 @@ export {
 
         parser_ctx() = delete;
 
-        parser_ctx(BaseConfigApplier &applier, BaseResourceDatabase &resourceDatabase, config_load_t load_type)
-            : resourceDatabase(resourceDatabase), load_type(load_type), applier(applier) {
-            this->criteria_state = applier.criteria_create(-1);
-        }
+        explicit parser_ctx(OldParser *parser);
 
         ~parser_ctx() = default;
     };

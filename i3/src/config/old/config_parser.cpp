@@ -657,12 +657,12 @@ static char* replace_variables(char *n, char *buf, __off_t size, parser_ctx &ctx
 }
 
 
-OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, resourceDatabase, parent_ctx.load_type, applier) {
+OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, resourceDatabase, parent_ctx.parser->load_type, applier) {
     this->parent_ctx = &parent_ctx;
     this->ctx.variables = parent_ctx.variables;
 }
 
-OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), ctx(applier, resourceDatabase, load_type) {
+OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), load_type(load_type), ctx(this) {
     this->old_dir = get_current_dir_name();
     char *dir = nullptr;
     /* dirname(3) might modify the buffer, so make a copy: */
@@ -704,15 +704,13 @@ void OldParser::parse_file() {
 
     char *buf = (char*)calloc(stbuf.st_size + 1, 1);
 
-#ifndef TEST_PARSER
-    if (current_config == nullptr) {
-        current_config = (char*)scalloc(stbuf.st_size + 1, 1);
-        if ((ssize_t)fread(current_config, 1, stbuf.st_size, fstr) != stbuf.st_size) {
-            throw std::runtime_error("");
-        }
-        rewind(fstr);
+    auto included_file = std::make_unique<IncludedFile>(filename);
+
+    included_file->raw_contents = (char*)scalloc(stbuf.st_size + 1, 1);
+    if ((ssize_t)fread(included_file->raw_contents, 1, stbuf.st_size, fstr) != stbuf.st_size) {
+        throw std::domain_error("");
     }
-#endif
+    rewind(fstr);
 
     read_file(fstr, resourceDatabase, buf, ctx);
 
@@ -726,8 +724,11 @@ void OldParser::parse_file() {
      * but replace occurrences of our variables */
     replace_variables(n, buf, stbuf.st_size, ctx);
 
+    included_file->variable_replaced_contents = sstrdup(n);
+
+    included_files.push_back(std::move(included_file));
+
     bool has_errors = parse_config(ctx, n, filename);
-    this->included_files = ctx.included_files;
     if (ctx.has_errors) {
         has_errors = true;
     }

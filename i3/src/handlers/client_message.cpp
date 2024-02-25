@@ -206,12 +206,12 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
        if (event->data.data32[0] == XCB_ICCCM_WM_STATE_ICONIC) {
            /* For compatiblity reasons, Wine will request iconic state and cannot ensure that the WM has agreed on it;
             * immediately revert to normal to avoid being stuck in a paused state. */
-           DLOG(fmt::sprintf("Client has requested iconic state, rejecting. (window = %d)\n", event->window));
+           DLOG(fmt::sprintf("Client has requested iconic state, rejecting. (window = %08x)\n", event->window));
            long data[] = {XCB_ICCCM_WM_STATE_NORMAL, XCB_NONE};
            xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, event->window,
                                A_WM_STATE, A_WM_STATE, 32, 2, data);
        } else {
-           DLOG(fmt::sprintf("Not handling WM_CHANGE_STATE request. (window = %d, state = %d)\n", event->window, event->data.data32[0]));
+           DLOG(fmt::sprintf("Not handling WM_CHANGE_STATE request. (window = %08x, state = %d)\n", event->window, event->data.data32[0]));
        }
    } else if (event->type == A__NET_CURRENT_DESKTOP) {
        /* This request is used by pagers and bars to change the current
@@ -279,7 +279,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
            tree_close_internal(con, KILL_WINDOW, false);
            tree_render();
        } else {
-           DLOG(fmt::sprintf("Couldn't find con for _NET_CLOSE_WINDOW request. (window = %d)\n", event->window));
+           DLOG(fmt::sprintf("Couldn't find con for _NET_CLOSE_WINDOW request. (window = %08x)\n", event->window));
        }
    } else if (event->type == A__NET_WM_MOVERESIZE) {
        /*
@@ -288,7 +288,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
         */
        Con *con = con_by_window_id(event->window);
        if (!con || !con->con_is_floating()) {
-           DLOG(fmt::sprintf("Couldn't find con for _NET_WM_MOVERESIZE request, or con not floating (window = %d)\n", event->window));
+           DLOG(fmt::sprintf("Couldn't find con for _NET_WM_MOVERESIZE request, or con not floating (window = %08x)\n", event->window));
            return;
        }
        DLOG(fmt::sprintf("Handling _NET_WM_MOVERESIZE request (con = %p)\n", (void *)con));

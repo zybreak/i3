@@ -60,7 +60,8 @@ xmacro(I3_FLOATING_WINDOW) \
 xmacro(_NET_REQUEST_FRAME_EXTENTS) \
 xmacro(_NET_FRAME_EXTENTS) \
 xmacro(_MOTIF_WM_HINTS) \
-xmacro(WM_CHANGE_STATE)
+xmacro(WM_CHANGE_STATE) \
+xmacro(MANAGER)
 
 #define xmacro(atom) extern xcb_atom_t A_##atom;
 I3_NET_SUPPORTED_ATOMS_XMACRO

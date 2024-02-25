@@ -41,6 +41,7 @@ import utils;
 import regex;
 import rect;
 import i3_commands_base;
+import i3_config_base;
 
 #define FREE(pointer)   \
     do {                \
@@ -839,8 +840,8 @@ static void handle_get_version(ipc_client *client, uint8_t *message, int size, u
     j["loaded_config_file_name"] = current_configpath;
 
     auto a = nlohmann::json::array();
-    for (auto &file : std::ranges::drop_view{included_files,1}) {
-        a.push_back(file);
+    for (auto &included_file : std::ranges::drop_view{included_files,1}) {
+        a.push_back(included_file->path);
     }
     j["included_config_file_names"] = a;
 
@@ -967,8 +968,15 @@ static void handle_subscribe(ipc_client *client, uint8_t *message, int size, uin
  * Returns the raw last loaded i3 configuration file contents.
  */
 static void handle_get_config(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
+    auto a = nlohmann::json::array();
+
+    for (auto &included_file : std::ranges::drop_view{included_files,1}) {
+        a.push_back(std::string(included_file->raw_contents));
+    }
+
     nlohmann::json j = {
-        { "config", current_config }
+        { "config", std::string(included_files[0]->raw_contents) },
+        { "included_configs", a }
     };
 
     auto payload = j.dump();

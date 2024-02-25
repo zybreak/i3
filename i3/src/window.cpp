@@ -41,6 +41,7 @@ import utils;
 i3Window::~i3Window() {
     free(this->class_class);
     free(this->class_instance);
+    free(this->role);
     free(this->machine);
     cairo_surface_destroy(this->icon);
 }

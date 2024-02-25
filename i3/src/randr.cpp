@@ -745,40 +745,43 @@ void RandR::handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
 void RandR::randr_query_outputs_14() {
     DLOG("Querying outputs using RandR ≤ 1.4\n");
 
-    auto primary_res = global.x->conn->randr().get_output_primary_unchecked(global.x->root);
-    if (primary_res->length == 0)
-        ELOG("Could not get RandR primary output\n");
-    else
-        DLOG(fmt::sprintf("primary output is %08x\n", primary_res->output));
+    try {
+        auto primary_res = global.x->conn->randr().get_output_primary(global.x->root);
+        if (primary_res->length == 0)
+            ELOG("Could not get RandR primary output\n");
+        else
+            DLOG(fmt::sprintf("primary output is %08x\n", primary_res->output));
 
-    primary = primary_res->output;
+        primary = primary_res->output;
 
-    /* Get screen resources (primary output, crtcs, outputs, modes) */
-    auto res = global.x->conn->randr().get_screen_resources_current_unchecked(global.x->root);
-    if (res->length == 0) {
-        ELOG("Could not query screen resources.\n");
-        return;
-    }
+        /* Get screen resources (primary output, crtcs, outputs, modes) */
+        auto res = global.x->conn->randr().get_screen_resources_current(global.x->root);
+        if (res->length == 0) {
+            ELOG("Could not query screen resources.\n");
+            return;
+        }
 
-    /* timestamp of the configuration so that we get consistent replies to all
-     * requests (if the configuration changes between our different calls) */
-    const xcb_timestamp_t cts = res->config_timestamp;
+        /* timestamp of the configuration so that we get consistent replies to all
+         * requests (if the configuration changes between our different calls) */
+        const xcb_timestamp_t cts = res->config_timestamp;
 
-    const int len = res->num_outputs;
+        const int len = res->num_outputs;
 
-    /* an output is VGA-1, LVDS-1, etc. (usually physical video outputs) */
-    xcb_randr_output_t *randr_outputs = xcb_randr_get_screen_resources_current_outputs(res.get().get());
+        /* an output is VGA-1, LVDS-1, etc. (usually physical video outputs) */
+        xcb_randr_output_t *randr_outputs = xcb_randr_get_screen_resources_current_outputs(res.get().get());
 
-    /* Loop through all outputs available for this X11 screen */
-    /* Request information for each output */
-    for (int i = 0; i < len; i++) {
+        /* Loop through all outputs available for this X11 screen */
+        /* Request information for each output */
+        for (int i = 0; i < len; i++) {
+            auto output = global.x->conn->randr().get_output_info(randr_outputs[i], cts);
 
-        auto output = global.x->conn->randr().get_output_info_unchecked(randr_outputs[i], cts);
+            if (output->length == 0)
+                continue;
 
-        if (output->length == 0)
-            continue;
-
-        handle_output(**global.x, randr_outputs[i], output.get().get(), cts, res.get().get());
+            handle_output(**global.x, randr_outputs[i], output.get().get(), cts, res.get().get());
+        }
+    } catch (const std::exception &e) {
+        ELOG(fmt::sprintf("Could not get RandR outputs: %s\n",  e.what()));
     }
 }
 

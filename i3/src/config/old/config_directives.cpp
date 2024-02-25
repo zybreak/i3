@@ -66,21 +66,20 @@ namespace cfg {
                 continue;
             }
 
-            auto skip = std::ranges::find_if(result.ctx.included_files, [&resolved_path](auto & included_file) {
-                return (strcmp(included_file.c_str(), resolved_path) == 0);
+            auto skip = std::ranges::find_if(result.ctx.parser->included_files, [&resolved_path](auto & included_file) {
+                return (strcmp(included_file->path, resolved_path) == 0);
             });
-            if (skip != result.ctx.included_files.end()) {
+            if (skip != result.ctx.parser->included_files.end()) {
                 LOG(fmt::sprintf("Skipping file %s (already included)\n",  resolved_path));
                 continue;
             }
 
             LOG(fmt::sprintf("Including config file %s\n",  resolved_path));
 
-            OldParser parser{resolved_path, result.ctx.resourceDatabase, result.ctx, result.ctx.applier};
+            OldParser parser{resolved_path, result.ctx.parser->resourceDatabase, result.ctx, result.ctx.parser->applier};
             try {
                 parser.parse_file();
                 ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, strerror(errno)));
-                result.ctx.included_files.emplace_back(resolved_path);
             } catch (std::exception &e) {
                 result.has_errors = true;
             }
@@ -94,11 +93,11 @@ namespace cfg {
      *
      */
     void criteria_init(criteria_state *criteria_state, ConfigResultIR &result, int _state) {
-        result.ctx.applier.criteria_init(criteria_state, _state);
+        result.ctx.parser->applier.criteria_init(criteria_state, _state);
     }
 
     void criteria_pop_state(criteria_state *criteria_state, ConfigResultIR &result) {
-        result.next_state = result.ctx.applier.criteria_pop_state(criteria_state);
+        result.next_state = result.ctx.parser->applier.criteria_pop_state(criteria_state);
     }
     /*
      * Interprets a ctype=cvalue pair and adds it to the current match
@@ -106,140 +105,140 @@ namespace cfg {
      *
      */
     void criteria_add(criteria_state *criteria_state, ConfigResultIR &result, const char *ctype, const char *cvalue) {
-        result.ctx.applier.criteria_add(criteria_state, ctype, cvalue);
+        result.ctx.parser->applier.criteria_add(criteria_state, ctype, cvalue);
     }
 
     void font(criteria_state *criteria_state, ConfigResultIR &result, const char *font) {
-        result.ctx.applier.font(font);
+        result.ctx.parser->applier.font(font);
     }
 
     void binding(criteria_state *criteria_state, ConfigResultIR &result, const char *bindtype, const char *modifiers,
                      const char *key, const char *release, const char *border, const char *whole_window,
                      const char *exclude_titlebar, const char *command) {
-        result.ctx.applier.binding(bindtype, null_to_empty_str(modifiers), key, str_to_bool(release, "release"), str_to_bool(border, "border"), str_to_bool(whole_window, "whole_window"), str_to_bool(exclude_titlebar, "exclude_titlebar"), command);
+        result.ctx.parser->applier.binding(bindtype, null_to_empty_str(modifiers), key, str_to_bool(release, "release"), str_to_bool(border, "border"), str_to_bool(whole_window, "whole_window"), str_to_bool(exclude_titlebar, "exclude_titlebar"), command);
     }
 
 
     void mode_binding(criteria_state *criteria_state, ConfigResultIR &result, const char *bindtype, const char *modifiers,
                           const char *key, const char *release, const char *border, const char *whole_window,
                           const char *exclude_titlebar, const char *command) {
-        result.ctx.applier.mode_binding(bindtype, null_to_empty_str(modifiers), key, str_to_bool(release, "release"), str_to_bool(border, "border"), str_to_bool(whole_window, "whole_window"), str_to_bool(exclude_titlebar, "exclude_titlebar"), command);
+        result.ctx.parser->applier.mode_binding(bindtype, null_to_empty_str(modifiers), key, str_to_bool(release, "release"), str_to_bool(border, "border"), str_to_bool(whole_window, "whole_window"), str_to_bool(exclude_titlebar, "exclude_titlebar"), command);
     }
 
     void enter_mode(criteria_state *criteria_state, ConfigResultIR &result, const char *pango_markup, const char *modename) {
-        result.ctx.applier.enter_mode(str_to_bool(pango_markup, "--pango_markup"), modename);
+        result.ctx.parser->applier.enter_mode(str_to_bool(pango_markup, "--pango_markup"), modename);
     }
 
     void exec(criteria_state *criteria_state, ConfigResultIR &result, const char *exectype, const char *no_startup_id,
                   const char *command) {
-        result.ctx.applier.exec(exectype, str_to_bool(no_startup_id, "--no-startup-id"), command);
+        result.ctx.parser->applier.exec(exectype, str_to_bool(no_startup_id, "--no-startup-id"), command);
     }
 
     void for_window(criteria_state *criteria_state, ConfigResultIR &result, const char *command) {
 
-        result.ctx.applier.for_window(criteria_state, command);
+        result.ctx.parser->applier.for_window(criteria_state, command);
     }
 
     void floating_minimum_size(criteria_state *criteria_state, ConfigResultIR &result, const long width, const long height) {
-        result.ctx.applier.floating_minimum_size(width, height);
+        result.ctx.parser->applier.floating_minimum_size(width, height);
     }
 
     void floating_maximum_size(criteria_state *criteria_state, ConfigResultIR &result, const long width, const long height) {
-        result.ctx.applier.floating_maximum_size(width, height);
+        result.ctx.parser->applier.floating_maximum_size(width, height);
     }
 
     void floating_modifier(criteria_state *criteria_state, ConfigResultIR &result, const char *modifiers) {
-        result.ctx.applier.floating_modifier(modifiers);
+        result.ctx.parser->applier.floating_modifier(modifiers);
     }
 
     void default_orientation(criteria_state *criteria_state, ConfigResultIR &result, const char *orientation) {
-        result.ctx.applier.default_orientation(orientation);
+        result.ctx.parser->applier.default_orientation(orientation);
     }
 
     void workspace_layout(criteria_state *criteria_state, ConfigResultIR &result, const char *layout) {
-        result.ctx.applier.workspace_layout(layout);
+        result.ctx.parser->applier.workspace_layout(layout);
     }
 
     void default_border(criteria_state *criteria_state, ConfigResultIR &result, const char *windowtype, const char *border,
                             const long width) {
-        result.ctx.applier.default_border(windowtype, border, width);
+        result.ctx.parser->applier.default_border(windowtype, border, width);
     }
 
     void hide_edge_borders(criteria_state *criteria_state, ConfigResultIR &result, const char *borders) {
-        result.ctx.applier.hide_edge_borders(borders);
+        result.ctx.parser->applier.hide_edge_borders(borders);
     }
 
     void focus_follows_mouse(criteria_state *criteria_state, ConfigResultIR &result, const char *value) {
-        result.ctx.applier.focus_follows_mouse(value);
+        result.ctx.parser->applier.focus_follows_mouse(value);
     }
 
     void mouse_warping(criteria_state *criteria_state, ConfigResultIR &result, const char *value) {
-        result.ctx.applier.mouse_warping(value);
+        result.ctx.parser->applier.mouse_warping(value);
     }
 
     void focus_wrapping(criteria_state *criteria_state, ConfigResultIR &result, const char *value) {
-        result.ctx.applier.focus_wrapping(value);
+        result.ctx.parser->applier.focus_wrapping(value);
     }
 
     void force_focus_wrapping(criteria_state *criteria_state, ConfigResultIR &result, const char *value) {
-        result.ctx.applier.force_focus_wrapping(value);
+        result.ctx.parser->applier.force_focus_wrapping(value);
     }
 
     void workspace_back_and_forth(criteria_state *criteria_state, ConfigResultIR &result, const char *value) {
-        result.ctx.applier.workspace_back_and_forth(value);
+        result.ctx.parser->applier.workspace_back_and_forth(value);
     }
 
     void force_display_urgency_hint(criteria_state *criteria_state, ConfigResultIR &result, const long duration_ms) {
-        result.ctx.applier.force_display_urgency_hint(duration_ms);
+        result.ctx.parser->applier.force_display_urgency_hint(duration_ms);
     }
 
     void focus_on_window_activation(criteria_state *criteria_state, ConfigResultIR &result, const char *mode) {
-        result.ctx.applier.focus_on_window_activation(mode);
+        result.ctx.parser->applier.focus_on_window_activation(mode);
     }
 
     void title_align(criteria_state *criteria_state, ConfigResultIR &result, const char *alignment) {
-        result.ctx.applier.title_align(alignment);
+        result.ctx.parser->applier.title_align(alignment);
     }
 
     void workspace(criteria_state *criteria_state, ConfigResultIR &result, const char *workspace, const char *output) {
-        result.ctx.applier.workspace(workspace, output);
+        result.ctx.parser->applier.workspace(workspace, output);
     }
 
     void ipc_socket(criteria_state *criteria_state, ConfigResultIR &result, const char *path) {
-        result.ctx.applier.ipc_socket(path);
+        result.ctx.parser->applier.ipc_socket(path);
     }
 
     void restart_state(criteria_state *criteria_state, ConfigResultIR &result, const char *path) {
-        result.ctx.applier.restart_state(path);
+        result.ctx.parser->applier.restart_state(path);
     }
 
     void popup_during_fullscreen(criteria_state *criteria_state, ConfigResultIR &result, const char *value) {
-        result.ctx.applier.popup_during_fullscreen(value);
+        result.ctx.parser->applier.popup_during_fullscreen(value);
     }
 
     void color_single(criteria_state *criteria_state, ConfigResultIR &result, const char *colorclass, const char *color) {
-        result.ctx.applier.color_single(colorclass, color);
+        result.ctx.parser->applier.color_single(colorclass, color);
     }
 
     void color(criteria_state *criteria_state, ConfigResultIR &result, const char *colorclass, const char *border,
                    const char *background, const char *text, const char *indicator, const char *child_border) {
-        result.ctx.applier.color(colorclass, border, background, text, indicator, child_border);
+        result.ctx.parser->applier.color(colorclass, border, background, text, indicator, child_border);
     }
 
     void assign_output(criteria_state *criteria_state, ConfigResultIR &result, const char *output) {
-        result.ctx.applier.assign_output(criteria_state, output);
+        result.ctx.parser->applier.assign_output(criteria_state, output);
     }
 
     void assign(criteria_state *criteria_state, ConfigResultIR &result, const char *workspace, bool is_number) {
-        result.ctx.applier.assign(criteria_state, workspace, is_number);
+        result.ctx.parser->applier.assign(criteria_state, workspace, is_number);
     }
 
     void no_focus(criteria_state *criteria_state, ConfigResultIR &result) {
-        result.ctx.applier.no_focus(criteria_state);
+        result.ctx.parser->applier.no_focus(criteria_state);
     }
 
     void ipc_kill_timeout(criteria_state *criteria_state, ConfigResultIR &result, const long timeout_ms) {
-        result.ctx.applier.ipc_kill_timeout(timeout_ms);
+        result.ctx.parser->applier.ipc_kill_timeout(timeout_ms);
     }
 
     void bar_font(criteria_state *criteria_state, ConfigResultIR &result, const char *font) {

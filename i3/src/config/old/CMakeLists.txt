@@ -4,6 +4,7 @@ target_sources(i3_config_old
         config_directives.cpp
         config_parser.cpp
         parser_stack.cpp
+        parser_ctx.cpp
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES

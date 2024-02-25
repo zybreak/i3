@@ -141,6 +141,11 @@ export {
         void handle_focus_in(xcb_focus_in_event_t *event);
 
         /**
+         * Log FocusOut events.
+         */
+        void handle_focus_out(xcb_focus_in_event_t *event);
+
+        /**
          * Handles ConfigureNotify events for the root window, which are generated when
          * the monitor configuration changed.
          *

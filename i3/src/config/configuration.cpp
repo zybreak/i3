@@ -280,11 +280,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
         errx(EXIT_FAILURE, "realpath(%s): %s", current_configpath.c_str(), strerror((*__errno_location())));
     }
 
-    included_files.emplace_back(resolved_path);
-
     LOG(fmt::sprintf("Parsing configfile %s\n",  resolved_path));
-    free(current_config);
-    current_config = nullptr;
 
     ResourceDatabase resourceDatabase{*global.x->conn};
     try {
@@ -305,12 +301,14 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
             NewParser np{ resourceDatabase, stream, load_type, configListener };
             np.parse_file();
             //included_files = np.included_files;
-            //current_config = np.current_config;
         } else {
             OldParser op{ resolved_path, resourceDatabase, load_type, configListener };
             op.parse_file();
-            included_files = op.included_files;
-            current_config = op.current_config;
+            for (auto &included_file : op.included_files) {
+                included_files.push_back(std::move(included_file));
+            }
+            op.included_files.size();
+            //included_files = op.included_files;
         }
         if (has_duplicate_bindings()) {
             errx(EXIT_FAILURE, "Duplicate bindings in configuration file: %s\n", strerror((*__errno_location())));
