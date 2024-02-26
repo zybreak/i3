@@ -79,8 +79,8 @@ namespace cfg {
             OldParser parser{resolved_path, result.ctx.parser->resourceDatabase, result.ctx, result.ctx.parser->applier};
             try {
                 parser.parse_file();
-                ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, strerror(errno)));
             } catch (std::exception &e) {
+                ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, w.what()));
                 result.has_errors = true;
             }
         }
