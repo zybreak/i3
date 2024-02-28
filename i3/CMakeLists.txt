@@ -83,6 +83,7 @@ list(APPEND i3_src
         src/startup.cpp
         src/dpi.cpp
         src/draw.cpp
+        src/tiling_drag.cpp
         src/tree.cpp
         src/util.cpp
         src/window.cpp

@@ -300,7 +300,7 @@ namespace cmd {
     void debuglog(struct criteria_state *criteria_state, CommandResultIR &cmd_output, const char *argument);
 
     /**
-     * Implementation of 'title_window_icon <yes|no>' and 'title_window_icon padding <px>'
+     * Implementation of 'title_window_icon <yes|no|toggle>' and 'title_window_icon <padding|toggle> <px>'
      *
      */
     void title_window_icon(struct criteria_state *criteria_state, CommandResultIR &cmd_output, const char *enable, int padding);

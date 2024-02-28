@@ -511,6 +511,16 @@ export {
      */
     Con *con_by_frame_id(xcb_window_t frame);
 
+
+    /**
+     * Start from a container and traverse the transient_for linked list. Returns
+     * true if target window is found in the list. Protects againsts potential
+     * cycles.
+     *
+     */
+    bool con_find_transient_for_window(Con *start, xcb_window_t target);
+
+
     /**
      * Returns the first container below 'con' which wants to swallow this window
      * TODO: priority
@@ -566,6 +576,8 @@ export {
      *
      */
     void con_move_to_output(Con * con, Output * output, bool fix_coordinates);
+
+    bool con_move_to_target(Con *con, Con *target);
 
     /**
      * Returns the orientation of the given container (for stacked containers,

@@ -204,7 +204,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
    } else if (event->type == A_WM_CHANGE_STATE) {
        /* http://tronche.com/gui/x/icccm/sec-4.html#s-4.1.4 */
        if (event->data.data32[0] == XCB_ICCCM_WM_STATE_ICONIC) {
-           /* For compatiblity reasons, Wine will request iconic state and cannot ensure that the WM has agreed on it;
+           /* For compatibility reasons, Wine will request iconic state and cannot ensure that the WM has agreed on it;
             * immediately revert to normal to avoid being stuck in a paused state. */
            DLOG(fmt::sprintf("Client has requested iconic state, rejecting. (window = %08x)\n", event->window));
            long data[] = {XCB_ICCCM_WM_STATE_NORMAL, XCB_NONE};

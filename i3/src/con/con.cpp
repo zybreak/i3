@@ -804,13 +804,46 @@ Con *con_by_frame_id(xcb_window_t frame) {
 }
 
 /*
+ * Start from a container and traverse the transient_for linked list. Returns
+ * true if target window is found in the list. Protects againsts potential
+ * cycles.
+ *
+ */
+bool con_find_transient_for_window(Con *start, xcb_window_t target) {
+    Con *transient_con = start;
+    int count = con_num_windows(croot);
+    while (transient_con != nullptr &&
+           transient_con->window != nullptr &&
+           transient_con->window->transient_for != XCB_NONE) {
+        DLOG(fmt::sprintf("transient_con = 0x%08x, transient_con->window->transient_for = 0x%08x, target = 0x%08x\n",
+             transient_con->window->id, transient_con->window->transient_for, target));
+        if (transient_con->window->transient_for == target) {
+            return true;
+        }
+        Con *next_transient = con_by_window_id(transient_con->window->transient_for);
+        if (next_transient == nullptr) {
+            break;
+        }
+        /* Some clients (e.g. x11-ssh-askpass) actually set WM_TRANSIENT_FOR to
+         * their own window id, so break instead of looping endlessly. */
+        if (transient_con == next_transient) {
+            break;
+        }
+        transient_con = next_transient;
+
+        if (count-- <= 0) { /* Avoid cycles, see #4404 */
+            break;
+        }
+    }
+    return false;
+}
+
+/*
  * Returns the first container below 'con' which wants to swallow this window
  * TODO: priority
  *
  */
 Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
-    // LOG(fmt::sprintf("searching con for window %p starting at con %p\n",  window, con));
-    // LOG(fmt::sprintf("class == %s\n",  window->class_class));
 
     for (auto &child : con->nodes_head) {
         for (auto &match : child->swallow) {
@@ -946,8 +979,8 @@ int Con::con_num_windows() {
 void Con::con_fix_percent() {
     auto children = this->con_num_children();
 
-    // calculate how much we have distributed and how many containers
-    // with a percentage set we have
+    /* calculate how much we have distributed and how many containers
+     * with a percentage set we have */
     double total = 0.0;
     int children_with_percent = 0;
     for (auto &child : this->nodes_head) {
@@ -957,8 +990,8 @@ void Con::con_fix_percent() {
         }
     }
 
-    // if there were children without a percentage set, set to a value that
-    // will make those children proportional to all others
+    /* if there were children without a percentage set, set to a value that
+     * will make those children proportional to all others */
     if (children_with_percent != children) {
         for (auto &child : this->nodes_head) {
             if (child->percent <= 0.0) {
@@ -971,8 +1004,8 @@ void Con::con_fix_percent() {
         }
     }
 
-    // if we got a zero, just distribute the space equally, otherwise
-    // distribute according to the proportions we got
+    /* if we got a zero, just distribute the space equally, otherwise
+     * distribute according to the proportions we got */
     if (total == 0.0) {
         for (auto &child : this->nodes_head) {
             child->percent = 1.0 / children;
@@ -1299,6 +1332,36 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
     ipc_send_window_event("move", con);
     ewmh_update_wm_desktop();
     return true;
+}
+
+bool con_move_to_target(Con *con, Con *target) {
+    /* For floating target containers, we just send the window to the same workspace. */
+    if (con_is_floating(target)) {
+        DLOG("target container is floating, moving container to target's workspace.\n");
+        con_move_to_workspace(con, con_get_workspace(target), true, false, false);
+        return true;
+    }
+
+    if (target->type == CT_WORKSPACE && con_is_leaf(target)) {
+        DLOG("target container is an empty workspace, simply moving the container there.\n");
+        con_move_to_workspace(con, target, true, false, false);
+        return true;
+    }
+
+    /* For split containers, we use the currently focused container within it.
+     * This allows setting marks on, e.g., tabbed containers which will move
+     * con to a new tab behind the focused tab. */
+    if (con_is_split(target)) {
+        DLOG("target is a split container, descending to the currently focused child.\n");
+        target = con::first(target->focus_head);
+    }
+
+    if (con == target || con_has_parent(target, con)) {
+        DLOG("cannot move the container to or inside itself, aborting.\n");
+        return false;
+    }
+
+    return _con_move_to_con(con, target, false, true, false, false, true);
 }
 
 /*
@@ -1926,7 +1989,6 @@ void con_set_urgency(Con *con, bool urgent) {
         DLOG("Discarding urgency WM_HINT because timer is running\n");
     }
 
-    //CLIENT_LOG(con);
     if (con->window) {
         if (con->urgent) {
             gettimeofday(&con->window->urgent, nullptr);

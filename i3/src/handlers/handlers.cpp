@@ -268,7 +268,7 @@ void PropertyHandlers::handle_map_request(xcb_map_request_event_t *event) {
  * Configure requests are received when the application wants to resize windows
  * on their own.
  *
- * We generate a synthethic configure notify event to signalize the client its
+ * We generate a synthetic configure notify event to signalize the client its
  * "new" position.
  *
  */
@@ -872,14 +872,14 @@ static bool handle_machine_change(Con *con, xcb_get_property_reply_t *prop) {
 }
 
 /*
- * Handles the _MOTIF_WM_HINTS property of specifing window deocration settings.
+ * Handles the _MOTIF_WM_HINTS property of specifyng window decoration settings.
  *
  */
 static bool handle_motif_hints_change(Con *con, xcb_get_property_reply_t *prop) {
     border_style_t motif_border_style;
-    update_motif_hints(prop, &motif_border_style);
+    bool has_mwm_hints = update_motif_hints(prop, &motif_border_style);
 
-    if (motif_border_style != con->border_style && motif_border_style != BS_NORMAL) {
+    if (has_mwm_hints && motif_border_style != con->border_style) {
         DLOG(fmt::sprintf("Update border style of con %p to %d\n", (void *)con, motif_border_style));
         con_set_border_style(con, motif_border_style, con->current_border_width);
 

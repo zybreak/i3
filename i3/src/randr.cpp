@@ -632,11 +632,12 @@ bool RandR::randr_query_outputs_15() {
 
         new_output->primary = monitor_info->primary;
 
-        new_output->changed =
-            update_if_necessary(&(new_output->rect.x), monitor_info->x) |
-            update_if_necessary(&(new_output->rect.y), monitor_info->y) |
-            update_if_necessary(&(new_output->rect.width), monitor_info->width) |
-            update_if_necessary(&(new_output->rect.height), monitor_info->height);
+        const bool update_x = update_if_necessary(&(new_output->rect.x), monitor_info->x);
+        const bool update_y = update_if_necessary(&(new_output->rect.y), monitor_info->y);
+        const bool update_w = update_if_necessary(&(new_output->rect.width), monitor_info->width);
+        const bool update_h = update_if_necessary(&(new_output->rect.height), monitor_info->height);
+
+        new_output->changed = update_x || update_y || update_w || update_h;
 
         DLOG(fmt::sprintf("name %s, x %d, y %d, width %d px, height %d px, width %d mm, height %d mm, primary %d, automatic %d\n",
              name,
@@ -708,10 +709,11 @@ void RandR::handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
         return;
     }
 
-    bool updated = update_if_necessary(&(new_output->rect.x), crtc->x) |
-                   update_if_necessary(&(new_output->rect.y), crtc->y) |
-                   update_if_necessary(&(new_output->rect.width), crtc->width) |
-                   update_if_necessary(&(new_output->rect.height), crtc->height);
+    const bool update_x = update_if_necessary(&(new_output->rect.x), crtc->x);
+    const bool update_y = update_if_necessary(&(new_output->rect.y), crtc->y);
+    const bool update_w = update_if_necessary(&(new_output->rect.width), crtc->width);
+    const bool update_h = update_if_necessary(&(new_output->rect.height), crtc->height);
+    const bool updated = update_x || update_y || update_w || update_h;
     free(crtc);
     new_output->active = (new_output->rect.width != 0 && new_output->rect.height != 0);
     if (!new_output->active) {
@@ -901,9 +903,11 @@ void RandR::randr_query_outputs() {
             uint32_t width = std::min(other->rect.width, output->rect.width);
             uint32_t height = std::min(other->rect.height, output->rect.height);
 
-            if (update_if_necessary(&(output->rect.width), width) |
-                update_if_necessary(&(output->rect.height), height))
+            const bool update_w = update_if_necessary(&(output->rect.width), width);
+            const bool update_h = update_if_necessary(&(output->rect.height), height);
+            if (update_w || update_h) {
                 output->changed = true;
+            }
 
             update_if_necessary(&(other->rect.width), width);
             update_if_necessary(&(other->rect.height), height);

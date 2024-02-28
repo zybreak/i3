@@ -96,7 +96,7 @@ export {
          * Configure requests are received when the application wants to resize windows
          * on their own.
          *
-         * We generate a synthethic configure notify event to signalize the client its
+         * We generate a synthetic configure notify event to signalize the client its
          * "new" position.
          */
         void handle_configure_request(xcb_configure_request_event_t *event);

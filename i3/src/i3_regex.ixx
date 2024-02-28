@@ -68,8 +68,8 @@ Regex::Regex(const char *pattern) {
     if (!(this->regex = pcre2_compile((PCRE2_SPTR)pattern, PCRE2_ZERO_TERMINATED, options, &errorcode, &offset, nullptr))) {
         PCRE2_UCHAR buffer[256];
         pcre2_get_error_message(errorcode, buffer, sizeof(buffer));
-        //ELOG(fmt::sprintf("PCRE regular expression compilation failed at %lu: %s\n",
-        //     offset, buffer));
+        ELOG(fmt::sprintf("PCRE regular expression compilation failed at %lu: %s\n",
+             offset, buffer));
         this->valid = false;
         return;
     }

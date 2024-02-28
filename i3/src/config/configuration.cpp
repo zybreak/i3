@@ -244,6 +244,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     INIT_COLOR(config.client.focused_inactive, "#333333", "#5f676a", "#ffffff", "#484e50");
     INIT_COLOR(config.client.unfocused, "#333333", "#222222", "#888888", "#292d2e");
     INIT_COLOR(config.client.urgent, "#2f343a", "#900000", "#ffffff", "#900000");
+    config.client.got_focused_tab_title = false;
 
     /* border and indicator color are ignored for placeholder contents */
     INIT_COLOR(config.client.placeholder, "#000000", "#0c0c0c", "#ffffff", "#000000");
@@ -331,6 +332,14 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     if (config.font == nullptr && load_type != config_load_t::C_VALIDATE) {
         ELOG("You did not specify required configuration option \"font\"\n");
         config.font = load_font(**global.x, global.x->root_screen, "fixed", true);
+    }
+
+    /* Make bar config blocks without a configured font use the i3-wide font. */
+    for (auto &current : config.barconfigs) {
+        if (current.font != nullptr) {
+            continue;
+        }
+        current->font = sstrdup(config.font.pattern);
     }
 
     if (load_type == config_load_t::C_RELOAD) {

@@ -5,7 +5,7 @@ class ipc_client;
 export module i3_commands_base:command_result_ir;
 
 /**
- * Holds an intermediate represenation of the result of a call to any command.
+ * Holds an intermediate representation of the result of a call to any command.
  * When calling parse_command("floating enable, border none"), the parser will
  * internally use this struct when calling cmd_floating and cmd_border.
  */

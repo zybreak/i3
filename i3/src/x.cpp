@@ -467,7 +467,12 @@ void x_draw_decoration(Con *con) {
     } else if (con == global.focused || con->con_inside_focused()) {
         p->color = &config.client.focused;
     } else if (con == con::first(parent->focus_head)) {
-        p->color = &config.client.focused_inactive;
+        if (config.client.got_focused_tab_title && !leaf && con_descend_focused(con) == focused) {
+            /* Stacked/tabbed parent of focused container */
+            p->color = &config.client.focused_tab_title;
+        } else {
+            p->color = &config.client.focused_inactive;
+        }
     } else {
         p->color = &config.client.unfocused;
     }
@@ -856,7 +861,6 @@ void x_push_node(Con *con) {
     con_state *state;
     Rect rect = con->rect;
 
-    // LOG(fmt::sprintf("Pushing changes for node %p / %s\n",  con, con->name));
     state = state_for_frame(con->frame.id);
 
     if (state->name.empty()) {
@@ -972,14 +976,16 @@ void x_push_node(Con *con) {
             }
 
             /* Ensure we have valid dimensions for our surface. */
-            // TODO This is probably a bug in the condition above as we should never enter this path
-            //      for height == 0. Also, we should probably handle width == 0 the same way.
+            /* TODO: This is probably a bug in the condition above as we should
+             * never enter this path for height == 0. Also, we should probably
+             * handle width == 0 the same way. */
             int width = std::max((int32_t)rect.width, 1);
             int height = std::max((int32_t)rect.height, 1);
 
             xcb_create_pixmap(**global.x, win_depth, con->frame_buffer.id, con->frame.id, width, height);
             draw_util_surface_init(**global.x, &(con->frame_buffer), con->frame_buffer.id,
                                    get_visualtype_by_id(get_visualid_by_depth(win_depth)), width, height);
+            draw_util_clear_surface(&(con->frame_buffer), (color_t){.red = 0.0, .green = 0.0, .blue = 0.0});
 
             /* For the graphics context, we disable GraphicsExposure events.
              * Those will be sent when a CopyArea request cannot be fulfilled
@@ -993,8 +999,8 @@ void x_push_node(Con *con) {
             con->pixmap_recreated = true;
 
             /* Don’t render the decoration for windows inside a stack which are
-             * not visible right now */
-            // TODO Should this work the same way for L_TABBED?
+             * not visible right now
+             * TODO: Should this work the same way for L_TABBED? */
             if (!con->parent ||
                 con->parent->layout != L_STACKED ||
                 con::first(con->parent->focus_head) == con) {
@@ -1105,7 +1111,6 @@ void x_push_node(Con *con) {
 static void x_push_node_unmaps(Con *con) {
     con_state *state;
 
-    // LOG(fmt::sprintf("Pushing changes (with unmaps) for node %p / %s\n",  con, con->name));
     state = state_for_frame(con->frame.id);
 
     /* map/unmap if map state changed, also ensure that the child window
@@ -1177,7 +1182,6 @@ void x_push_changes(Con *con) {
     }
 
     DLOG("-- PUSHING WINDOW STACK --\n");
-    //DLOG("Disabling EnterNotify\n");
     /* We need to keep SubstructureRedirect around, otherwise clients can send
      * ConfigureWindow requests and get them applied directly instead of having
      * them become ConfigureRequests that i3 handles. */
@@ -1186,7 +1190,6 @@ void x_push_changes(Con *con) {
         if (state->mapped)
             xcb_change_window_attributes(**global.x, state->id, XCB_CW_EVENT_MASK, values);
     }
-    //DLOG("Done, EnterNotify disabled\n");
     bool order_changed = false;
     bool stacking_changed = false;
 
@@ -1218,7 +1221,6 @@ void x_push_changes(Con *con) {
             memcpy(walk++, &(state->con->window->id), sizeof(xcb_window_t));
         }
 
-        // LOG(fmt::sprintf("stack: 0x%08x\n",  state->id));
         auto prev = std::next(it);
         auto old_state_head_it = std::ranges::find(global.x->old_state_head, state);
         if (old_state_head_it == global.x->old_state_head.begin()) {
@@ -1230,7 +1232,6 @@ void x_push_changes(Con *con) {
         }
         if ((state->initial || order_changed) && prev != global.x->state_head.rend()) {
             stacking_changed = true;
-            // LOG(fmt::sprintf("Stacking 0x%08x above 0x%08x\n",  prev->id, state->id));
             uint32_t mask = 0;
             mask |= XCB_CONFIG_WINDOW_SIBLING;
             mask |= XCB_CONFIG_WINDOW_STACK_MODE;
@@ -1285,13 +1286,11 @@ void x_push_changes(Con *con) {
         global.x->warp_to = std::nullopt;
     }
 
-    //DLOG("Re-enabling EnterNotify\n");
     values[0] = FRAME_EVENT_MASK;
     for (auto &state : global.x->state_head | std::views::reverse) {
         if (state->mapped)
             xcb_change_window_attributes(**global.x, state->id, XCB_CW_EVENT_MASK, values);
     }
-    //DLOG("Done, EnterNotify re-enabled\n");
 
     x_deco_recurse(con);
 
@@ -1380,9 +1379,6 @@ void x_push_changes(Con *con) {
         std::erase(global.x->old_state_head, state);
         global.x->old_state_head.push_back(state);
     }
-    //CIRCLEQ_FOREACH(state, &old_state_head, old_state) {
-    //    DLOG(fmt::sprintf("old stack: 0x%08x\n",  state->id));
-    //}
 
     xcb_flush(**global.x);
 }
@@ -1395,7 +1391,6 @@ void x_push_changes(Con *con) {
 void x_raise_con(Con *con) {
     con_state *state;
     state = state_for_frame(con->frame.id);
-    // LOG(fmt::sprintf("raising in new stack: %p / %s / %s / xid %08x\n",  con, con->name, con->window ? con->window->name_json : "", state->id));
 
     std::erase(global.x->state_head, state);
     global.x->state_head.push_front(state);

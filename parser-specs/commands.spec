@@ -155,8 +155,10 @@ state FOCUS_AUTO:
       -> call cmd::focus_direction($direction)
 
 state FOCUS_OUTPUT:
-  output = string
-      -> call cmd::focus_output($output)
+  output = word
+      -> call cmd::focus_output($output); FOCUS_OUTPUT
+  end
+      -> call cmd::focus_output(NULL); INITIAL
 
 # kill [window|client]
 state KILL:
@@ -408,6 +410,8 @@ state TITLE_FORMAT:
 
 state TITLE_WINDOW_ICON:
   'padding'
+    -> TITLE_WINDOW_ICON_PADDING
+  enable = 'toggle'
     -> TITLE_WINDOW_ICON_PADDING
   enable = '1', 'yes', 'true', 'on', 'enable', 'active', '0', 'no', 'false', 'off', 'disable', 'inactive'
     -> call cmd::title_window_icon($enable, 0)

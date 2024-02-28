@@ -176,12 +176,6 @@ export {
     void init_ws_for_output(Output * output);
 
     /**
-     * Initializes the specified output, assigning the specified workspace to it.
-     *
-     */
-    // void initialize_output(xcb_connection_t *conn, Output *output, Workspace *workspace);
-
-    /**
      * Disables the output and moves its content.
      *
      */

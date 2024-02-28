@@ -273,7 +273,7 @@ export class BaseCommandsApplier {
     virtual void title_format(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *format) = 0;
 
     /*
-     * Implementation of 'title_window_icon <yes|no>' and 'title_window_icon padding <px>'
+     * Implementation of 'title_window_icon <yes|no|toggle>' and 'title_window_icon <padding|toggle> <px>'
      *
      */
     virtual void title_window_icon(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *enable, int padding) = 0;

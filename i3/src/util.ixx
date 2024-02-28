@@ -126,6 +126,18 @@ export {
      */
     bool is_debug_build() __attribute__((const));
 
+    /*
+     * Converts direction to a string representation.
+     *
+     */
+    const char *direction_to_string(direction_t direction);
+
+    /*
+     * Converts position to a string representation.
+     *
+     */
+    const char *position_to_string(position_t position);
+
     /**
      * The lower 16 bits contain a xcb_key_but_mask_t, the higher 16 bits contain
      * an i3_xkb_group_mask_t. This type is necessary for the fallback logic to

@@ -298,7 +298,7 @@ WorkspaceCon *create_workspace_on_output(Output *output, Con *content) {
 
 /*
  * Returns true if the workspace is currently visible. Especially important for
- * multi-monitor environments, as they can have multiple currenlty active
+ * multi-monitor environments, as they can have multiple currently active
  * workspaces.
  *
  */
@@ -308,7 +308,6 @@ bool workspace_is_visible(Con *ws) {
         return false;
     }
     Con *fs = output->con_get_fullscreen_con(CF_OUTPUT);
-    LOG(fmt::sprintf("workspace visible? fs = %p, ws = %p\n",  (void*)fs, (void*)ws));
     return (fs == ws);
 }
 

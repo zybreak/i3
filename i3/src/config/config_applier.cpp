@@ -75,6 +75,10 @@ void ConfigApplier::binding(const std::string &bindtype, const std::string &modi
 void ConfigApplier::mode_binding(const std::string &bindtype, const std::string &modifiers,
                       const std::string &key, bool release, bool border, bool whole_window,
                       bool exclude_titlebar, const std::string &command) {
+    if (current_mode == NULL) {
+        /* When using an invalid mode name, e.g. “default” */
+        return;
+    }
     configure_binding(bindtype, modifiers, key, release, border, whole_window, exclude_titlebar, command, current_mode, current_mode_pango_markup);
 }
 
@@ -316,7 +320,13 @@ void ConfigApplier::color_single(const std::string &colorclass, const std::strin
 void ConfigApplier::color(const std::string &colorclass, const std::string &border, const std::string &background, const std::string &text, const std::string &indicator, const std::string &child_border) {
 #define APPLY_COLORS(classname)                                                              \
     do {                                                                                     \
-        if (strcmp(colorclass.c_str(), "client." #classname) == 0) {                                 \
+        if (strcmp(colorclass.c_str(), "client." #classname) == 0) {                         \
+            if (strcmp("focused_tab_title", #classname) == 0) {                                              \
+                config.client.got_focused_tab_title = true;                                                  \
+                if (indicator || child_border) {                                                             \
+                    ELOG("indicator and child_border colors have no effect for client.focused_tab_title\n"); \
+                }                                                                                            \
+            }                                                                                 \
             config.client.classname.border = draw_util_hex_to_color(**global.x, global.x->root_screen, border.c_str());                 \
             config.client.classname.background = draw_util_hex_to_color(**global.x, global.x->root_screen, background.c_str());         \
             config.client.classname.text = draw_util_hex_to_color(**global.x, global.x->root_screen, text.c_str());                     \
@@ -332,6 +342,7 @@ void ConfigApplier::color(const std::string &colorclass, const std::string &bord
     } while (0)
 
     APPLY_COLORS(focused_inactive);
+    APPLY_COLORS(focused_tab_title);
     APPLY_COLORS(focused);
     APPLY_COLORS(unfocused);
     APPLY_COLORS(urgent);

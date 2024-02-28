@@ -109,7 +109,7 @@ export {
 
     /**
      * Returns true if the workspace is currently visible. Especially important for
-     * multi-monitor environments, as they can have multiple currenlty active
+     * multi-monitor environments, as they can have multiple currently active
      * workspaces.
      *
      */

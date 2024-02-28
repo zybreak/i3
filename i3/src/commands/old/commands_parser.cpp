@@ -229,7 +229,7 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
     auto errormessage = fmt::format("Expected one of these tokens: {}", possible_tokens);
 
     /* Contains the same amount of characters as 'input' has, but with
-             * the unparseable part highlighted using ^ characters. */
+     * the unparsable part highlighted using ^ characters. */
     std::string position(len, '\0');
     std::fill_n(position.begin(), len - strlen(*walk), ' ');
     std::fill_n(position.begin() + (len - strlen(*walk)), strlen(*walk), '^');

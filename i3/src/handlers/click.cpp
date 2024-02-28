@@ -94,7 +94,7 @@ static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press
  */
 static bool floating_mod_on_tiled_client(Con *con, xcb_button_press_event_t *event) {
     /* The client is in tiling layout. We can still initiate a resize with the
-     * right mouse button, by chosing the border which is the most near one to
+     * right mouse button, by choosing the border which is the most near one to
      * the position of the mouse pointer */
     uint32_t to_right = con->rect.width - event->event_x,
              to_left = event->event_x,
@@ -212,9 +212,6 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
         }
     }
 
-    if (ws != focused_workspace)
-        workspace_show(ws);
-
     /* get the floating con */
     Con *floatingcon = con->con_inside_floating();
     const bool proportional = (event->state & XCB_KEY_BUT_MASK_SHIFT) == XCB_KEY_BUT_MASK_SHIFT;
@@ -246,7 +243,16 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
         return;
     }
 
-    /* 2: focus this con or one of its children. */
+    /* 2: floating modifier pressed, initiate a drag */
+    if (mod_pressed && event->detail == XCB_BUTTON_INDEX_1 && !floatingcon) {
+        tiling_drag(con, event);
+        conn->allow_events(XCB_ALLOW_REPLAY_POINTER, event->time);
+        conn->flush();
+        tree_render();
+        return;
+    }
+
+    /* 3: focus this con or one of its children. */
     Con *con_to_focus = con;
     if (in_stacked && dest == CLICK_DECORATION) {
         /* If the container is a tab/stacked container and the click happened
@@ -259,19 +265,22 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
             }
         }
     }
+    if (ws != focused_workspace) {
+        workspace_show(ws);
+    }
     con_to_focus->con_activate();
 
-    /* 3: For floating containers, we also want to raise them on click.
+    /* 4: For floating containers, we also want to raise them on click.
      * We will skip handling events on floating cons in fullscreen mode */
     Con *fs = ws->con_get_fullscreen_covering_ws();
     if (floatingcon != nullptr && fs != con) {
-        /* 4: floating_modifier plus left mouse button drags */
+        /* 5: floating_modifier plus left mouse button drags */
         if (mod_pressed && is_left_click) {
             floating_drag_window(floatingcon, event, false);
             return;
         }
 
-        /*  5: resize (floating) if this was a (left or right) click on the
+        /*  6: resize (floating) if this was a (left or right) click on the
          * left/right/bottom border, or a right click on the decoration.
          * also try resizing (tiling) if possible */
         if (mod_pressed && is_right_click) {
@@ -300,7 +309,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
             return;
         }
 
-        /* 6: dragging, if this was a click on a decoration (which did not lead
+        /* 7: dragging, if this was a click on a decoration (which did not lead
          * to a resize) */
         if (dest == CLICK_DECORATION && is_left_click) {
             floating_drag_window(floatingcon, event, !was_focused);
@@ -310,7 +319,13 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
         goto done;
     }
 
-    /* 7: floating modifier pressed, initiate a resize */
+    /* 8: floating modifier pressed, initiate a drag */
+    if ((mod_pressed || dest == CLICK_DECORATION) && event->detail == XCB_BUTTON_INDEX_1) {
+        tiling_drag(con, event);
+        goto done;
+    }
+
+    /* 9: floating modifier pressed, initiate a resize */
     if (dest == CLICK_INSIDE && mod_pressed && is_right_click) {
         if (floating_mod_on_tiled_client(con, event)) {
             return;
@@ -321,7 +336,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
         conn->flush();
         return;
     }
-    /* 8: otherwise, check for border/decoration clicks and resize */
+    /* 10: otherwise, check for border/decoration clicks and resize */
     if ((dest == CLICK_BORDER || dest == CLICK_DECORATION) &&
         is_left_or_right_click) {
         DLOG("Trying to resize (tiling)\n");

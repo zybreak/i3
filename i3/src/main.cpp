@@ -100,10 +100,19 @@ static std::tuple<std::string, int> create_socket(const char *filename) {
         }
     }
 
+    /* Check if the socket is in use by another process (this call does not
+     * succeed if the socket is stale / the owner already exited) */
+    int sockfd = i3ipc::ipc_connect_impl(resolved);
+    if (sockfd != -1) {
+        ELOG(fmt::sprintf("Refusing to create UNIX socket at %s: Socket is already in use\n", resolved));
+        close(sockfd);
+        throw std::exception();
+    }
+
     /* Unlink the unix domain socket before */
     std::filesystem::remove(resolved);
 
-    int sockfd = socket(AF_LOCAL, SOCK_STREAM, 0);
+    sockfd = socket(AF_LOCAL, SOCK_STREAM, 0);
     if (sockfd < 0) {
         perror("socket()");
         throw std::exception();
@@ -286,20 +295,6 @@ static Output *get_focused_output() {
     return output;
 }
 
-/* Create the UNIX domain socket for IPC */
-static void init_ipc() {
-    int ipc_socket;
-
-    std::tie(global.current_socketpath, ipc_socket) = create_socket(config.ipc_socket_path);
-    if (ipc_socket == -1) {
-        ELOG("Could not create the IPC socket, IPC disabled\n");
-    } else {
-        auto *ipc_io = new ev_io();
-        ev_io_init(ipc_io, ipc_new_client, ipc_socket, EV_READ);
-        ev_io_start(global.eventHandler->main_loop, ipc_io);
-    }
-}
-
 static void confirm_restart() {
     const int restart_fd = parse_restart_fd();
     if (restart_fd != -1) {
@@ -470,15 +465,21 @@ int main(int argc, char *argv[]) {
             config.ipc_socket_path = sstrdup(config.ipc_socket_path);
         }
     }
+    /* Create the UNIX domain socket for IPC */
+    int ipc_socket;
+    std::tie(global.current_socketpath, ipc_socket) = create_socket(config.ipc_socket_path);
+    if (ipc_socket == -1) {
+        errx(EXIT_FAILURE, "Could not create the IPC socket: %s", config.ipc_socket_path);
+    }
 
     /* Acquire the WM_Sn selection. */
     {
         /* Get the WM_Sn atom */
-        char *atom_name = xcb_atom_name_by_screen("WM_S", x->conn_screen);
+        char *atom_name = xcb_atom_name_by_screen("WM", x->conn_screen);
         x->wm_sn_selection_owner = xcb_generate_id(*x->conn);
 
         if (atom_name == nullptr) {
-            ELOG(fmt::sprintf("xcb_atom_name_by_screen(\"WM_S\", %d) failed, exiting\n", x->conn_screen));
+            ELOG(fmt::sprintf("xcb_atom_name_by_screen(\"WM\", %d) failed, exiting\n", x->conn_screen));
             return 1;
         }
 
@@ -632,8 +633,10 @@ int main(int argc, char *argv[]) {
 
     tree_render();
 
-    /* Create the UNIX domain socket for IPC */
-    init_ipc();
+    /* Listen to the IPC socket for clients */
+    auto *ipc_io = new ev_io();
+    ev_io_init(ipc_io, ipc_new_client, ipc_socket, EV_READ);
+    ev_io_start(global.eventHandler->main_loop, ipc_io);
 
     confirm_restart();
 

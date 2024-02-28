@@ -157,7 +157,7 @@ static int predict_text_width_pango(i3Font *savedFont, xcb_connection_t *conn, x
 i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *pattern, const bool fallback) {
     auto *font = new i3Font{};
 
-    /* No XCB connction, return early because we're just validating the
+    /* No XCB connection, return early because we're just validating the
      * configuration file. */
     if (conn == nullptr) {
         return font;

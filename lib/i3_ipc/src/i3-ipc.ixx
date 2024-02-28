@@ -55,7 +55,14 @@ export namespace i3ipc {
      * socket. die()s if anything goes wrong.
      *
      */
-    int ipc_connect(const std::string_view &socket_path);
+    std::tuple<std::string, int> ipc_connect(const std::string_view &socket_path) {
+
+    /**
+     * Connects to the socket at the given path with no fallback paths. Returns
+     * -1 if connect() fails and die()s for other errors.
+     *
+     */
+    int ipc_connect_impl(const std::string_view &socket_path);
 
     /**
      * Formats a message (payload) of the given size and type and sends it to i3 via

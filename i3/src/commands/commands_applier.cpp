@@ -975,6 +975,59 @@ void CommandsApplier::mode(struct criteria_state *criteria_state, CommandResultI
     ysuccess(cmd_output.json_gen, true);
 }
 
+static void user_output_names_add(std::vector<std::string> &list, const char *name) {
+
+    if (strcmp(name, "next") == 0) {
+        /* "next" here works like a wildcard: It "expands" to all available
+             * outputs. */
+        for (Output *output: global.randr->outputs) {
+            list.push_back(std::string(output->output_primary_name()));
+        }
+        return;
+    }
+
+    list.push_back(std::string(name));
+
+    return;
+}
+
+static Output *user_output_names_find_next(std::vector<std::string> &names, Output *current_output) {
+    Output *target_output = nullptr;
+    for (auto uo = user_output_names.begin(); uo != user_output_names.end(); ++uo) {
+        if (!target_output) {
+            /* The first available output from the list is used in 2 cases:
+                 * 1. When we must wrap around the user list. For example, if
+                 * user specifies outputs A B C and C is `current_output`.
+                 * 2. When the current output is not in the user list. For
+                 * example, user specifies A B C and D is `current_output`.
+             */
+            target_output = current_output->get_output_from_string(*uo);
+        }
+        if (strcasecmp(current_output->output_primary_name().c_str(), (*uo).c_str()) == 0) {
+            /* The current output is in the user list */
+            while (true) {
+                /* This corrupts the outer loop but it is ok since we are
+                     * going to break anyway. */
+                auto next = ++uo;
+                if (next == user_output_names.end()) {
+                    /* We reached the end of the list. We should use the
+                         * first available output that, if it exists, is
+                         * already saved in target_output. */
+                    break;
+                }
+                Output *out = current_output->get_output_from_string(*next);
+                if (out) {
+                    return out;
+                }
+            }
+            break;
+        }
+
+    }
+
+    return target_output;
+}
+
 /*
  * Implementation of 'move [window|container|workspace] [to] output <strings>'.
  *
@@ -983,19 +1036,10 @@ void CommandsApplier::move_con_to_output(struct criteria_state *criteria_state, 
     /* Initialize a data structure that is used to save multiple user-specified
      * output names since this function is called multiple types for each
      * command call. */
-    std::vector<std::string> user_output_names{};
+    std::vector<std::string> names{};
 
     if (name) {
-        if (strcmp(name, "next") == 0) {
-            /* "next" here works like a wildcard: It "expands" to all available
-             * outputs. */
-            for (Output *output: global.randr->outputs) {
-                user_output_names.push_back(std::string(output->output_primary_name()));
-            }
-            return;
-        }
-
-        user_output_names.emplace_back(name);
+        user_output_names_add(names, name);
         return;
     }
 
@@ -1010,41 +1054,7 @@ void CommandsApplier::move_con_to_output(struct criteria_state *criteria_state, 
         WorkspaceCon *ws = current->con_get_workspace();
 
         Output *current_output = get_output_for_con(ws);
-
-        Output *target_output = nullptr;
-        for (auto uo = user_output_names.begin(); uo != user_output_names.end(); ++uo) {
-            if (strcasecmp(current_output->output_primary_name().c_str(), (*uo).c_str()) == 0) {
-                /* The current output is in the user list */
-                while (true) {
-                    /* This corrupts the outer loop but it is ok since we are
-                     * going to break anyway. */
-                    auto next = ++uo;
-                    if (next == user_output_names.end()) {
-                        /* We reached the end of the list. We should use the
-                         * first available output that, if it exists, is
-                         * already saved in target_output. */
-                        break;
-                    }
-                    Output *out = current_output->get_output_from_string(*next);
-                    if (out) {
-                        DLOG(fmt::sprintf("Found next target for workspace %s from user list: %s\n",  ws->name, *next));
-                        target_output = out;
-                        break;
-                    }
-                }
-                break;
-            }
-            if (!target_output) {
-                /* The first available output from the list is used in 2 cases:
-                 * 1. When we must wrap around the user list. For example, if
-                 * user specifies outputs A B C and C is `current_output`.
-                 * 2. When the current output is not in the user list. For
-                 * example, user specifies A B C and D is `current_output`.
-                 */
-                DLOG(fmt::sprintf("Found first target for workspace %s from user list: %s\n",  ws->name, *uo));
-                target_output = current_output->get_output_from_string(*uo);
-            }
-        }
+        Output *target_output = user_output_names_find_next(names, current_output);
         if (target_output) {
             if (move_workspace) {
                 workspace_move_to_output(ws, target_output);
@@ -1623,6 +1633,17 @@ void CommandsApplier::open(struct criteria_state *criteria_state, CommandResultI
  *
  */
 void CommandsApplier::focus_output(struct criteria_state *criteria_state, CommandResultIR &cmd_output, const char *name) {
+    std::vector<std::string> names{};
+
+    if (name) {
+        user_output_names_add(names, name);
+        return;
+    }
+
+    if (names.empty()) {
+        throw std::runtime_error("At least one output must be specified");
+    }
+
     HANDLE_EMPTY_MATCH(criteria_state);
 
     if (criteria_state->owindows.empty()) {
@@ -1631,22 +1652,26 @@ void CommandsApplier::focus_output(struct criteria_state *criteria_state, Comman
     }
 
     Output *current_output = get_output_for_con(criteria_state->owindows.front());
-    Output *output = current_output->get_output_from_string(name);
+    Output *target_output = user_output_names_find_next(names, current_output);
+    bool success = false;
+    if (target_output) {
+        success = true;
 
-    if (!output) {
-        throw std::runtime_error(fmt::sprintf("Output %s not found.", name));
+        /* get visible workspace on output */
+        auto ws = std::ranges::find_if(output->con->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
+        if (ws == output->con->output_get_content()->nodes_head.end()) {
+            throw std::runtime_error("BUG: No workspace found on output.");
+        }
+
+        workspace_show(ws);
     }
 
-    /* get visible workspace on output */
-    auto ws = std::ranges::find_if(output->con->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
-    if (ws == output->con->output_get_content()->nodes_head.end()) {
-        throw std::runtime_error("BUG: No workspace found on output.");
+    cmd_output->needs_tree_render = success;
+    if (success) {
+        ysuccess(true);
+    } else {
+        yerror("No output matched");
     }
-
-    workspace_show(*ws);
-
-    cmd_output.needs_tree_render = true;
-    ysuccess(cmd_output.json_gen, true);
 }
 
 /*
@@ -1796,23 +1821,43 @@ void CommandsApplier::title_format(struct criteria_state *criteria_state, Comman
 }
 
 /*
- * Implementation of 'title_window_icon <yes|no>' and 'title_window_icon padding <px>'
+ * Implementation of 'title_window_icon <yes|no|toggle>' and 'title_window_icon padding <px>'
  *
  */
 void CommandsApplier::title_window_icon(struct criteria_state *criteria_state, CommandResultIR &cmd_output, const char *enable, int padding) {
-    if (enable != nullptr && !boolstr(enable)) {
-        padding = -1;
+    bool is_toggle = false;
+    if (enable != nullptr) {
+        if (strcmp(enable, "toggle") == 0) {
+            is_toggle = true;
+        } else if (!boolstr(enable)) {
+            padding = -1;
+        }
     }
     DLOG(fmt::sprintf("setting window_icon=%d\n",  padding));
     HANDLE_EMPTY_MATCH(criteria_state);
 
     for (auto current: criteria_state->owindows) {
-        DLOG(fmt::sprintf("setting window_icon for %p / %s\n",  (void*)current, current->name));
-        current->window_icon_padding = padding;
+        if (is_toggle) {
+            const int current_padding = current->con->window_icon_padding;
+            if (padding > 0) {
+                if (current_padding < 0) {
+                    current->con->window_icon_padding = padding;
+                } else {
+                    /* toggle off, but store padding given */
+                    current->con->window_icon_padding = -(padding + 1);
+                }
+            } else {
+                /* Set to negative of (current value+1) to keep old padding when toggling */
+                current->con->window_icon_padding = -(current_padding + 1);
+            }
+        } else {
+            current->con->window_icon_padding = padding;
+        }
+        DLOG(fmt::sprintf("Set window_icon for %p / %s to %d\n", fmt::ptr(current->con), current->con->name, current->con->window_icon_padding));
 
-        if (current->window != nullptr) {
+        if (current->con->window != nullptr) {
             /* Make sure the window title is redrawn immediately. */
-            current->window->name_x_changed = true;
+            current->con->window->name_x_changed = true;
         } else {
             /* For windowless containers we also need to force the redrawing. */
             delete current->deco_render_params;

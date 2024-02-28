@@ -91,8 +91,6 @@ struct cmdp_token_ptr {
 static void next_state(const cmdp_token *token, parser_ctx &ctx) {
     cmdp_state _next_state = token->next_state;
 
-    //printf("token = name %s identifier %s\n", token->name, token->identifier);
-    //printf("next_state = %d\n", token->next_state);
     if (token->next_state == __CALL) {
         ConfigResultIR subcommand_output = {
             .ctx = ctx,
@@ -188,7 +186,7 @@ static void unhandled_token(const std::string &input, const char *filename, int 
     const char *error_line = start_of_line(*walk, input);
 
     /* Contains the same amount of characters as 'input' has, but with
-     * the unparseable part highlighted using ^ characters. */
+     * the unparsable part highlighted using ^ characters. */
     char *position = (char*)scalloc(strlen(error_line) + 1, 1);
     const char *copywalk;
     for (copywalk = error_line;
@@ -373,7 +371,6 @@ static bool handle_line(const char **walk, const cmdp_token *token, parser_ctx &
 }
 
 static bool handle_end(const char **walk, const cmdp_token *token, parser_ctx &ctx, ConfigResultIR &subcommand_output, int *linecnt) {
-    //printf("checking for end: *%s*\n", walk);
     if (**walk == '\0' || **walk == '\n' || **walk == '\r') {
         next_state(token, ctx);
         /* To make sure we start with an appropriate matching
@@ -433,8 +430,6 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
         while ((*walk == ' ' || *walk == '\t') && *walk != '\0') {
             walk++;
         }
-
-        //printf("remaining input: %s\n", walk);
 
         cmdp_token_ptr *ptr = &(tokens[ctx.state]);
         bool token_handled = false;
@@ -518,9 +513,14 @@ static size_t count_extra_bytes(const char *buf, __off_t size, parser_ctx &ctx) 
         char *next;
         for (next = bufcopy;
              next < (bufcopy + size) &&
-             (next = strcasestr(next, current->key)) != nullptr;
-             next += strlen(current->key)) {
-            *next = '_';
+             (next = strcasestr(next, current->key)) != nullptr;) {
+            /* We need to invalidate variables completely (otherwise we may count
+             * the same variable more than once, thus causing buffer overflow or
+             * allocation failure) with spaces (variable names cannot contain spaces) */
+            char *end = next + strlen(current->key);
+            while (next < end) {
+                *next++ = ' ';
+            }
             extra_bytes += extra;
         }
     }
@@ -663,7 +663,7 @@ OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabas
 }
 
 OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), load_type(load_type), ctx(this) {
-    this->old_dir = get_current_dir_name();
+    this->old_dir = getcwd(nullptr, 0);
     char *dir = nullptr;
     /* dirname(3) might modify the buffer, so make a copy: */
     char *dirbuf = sstrdup(filename);
