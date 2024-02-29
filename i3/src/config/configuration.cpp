@@ -335,11 +335,11 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     }
 
     /* Make bar config blocks without a configured font use the i3-wide font. */
-    for (auto &current : config.barconfigs) {
-        if (current.font != nullptr) {
+    for (auto &current : barconfigs) {
+        if (current->font != nullptr) {
             continue;
         }
-        current->font = sstrdup(config.font.pattern);
+        current->font = sstrdup(config.font->pattern.c_str());
     }
 
     if (load_type == config_load_t::C_RELOAD) {

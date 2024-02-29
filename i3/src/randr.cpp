@@ -112,15 +112,17 @@ bool RandR::any_randr_output_active() {
  * if there is no output which contains these coordinates.
  *
  */
-Output* RandR::get_output_containing(unsigned int x, unsigned int y) {
+Output* RandR::get_output_containing(uint32_t x, uint32_t y) {
     for (Output *output : outputs) {
-        if (!output->active)
+        if (!output->active) {
             continue;
+        }
         DLOG(fmt::sprintf("comparing x=%d y=%d with x=%d and y=%d width %d height %d\n",
              x, y, output->rect.x, output->rect.y, output->rect.width, output->rect.height));
         if (x >= output->rect.x && x < (output->rect.x + output->rect.width) &&
-            y >= output->rect.y && y < (output->rect.y + output->rect.height))
+            y >= output->rect.y && y < (output->rect.y + output->rect.height)) {
             return output;
+        }
     }
 
     return nullptr;

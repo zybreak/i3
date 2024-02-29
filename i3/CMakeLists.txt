@@ -139,6 +139,7 @@ target_sources(i3_lib PUBLIC
         src/resize.ixx
         src/window.ixx
         src/match.ixx
+        src/tiling_drag.ixx
         src/tree.ixx
         src/startup.ixx
         src/draw.ixx

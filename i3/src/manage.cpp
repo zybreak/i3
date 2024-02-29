@@ -788,7 +788,7 @@ Con *remanage_window(Con *con) {
  * it is still in use by popular widget toolkits such as GTK+ and Java AWT.
  *
  */
-void update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_border_style) {
+bool update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_border_style) {
     /* This implementation simply mirrors Gnome's Metacity. Official
      * documentation of this hint is nowhere to be found.
      * For more information see:
@@ -808,7 +808,7 @@ void update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_bo
     }
 
     if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-        return;
+        return false;
     }
 
     /* The property consists of an array of 5 uint32_t's. The first value is a
@@ -833,6 +833,8 @@ void update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_bo
             *motif_border_style = BS_NONE;
         }
     }
+
+    return true;
 
 #undef MWM_HINTS_FLAGS_FIELD
 #undef MWM_HINTS_DECORATIONS_FIELD

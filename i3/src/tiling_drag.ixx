@@ -7,10 +7,13 @@
  * tiling_drag.h: Reposition tiled windows by dragging.
  *
  */
-#pragma once
+module;
+class Con;
+#include <xcb/xproto.h>
+export module i3:tiling_drag;
 
 /**
  * Initiates a mouse drag operation on a tiled window.
  *
  */
-void tiling_drag(Con *con, xcb_button_press_event_t *event);
+export void tiling_drag(Con *con, xcb_button_press_event_t *event);

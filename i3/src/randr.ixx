@@ -109,7 +109,7 @@ export {
          * if there is no output which contains these coordinates.
          *
          */
-        Output *get_output_containing(unsigned int x, unsigned int y);
+        Output *get_output_containing(uint32_t x, uint32_t y);
 
         /*
          * Returns the active output which spans exactly the area specified by

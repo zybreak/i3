@@ -467,7 +467,7 @@ void x_draw_decoration(Con *con) {
     } else if (con == global.focused || con->con_inside_focused()) {
         p->color = &config.client.focused;
     } else if (con == con::first(parent->focus_head)) {
-        if (config.client.got_focused_tab_title && !leaf && con_descend_focused(con) == focused) {
+        if (config.client.got_focused_tab_title && !leaf && con_descend_focused(con) == global.focused) {
             /* Stacked/tabbed parent of focused container */
             p->color = &config.client.focused_tab_title;
         } else {

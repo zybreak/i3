@@ -811,7 +811,7 @@ Con *con_by_frame_id(xcb_window_t frame) {
  */
 bool con_find_transient_for_window(Con *start, xcb_window_t target) {
     Con *transient_con = start;
-    int count = con_num_windows(croot);
+    int count = global.croot->con_num_windows();
     while (transient_con != nullptr &&
            transient_con->window != nullptr &&
            transient_con->window->transient_for != XCB_NONE) {
@@ -1336,13 +1336,13 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
 
 bool con_move_to_target(Con *con, Con *target) {
     /* For floating target containers, we just send the window to the same workspace. */
-    if (con_is_floating(target)) {
+    if (target->con_is_floating()) {
         DLOG("target container is floating, moving container to target's workspace.\n");
-        con_move_to_workspace(con, con_get_workspace(target), true, false, false);
+        con_move_to_workspace(con, target->con_get_workspace(), true, false, false);
         return true;
     }
 
-    if (target->type == CT_WORKSPACE && con_is_leaf(target)) {
+    if (target->type == CT_WORKSPACE && target->con_is_leaf()) {
         DLOG("target container is an empty workspace, simply moving the container there.\n");
         con_move_to_workspace(con, target, true, false, false);
         return true;
@@ -1351,12 +1351,12 @@ bool con_move_to_target(Con *con, Con *target) {
     /* For split containers, we use the currently focused container within it.
      * This allows setting marks on, e.g., tabbed containers which will move
      * con to a new tab behind the focused tab. */
-    if (con_is_split(target)) {
+    if (target->con_is_split()) {
         DLOG("target is a split container, descending to the currently focused child.\n");
         target = con::first(target->focus_head);
     }
 
-    if (con == target || con_has_parent(target, con)) {
+    if (con == target || target->con_has_parent(con)) {
         DLOG("cannot move the container to or inside itself, aborting.\n");
         return false;
     }

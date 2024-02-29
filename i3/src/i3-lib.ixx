@@ -46,6 +46,7 @@ export import :root_atom_contents;
 export import :nagbar;
 export import :manage;
 export import :tree;
+export import :tiling_drag;
 export import :commands;
 export import :is_background_set;
 export import :resource_database;

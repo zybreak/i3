@@ -23,9 +23,10 @@ namespace i3ipc {
      * socket. die()s if anything goes wrong.
      *
      */
+#if 0
     std::tuple<std::string, int> ipc_connect(const std::string_view &socket_path) {
         std::string path{};
-        if (socket_path != nullptr) {
+        if (!socket_path.empty()) {
             path = socket_path;
         }
 
@@ -49,6 +50,7 @@ namespace i3ipc {
         }
         return std::make_tuple(path, sockfd);
     }
+#endif
 
     /**
      * Connects to the socket at the given path with no fallback paths. Returns

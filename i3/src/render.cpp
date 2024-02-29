@@ -260,19 +260,20 @@ static void render_root(Con *con, Con *fullscreen) {
                         continue;
                     }
 
-                Con *floating_child = con_descend_focused(child);
-                if (con_find_transient_for_window(floating_child, fullscreen->window->id)) {
-                    DLOG(fmt::sprintf("Rendering floating child even though in fullscreen mode: "
-                         "floating->transient_for (0x%08x) --> fullscreen->id (0x%08x)\n",
-                         floating_child->window->transient_for, fullscreen->window->id));
-                } else {
-                    continue;
+                    Con *floating_child = con_descend_focused(child);
+                    if (con_find_transient_for_window(floating_child, fullscreen->window->id)) {
+                        DLOG(fmt::sprintf("Rendering floating child even though in fullscreen mode: "
+                             "floating->transient_for (0x%08x) --> fullscreen->id (0x%08x)\n",
+                             floating_child->window->transient_for, fullscreen->window->id));
+                    } else {
+                        continue;
+                    }
                 }
+                DLOG(fmt::sprintf("floating child at (%d,%d) with %d x %d\n",
+                     child->rect.x, child->rect.y, child->rect.width, child->rect.height));
+                x_raise_con(child);
+                render_con(child);
             }
-            DLOG("floating child at (%d,%d) with %d x %d\n",
-                 child->rect.x, child->rect.y, child->rect.width, child->rect.height);
-            x_raise_con(child);
-            render_con(child);
         }
     }
 }

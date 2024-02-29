@@ -75,7 +75,7 @@ void ConfigApplier::binding(const std::string &bindtype, const std::string &modi
 void ConfigApplier::mode_binding(const std::string &bindtype, const std::string &modifiers,
                       const std::string &key, bool release, bool border, bool whole_window,
                       bool exclude_titlebar, const std::string &command) {
-    if (current_mode == NULL) {
+    if (current_mode.empty()) {
         /* When using an invalid mode name, e.g. “default” */
         return;
     }
@@ -323,7 +323,7 @@ void ConfigApplier::color(const std::string &colorclass, const std::string &bord
         if (strcmp(colorclass.c_str(), "client." #classname) == 0) {                         \
             if (strcmp("focused_tab_title", #classname) == 0) {                                              \
                 config.client.got_focused_tab_title = true;                                                  \
-                if (indicator || child_border) {                                                             \
+                if (!indicator.empty() || !child_border.empty()) {                                                             \
                     ELOG("indicator and child_border colors have no effect for client.focused_tab_title\n"); \
                 }                                                                                            \
             }                                                                                 \

@@ -80,7 +80,7 @@ namespace cfg {
             try {
                 parser.parse_file();
             } catch (std::exception &e) {
-                ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, w.what()));
+                ELOG(fmt::sprintf("including config file %s: %s\n", resolved_path, e.what()));
                 result.has_errors = true;
             }
         }
