@@ -40,6 +40,18 @@ import log;
 
 static std::vector<std::unique_ptr<Startup_Sequence>> startup_sequences{};
 
+static std::optional<std::reference_wrapper<Startup_Sequence>> startup_sequence_get(i3Window *cwindow, xcb_get_property_reply_t* startup_id_reply, bool ignore_mapped_leader);
+
+void remove_startup_sequence(char *id) {
+    auto itr = std::remove_if(startup_sequences.begin(), startup_sequences.end(), [&id](auto &currrent) {
+      return strcmp(currrent->id, id) == 0;
+    });
+
+    if (itr != startup_sequences.end()) {
+        startup_sequences.erase(itr);
+    }
+}
+
 /*
  * After 60 seconds, a timeout will be triggered for each startup sequence.
  *
@@ -266,14 +278,14 @@ void startup_sequence_rename_workspace(const char *old_name, const char *new_nam
  * Gets the stored startup sequence for the _NET_STARTUP_ID of a given window.
  *
  */
-std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3Window *cwindow,
+static std::optional<std::reference_wrapper<Startup_Sequence>> startup_sequence_get(i3Window *cwindow,
                                               xcb_get_property_reply_t* startup_id_reply, bool ignore_mapped_leader) {
     /* The _NET_STARTUP_ID is only needed during this function, so we get it
      * here and don’t save it in the 'cwindow'. */
     if (startup_id_reply == nullptr || xcb_get_property_value_length(startup_id_reply) == 0) {
         DLOG(fmt::sprintf("No _NET_STARTUP_ID set on window 0x%08x\n",  cwindow->id));
         if (cwindow->leader == XCB_NONE) {
-            return startup_sequences.end();
+            return {};
         }
 
         /* This is a special case that causes the leader's startup sequence
@@ -285,7 +297,7 @@ std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3
          * likely permanently unmapped and the child is the "real" window. */
         if (ignore_mapped_leader && con_by_window_id(cwindow->leader) != nullptr) {
             DLOG(fmt::sprintf("Ignoring leader window 0x%08x\n",  cwindow->leader));
-            return startup_sequences.end();
+            return {};
         }
 
         DLOG(fmt::sprintf("Checking leader window 0x%08x\n",  cwindow->leader));
@@ -297,7 +309,7 @@ std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3
         if (startup_id_reply == nullptr ||
             xcb_get_property_value_length(startup_id_reply) == 0) {
             DLOG("No _NET_STARTUP_ID set on the leader either\n");
-            return startup_sequences.end();
+            return {};
         }
     }
 
@@ -310,10 +322,10 @@ std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3
 
     if (seq_ptr == startup_sequences.end()) {
         DLOG(fmt::sprintf("WARNING: This sequence (ID %s) was not found\n",  startup_id));
-        return startup_sequences.end();
+        return {};
     }
 
-    return seq_ptr;
+    return **seq_ptr;
 }
 
 /*
@@ -326,21 +338,21 @@ std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3
  *
  */
 char *startup_workspace_for_window(i3Window *cwindow, xcb_get_property_reply_t *startup_id_reply) {
-    auto seq_ptr = startup_sequence_get(cwindow, startup_id_reply, false);
-    if (seq_ptr == startup_sequences.end()) {
+    auto seq_opt = startup_sequence_get(cwindow, startup_id_reply, false);
+    if (!seq_opt) {
         return nullptr;
     }
 
     /* If the startup sequence's time span has elapsed, delete it. */
     time_t current_time = time(nullptr);
-    if ((*seq_ptr)->delete_at > 0 && current_time > (*seq_ptr)->delete_at) {
-        DLOG(fmt::sprintf("Deleting expired startup sequence %s\n",  (*seq_ptr)->id));
-        startup_sequences.erase(seq_ptr);
+    if (seq_opt->get().delete_at > 0 && current_time > seq_opt->get().delete_at) {
+        DLOG(fmt::sprintf("Deleting expired startup sequence %s\n",  seq_opt->get().id));
+        remove_startup_sequence(seq_opt->get().id);
 
         return nullptr;
     }
 
-    return (*seq_ptr)->workspace;
+    return seq_opt->get().workspace;
 }
 
 /*
@@ -352,7 +364,7 @@ void startup_sequence_delete_by_window(i3Window *win) {
     auto startup_id_reply = global.x->conn->get_property(false, win->id, A__NET_STARTUP_ID, XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
 
     auto sequence = startup_sequence_get(win, (startup_id_reply.get() != nullptr) ? startup_id_reply.get().get() : nullptr, true);
-    if (sequence != startup_sequences.end()) {
-        startup_sequences.erase(sequence);
+    if (sequence) {
+        remove_startup_sequence(sequence->get().id);
     }
 }

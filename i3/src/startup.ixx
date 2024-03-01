@@ -76,13 +76,6 @@ export {
     void startup_sequence_rename_workspace(const char *old_name, const char *new_name);
 
     /**
-     * Gets the stored startup sequence for the _NET_STARTUP_ID of a given window.
-     *
-     */
-    std::vector<std::unique_ptr<Startup_Sequence>>::iterator startup_sequence_get(i3Window * cwindow,
-                                                                                  xcb_get_property_reply_t * startup_id_reply, bool ignore_mapped_leader);
-
-    /**
      * Checks if the given window belongs to a startup notification by checking if
      * the _NET_STARTUP_ID property is set on the window (or on its leader, if it’s
      * unset).

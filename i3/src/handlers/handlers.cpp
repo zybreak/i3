@@ -973,8 +973,7 @@ static bool handle_windowicon_change(Con *con, xcb_get_property_reply_t *prop) {
  * received from X11
  *
  */
-PropertyHandlers::PropertyHandlers(X *x)
-    : x{x} {
+PropertyHandlers::PropertyHandlers(X *x) : x{x} {
     sn_monitor_context_new(sndisplay, x->conn->default_screen(), startup_monitor_event, nullptr, nullptr);
 
     property_handlers.emplace_back(A__NET_WM_NAME, 128, handle_windowname_change);
