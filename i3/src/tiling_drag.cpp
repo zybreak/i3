@@ -241,6 +241,7 @@ DRAGGING_CB(drag_callback) {
             rect = adjust_rect(target->rect, direction, sibling_indicator_size);
             break;
     }
+    return create_indicator(drop_type, direction, target, rect, draw_window, con, old_rect, new_x, new_y, event, params);
 }
 
 /*
