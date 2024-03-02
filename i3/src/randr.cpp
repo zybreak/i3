@@ -56,11 +56,16 @@ Output* RandR::get_output_by_id(xcb_randr_output_t id) {
  */
 Output* RandR::get_output_by_name(const std::string &name, const bool require_active) {
     bool get_primary = (strcasecmp("primary", name.c_str()) == 0);
+    const bool get_non_primary = (strcasecmp("nonprimary", name.c_str()) == 0);
+
     for (Output *output : outputs) {
         if (require_active && !output->active) {
             continue;
         }
         if (output->primary && get_primary) {
+            return output;
+        }
+        if (!output->primary && get_non_primary) {
             return output;
         }
         for (auto &output_name : output->names) {

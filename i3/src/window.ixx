@@ -201,6 +201,20 @@ export {
         void window_update_hints(xcb_get_property_reply_t *prop, bool *urgency_hint);
 
         /**
+         * Updates the MOTIF_WM_HINTS. The container's border style should be set to
+         * `motif_border_style' if border style is not BS_NORMAL.
+         *
+         * i3 only uses this hint when it specifies a window should have no
+         * title bar, or no decorations at all, which is how most window managers
+         * handle it.
+         *
+         * The EWMH spec intended to replace Motif hints with _NET_WM_WINDOW_TYPE, but
+         * it is still in use by popular widget toolkits such as GTK+ and Java AWT.
+         *
+         */
+        bool window_update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_border_style);
+
+        /**
          * Updates the WM_CLIENT_MACHINE
          *
          */

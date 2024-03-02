@@ -261,12 +261,20 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     /* Set default_orientation to NO_ORIENTATION for auto orientation. */
     config.default_orientation = NO_ORIENTATION;
 
+    config.gaps.inner = 0;
+    config.gaps.top = 0;
+    config.gaps.right = 0;
+    config.gaps.bottom = 0;
+    config.gaps.left = 0;
+
     /* Set default urgency reset delay to 500ms */
     if (config.workspace_urgency_timer == 0) {
         config.workspace_urgency_timer = 0.5;
     }
 
     config.focus_wrapping = FOCUS_WRAPPING_ON;
+
+    config.tiling_drag = TILING_DRAG_MODIFIER;
 
     current_configpath = get_config_path(override_configpath, true);
     if (current_configpath.empty()) {
@@ -335,22 +343,24 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     }
 
     /* Make bar config blocks without a configured font use the i3-wide font. */
-    for (auto &current : barconfigs) {
-        if (current->font != nullptr) {
-            continue;
+    if (load_type != config_load_t::C_VALIDATE) {
+        for (auto &current : barconfigs) {
+            if (current->font != nullptr) {
+                continue;
+            }
+            current->font = sstrdup(config.font->pattern.c_str());
         }
-        current->font = sstrdup(config.font->pattern.c_str());
     }
 
     if (load_type == config_load_t::C_RELOAD) {
         translate_keysyms();
         grab_all_keys(*global.x);
         regrab_all_buttons(*global.x);
+        gaps_reapply_workspace_assignments();
 
         /* Redraw the currently visible decorations on reload, so that the
          * possibly new drawing parameters changed. */
-        x_deco_recurse(global.croot);
-        xcb_flush(**global.x);
+        tree_render();
     }
 
     return true;

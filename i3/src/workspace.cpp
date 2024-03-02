@@ -97,6 +97,10 @@ static void _workspace_apply_default_orientation(Con *ws) {
 Con *get_assigned_output(const char *name, long parsed_num) {
     Con *output = nullptr;
     for (const auto &assignment : global.ws_assignments) {
+        if (assignment->output.empty()) {
+            continue;
+        }
+
         if (name && strcmp(assignment->name.c_str(), name) == 0) {
              DLOG(fmt::sprintf("Found workspace name=\"%s\" assignment to output \"%s\"\n",
                  name, assignment->output));
@@ -163,6 +167,7 @@ WorkspaceCon *workspace_get(const std::string &num) {
     workspace->name = num;
     workspace->workspace_layout = config.default_layout;
     workspace->num = parsed_num;
+    workspace->gaps = gaps_for_workspace(workspace);
 
     workspace->con_attach(output->output_get_content(), false);
     _workspace_apply_default_orientation(workspace);
@@ -283,9 +288,12 @@ WorkspaceCon *create_workspace_on_output(Output *output, Con *content) {
         ws->num = c;
         ws->name = fmt::format("{}", c);
     }
+
     ws->con_attach(content, false);
 
     x_set_name(ws, fmt::format("[i3 con] workspace %s", ws->name));
+
+    ws->gaps = gaps_for_workspace(ws);
 
     ws->fullscreen_mode = CF_OUTPUT;
 

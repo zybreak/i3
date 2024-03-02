@@ -33,12 +33,15 @@ export {
     const uint32_t NET_WM_DESKTOP_ALL = 0xFFFFFFFF;
 
     /**
-     * Stores which workspace (by name or number) goes to which output.
+     * Stores which workspace (by name or number) goes to which output and its gaps config.
      *
      */
-    struct Workspace_Assignment {
-        std::string name;
-        std::string output;
+    class Workspace_Assignment {
+       public:
+        std::string name{};
+        std::string output{};
+        gaps_t gaps;
+        gaps_mask_t gaps_mask;
     };
 
     /**

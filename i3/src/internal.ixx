@@ -1,6 +1,9 @@
 export module i3:internal;
 
 export {
+
+
+
     /**
      * Bitmask for matching XCB_XKB_GROUP_1 to XCB_XKB_GROUP_4.
      */
@@ -27,6 +30,12 @@ export {
     enum position_t {
         BEFORE,
         AFTER
+    };
+
+    enum border_style_t {
+        BS_NONE = 0,
+        BS_PIXEL = 1,
+        BS_NORMAL = 2,
     };
 
     enum con_scratchpad_t {
@@ -90,9 +99,34 @@ export {
         VERT
     };
 
-    enum border_style_t : unsigned int { BS_NORMAL = 0,
-                                         BS_NONE = 1,
-                                         BS_PIXEL = 2 };
+    /**
+     * Tiling drag initiation modes.
+     */
+    enum tiling_drag_t {
+        TILING_DRAG_OFF = 0,
+        TILING_DRAG_MODIFIER = 1,
+        TILING_DRAG_TITLEBAR = 2,
+        TILING_DRAG_MODIFIER_OR_TITLEBAR = 3
+    };
+
+    struct gaps_t {
+        int inner;
+        int top;
+        int right;
+        int bottom;
+        int left;
+    };
+
+    enum gaps_mask_t : int {
+        GAPS_INNER = (1 << 0),
+        GAPS_TOP = (1 << 1),
+        GAPS_RIGHT = (1 << 2),
+        GAPS_BOTTOM = (1 << 3),
+        GAPS_LEFT = (1 << 4),
+        GAPS_VERTICAL = (GAPS_TOP | GAPS_BOTTOM),
+        GAPS_HORIZONTAL = (GAPS_RIGHT | GAPS_LEFT),
+        GAPS_OUTER = (GAPS_VERTICAL | GAPS_HORIZONTAL),
+    };
 
     /** Fullscreen modes. Used by Con.fullscreen_mode. */
     enum fullscreen_mode_t {

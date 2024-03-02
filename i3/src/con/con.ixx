@@ -165,7 +165,16 @@ export {
          * splith" explicitly.
          */
         layout_t layout, last_split_layout;
+
         border_style_t border_style;
+        /* When the border style of a con changes because of motif hints, we don't
+         * want to set more decoration that the user wants. The user's preference is determined by these:
+         * 1. For new tiling windows, as set by `default_border`
+         * 2. For new floating windows, as set by `default_floating_border`
+         * 3. For all windows that the user runs the `border` command, whatever is
+         * the result of that command for that window. */
+        border_style_t max_user_border_style;
+
         /** floating? (= not in tiling layout) This cannot be simply a bool
          * because we want to keep track of whether the status was set by the
          * application (by setting _NET_WM_WINDOW_TYPE appropriately) or by the
@@ -478,6 +487,9 @@ export {
          * layout whenever a new container is attached to the workspace. */
         layout_t workspace_layout;
 
+        /** Only applicable for containers of type CT_WORKSPACE. */
+        gaps_t gaps;
+
         WorkspaceCon()
             : Con(nullptr, nullptr, false) {
             this->type = CT_WORKSPACE;
@@ -622,6 +634,14 @@ export {
     Con *con_descend_direction(Con * con, direction_t direction);
 
     /**
+     * Returns whether the window decoration (title bar) should be drawn into the
+     * X11 frame window of this container (default) or into the X11 frame window of
+     * the parent container (for stacked/tabbed containers).
+     *
+     */
+    bool con_draw_decoration_into_frame(Con *con);
+
+    /**
      * Returns a "relative" Rect which contains the amount of pixels that need to
      * be added to the original Rect to get the final position (obviously the
      * amount of pixels for normal, 1pixel and borderless are different).
@@ -652,7 +672,7 @@ export {
      * floating window.
      *
      */
-    void con_set_border_style(Con * con, int border_style, int border_width);
+    void con_set_border_style(Con *con, border_style_t border_style, int border_width);
 
     /**
      * This function changes the layout of a given container. Use it to handle
@@ -722,4 +742,10 @@ export {
      *
      */
     uint32_t con_rect_size_in_orientation(Con * con);
+
+    /**
+     * Returns true if the container is within any stacked/tabbed split container.
+     *
+     */
+    bool con_inside_stacked_or_tabbed(Con *con);
 }

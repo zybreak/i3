@@ -155,6 +155,12 @@ static bool tiling_resize(Con *con, xcb_button_press_event_t *event, const click
     return false;
 }
 
+static void allow_replay_pointer(xcb_timestamp_t time) {
+    global.x->conn->allow_events(XCB_ALLOW_REPLAY_POINTER, time);
+    global.x->conn->flush();
+    tree_render();
+}
+
 /*
  * Being called by handle_button_press, this function calls the appropriate
  * functions for resizing/dragging.
@@ -167,9 +173,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
 
     /* don’t handle dockarea cons, they must not be focused */
     if (con->parent->type == CT_DOCKAREA) {
-        conn->allow_events(XCB_ALLOW_REPLAY_POINTER, event->time);
-        conn->flush();
-        tree_render();
+        allow_replay_pointer(event->time);
         return;
     }
 
@@ -190,9 +194,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
 
     /* There is no default behavior for button release events so we are done. */
     if (event->response_type == XCB_BUTTON_RELEASE) {
-        conn->allow_events(XCB_ALLOW_REPLAY_POINTER, event->time);
-        conn->flush();
-        tree_render();
+        allow_replay_pointer(event->time);
         return;
     }
 
@@ -205,9 +207,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
     if (!ws) {
         ws = con::first(con->con_get_output()->output_get_content()->focus_head);
         if (!ws) {
-            conn->allow_events(XCB_ALLOW_REPLAY_POINTER, event->time);
-            conn->flush();
-            tree_render();
+            allow_replay_pointer(event->time);
             return;
         }
     }
@@ -237,18 +237,18 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
         auto p = con_descend_focused(next ? next : current);
         p->con_activate();
 
-        conn->allow_events(XCB_ALLOW_REPLAY_POINTER, event->time);
-        conn->flush();
-        tree_render();
+        allow_replay_pointer(event->time);
         return;
     }
 
     /* 2: floating modifier pressed, initiate a drag */
-    if (mod_pressed && event->detail == XCB_BUTTON_INDEX_1 && !floatingcon) {
-        tiling_drag(con, event);
-        conn->allow_events(XCB_ALLOW_REPLAY_POINTER, event->time);
-        conn->flush();
-        tree_render();
+    if (mod_pressed && is_left_click && !floatingcon &&
+        (config.tiling_drag == TILING_DRAG_MODIFIER ||
+         config.tiling_drag == TILING_DRAG_MODIFIER_OR_TITLEBAR) &&
+        has_drop_targets()) {
+        const bool use_threshold = !mod_pressed;
+        tiling_drag(con, event, use_threshold);
+        allow_replay_pointer(event->time);
         return;
     }
 
@@ -293,8 +293,10 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
             is_left_or_right_click) {
             /* try tiling resize, but continue if it doesn’t work */
             DLOG("tiling resize with fallback\n");
-            if (tiling_resize(con, event, dest, dest == CLICK_DECORATION && !was_focused))
-                goto done;
+            if (tiling_resize(con, event, dest, dest == CLICK_DECORATION && !was_focused)) {
+                allow_replay_pointer(event->time);
+                return;
+            }
         }
 
         if (dest == CLICK_DECORATION && is_right_click) {
@@ -316,13 +318,20 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
             return;
         }
 
-        goto done;
+        allow_replay_pointer(event->time);
+        return;
     }
 
-    /* 8: floating modifier pressed, initiate a drag */
-    if ((mod_pressed || dest == CLICK_DECORATION) && event->detail == XCB_BUTTON_INDEX_1) {
-        tiling_drag(con, event);
-        goto done;
+    /* 8: floating modifier pressed, or click in titlebar, initiate a drag */
+    if (is_left_click &&
+        ((config.tiling_drag == TILING_DRAG_TITLEBAR && dest == CLICK_DECORATION) ||
+         (config.tiling_drag == TILING_DRAG_MODIFIER_OR_TITLEBAR &&
+          (mod_pressed || dest == CLICK_DECORATION))) &&
+        has_drop_targets()) {
+        allow_replay_pointer(event->time);
+        const bool use_threshold = !mod_pressed;
+        tiling_drag(con, event, use_threshold);
+        return;
     }
 
     /* 9: floating modifier pressed, initiate a resize */
@@ -343,10 +352,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
         tiling_resize(con, event, dest, dest == CLICK_DECORATION && !was_focused);
     }
 
-done:
-    conn->allow_events(XCB_ALLOW_REPLAY_POINTER, event->time);
-    conn->flush();
-    tree_render();
+    allow_replay_pointer(event->time);
 }
 
 /*
@@ -411,12 +417,19 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
     }
 
     /* Check if the click was on the decoration of a child */
-    for (auto &child : con->nodes_head | std::views::reverse) {
-        if (!child->deco_rect.rect_contains(event->event_x, event->event_y))
-            continue;
+    if (con->window != nullptr) {
+        if (con->deco_rect.rect_contains(event->event_x, event->event_y)) {
+            route_click(*global.x, con, event, mod_pressed, CLICK_DECORATION);
+            return;
+        }
+    } else {
+        for (auto &child : con->nodes_head | std::views::reverse) {
+            if (!child->deco_rect.rect_contains(event->event_x, event->event_y))
+                continue;
 
-        route_click(*global.x, child, event, mod_pressed, CLICK_DECORATION);
-        return;
+            route_click(*global.x, child, event, mod_pressed, CLICK_DECORATION);
+            return;
+        }
     }
 
     if (event->child != XCB_NONE) {

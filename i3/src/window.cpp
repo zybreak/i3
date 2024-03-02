@@ -11,6 +11,7 @@ module;
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <cassert>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -445,6 +446,96 @@ void i3Window::window_update_hints(xcb_get_property_reply_t *prop, bool *urgency
         *urgency_hint = (xcb_icccm_wm_hints_get_urgency(&hints) != 0);
     }
 }
+
+/* See `man VendorShell' for more info, `XmNmwmDecorations' section:
+ * https://linux.die.net/man/3/vendorshell
+ * The following constants are adapted from <Xm/MwmUtil.h>.
+ */
+#define MWM_HINTS_FLAGS_FIELD 0
+#define MWM_HINTS_DECORATIONS_FIELD 2
+
+#define MWM_HINTS_DECORATIONS (1 << 1)
+#define MWM_DECOR_ALL (1 << 0)
+#define MWM_DECOR_BORDER (1 << 1)
+#define MWM_DECOR_TITLE (1 << 3)
+
+static border_style_t border_style_from_motif_value(uint32_t value) {
+    if (value & MWM_DECOR_ALL) {
+        /* If this value is set, all other flags set are exclusive:
+         * MWM_DECOR_ALL
+         * All decorations except those specified by other flag bits that are set
+         *
+         * We support these cases:
+         * - No exceptions -> BS_NORMAL
+         * - Title and no border (ignored) -> BS_NORMAL
+         * - No title and no border -> BS_NONE
+         * - No title and border -> BS_PIXEL
+         * */
+
+        if (value & MWM_DECOR_TITLE) {
+            if (value & MWM_DECOR_BORDER) {
+                return BS_NONE;
+            }
+
+            return BS_PIXEL;
+        }
+
+        return BS_NORMAL;
+    } else if (value & MWM_DECOR_TITLE) {
+        return BS_NORMAL;
+    } else if (value & MWM_DECOR_BORDER) {
+        return BS_PIXEL;
+    } else {
+        return BS_NONE;
+    }
+}
+
+/*
+ * Updates the MOTIF_WM_HINTS. The container's border style should be set to
+ * `motif_border_style' if border style is not BS_NORMAL.
+ *
+ * i3 only uses this hint when it specifies a window should have no
+ * title bar, or no decorations at all, which is how most window managers
+ * handle it.
+ *
+ * The EWMH spec intended to replace Motif hints with _NET_WM_WINDOW_TYPE, but
+ * it is still in use by popular widget toolkits such as GTK+ and Java AWT.
+ *
+ */
+bool i3Window::window_update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_border_style) {
+    if (prop == nullptr) {
+        return false;
+    }
+    assert(motif_border_style != nullptr);
+
+    if (xcb_get_property_value_length(prop) == 0) {
+        return false;
+    }
+
+    /* The property consists of an array of 5 uint32_t's. The first value is a
+     * bit mask of what properties the hint will specify. We are only interested
+     * in MWM_HINTS_DECORATIONS because it indicates that the third value of the
+     * array tells us which decorations the window should have, each flag being
+     * a particular decoration. Notice that X11 (Xlib) often mentions 32-bit
+     * fields which in reality are implemented using unsigned long variables
+     * (64-bits long on amd64 for example). On the other hand,
+     * xcb_get_property_value() behaves strictly according to documentation,
+     * i.e. returns 32-bit data fields. */
+    uint32_t *motif_hints = (uint32_t *)xcb_get_property_value(prop);
+
+    if (motif_hints[MWM_HINTS_FLAGS_FIELD] & MWM_HINTS_DECORATIONS) {
+        *motif_border_style = border_style_from_motif_value(motif_hints[MWM_HINTS_DECORATIONS_FIELD]);
+        return true;
+    }
+    return false;
+}
+
+#undef MWM_HINTS_FLAGS_FIELD
+#undef MWM_HINTS_DECORATIONS_FIELD
+#undef MWM_HINTS_DECORATIONS
+#undef MWM_DECOR_ALL
+#undef MWM_DECOR_BORDER
+#undef MWM_DECOR_TITLE
 
 /*
  * Updates the WM_CLIENT_MACHINE

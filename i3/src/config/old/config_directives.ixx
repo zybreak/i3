@@ -36,6 +36,12 @@ export namespace cfg {
 
     void for_window(criteria_state *criteria_state, ConfigResultIR &result, const char *command);
 
+    void gaps(criteria_state *criteria_state, ConfigResultIR &result, const char *workspace, const char *type, const long value);
+
+    void smart_borders(criteria_state *criteria_state, ConfigResultIR &result, const char *enable);
+
+    void smart_gaps(criteria_state *criteria_state, ConfigResultIR &result, const char *enable);
+
     void
     floating_minimum_size(criteria_state *criteria_state, ConfigResultIR &result, const long width, const long height);
 
@@ -73,6 +79,8 @@ export namespace cfg {
     void ipc_socket(criteria_state *criteria_state, ConfigResultIR &result, const char *path);
 
     void ipc_kill_timeout(criteria_state *criteria_state, ConfigResultIR &result, const long timeout_ms);
+
+    void tiling_drag(criteria_state *criteria_state, ConfigResultIR &result, const char *value);
 
     void restart_state(criteria_state *criteria_state, ConfigResultIR &result, const char *path);
 
@@ -117,6 +125,16 @@ export namespace cfg {
     void bar_output(criteria_state *criteria_state, ConfigResultIR &result, const char *output);
 
     void bar_verbose(criteria_state *criteria_state, ConfigResultIR &result, const char *verbose);
+
+    void bar_height(criteria_state *criteria_state, ConfigResultIR &result, const long height);
+
+    void bar_padding_one(criteria_state *criteria_state, ConfigResultIR &result, const long all);
+
+    void bar_padding_two(criteria_state *criteria_state, ConfigResultIR &result, const long top_and_bottom, const long right_and_left);
+
+    void bar_padding_three(criteria_state *criteria_state, ConfigResultIR &result, const long top, const long right_and_left, const long bottom);
+
+    void bar_padding_four(criteria_state *criteria_state, ConfigResultIR &result, const long top, const long right, const long bottom, const long left);
 
     void bar_modifier(criteria_state *criteria_state, ConfigResultIR &result, const char *modifiers);
 

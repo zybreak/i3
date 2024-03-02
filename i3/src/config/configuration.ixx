@@ -22,6 +22,7 @@ import :bindings;
 import :con;
 import :font;
 import :internal;
+import rect;
 
 import i3_config_base;
 
@@ -104,11 +105,26 @@ export {
         PDF_IGNORE = 2,
     };
 
-    enum hide_edge_borders_mode_t { HEBM_NONE = adjacent_t::ADJ_NONE,
-                                    HEBM_VERTICAL = adjacent_t::ADJ_LEFT_SCREEN_EDGE | adjacent_t::ADJ_RIGHT_SCREEN_EDGE,
-                                    HEBM_HORIZONTAL = ADJ_UPPER_SCREEN_EDGE | adjacent_t::ADJ_LOWER_SCREEN_EDGE,
-                                    HEBM_BOTH = HEBM_VERTICAL | HEBM_HORIZONTAL,
-                                    HEBM_SMART = (1 << 5) };
+    enum smart_borders_t {
+        SMART_BORDERS_OFF,
+        SMART_BORDERS_ON,
+        SMART_BORDERS_NO_GAPS
+    };
+
+    enum smart_gaps_t {
+        SMART_GAPS_OFF,
+        SMART_GAPS_ON,
+        SMART_GAPS_INVERSE_OUTER
+    };
+
+    enum hide_edge_borders_mode_t : unsigned int {
+        HEBM_NONE = adjacent_t::ADJ_NONE,
+        HEBM_VERTICAL = adjacent_t::ADJ_LEFT_SCREEN_EDGE | adjacent_t::ADJ_RIGHT_SCREEN_EDGE,
+        HEBM_HORIZONTAL = ADJ_UPPER_SCREEN_EDGE | adjacent_t::ADJ_LOWER_SCREEN_EDGE,
+        HEBM_BOTH = HEBM_VERTICAL | HEBM_HORIZONTAL,
+        HEBM_SMART = (1 << 5),
+        HEBM_SMART_NO_GAPS = (1 << 6)
+    };
 
     /**
      * Holds part of the configuration
@@ -238,6 +254,17 @@ export {
 
         /* The number of currently parsed barconfigs */
         int number_barconfigs;
+
+        tiling_drag_t tiling_drag;
+
+        /* Gap sizes */
+        gaps_t gaps;
+
+        /* Should single containers on a workspace receive a border? */
+        smart_borders_t smart_borders;
+
+        /* Disable gaps if there is only one container on the workspace */
+        smart_gaps_t smart_gaps;
     };
 
     enum config_hidden_state_t {
@@ -348,6 +375,11 @@ export {
 
         /** Enable verbose mode? Useful for debugging purposes. */
         bool verbose;
+
+        /** Defines the height of the bar in pixels. */
+        uint32_t bar_height;
+
+        Rect padding;
 
         struct bar_colors {
             char *background;

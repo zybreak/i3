@@ -25,6 +25,7 @@ export import :window;
 export import :match;
 export import :startup;
 export import :draw;
+export import :gaps;
 export import :sync;
 export import :output;
 export import :render;

@@ -822,8 +822,9 @@ CommandResult run_binding(Binding *bind, Con *con) {
         command = fmt::format("[con_id=\"{}\"] {}", (void *)con, bind->command);
     }
 
-    //"exec i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3 exit'"
-    //"exec \"i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3 exit'\""
+    /* The "mode" command might change the current mode, so back it up to
+     * correctly produce an event later. */
+    std::string modename = current_mode->name;
 
     Binding bind_cp = *bind;
     auto commandsApplier = CommandsApplier{};
@@ -839,7 +840,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
         start_nagbar(&global.command_error_nagbar_pid, buttons, prompt, config.font->pattern, bar_type_t::TYPE_ERROR, false);
     }
 
-    ipc_send_binding_event("run", &bind_cp);
+    ipc_send_binding_event("run", &bind_cp, modename.c_str());
 
     return result;
 }

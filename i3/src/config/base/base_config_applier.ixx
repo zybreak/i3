@@ -21,6 +21,12 @@ public:
 
     virtual void exec(const std::string &exectype, bool no_startup_id, const std::string &command) = 0;
 
+    virtual void gaps(const std::string &workspace, const std::string &type, const long value) = 0;
+
+    virtual void smart_borders(const std::string &enable) = 0;
+
+    virtual void smart_gaps(const std::string &enable) = 0;
+
     virtual void for_window(criteria_state *criteria_state, const std::string &command) = 0;
 
     virtual void floating_minimum_size(long width, long height) = 0;
@@ -59,6 +65,8 @@ public:
 
     virtual void ipc_kill_timeout(long timeout_ms) = 0;
 
+    virtual void tiling_drag(const std::string &value) = 0;
+
     virtual void restart_state(const std::string &path) = 0;
 
     virtual void popup_during_fullscreen(const std::string &value) = 0;
@@ -78,4 +86,15 @@ public:
     virtual void enter_mode(bool pango_markup, const std::string &mode) = 0;
 
     virtual void mode_binding(const std::string &bindtype, const std::string &modifiers, const std::string &key, bool release, bool border, bool whole_window, bool exclude_titlebar, const std::string &command) = 0;
+
+    virtual void bar_height(const long height) = 0;
+
+    virtual void bar_padding_one(const long all) = 0;
+
+    virtual void bar_padding_two(const long top_and_bottom, const long right_and_left) = 0;
+
+    virtual void bar_padding_three(const long top, const long right_and_left, const long bottom) = 0;
+
+    virtual void bar_padding_four(const long top, const long right, const long bottom, const long left) = 0;
+
 };

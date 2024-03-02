@@ -308,4 +308,9 @@ export class BaseCommandsApplier {
      */
     virtual void nagbar(criteria_state *criteria_state, CommandResultIR &cmd_output, const char* type, const char* message, const char* font, const char* primary, const char* labels, const char* actions, const char* terminals) = 0;
 
+    /*
+     * Implementation of 'gaps inner|outer|top|right|bottom|left|horizontal|vertical current|all set|plus|minus|toggle <px>'
+     *
+     */
+    virtual void gaps(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *type, const char *scope, const char *mode, const char *value) = 0;
 };

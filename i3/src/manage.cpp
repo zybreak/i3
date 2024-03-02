@@ -249,7 +249,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     bool urgency_hint;
     cwindow->window_update_hints((wm_hints_cookie.get() != nullptr) ? wm_hints_cookie.get().get() : nullptr, &urgency_hint);
     border_style_t motif_border_style = BS_NORMAL;
-    bool has_mwm_hints = update_motif_hints((motif_wm_hints_cookie.get() != nullptr ? motif_wm_hints_cookie.get().get() : nullptr), &motif_border_style);
+    bool has_mwm_hints = cwindow->window_update_motif_hints((motif_wm_hints_cookie.get() != nullptr ? motif_wm_hints_cookie.get().get() : nullptr), &motif_border_style);
     cwindow->window_update_normal_hints((wm_normal_hints_cookie.get() != nullptr) ? wm_normal_hints_cookie.get().get() : nullptr, geom.get().get());
     cwindow->window_update_machine((wm_machine_cookie.get() != nullptr ? wm_machine_cookie.get().get() : nullptr));
     xcb_get_property_reply_t *type_reply = (wm_type_cookie.get() != nullptr ? wm_type_cookie.get().get() : nullptr);
@@ -548,23 +548,19 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         nc->geometry = (Rect){(uint32_t)geom->x, (uint32_t)geom->y, geom->width, geom->height};
     }
 
+    if (want_floating) {
+        DLOG(fmt::sprintf("geometry = %d x %d\n", nc->geometry.width, nc->geometry.height));
+        if (floating_enable(nc, true)) {
+            nc->floating = FLOATING_AUTO_ON;
+        }
+    }
+
     if (has_mwm_hints) {
         DLOG(fmt::sprintf("MOTIF_WM_HINTS specifies decorations (border_style = %d)\n", motif_border_style));
         if (want_floating) {
             con_set_border_style(nc, motif_border_style, config.default_floating_border_width);
         } else {
             con_set_border_style(nc, motif_border_style, config.default_border_width);
-        }
-    }
-
-    if (want_floating) {
-        DLOG(fmt::sprintf("geometry = %d x %d\n", nc->geometry.width, nc->geometry.height));
-        /* automatically set the border to the default value if a motif border
-         * was not specified */
-        bool automatic_border = (motif_border_style == BS_NORMAL);
-
-        if (floating_enable(nc, automatic_border)) {
-            nc->floating = FLOATING_AUTO_ON;
         }
     }
 
@@ -774,72 +770,4 @@ Con *remanage_window(Con *con) {
 
     nc->window->swallowed = true;
     return nc;
-}
-
-/*
- * Updates the MOTIF_WM_HINTS. The container's border style should be set to
- * `motif_border_style' if border style is not BS_NORMAL.
- *
- * i3 only uses this hint when it specifies a window should have no
- * title bar, or no decorations at all, which is how most window managers
- * handle it.
- *
- * The EWMH spec intended to replace Motif hints with _NET_WM_WINDOW_TYPE, but
- * it is still in use by popular widget toolkits such as GTK+ and Java AWT.
- *
- */
-bool update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_border_style) {
-    /* This implementation simply mirrors Gnome's Metacity. Official
-     * documentation of this hint is nowhere to be found.
-     * For more information see:
-     * https://people.gnome.org/~tthurman/docs/metacity/xprops_8h-source.html
-     * https://stackoverflow.com/questions/13787553/detect-if-a-x11-window-has-decorations
-     */
-#define MWM_HINTS_FLAGS_FIELD 0
-#define MWM_HINTS_DECORATIONS_FIELD 2
-
-#define MWM_HINTS_DECORATIONS (1 << 1)
-#define MWM_DECOR_ALL (1 << 0)
-#define MWM_DECOR_BORDER (1 << 1)
-#define MWM_DECOR_TITLE (1 << 3)
-
-    if (motif_border_style != nullptr) {
-        *motif_border_style = BS_NORMAL;
-    }
-
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-        return false;
-    }
-
-    /* The property consists of an array of 5 uint32_t's. The first value is a
-     * bit mask of what properties the hint will specify. We are only interested
-     * in MWM_HINTS_DECORATIONS because it indicates that the third value of the
-     * array tells us which decorations the window should have, each flag being
-     * a particular decoration. Notice that X11 (Xlib) often mentions 32-bit
-     * fields which in reality are implemented using unsigned long variables
-     * (64-bits long on amd64 for example). On the other hand,
-     * xcb_get_property_value() behaves strictly according to documentation,
-     * i.e. returns 32-bit data fields. */
-    auto *motif_hints = (uint32_t *)xcb_get_property_value(prop);
-
-    if (motif_border_style != nullptr &&
-        motif_hints[MWM_HINTS_FLAGS_FIELD] & MWM_HINTS_DECORATIONS) {
-        if (motif_hints[MWM_HINTS_DECORATIONS_FIELD] & MWM_DECOR_ALL ||
-            motif_hints[MWM_HINTS_DECORATIONS_FIELD] & MWM_DECOR_TITLE) {
-            *motif_border_style = BS_NORMAL;
-        } else if (motif_hints[MWM_HINTS_DECORATIONS_FIELD] & MWM_DECOR_BORDER) {
-            *motif_border_style = BS_PIXEL;
-        } else {
-            *motif_border_style = BS_NONE;
-        }
-    }
-
-    return true;
-
-#undef MWM_HINTS_FLAGS_FIELD
-#undef MWM_HINTS_DECORATIONS_FIELD
-#undef MWM_HINTS_DECORATIONS
-#undef MWM_DECOR_ALL
-#undef MWM_DECOR_BORDER
-#undef MWM_DECOR_TITLE
 }

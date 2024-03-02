@@ -60,6 +60,12 @@ public:
     void exec(const std::string &exectype, bool no_startup_id,
                   const std::string &command) override;
 
+    void gaps(const std::string &workspace, const std::string &type, const long value) override;
+
+    void smart_borders(const std::string &enable) override;
+
+    void smart_gaps(const std::string &enable) override;
+
     void for_window(criteria_state *criteria_state, const std::string &command) override;
 
     void floating_minimum_size(long width, long height) override;
@@ -111,4 +117,17 @@ public:
     void no_focus(criteria_state *criteria_state) override;
 
     void ipc_kill_timeout(long timeout_ms) override;
+
+    void tiling_drag(const std::string &value) override;
+
+    void bar_height(const long height) override;
+
+    void bar_padding_one(const long all) override;
+
+    void bar_padding_two(const long top_and_bottom, const long right_and_left) override;
+
+    void bar_padding_three(const long top, const long right_and_left, const long bottom) override;
+
+    void bar_padding_four(const long top, const long right, const long bottom, const long left) override;
+
 };

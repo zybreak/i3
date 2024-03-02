@@ -770,6 +770,8 @@ void CommandsApplier::border(struct criteria_state *criteria_state, CommandResul
             throw std::runtime_error(fmt::sprintf("BUG: called with border_style=%s", border_style_str));
         }
 
+        /* User changed the border */
+        current->max_user_border_style = border_style;
         const int con_border_width = border_width_from_style(border_style, border_width, current);
         con_set_border_style(current, border_style, con_border_width);
     }
@@ -976,10 +978,10 @@ void CommandsApplier::mode(struct criteria_state *criteria_state, CommandResultI
 }
 
 static void user_output_names_add(std::vector<std::string> &list, const char *name) {
-
-    if (strcmp(name, "next") == 0) {
-        /* "next" here works like a wildcard: It "expands" to all available
-             * outputs. */
+    const bool get_non_primary = (strcasecmp("nonprimary", name) == 0);
+    if (get_non_primary || strcmp(name, "next") == 0) {
+        /* "next" (or "nonprimary") here work like a wildcard: It "expands" to
+         * all available (or non-primary) outputs. */
         for (Output *output: global.randr->outputs) {
             list.push_back(std::string(output->output_primary_name()));
         }
@@ -2110,3 +2112,167 @@ void CommandsApplier::nagbar(struct criteria_state *criteria_state, CommandResul
     ysuccess(cmd_output.json_gen, true);
 }
 
+static int *gaps_inner(gaps_t *gaps) {
+    return &(gaps->inner);
+}
+
+static int *gaps_top(gaps_t *gaps) {
+    return &(gaps->top);
+}
+
+static int *gaps_left(gaps_t *gaps) {
+    return &(gaps->left);
+}
+
+static int *gaps_bottom(gaps_t *gaps) {
+    return &(gaps->bottom);
+}
+
+static int *gaps_right(gaps_t *gaps) {
+    return &(gaps->right);
+}
+
+typedef int *(*gap_accessor)(gaps_t *);
+
+static bool gaps_update(gap_accessor get, const char *scope, const char *mode, int pixels) {
+    DLOG(fmt::sprintf("gaps_update(scope=%s, mode=%s, pixels=%d)\n", scope, mode, pixels));
+    WorkspaceCon *workspace = global.focused->con_get_workspace();
+
+    const int global_gap_size = *get(&(config.gaps));
+    int current_value = global_gap_size;
+    if (strcmp(scope, "current") == 0) {
+        current_value += *get(&(workspace->gaps));
+    }
+    DLOG(fmt::sprintf("global_gap_size=%d, current_value=%d\n", global_gap_size, current_value));
+
+    bool reset = false;
+    if (strcmp(mode, "plus") == 0)
+        current_value += pixels;
+    else if (strcmp(mode, "minus") == 0)
+        current_value -= pixels;
+    else if (strcmp(mode, "set") == 0) {
+        current_value = pixels;
+        reset = true;
+    } else if (strcmp(mode, "toggle") == 0) {
+        current_value = !current_value * pixels;
+        reset = true;
+    } else {
+        ELOG(fmt::sprintf("Invalid mode %s when changing gaps", mode));
+        return false;
+    }
+
+    /* See https://github.com/Airblader/i3/issues/262 */
+    int min_value = 0;
+    const bool is_outer = get(&(config.gaps)) != gaps_inner(&(config.gaps));
+    if (is_outer) {
+        /* Outer gaps can compensate inner gaps. */
+        if (strcmp(scope, "all") == 0) {
+            min_value = -config.gaps.inner;
+        } else {
+            min_value = -config.gaps.inner - workspace->gaps.inner;
+        }
+    }
+
+    if (current_value < min_value) {
+        current_value = min_value;
+    }
+
+    if (strcmp(scope, "all") == 0) {
+        for (auto &output : global.croot->nodes_head) {
+            for (auto &ws : output->output_get_content()->nodes_head) {
+                WorkspaceCon *cur_ws = dynamic_cast<WorkspaceCon*>(ws);
+                int *gaps_value = get(&(cur_ws->gaps));
+                DLOG(fmt::sprintf("current gaps_value = %d\n", *gaps_value));
+
+                if (reset) {
+                    *gaps_value = 0;
+                } else {
+                    int max_compensate = 0;
+                    if (is_outer) {
+                        max_compensate = config.gaps.inner;
+                    }
+                    if (*gaps_value + current_value + max_compensate < 0) {
+                        /* Enforce new per-workspace gap size minimum value (in case
+                           current_value is smaller than before): the workspace can at most
+                           have a negative gap size of -current_value - max_compensate. */
+                        *gaps_value = -current_value - max_compensate;
+                    }
+                }
+                DLOG(fmt::sprintf("gaps_value after fix = %d\n", *gaps_value));
+            }
+        }
+
+        *get(&(config.gaps)) = current_value;
+        DLOG(fmt::sprintf("global gaps value after fix = %d\n", *get(&(config.gaps))));
+    } else {
+        int *gaps_value = get(&(workspace->gaps));
+        *gaps_value = current_value - global_gap_size;
+    }
+
+    return true;
+}
+
+/**
+ * Implementation of 'gaps inner|outer|top|right|bottom|left|horizontal|vertical current|all set|plus|minus|toggle <px>'
+ *
+ */
+void CommandsApplier::gaps(struct criteria_state *criteria_state, CommandResultIR &cmd_output, const char *type, const char *scope, const char *mode, const char *value) {
+    int pixels = logical_px(global.x->root_screen, atoi(value));
+
+    if (!strcmp(type, "inner")) {
+        if (!gaps_update(gaps_inner, scope, mode, pixels)) {
+            goto error;
+        }
+        /* Update all workspaces with a no-op change (plus 0) so that the
+         * minimum value is re-calculated and applied as a side effect. */
+        if (!gaps_update(gaps_top, "all", "plus", 0) ||
+            !gaps_update(gaps_bottom, "all", "plus", 0) ||
+            !gaps_update(gaps_right, "all", "plus", 0) ||
+            !gaps_update(gaps_left, "all", "plus", 0)) {
+            goto error;
+        }
+    } else if (!strcmp(type, "outer")) {
+        if (!gaps_update(gaps_top, scope, mode, pixels) ||
+            !gaps_update(gaps_bottom, scope, mode, pixels) ||
+            !gaps_update(gaps_right, scope, mode, pixels) ||
+            !gaps_update(gaps_left, scope, mode, pixels)) {
+            goto error;
+        }
+    } else if (!strcmp(type, "vertical")) {
+        if (!gaps_update(gaps_top, scope, mode, pixels) ||
+            !gaps_update(gaps_bottom, scope, mode, pixels)) {
+            goto error;
+        }
+    } else if (!strcmp(type, "horizontal")) {
+        if (!gaps_update(gaps_right, scope, mode, pixels) ||
+            !gaps_update(gaps_left, scope, mode, pixels)) {
+            goto error;
+        }
+    } else if (!strcmp(type, "top")) {
+        if (!gaps_update(gaps_top, scope, mode, pixels)) {
+            goto error;
+        }
+    } else if (!strcmp(type, "bottom")) {
+        if (!gaps_update(gaps_bottom, scope, mode, pixels)) {
+            goto error;
+        }
+    } else if (!strcmp(type, "right")) {
+        if (!gaps_update(gaps_right, scope, mode, pixels)) {
+            goto error;
+        }
+    } else if (!strcmp(type, "left")) {
+        if (!gaps_update(gaps_left, scope, mode, pixels)) {
+            goto error;
+        }
+    } else {
+        ELOG(fmt::sprintf("Invalid type %s when changing gaps", type));
+        goto error;
+    }
+
+    cmd_output.needs_tree_render = true;
+    // XXX: default reply for now, make this a better reply
+    ysuccess(cmd_output.json_gen, true);
+
+error:
+    ysuccess(cmd_output.json_gen, false);
+}

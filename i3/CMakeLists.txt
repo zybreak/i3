@@ -65,6 +65,7 @@ list(APPEND i3_src
         src/ewmh.cpp
         src/floating.cpp
         src/font.cpp
+        src/gaps.cpp
         src/handlers/click.cpp
         src/handlers/client_message.cpp
         src/handlers/handlers.cpp
@@ -127,6 +128,7 @@ target_sources(i3_lib PUBLIC
         src/commands/commands.ixx
         src/commands/commands_applier.ixx
         src/con/con.ixx
+        src/gaps.ixx
         src/util.ixx
         src/x.ixx
         src/workspace.ixx

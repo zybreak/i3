@@ -13,6 +13,7 @@ struct criteria_state;
 #include <cassert>
 #include <cerrno>
 #include <climits>
+#include <utility>
 
 #include <cstdlib>
 #include <cstring>
@@ -111,6 +112,103 @@ void ConfigApplier::exec(const std::string &exectype, bool no_startup_id,
     }
 }
 
+static void apply_gaps(gaps_t *gaps, gaps_mask_t mask, int value) {
+    if (gaps == NULL) {
+        return;
+    }
+    if (mask & GAPS_INNER) {
+        gaps->inner = value;
+    }
+    if (mask & GAPS_TOP) {
+        gaps->top = value;
+    }
+    if (mask & GAPS_RIGHT) {
+        gaps->right = value;
+    }
+    if (mask & GAPS_BOTTOM) {
+        gaps->bottom = value;
+    }
+    if (mask & GAPS_LEFT) {
+        gaps->left = value;
+    }
+}
+
+static void create_gaps_assignment(const std::string &workspace, const gaps_mask_t mask, const int pixels) {
+    if (mask == 0) {
+        return;
+    }
+
+    DLOG(fmt::sprintf("Setting gaps for workspace %s", workspace));
+
+    Workspace_Assignment *assignment = nullptr;
+
+    bool found = false;
+    for (auto &a : global.ws_assignments) {
+        if (strcasecmp(a->name.c_str(), workspace.c_str()) == 0) {
+            found = true;
+            assignment = a.get();
+            break;
+        }
+    }
+
+    /* Assignment does not yet exist, let's create it. */
+    if (!found) {
+        assignment = new Workspace_Assignment();
+        assignment->name = workspace;
+        global.ws_assignments.emplace_back(assignment);
+    }
+
+    assignment->gaps_mask = static_cast<gaps_mask_t>(std::to_underlying(assignment->gaps_mask) | std::to_underlying(mask));
+    apply_gaps(&assignment->gaps, mask, pixels);
+}
+
+static gaps_mask_t gaps_scope_to_mask(const std::string &scope) {
+    if (!strcmp(scope.c_str(), "inner")) {
+        return GAPS_INNER;
+    } else if (!strcmp(scope.c_str(), "outer")) {
+        return GAPS_OUTER;
+    } else if (!strcmp(scope.c_str(), "vertical")) {
+        return GAPS_VERTICAL;
+    } else if (!strcmp(scope.c_str(), "horizontal")) {
+        return GAPS_HORIZONTAL;
+    } else if (!strcmp(scope.c_str(), "top")) {
+        return GAPS_TOP;
+    } else if (!strcmp(scope.c_str(), "right")) {
+        return GAPS_RIGHT;
+    } else if (!strcmp(scope.c_str(), "bottom")) {
+        return GAPS_BOTTOM;
+    } else if (!strcmp(scope.c_str(), "left")) {
+        return GAPS_LEFT;
+    }
+    ELOG(fmt::sprintf("Invalid command, cannot process scope %s", scope));
+    return static_cast<gaps_mask_t>(0);
+}
+
+void ConfigApplier::gaps(const std::string &workspace, const std::string &scope, const long value) {
+    int pixels = logical_px(global.x->root_screen, value);
+    gaps_mask_t mask = gaps_scope_to_mask(scope);
+
+    if (workspace.empty()) {
+        apply_gaps(&config.gaps, mask, pixels);
+    } else {
+        create_gaps_assignment(workspace, mask, pixels);
+    }
+}
+
+void ConfigApplier::smart_borders(const std::string &enable) {
+    if (!strcmp(enable.c_str(), "no_gaps"))
+        config.smart_borders = SMART_BORDERS_NO_GAPS;
+    else
+        config.smart_borders = boolstr(enable.c_str()) ? SMART_BORDERS_ON : SMART_BORDERS_OFF;
+}
+
+void ConfigApplier::smart_gaps(const std::string &enable) {
+    if (!strcmp(enable.c_str(), "inverse_outer"))
+        config.smart_gaps = SMART_GAPS_INVERSE_OUTER;
+    else
+        config.smart_gaps = boolstr(enable.c_str()) ? SMART_GAPS_ON : SMART_GAPS_OFF;
+}
+
 void ConfigApplier::for_window(criteria_state *criteria_state, const std::string &command) {
     if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this for_window statement\n");
@@ -187,15 +285,17 @@ void ConfigApplier::default_border(const std::string &windowtype, const std::str
 }
 
 void ConfigApplier::hide_edge_borders(const std::string &borders) {
-    if (borders == "smart"s)
+    if (strcmp(borders.c_str(), "smart_no_gaps") == 0)
+        config.hide_edge_borders = HEBM_SMART_NO_GAPS;
+    else if (borders.c_str() == "smart"s)
         config.hide_edge_borders = HEBM_SMART;
-    else if (borders == "vertical"s)
+    else if (borders.c_str() == "vertical"s)
         config.hide_edge_borders = HEBM_VERTICAL;
-    else if (borders == "horizontal"s)
+    else if (borders.c_str() == "horizontal"s)
         config.hide_edge_borders = HEBM_HORIZONTAL;
-    else if (borders == "both"s)
+    else if (borders.c_str() == "both"s)
         config.hide_edge_borders = HEBM_BOTH;
-    else if (borders == "none"s)
+    else if (borders.c_str() == "none"s)
         config.hide_edge_borders = HEBM_NONE;
     else if (boolstr(borders.c_str()))
         config.hide_edge_borders = HEBM_VERTICAL;
@@ -279,8 +379,10 @@ void ConfigApplier::title_align(const std::string &alignment) {
 void ConfigApplier::workspace(const std::string &workspace, const std::string &output) {
     for (const auto &assignment : global.ws_assignments) {
         if (strcasecmp(assignment->name.c_str(), workspace.c_str()) == 0) {
-            ELOG(fmt::sprintf("You have a duplicate workspace assignment for workspace \"%s\"\n", workspace));
-            return;
+            if (assignment->output.empty()) {
+                ELOG(fmt::sprintf("You have a duplicate workspace assignment for workspace \"%s\"\n", workspace));
+                return;
+            }
         }
     }
 
@@ -409,4 +511,34 @@ void ConfigApplier::no_focus(criteria_state *criteria_state) {
 
 void ConfigApplier::ipc_kill_timeout(const long timeout_ms) {
     ipc_set_kill_timeout(timeout_ms / 1000.0);
+}
+
+
+void ConfigApplier::tiling_drag(const std::string &value) {
+    if (strcmp(value.c_str(), "modifier") == 0) {
+        config.tiling_drag = TILING_DRAG_MODIFIER;
+    } else if (strcmp(value.c_str(), "titlebar") == 0) {
+        config.tiling_drag = TILING_DRAG_TITLEBAR;
+    } else if (strcmp(value.c_str(), "modifier,titlebar") == 0 ||
+               strcmp(value.c_str(), "titlebar,modifier") == 0) {
+        /* Switch the above to strtok() or similar if we ever grow more options */
+        config.tiling_drag = TILING_DRAG_MODIFIER_OR_TITLEBAR;
+    } else {
+        config.tiling_drag = TILING_DRAG_OFF;
+    }
+}
+
+void ConfigApplier::bar_height(const long height) {
+}
+
+void ConfigApplier::bar_padding_one(const long all) {
+}
+
+void ConfigApplier::bar_padding_two(const long top_and_bottom, const long right_and_left) {
+}
+
+void ConfigApplier::bar_padding_three(const long top, const long right_and_left, const long bottom) {
+}
+
+void ConfigApplier::bar_padding_four(const long top, const long right, const long bottom, const long left) {
 }

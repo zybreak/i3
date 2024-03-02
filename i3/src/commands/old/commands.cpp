@@ -396,5 +396,11 @@ namespace cmd {
     void nagbar(criteria_state *criteria_state, CommandResultIR &cmd_output, const char* type, const char* message, const char* font, const char* primary, const char* labels, const char* actions, const char* terminals) {
         cmd_output.applier->nagbar(criteria_state, cmd_output, type, message, font, primary, labels, actions, terminals);
     }
-
+    /**
+     * Implementation of 'gaps inner|outer|top|right|bottom|left|horizontal|vertical current|all set|plus|minus|toggle <px>'
+     *
+     */
+    void gaps(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *type, const char *scope, const char *mode, const char *value) {
+        cmd_output.applier->gaps(criteria_state, cmd_output, type, scope, mode, value);
+    }
 }

@@ -340,33 +340,31 @@ void x_window_kill(xcb_connection_t *c, xcb_window_t window, kill_window_t kill_
     xcb_flush(c);
 }
 
-static void x_draw_title_border(Con *con, struct deco_render_params *p) {
-    assert(con->parent != nullptr);
-
+static void x_draw_title_border(Con *con, struct deco_render_params *p, surface_t *dest_surface) {
     Rect *dr = &(con->deco_rect);
 
     /* Left */
-    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+    draw_util_rectangle(dest_surface, p->color->border,
                         dr->x, dr->y, 1, dr->height);
 
     /* Right */
-    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+    draw_util_rectangle(dest_surface, p->color->border,
                         dr->x + dr->width - 1, dr->y, 1, dr->height);
 
     /* Top */
-    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+    draw_util_rectangle(dest_surface, p->color->border,
                         dr->x, dr->y, dr->width, 1);
 
     /* Bottom */
-    draw_util_rectangle(&(con->parent->frame_buffer), p->color->border,
+    draw_util_rectangle(dest_surface, p->color->border,
                         dr->x, dr->y + dr->height - 1, dr->width, 1);
 }
 
-static void x_draw_decoration_after_title(Con *con, struct deco_render_params *p) {
+static void x_draw_decoration_after_title(Con *con, struct deco_render_params *p, surface_t *dest_surface) {
     assert(con->parent != nullptr);
 
     /* Redraw the border. */
-    x_draw_title_border(con, p);
+    x_draw_title_border(con, p, dest_surface);
 }
 
 /*
@@ -380,7 +378,7 @@ static size_t x_get_border_rectangles(Con *con, xcb_rectangle_t rectangles[4]) {
     int border_style = con_border_style(con);
 
     if (border_style != BS_NONE && con->con_is_leaf()) {
-        auto borders_to_hide = (adjacent_t)(con_adjacent_borders(con) & config.hide_edge_borders);
+        auto borders_to_hide = static_cast<adjacent_t>(std::to_underlying(con_adjacent_borders(con)) & std::to_underlying(config.hide_edge_borders));
         Rect br = con_border_style_rect(con);
 
         if (!(borders_to_hide & ADJ_LEFT_SCREEN_EDGE)) {
@@ -565,9 +563,18 @@ void x_draw_decoration(Con *con) {
         }
     }
 
+    surface_t *dest_surface = &(parent->frame_buffer);
+    if (con_draw_decoration_into_frame(con)) {
+        DLOG(fmt::sprintf("using con->frame_buffer (for con->name=%s) as dest_surface\n", con->name));
+        dest_surface = &(con->frame_buffer);
+    } else {
+        DLOG(fmt::sprintf("sticking to parent->frame_buffer = %p\n", fmt::ptr(dest_surface)));
+    }
+    DLOG(fmt::sprintf("dest_surface %p is %d x %d (id=0x%08x)\n", fmt::ptr(dest_surface), dest_surface->width, dest_surface->height, dest_surface->id));
+
     /* If the parent hasn't been set up yet, skip the decoration rendering
      * for now. */
-    if (parent->frame_buffer.id == XCB_NONE) {
+    if (dest_surface->id == XCB_NONE) {
         draw_util_copy_surface(&(con->frame_buffer), &(con->frame), 0, 0, 0, 0, con->rect.width, con->rect.height);
         return;
     }
@@ -576,7 +583,6 @@ void x_draw_decoration(Con *con) {
      * garbage left on there. This is important to avoid tearing when using
      * transparency. */
     if (con == con::first(con->parent->nodes_head)) {
-        draw_util_clear_surface(&(con->parent->frame_buffer), ((color_t){.red = 0.0, .green = 0.0, .blue = 0.0, .colorpixel = 0}));
         delete con->parent->deco_render_params;
         con->parent->deco_render_params = nullptr;
     }
@@ -589,11 +595,13 @@ void x_draw_decoration(Con *con) {
     }
 
     /* 4: paint the bar */
-    draw_util_rectangle(&(parent->frame_buffer), p->color->background,
+    DLOG(fmt::sprintf("con->deco_rect = (x=%d, y=%d, w=%d, h=%d) for con->name=%s\n",
+         con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height, con->name));
+    draw_util_rectangle(dest_surface, p->color->background,
                         con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height);
 
     /* 5: draw title border */
-    x_draw_title_border(con, p);
+    x_draw_title_border(con, p, dest_surface);
 
     /* 6: draw the icon and title */
     int text_offset_y = (con->deco_rect.height - config.font->height) / 2;
@@ -662,7 +670,7 @@ void x_draw_decoration(Con *con) {
             break;
     }
 
-    draw_util_text(**global.x, config.font, title, &(parent->frame_buffer),
+    draw_util_text(**global.x, config.font, title, dest_surface,
                    p->color->text, p->color->background,
                    con->deco_rect.x + title_offset_x,
                    con->deco_rect.y + text_offset_y,
@@ -670,14 +678,14 @@ void x_draw_decoration(Con *con) {
     if (has_icon) {
         draw_util_image(
             win->icon,
-            &(parent->frame_buffer),
+            dest_surface,
             con->deco_rect.x + icon_offset_x,
             con->deco_rect.y + logical_px(global.x->root_screen, 1),
             icon_size,
             icon_size);
     }
 
-    x_draw_decoration_after_title(con, p);
+    x_draw_decoration_after_title(con, p, dest_surface);
     draw_util_copy_surface(&(con->frame_buffer), &(con->frame), 0, 0, 0, 0, con->rect.width, con->rect.height);
 }
 
@@ -871,7 +879,7 @@ void x_push_node(Con *con) {
         state->name.clear();
     }
 
-    if (con->window == nullptr) {
+    if (con->window == nullptr && (con->layout == L_STACKED || con->layout == L_TABBED)) {
         /* Calculate the height of all window decorations which will be drawn on to
          * this frame. */
         uint32_t max_y = 0, max_height = 0;
@@ -886,6 +894,9 @@ void x_push_node(Con *con) {
         if (rect.height == 0) {
             con->mapped = false;
         }
+    } else if (con->window == nullptr) {
+        /* not a stacked or tabbed split container */
+        con->mapped = false;
     }
 
     bool need_reshape = false;
@@ -930,10 +941,11 @@ void x_push_node(Con *con) {
 
     /* The pixmap of a borderless leaf container will not be used except
      * for the titlebar in a stack or tabs (issue #1013). */
-    bool is_pixmap_needed = (con->border_style != BS_NONE ||
-                             !con->con_is_leaf() ||
-                             con->parent->layout == L_STACKED ||
-                             con->parent->layout == L_TABBED);
+    bool is_pixmap_needed = ((con->con_is_leaf() && con->border_style != BS_NONE) ||
+                             con->layout == L_STACKED ||
+                             con->layout == L_TABBED);
+    DLOG(fmt::sprintf("Con %p (layout %d), is_pixmap_needed = %s, rect.height = %d\n",
+         fmt::ptr(con), con->layout, is_pixmap_needed ? "yes" : "no", con->rect.height));
 
     /* The root con and output cons will never require a pixmap. In particular for the
      * __i3 output, this will likely not work anyway because it might be ridiculously
@@ -982,6 +994,7 @@ void x_push_node(Con *con) {
             int width = std::max((int32_t)rect.width, 1);
             int height = std::max((int32_t)rect.height, 1);
 
+            DLOG(fmt::sprintf("creating %d x %d pixmap for con %p (con->frame_buffer.id = (pixmap_t)0x%08x) (con->frame.id (drawable_t)0x%08x)\n", width, height, fmt::ptr(con), con->frame_buffer.id, con->frame.id));
             xcb_create_pixmap(**global.x, win_depth, con->frame_buffer.id, con->frame.id, width, height);
             draw_util_surface_init(**global.x, &(con->frame_buffer), con->frame_buffer.id,
                                    get_visualtype_by_id(get_visualid_by_depth(win_depth)), width, height);

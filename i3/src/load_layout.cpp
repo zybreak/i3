@@ -32,9 +32,11 @@ struct tree_append_ctx {
     std::string last_key{};
     Con *json_node{nullptr};
     Con *to_focus{nullptr};
+    bool parsing_gaps{false};
     int incomplete{0};
     bool parsing_swallows{false};
     bool parsing_rect{false};
+    bool parsing_actual_deco_rect{false};
     bool parsing_deco_rect{false};
     bool parsing_window_rect{false};
     bool parsing_geometry{false};
@@ -53,7 +55,12 @@ static void json_start_map(tree_append_ctx &ctx) {
         ctx.json_node->swallow.push_back(std::move(match));
         ctx.swallow_is_empty = true;
     } else {
-        if (!ctx.parsing_rect && !ctx.parsing_deco_rect && !ctx.parsing_window_rect && !ctx.parsing_geometry) {
+        if (!ctx.parsing_rect &&
+            !ctx.parsing_actual_deco_rect &&
+            !ctx.parsing_deco_rect &&
+            !ctx.parsing_window_rect &&
+            !ctx.parsing_geometry &&
+            !ctx.parsing_gaps) {
             if (ctx.last_key == "floating_nodes") {
                 DLOG("New floating_node\n");
                 Con *ws = ctx.json_node->con_get_workspace();
@@ -76,7 +83,13 @@ static void json_start_map(tree_append_ctx &ctx) {
 
 static void json_end_map(tree_append_ctx &ctx) {
     LOG("end of map\n");
-    if (!ctx.parsing_swallows && !ctx.parsing_rect && !ctx.parsing_deco_rect && !ctx.parsing_window_rect && !ctx.parsing_geometry) {
+    if (!ctx.parsing_swallows &&
+        !ctx.parsing_rect &&
+        !ctx.parsing_actual_deco_rect &&
+        !ctx.parsing_deco_rect &&
+        !ctx.parsing_window_rect &&
+        !ctx.parsing_geometry &&
+        !ctx.parsing_gaps) {
         /* Set a few default values to simplify manually crafted layout files. */
         if (ctx.json_node->layout == L_DEFAULT) {
             DLOG("Setting layout = L_SPLITH\n");
@@ -163,7 +176,9 @@ static void json_end_map(tree_append_ctx &ctx) {
         return;
     }
 
+    ctx.parsing_gaps = false;
     ctx.parsing_rect = false;
+    ctx.parsing_actual_deco_rect = false;
     ctx.parsing_deco_rect = false;
     ctx.parsing_window_rect = false;
     ctx.parsing_geometry = false;
@@ -203,8 +218,14 @@ static void json_key(tree_append_ctx &ctx, const std::string &key) {
     if (ctx.last_key == "swallows")
         ctx.parsing_swallows = true;
 
+    if (strcasecmp(ctx.last_key.c_str(), "gaps") == 0)
+        ctx.parsing_gaps = true;
+
     if (ctx.last_key == "rect")
         ctx.parsing_rect = true;
+
+    if (strcasecmp(ctx.last_key.c_str(), "actual_deco_rect") == 0)
+        ctx.parsing_actual_deco_rect = true;
 
     if (ctx.last_key == "deco_rect")
         ctx.parsing_deco_rect = true;
@@ -433,6 +454,20 @@ static void json_int(tree_append_ctx &ctx, long long val) {
             current_swallow->insert_where = (match_insert_t)val;
             ctx.swallow_is_empty = false;
         }
+    }
+    if (ctx.parsing_gaps) {
+#if 0
+        if (strcasecmp(ctx.last_key.c_str(), "inner") == 0)
+            ctx.json_node->gaps.inner = val;
+        else if (strcasecmp(ctx.last_key.c_str(), "top") == 0)
+            ctx.json_node->gaps.top = val;
+        else if (strcasecmp(ctx.last_key.c_str(), "right") == 0)
+            ctx.json_node->gaps.right = val;
+        else if (strcasecmp(ctx.last_key.c_str(), "bottom") == 0)
+            ctx.json_node->gaps.bottom = val;
+        else if (strcasecmp(ctx.last_key.c_str(), "left") == 0)
+            ctx.json_node->gaps.left = val;
+#endif
     }
 }
 

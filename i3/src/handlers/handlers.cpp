@@ -217,17 +217,29 @@ void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
         return;
 
     /* see over which rect the user is */
-    for (auto &current : con->nodes_head | std::views::reverse) {
-        if (!current->deco_rect.rect_contains(event->event_x, event->event_y))
-            continue;
+    if (con->window != NULL) {
+        if (con->deco_rect.rect_contains(event->event_x, event->event_y)) {
+            /* We found the rect, let’s see if this window is focused */
+            if (con::first(con->parent->focus_head) == con)
+                return;
 
-        /* We found the rect, let’s see if this window is focused */
-        if (con::first(con->focus_head) == current)
+            con->con_focus();
+            x_push_changes(global.croot);
             return;
+        }
+    } else {
+        for (auto &current : con->nodes_head | std::views::reverse) {
+            if (!current->deco_rect.rect_contains(event->event_x, event->event_y))
+                continue;
 
-        current->con_focus();
-        x_push_changes(global.croot);
-        return;
+            /* We found the rect, let’s see if this window is focused */
+            if (con::first(con->focus_head) == current)
+                return;
+
+            current->con_focus();
+            x_push_changes(global.croot);
+            return;
+        }
     }
 }
 
@@ -314,15 +326,9 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
     Con *fullscreen = workspace ? workspace->con_get_fullscreen_covering_ws() : nullptr;
 
     if (fullscreen != con && con->con_is_floating() && con->con_is_leaf()) {
-        /* find the height for the decorations */
-        int deco_height = con->deco_rect.height;
         /* we actually need to apply the size/position changes to the *parent*
          * container */
         Rect bsr = con_border_style_rect(con);
-        if (con->border_style == BS_NORMAL) {
-            bsr.y += deco_height;
-            bsr.height -= deco_height;
-        }
         Con *floatingcon = con->parent;
         Rect newrect = floatingcon->rect;
 
@@ -877,7 +883,7 @@ static bool handle_machine_change(Con *con, xcb_get_property_reply_t *prop) {
  */
 static bool handle_motif_hints_change(Con *con, xcb_get_property_reply_t *prop) {
     border_style_t motif_border_style;
-    bool has_mwm_hints = update_motif_hints(prop, &motif_border_style);
+    bool has_mwm_hints = con->window->window_update_motif_hints(prop, &motif_border_style);
 
     if (has_mwm_hints && motif_border_style != con->border_style) {
         DLOG(fmt::sprintf("Update border style of con %p to %d\n", (void *)con, motif_border_style));

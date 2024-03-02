@@ -139,6 +139,18 @@ namespace cfg {
         result.ctx.parser->applier.for_window(criteria_state, command);
     }
 
+    void gaps(criteria_state *criteria_state, ConfigResultIR &result, const char *workspace, const char *type, const long value) {
+        result.ctx.parser->applier.gaps(workspace, type, value);
+    }
+
+    void smart_borders(criteria_state *criteria_state, ConfigResultIR &result, const char *enable) {
+        result.ctx.parser->applier.smart_borders(enable);
+    }
+
+    void smart_gaps(criteria_state *criteria_state, ConfigResultIR &result, const char *enable) {
+        result.ctx.parser->applier.smart_gaps(enable);
+    }
+
     void floating_minimum_size(criteria_state *criteria_state, ConfigResultIR &result, const long width, const long height) {
         result.ctx.parser->applier.floating_minimum_size(width, height);
     }
@@ -239,6 +251,30 @@ namespace cfg {
 
     void ipc_kill_timeout(criteria_state *criteria_state, ConfigResultIR &result, const long timeout_ms) {
         result.ctx.parser->applier.ipc_kill_timeout(timeout_ms);
+    }
+
+    void tiling_drag(criteria_state *criteria_state, ConfigResultIR &result, const char *value) {
+        result.ctx.parser->applier.tiling_drag(value);
+    }
+
+    void bar_height(criteria_state *criteria_state, ConfigResultIR &result, const long height) {
+        result.ctx.parser->applier.bar_height(height);
+    }
+
+    void bar_padding_one(criteria_state *criteria_state, ConfigResultIR &result, const long all) {
+        result.ctx.parser->applier.bar_padding_one(all);
+    }
+
+    void bar_padding_two(criteria_state *criteria_state, ConfigResultIR &result, const long top_and_bottom, const long right_and_left) {
+        result.ctx.parser->applier.bar_padding_two(top_and_bottom, right_and_left);
+    }
+
+    void bar_padding_three(criteria_state *criteria_state, ConfigResultIR &result, const long top, const long right_and_left, const long bottom) {
+        result.ctx.parser->applier.bar_padding_three(top, right_and_left, bottom);
+    }
+
+    void bar_padding_four(criteria_state *criteria_state, ConfigResultIR &result, const long top, const long right, const long bottom, const long left) {
+        result.ctx.parser->applier.bar_padding_four(top, right, bottom, left);
     }
 
     void bar_font(criteria_state *criteria_state, ConfigResultIR &result, const char *font) {

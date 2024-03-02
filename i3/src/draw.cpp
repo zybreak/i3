@@ -24,6 +24,14 @@ import log;
 /* Forward declarations */
 static void draw_util_set_source_color(surface_t *surface, color_t color);
 
+static bool surface_initialized(surface_t *surface) {
+    if (surface->id == XCB_NONE) {
+        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", fmt::ptr(surface)));
+        return false;
+    }
+    return true;
+}
+
 /* We need to flush cairo surfaces twice to avoid an assertion bug. See #1989
  * and https://bugs.freedesktop.org/show_bug.cgi?id=92455. */
 static void CAIRO_SURFACE_FLUSH(_cairo_surface *surface) {
@@ -52,17 +60,27 @@ static uint8_t RGB_8_TO_16(uint8_t i) {
  *
  */
 static uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *hex) {
-    char strgroups[3][3] = {
+    char alpha[2];
+    if (strlen(hex) == strlen("#rrggbbaa")) {
+        alpha[0] = hex[7];
+        alpha[1] = hex[8];
+    } else {
+        alpha[0] = alpha[1] = 'F';
+    }
+
+    char strgroups[4][3] = {
         {hex[1], hex[2], '\0'},
         {hex[3], hex[4], '\0'},
-        {hex[5], hex[6], '\0'}};
+        {hex[5], hex[6], '\0'},
+        {alpha[0], alpha[1], '\0'}};
     uint8_t r = strtol(strgroups[0], nullptr, 16);
     uint8_t g = strtol(strgroups[1], nullptr, 16);
     uint8_t b = strtol(strgroups[2], nullptr, 16);
+    uint8_t a = strtol(strgroups[3], NULL, 16);
 
     /* Shortcut: if our screen is true color, no need to do a roundtrip to X11 */
     if (root_screen == nullptr || root_screen->root_depth == 24 || root_screen->root_depth == 32) {
-        return (0xFFUL << 24) | (r << 16 | g << 8 | b);
+        return (a << 24) | (r << 16 | g << 8 | b);
     }
 
     /* Lookup this colorpixel in the cache */
@@ -206,8 +224,7 @@ color_t draw_util_hex_to_color(xcb_connection_t *conn, xcb_screen_t *root_screen
  *
  */
 static void draw_util_set_source_color(surface_t *surface, color_t color) {
-    if ((surface)->id == 0L) {
-        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
+    if (!surface_initialized(surface)) {
         return;
     }
 
@@ -221,8 +238,7 @@ static void draw_util_set_source_color(surface_t *surface, color_t color) {
  *
  */
 void draw_util_text(xcb_connection_t *conn, i3Font *font, std::string &text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width) {
-    if ((surface)->id == 0L) {
-        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
+    if (!surface_initialized(surface)) {
         return;
     }
 
@@ -236,6 +252,32 @@ void draw_util_text(xcb_connection_t *conn, i3Font *font, std::string &text, sur
     cairo_surface_mark_dirty(surface->surface);
 }
 
+/**
+ * Draw the given image using libi3.
+ * This function is a convenience wrapper and takes care of flushing the
+ * surface as well as restoring the cairo state.
+ *
+ */
+void draw_util_image(cairo_surface_t *image, surface_t *surface, int x, int y, int width, int height) {
+    if (!surface_initialized(surface)) {
+        return;
+    }
+
+    cairo_save(surface->cr);
+
+    cairo_translate(surface->cr, x, y);
+
+    const int src_width = cairo_image_surface_get_width(image);
+    const int src_height = cairo_image_surface_get_height(image);
+    double scale = std::min((double)width / src_width, (double)height / src_height);
+    cairo_scale(surface->cr, scale, scale);
+
+    cairo_set_source_surface(surface->cr, image, 0, 0);
+    cairo_paint(surface->cr);
+
+    cairo_restore(surface->cr);
+}
+
 /*
  * Draws a filled rectangle.
  * This function is a convenience wrapper and takes care of flushing the
@@ -243,8 +285,7 @@ void draw_util_text(xcb_connection_t *conn, i3Font *font, std::string &text, sur
  *
  */
 void draw_util_rectangle(surface_t *surface, color_t color, double x, double y, double w, double h) {
-    if ((surface)->id == 0L) {
-        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
+    if (!surface_initialized(surface)) {
         return;
     }
 
@@ -271,8 +312,7 @@ void draw_util_rectangle(surface_t *surface, color_t color, double x, double y, 
  *
  */
 void draw_util_clear_surface(surface_t *surface, color_t color) {
-    if ((surface)->id == 0L) {
-        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
+    if (!surface_initialized(surface)) {
         return;
     }
 
@@ -299,12 +339,8 @@ void draw_util_clear_surface(surface_t *surface, color_t color) {
  */
 void draw_util_copy_surface(surface_t *src, surface_t *dest, double src_x, double src_y,
                             double dest_x, double dest_y, double width, double height) {
-    if ((src)->id == 0L) {
-        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)src));
-        return;
-    }
-    if ((dest)->id == 0L) {
-        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)dest));
+    if (!surface_initialized(src) ||
+        !surface_initialized(dest)) {
         return;
     }
 
@@ -325,30 +361,4 @@ void draw_util_copy_surface(surface_t *src, surface_t *dest, double src_x, doubl
     CAIRO_SURFACE_FLUSH(dest->surface);
 
     cairo_restore(dest->cr);
-}
-
-/**
- * This function is a convenience wrapper and takes care of flushing the
- * surface as well as restoring the cairo state.
- *
- */
-void draw_util_image(cairo_surface_t *image, surface_t *surface, int x, int y, int width, int height) {
-    if ((surface)->id == XCB_NONE) {
-        ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", (void *)surface));
-        return;
-    }
-
-    cairo_save(surface->cr);
-
-    cairo_translate(surface->cr, x, y);
-
-    const int src_width = cairo_image_surface_get_width(image);
-    const int src_height = cairo_image_surface_get_height(image);
-    double scale = std::min((double)width / src_width, (double)height / src_height);
-    cairo_scale(surface->cr, scale, scale);
-
-    cairo_set_source_surface(surface->cr, image, 0, 0);
-    cairo_paint(surface->cr);
-
-    cairo_restore(surface->cr);
 }

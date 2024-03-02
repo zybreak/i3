@@ -237,6 +237,19 @@ static nlohmann::json dump_rect(Rect &r) {
     };
 }
 
+static nlohmann::json dump_gaps(gaps_t gaps) {
+    return {
+        { "inner", gaps.inner },
+        // TODO: the i3ipc Python modules recognize gaps, but only inner/outer
+        // This is currently here to preserve compatibility with that
+        { "outer", gaps.top },
+        { "top", gaps.top },
+        { "right", gaps.right },
+        { "bottom", gaps.bottom },
+        { "left", gaps.left }
+    };
+}
+
 static nlohmann::json dump_event_state_mask(Binding *bind) {
     auto a = nlohmann::json::array();
 
@@ -490,7 +503,15 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
     j["current_border_width"] = con->current_border_width;
 
     j["rect"] = dump_rect(con->rect);
-    j["deco_rect"] = dump_rect(con->deco_rect);
+    if (con_draw_decoration_into_frame(con)) {
+        Rect simulated_deco_rect = con->deco_rect;
+        simulated_deco_rect.x = con->rect.x - con->parent->rect.x;
+        simulated_deco_rect.y = con->rect.y - con->parent->rect.y;
+        j["deco_rect"] = dump_rect(simulated_deco_rect);
+        j["actual_deco_rect"] = dump_rect(con->deco_rect);
+    } else {
+        j["deco_rect"] = dump_rect(con->deco_rect);
+    }
     j["window_rect"] = dump_rect(con->window_rect);
     j["geometry"] = dump_rect(con->geometry);
 
@@ -507,7 +528,9 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
     j["window_icon_padding"] = con->window_icon_padding;
 
     if (con->type == CT_WORKSPACE) {
-        j["num"] = con->num;
+        WorkspaceCon *ws = dynamic_cast<WorkspaceCon*>(con);
+        j["num"] = ws->num;
+        j["gaps"] = dump_gaps(ws->gaps);
     }
 
     if (con->window) {
@@ -716,6 +739,12 @@ static nlohmann::json dump_bar_config(Barconfig *config) {
     if (config->font) {
         j["font"] = config->font;
     }
+
+    if (config->bar_height) {
+        j["bar_height"] = config->bar_height;
+    }
+
+    j["padding"] = dump_rect(config->padding);
 
     if (config->separator_symbol) {
         j["separator_symbol"] = config->separator_symbol;
@@ -1309,7 +1338,7 @@ void ipc_send_barconfig_update_event(Barconfig *barconfig) {
 /*
  * For the binding events, we send the serialized binding struct.
  */
-void ipc_send_binding_event(const char *event_type, Binding *bind) {
+void ipc_send_binding_event(const char *event_type, Binding *bind, const char *modename) {
     DLOG(fmt::sprintf("Issue IPC binding %s event (sym = %s, code = %d)\n",  event_type, bind->symbol, bind->keycode));
 
     setlocale(LC_NUMERIC, "C");
@@ -1317,6 +1346,13 @@ void ipc_send_binding_event(const char *event_type, Binding *bind) {
     nlohmann::json j;
 
     j["change"] = event_type;
+
+    if (modename == nullptr) {
+        j["mode"] = "default";
+    } else {
+        j["mode"] = modename;
+    }
+
     j["binding"] = dump_binding(bind);
 
     auto payload = j.dump();

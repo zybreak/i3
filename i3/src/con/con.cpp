@@ -77,7 +77,7 @@ Con::Con(Con *parent, i3Window *window, bool skeleton) {
 
     this->type = CT_CON;
     this->window = window;
-    this->border_style = config.default_border;
+    this->border_style = this->max_user_border_style = config.default_border;
     this->current_border_width = -1;
     this->window_icon_padding = -1;
     if (window) {
@@ -732,7 +732,7 @@ FloatingCon* Con::con_inside_floating() {
         return dynamic_cast<FloatingCon *>(this->parent);
     }
 
-    return this->parent->con_inside_floating();
+    return this->parent == nullptr ? nullptr : this->parent->con_inside_floating();
 }
 
 /*
@@ -1593,17 +1593,34 @@ Con *con_descend_direction(Con *con, direction_t direction) {
     return con_descend_direction(most, direction);
 }
 
+static bool has_outer_gaps(gaps_t gaps) {
+    return gaps.top > 0 ||
+           gaps.right > 0 ||
+           gaps.bottom > 0 ||
+           gaps.left > 0;
+}
+
 /*
- * Returns a "relative" Rect which contains the amount of pixels that need to
- * be added to the original Rect to get the final position (obviously the
- * amount of pixels for normal, 1pixel and borderless are different).
+ * Returns whether the window decoration (title bar) should be drawn into the
+ * X11 frame window of this container (default) or into the X11 frame window of
+ * the parent container (for stacked/tabbed containers).
  *
  */
-Rect con_border_style_rect(Con *con) {
-    if (config.hide_edge_borders == HEBM_SMART && con->con_get_workspace()->con_num_visible_children() <= 1) {
-        if (!con->con_is_floating()) {
+bool con_draw_decoration_into_frame(Con *con) {
+    return con->con_is_leaf() &&
+           con_border_style(con) == BS_NORMAL &&
+           (con->parent == nullptr ||
+            (con->parent->layout != L_TABBED &&
+             con->parent->layout != L_STACKED));
+}
+
+static Rect con_border_style_rect_without_title(Con *con) {
+    if ((config.smart_borders == SMART_BORDERS_ON && con->con_get_workspace()->con_num_visible_children() <= 1) ||
+        (config.smart_borders == SMART_BORDERS_NO_GAPS && !has_outer_gaps(calculate_effective_gaps(con))) ||
+        (config.hide_edge_borders == HEBM_SMART && con->con_get_workspace()->con_num_visible_children() <= 1) ||
+        (config.hide_edge_borders == HEBM_SMART_NO_GAPS && con->con_get_workspace()->con_num_visible_children() <= 1 && !has_outer_gaps(calculate_effective_gaps(con)))) {
+        if (!con->con_is_floating())
             return (Rect){0, 0, 0, 0};
-        }
     }
 
     adjacent_t borders_to_hide = ADJ_NONE;
@@ -1629,7 +1646,13 @@ Rect con_border_style_rect(Con *con) {
         result = (Rect){(uint32_t)border_width, (uint32_t)border_width, (uint32_t)-(2 * border_width), (uint32_t)-(2 * border_width)};
     }
 
-    borders_to_hide = (adjacent_t)(con_adjacent_borders(con) & config.hide_edge_borders);
+    /* If hide_edge_borders is set to no_gaps and it did not pass the no border check, show all borders */
+    if (config.hide_edge_borders == HEBM_SMART_NO_GAPS) {
+        borders_to_hide = static_cast<adjacent_t>(con_adjacent_borders(con) & static_cast<adjacent_t>(HEBM_NONE));
+    } else {
+        borders_to_hide = static_cast<adjacent_t>(con_adjacent_borders(con) & static_cast<adjacent_t>(config.hide_edge_borders));
+    }
+
     if (borders_to_hide & ADJ_LEFT_SCREEN_EDGE) {
         result.x -= border_width;
         result.width += border_width;
@@ -1643,6 +1666,23 @@ Rect con_border_style_rect(Con *con) {
     }
     if (borders_to_hide & ADJ_LOWER_SCREEN_EDGE) {
         result.height += border_width;
+    }
+    return result;
+}
+
+/*
+ * Returns a "relative" Rect which contains the amount of pixels that need to
+ * be added to the original Rect to get the final position (obviously the
+ * amount of pixels for normal, 1pixel and borderless are different).
+ *
+ */
+Rect con_border_style_rect(Con *con) {
+    Rect result = con_border_style_rect_without_title(con);
+    if (con_border_style(con) == BS_NORMAL &&
+        con_draw_decoration_into_frame(con)) {
+        const int deco_height = render_deco_height();
+        result.y += deco_height;
+        result.height -= deco_height;
     }
     return result;
 }
@@ -1691,16 +1731,18 @@ int con_border_style(Con *con) {
         return BS_NONE;
     }
 
-    if (con->parent->layout == L_STACKED) {
-        return (con->parent->con_num_children() == 1 ? con->border_style : BS_NORMAL);
-    }
+    if (con->parent != nullptr) {
+        if (con->parent->layout == L_STACKED) {
+            return (con->parent->con_num_children() == 1 ? con->border_style : BS_NORMAL);
+        }
 
-    if (con->parent->layout == L_TABBED && con->border_style != BS_NORMAL) {
-        return (con->parent->con_num_children() == 1 ? con->border_style : BS_NORMAL);
-    }
+        if (con->parent->layout == L_TABBED && con->border_style != BS_NORMAL) {
+            return (con->parent->con_num_children() == 1 ? con->border_style : BS_NORMAL);
+        }
 
-    if (con->parent->type == CT_DOCKAREA) {
-        return BS_NONE;
+        if (con->parent->type == CT_DOCKAREA) {
+            return BS_NONE;
+        }
     }
 
     return con->border_style;
@@ -1711,7 +1753,11 @@ int con_border_style(Con *con) {
  * floating window.
  *
  */
-void con_set_border_style(Con *con, int border_style, int border_width) {
+void con_set_border_style(Con *con, border_style_t border_style, int border_width) {
+    if (border_style > con->max_user_border_style) {
+        border_style = con->max_user_border_style;
+    }
+
     /* Handle the simple case: non-floating containerns */
     if (!con->con_is_floating()) {
         con->border_style = (border_style_t)border_style;
@@ -1724,27 +1770,19 @@ void con_set_border_style(Con *con, int border_style, int border_width) {
      * con->rect represent the absolute position of the window (same for
      * parent). Then, we change the border style and subtract the new border
      * pixels. For the parent, we do the same also for the decoration. */
-    DLOG("This is a floating container\n");
-
     Con *parent = con->parent;
     Rect bsr = con_border_style_rect(con);
-    int deco_height = (con->border_style == BS_NORMAL ? render_deco_height() : 0);
 
     con->rect += bsr;
     parent->rect += bsr;
-    parent->rect.y += deco_height;
-    parent->rect.height -= deco_height;
 
     /* Change the border style, get new border/decoration values. */
     con->border_style = (border_style_t)border_style;
     con->current_border_width = border_width;
     bsr = con_border_style_rect(con);
-    deco_height = (con->border_style == BS_NORMAL ? render_deco_height() : 0);
 
     con->rect -= bsr;
     parent->rect -= bsr;
-    parent->rect.y -= deco_height;
-    parent->rect.height += deco_height;
 }
 
 /*
@@ -2116,4 +2154,19 @@ uint32_t con_rect_size_in_orientation(Con *con) {
 }
 FloatingCon *DockCon::con_inside_floating() {
     return nullptr;
+}
+
+/*
+ * Returns true if the container is within any stacked/tabbed split container.
+ *
+ */
+bool con_inside_stacked_or_tabbed(Con *con) {
+    if (con->parent == nullptr) {
+        return false;
+    }
+    if (con->parent->layout == L_STACKED ||
+        con->parent->layout == L_TABBED) {
+        return true;
+    }
+    return con_inside_stacked_or_tabbed(con->parent);
 }

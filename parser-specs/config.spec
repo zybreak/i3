@@ -25,6 +25,9 @@ state INITIAL:
   'bar'                                    -> BARBRACE
   'font'                                   -> FONT
   'mode'                                   -> MODENAME
+  'gaps'                                   -> GAPS
+  'smart_borders'                          -> SMART_BORDERS
+  'smart_gaps'                             -> SMART_GAPS
   'floating_minimum_size'                  -> FLOATING_MINIMUM_SIZE_WIDTH
   'floating_maximum_size'                  -> FLOATING_MAXIMUM_SIZE_WIDTH
   'floating_modifier'                      -> FLOATING_MODIFIER
@@ -36,7 +39,7 @@ state INITIAL:
   'for_window'                             -> FOR_WINDOW
   'assign'                                 -> ASSIGN
   'no_focus'                               -> NO_FOCUS
-  'focus_followsdmouse'                    -> FOCUS_FOLLOWS_MOUSE
+  'focus_follows_mouse'                    -> FOCUS_FOLLOWS_MOUSE
   'mouse_warping'                          -> MOUSE_WARPING
   'focus_wrapping'                         -> FOCUS_WRAPPING
   'force_focus_wrapping'                   -> FORCE_FOCUS_WRAPPING
@@ -49,6 +52,7 @@ state INITIAL:
   'ipc_kill_timeout'                       -> IPC_KILL_TIMEOUT
   'restart_state'                          -> RESTART_STATE
   'popup_during_fullscreen'                -> POPUP_DURING_FULLSCREEN
+  'tiling_drag'                            -> TILING_DRAG
   exectype = 'exec_always', 'exec'         -> EXEC
   colorclass = 'client.background'
       -> COLOR_SINGLE
@@ -59,6 +63,38 @@ state INITIAL:
 state IGNORE_LINE:
   line
       -> INITIAL
+
+# gaps inner|outer|horizontal|vertical|top|right|bottom|left <gap_size>[px]
+state GAPS:
+  scope = 'inner', 'outer', 'horizontal', 'vertical', 'top', 'right', 'bottom', 'left'
+      -> GAPS_WITH_SCOPE
+
+state GAPS_WITH_SCOPE:
+  value = number
+      -> GAPS_END
+
+state GAPS_END:
+  'px'
+      ->
+  end
+      -> call cfg::gaps($workspace, $scope, &value)
+
+# smart_borders true|false
+# smart_borders no_gaps
+state SMART_BORDERS:
+  enabled = '1', 'yes', 'true', 'on', 'enable', 'active'
+      -> call cfg::smart_borders($enabled)
+  enabled = 'no_gaps'
+      -> call cfg::smart_borders($enabled)
+
+# smart_gaps on|off|inverse_outer
+state SMART_GAPS:
+  enabled = '1', 'yes', 'true', 'on', 'enable', 'active'
+      -> call cfg::smart_gaps($enabled)
+  enabled = '0', 'no', 'false', 'off', 'disable', 'inactive'
+      -> call cfg::smart_gaps($enabled)
+  enabled = 'inverse_outer'
+      -> call cfg::smart_gaps($enabled)
 
 # include <pattern>
 state INCLUDE:
@@ -130,10 +166,10 @@ state DEFAULT_BORDER_PIXELS_PX:
   end
       -> call cfg::default_border($windowtype, $border, &width)
 
-# hide_edge_borders <none|vertical|horizontal|both|smart>
+# hide_edge_borders <none|vertical|horizontal|both|smart|smart_no_gaps>
 # also hide_edge_borders <bool> for compatibility
 state HIDE_EDGE_BORDERS:
-  hide_borders = 'none', 'vertical', 'horizontal', 'both', 'smart'
+  hide_borders = 'none', 'vertical', 'horizontal', 'both', 'smart_no_gaps', 'smart'
       -> call cfg::hide_edge_borders($hide_borders)
   hide_borders = '1', 'yes', 'true', 'on', 'enable', 'active'
       -> call cfg::hide_edge_borders($hide_borders)
@@ -271,13 +307,16 @@ state FOCUS_ON_WINDOW_ACTIVATION:
       -> call cfg::focus_on_window_activation($mode)
 
 # workspace <workspace> output <output>
+# workspace <workspace> gaps inner|outer <px>
 state WORKSPACE:
   workspace = word
-    -> WORKSPACE_OUTPUT
+    -> WORKSPACE_COMMAND
 
-state WORKSPACE_OUTPUT:
+state WORKSPACE_COMMAND:
   'output'
       -> WORKSPACE_OUTPUT_WORD
+  'gaps'
+      -> GAPS
 
 state WORKSPACE_OUTPUT_WORD:
   output = word
@@ -304,6 +343,18 @@ state RESTART_STATE:
 state POPUP_DURING_FULLSCREEN:
   value = 'ignore', 'leave_fullscreen', 'smart'
       -> call cfg::popup_during_fullscreen($value)
+
+state TILING_DRAG_MODE:
+  value = 'modifier', 'titlebar'
+      ->
+  end
+      -> call cfg::tiling_drag($value)
+
+state TILING_DRAG:
+  off = '0', 'no', 'false', 'off', 'disable', 'inactive'
+      -> call cfg::tiling_drag($off)
+  value = 'modifier', 'titlebar'
+      -> TILING_DRAG_MODE
 
 # client.background <hexcolor>
 state COLOR_SINGLE:
@@ -472,6 +523,8 @@ state BAR:
   'strip_workspace_numbers' -> BAR_STRIP_WORKSPACE_NUMBERS
   'strip_workspace_name' -> BAR_STRIP_WORKSPACE_NAME
   'verbose'                -> BAR_VERBOSE
+  'height'                 -> BAR_HEIGHT
+  'padding'                -> BAR_PADDING
   'colors'                 -> BAR_COLORS_BRACE
   '}'
       -> call cfg::bar_finish(); INITIAL
@@ -594,6 +647,44 @@ state BAR_STRIP_WORKSPACE_NAME:
 state BAR_VERBOSE:
   value = word
       -> call cfg::bar_verbose($value); BAR
+
+state BAR_HEIGHT:
+  value = number
+      -> call cfg::bar_height(&value); BAR
+
+state BAR_PADDING:
+  top_or_all = number
+      -> BAR_PADDING_TOP
+
+state BAR_PADDING_TOP:
+  'px'
+      ->
+  right_or_right_and_left = number
+      -> BAR_PADDING_RIGHT
+  end
+      -> call cfg::bar_padding_one(&top_or_all); BAR
+
+state BAR_PADDING_RIGHT:
+  'px'
+      ->
+  bottom = number
+      -> BAR_PADDING_BOTTOM
+  end
+      -> call cfg::bar_padding_two(&top_or_all, &right_or_right_and_left); BAR
+
+state BAR_PADDING_BOTTOM:
+  'px'
+      ->
+  left = number
+      -> BAR_PADDING_LEFT
+  end
+      -> call cfg::bar_padding_three(&top_or_all, &right_or_right_and_left, &bottom); BAR
+
+state BAR_PADDING_LEFT:
+  'px'
+      ->
+  end
+      -> call cfg::bar_padding_four(&top_or_all, &right_or_right_and_left, &bottom, &left); BAR
 
 state BAR_COLORS_BRACE:
   end

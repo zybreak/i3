@@ -38,6 +38,7 @@ state INITIAL:
   'title_window_icon' -> TITLE_WINDOW_ICON
   'mode' -> MODE
   'bar' -> BAR
+  'gaps' -> GAPS
   'nagbar' -> NAGBAR
 
 state CRITERIA:
@@ -51,12 +52,30 @@ state CRITERIA:
   ctype = 'urgent'      -> CRITERION
   ctype = 'workspace'   -> CRITERION
   ctype = 'machine'     -> CRITERION
+  ctype = 'floating_from' -> CRITERION_FROM
+  ctype = 'tiling_from'   -> CRITERION_FROM
   ctype = 'tiling', 'floating', 'all'
       -> call cmd::criteria_add($ctype, NULL); CRITERIA
   ']' -> call cmd::criteria_match_windows(); INITIAL
 
 state CRITERION:
   '=' -> CRITERION_STR
+
+state CRITERION_FROM:
+  '=' -> CRITERION_FROM_STR_START
+
+state CRITERION_FROM_STR_START:
+  '"' -> CRITERION_FROM_STR
+  kind = 'auto', 'user'
+    -> call cmd::criteria_add($ctype, $kind); CRITERIA
+
+state CRITERION_FROM_STR:
+  kind = 'auto', 'user'
+    -> CRITERION_FROM_STR_END
+
+state CRITERION_FROM_STR_END:
+  '"'
+    -> call cmd::criteria_add($ctype, $kind); CRITERIA
 
 state CRITERION_STR:
   cvalue = word
@@ -89,6 +108,29 @@ state BORDER_WIDTH:
     -> call cmd::border($border_style, -1)
   border_width = number
     -> call cmd::border($border_style, &border_width)
+
+# gaps inner|outer|horizontal|vertical|top|right|bottom|left [current] [set|plus|minus|toggle] <px>
+state GAPS:
+  type = 'inner', 'outer', 'horizontal', 'vertical', 'top', 'right', 'bottom', 'left'
+      -> GAPS_WITH_TYPE
+
+state GAPS_WITH_TYPE:
+  scope = 'current', 'all'
+      -> GAPS_WITH_SCOPE
+
+state GAPS_WITH_SCOPE:
+  mode = 'plus', 'minus', 'set', 'toggle'
+      -> GAPS_WITH_MODE
+
+state GAPS_WITH_MODE:
+  value = word
+      -> GAPS_END
+
+state GAPS_END:
+  'px'
+      ->
+  end
+      -> call cmd::gaps($type, $scope, $mode, $value)
 
 # layout default|stacked|stacking|tabbed|splitv|splith
 # layout toggle [split|all]
