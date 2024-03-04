@@ -664,7 +664,7 @@ static nlohmann::json dump_bar_bindings(Barconfig *config) {
 
 static std::string canonicalize_output_name(const std::string &name) {
     /* Do not canonicalize special output names. */
-    if (strcasecmp(name.c_str(), "primary") == 0) {
+    if (strcasecmp(name.c_str(), "primary") == 0 || strcasecmp(name.c_str(), "nonprimary") == 0) {
         return name;
     }
     Output *output = global.randr->get_output_by_name(name, false);
@@ -734,6 +734,10 @@ static nlohmann::json dump_bar_config(Barconfig *config) {
 
     if (config->status_command) {
         j["status_command"] = config->status_command;
+    }
+
+    if (config->workspace_command) {
+        j["workspace_command"] = config->workspace_command;
     }
 
     if (config->font) {

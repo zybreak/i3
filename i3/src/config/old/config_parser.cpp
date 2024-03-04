@@ -561,7 +561,7 @@ static void read_file(FILE *fstr, BaseResourceDatabase &resourceDatabase, char *
             continuation = nullptr;
         }
 
-        strncpy(buf + strlen(buf), buffer, strlen(buffer) + 1);
+        strcpy(buf + strlen(buf), buffer);
 
         /* Skip comments and empty lines. */
         if (skip_line || comment) {
@@ -647,7 +647,7 @@ static char* replace_variables(char *n, char *buf, __off_t size, parser_ctx &ctx
         } else {
             /* Copy until the next variable, then copy its value */
             strncpy(destwalk, walk, distance);
-            strncpy(destwalk + distance, nearest->value, strlen(nearest->value));
+            strcpy(destwalk + distance, nearest->value);
             walk += distance + strlen(nearest->key);
             destwalk += distance + strlen(nearest->value);
         }

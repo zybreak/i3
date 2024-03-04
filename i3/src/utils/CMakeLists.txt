@@ -5,6 +5,7 @@ target_sources(utils PUBLIC
         safewrappers.cpp
         boolstr.cpp
         get_process_filename.cpp
+        get_colorpixel.cpp
         mkdirp.cpp
         nonblock.cpp
         PUBLIC

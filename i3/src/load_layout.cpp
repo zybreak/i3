@@ -289,17 +289,22 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
         } else if (ctx.last_key == "border") {
             char *buf = nullptr;
             sasprintf(&buf, "%.*s", (int)val.length(), val.c_str());
-            if (strcasecmp(buf, "none") == 0)
+            if (strcasecmp(buf, "none") == 0) {
+                ctx.json_node->max_user_border_style = BS_NONE;
                 ctx.json_node->border_style = BS_NONE;
-            else if (strcasecmp(buf, "1pixel") == 0) {
+            } else if (strcasecmp(buf, "1pixel") == 0) {
+                ctx.json_node->max_user_border_style = BS_PIXEL;
                 ctx.json_node->border_style = BS_PIXEL;
                 ctx.json_node->current_border_width = 1;
-            } else if (strcasecmp(buf, "pixel") == 0)
+            } else if (strcasecmp(buf, "pixel") == 0) {
+                ctx.json_node->max_user_border_style = BS_PIXEL;
                 ctx.json_node->border_style = BS_PIXEL;
-            else if (strcasecmp(buf, "normal") == 0)
+            } else if (strcasecmp(buf, "normal") == 0) {
+                ctx.json_node->max_user_border_style = BS_NORMAL;
                 ctx.json_node->border_style = BS_NORMAL;
-            else
-                 LOG(fmt::sprintf("Unhandled \"border\": %s\n", buf));
+            } else {
+                LOG(fmt::sprintf("Unhandled \"border\": %s\n", buf));
+            }
             free(buf);
         } else if (ctx.last_key == "type") {
             char *buf = nullptr;

@@ -232,8 +232,8 @@ namespace cmd {
      * Implementation of 'focus'.
      *
      */
-    void focus(criteria_state *criteria_state, CommandResultIR &cmd_output) {
-        cmd_output.applier->focus(criteria_state, cmd_output);
+    void focus(criteria_state *criteria_state, CommandResultIR &cmd_output, bool focus_workspace) {
+        cmd_output.applier->focus(criteria_state, cmd_output, focus_workspace);
     }
 
     /*

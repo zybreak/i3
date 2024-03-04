@@ -181,7 +181,7 @@ export class CommandsApplier : public BaseCommandsApplier {
      * Implementation of 'focus'.
      *
      */
-    void focus(criteria_state *criteria_state, CommandResultIR &cmd_output) override;
+    void focus(criteria_state *criteria_state, CommandResultIR &cmd_output, bool focus_workspace) override;
 
     /*
      * Implementation of 'fullscreen enable|toggle [global]' and

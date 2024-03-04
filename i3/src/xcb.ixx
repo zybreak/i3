@@ -9,6 +9,8 @@
  */
 module;
 
+class Con;
+
 #include <config.h>
 #include <xcb/xcb.h>
 #include <set>
@@ -51,15 +53,14 @@ export const uint32_t ROOT_EVENT_MASK = (XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
                                          XCB_EVENT_MASK_ENTER_WINDOW);
 
 export {
-    class Con;
-
     /**
      * Convenience wrapper around xcb_create_window which takes care of depth,
      * generating an ID and checking for errors.
      *
      */
-    xcb_window_t create_window(xcb_connection_t * conn, Rect r, uint16_t depth, xcb_visualid_t visual,
-                               uint16_t window_class, xcursor_cursor_t cursor, bool map, uint32_t mask, uint32_t *values);
+    xcb_window_t create_window(xcb_connection_t *conn, Rect dims,
+                               uint16_t depth, xcb_visualid_t visual, uint16_t window_class,
+                               enum xcursor_cursor_t cursor, bool map, uint32_t mask, uint32_t *values);
 
     /**
      * Generates a configure_notify_event with absolute coordinates (relative to

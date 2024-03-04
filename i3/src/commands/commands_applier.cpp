@@ -808,7 +808,7 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
     }
 
     json_content_t content = json_determine_content(buf);
-    LOG(fmt::sprintf("JSON content = %d\n",  content));
+    //LOG(fmt::sprintf("JSON content = %d\n",  content));
     if (content == JSON_CONTENT_UNKNOWN) {
         ELOG(fmt::sprintf("Could not determine the contents of \"%s\", not loading.\n", path));
         throw std::runtime_error(fmt::sprintf("Could not determine the contents of \"%s\".", path));
@@ -855,6 +855,13 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
     cmd_output.needs_tree_render = true;
 }
 
+static void disable_global_fullscreen(void) {
+    Con *fs = global.croot->con_get_fullscreen_con(CF_GLOBAL);
+    if (fs) {
+        con_disable_fullscreen(fs);
+    }
+}
+
 /*
  * Implementation of 'workspace next|prev|next_on_output|prev_on_output'.
  *
@@ -864,9 +871,7 @@ void CommandsApplier::workspace(struct criteria_state *criteria_state, CommandRe
 
     DLOG(fmt::sprintf("which=%s\n",  which));
 
-    if (global.croot->con_get_fullscreen_con(CF_GLOBAL)) {
-        throw std::runtime_error("Cannot switch workspace while in global fullscreen");
-    }
+    disable_global_fullscreen();
 
     if (strcmp(which, "next") == 0)
         ws = workspace_next();
@@ -894,9 +899,7 @@ void CommandsApplier::workspace(struct criteria_state *criteria_state, CommandRe
 void CommandsApplier::workspace_number(struct criteria_state *criteria_state, CommandResultIR &cmd_output, const char *which, const char *_no_auto_back_and_forth) {
     const bool no_auto_back_and_forth = (_no_auto_back_and_forth != nullptr);
 
-    if (global.croot->con_get_fullscreen_con(CF_GLOBAL)) {
-        throw std::runtime_error("Cannot switch workspace while in global fullscreen");
-    }
+    disable_global_fullscreen();
 
     long parsed_num = ws_name_to_number(which);
     if (parsed_num == -1) {
@@ -927,9 +930,7 @@ void CommandsApplier::workspace_number(struct criteria_state *criteria_state, Co
  *
  */
 void CommandsApplier::workspace_back_and_forth(struct criteria_state *criteria_state, CommandResultIR &cmd_output) {
-    if (global.croot->con_get_fullscreen_con(CF_GLOBAL)) {
-        throw std::runtime_error("Cannot switch workspace while in global fullscreen");
-    }
+    disable_global_fullscreen();
 
     ::workspace_back_and_forth();
 
@@ -949,9 +950,7 @@ void CommandsApplier::workspace_name(struct criteria_state *criteria_state, Comm
         throw std::runtime_error(fmt::sprintf("You cannot switch to the i3-internal workspaces (\"%s\").", name));
     }
 
-    if (global.croot->con_get_fullscreen_con(CF_GLOBAL)) {
-        throw std::runtime_error("Cannot switch workspace while in global fullscreen");
-    }
+    disable_global_fullscreen();
 
     DLOG(fmt::sprintf("should switch to workspace %s\n",  name));
     if (!no_auto_back_and_forth && maybe_back_and_forth(cmd_output, name)) {
@@ -1215,7 +1214,7 @@ void CommandsApplier::focus_direction(struct criteria_state *criteria_state, Com
     HANDLE_EMPTY_MATCH(criteria_state);
     CMD_FOCUS_WARN_CHILDREN(criteria_state);
 
-    direction_t direction;
+    direction_t direction = D_LEFT;
     position_t position;
     bool auto_direction = true;
     if (strcmp(direction_str, "prev") == 0) {
@@ -1346,8 +1345,8 @@ void CommandsApplier::focus_level(struct criteria_state *criteria_state, Command
  * Implementation of 'focus'.
  *
  */
-void CommandsApplier::focus(struct criteria_state *criteria_state, CommandResultIR &cmd_output) {
-    //DLOG(fmt::sprintf("criteria_state->current_match = %p\n",  (void*)criteria_state->current_match));
+void CommandsApplier::focus(struct criteria_state *criteria_state, CommandResultIR &cmd_output, bool focus_workspace) {
+    //DLOG(fmt::sprintf("current_match = %p\n", fmt::ptr(criteria_state->current_match)));
 
     if (criteria_state->current_match.match_is_empty()) {
         ELOG("You have to specify which window/container should be focused.\n");
@@ -1364,11 +1363,19 @@ void CommandsApplier::focus(struct criteria_state *criteria_state, CommandResult
         Con *ws = current->con_get_workspace();
         /* If no workspace could be found, this was a dock window.
          * Just skip it, you cannot focus dock windows. */
-        if (!ws)
+        if (!ws) {
             continue;
+        }
 
-        LOG(fmt::sprintf("focusing %p / %s\n",  (void*)current, current->name));
-        current->con_activate_unblock();
+        if (focus_workspace) {
+            /* Show the workspace of the matched container, without necessarily
+             * focusing it. */
+            LOG(fmt::sprintf("focusing workspace %p / %s - %p / %s\n", fmt::ptr(current), current->name, fmt::ptr(ws), ws->name));
+            workspace_show(ws);
+        } else {
+            LOG(fmt::sprintf("focusing %p / %s\n", fmt::ptr(current), current->name));
+            current->con_activate_unblock();
+        }
     }
 
     cmd_output.needs_tree_render = true;
@@ -1446,7 +1453,6 @@ void CommandsApplier::sticky(struct criteria_state *criteria_state, CommandResul
 void CommandsApplier::move_direction(struct criteria_state *criteria_state, CommandResultIR &cmd_output, const char *direction_str, long amount, const char *mode) {
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    Con *initially_focused = global.focused;
     direction_t direction = parse_direction(direction_str);
 
     const bool is_ppt = mode && strcmp(mode, "ppt") == 0;
@@ -1478,12 +1484,6 @@ void CommandsApplier::move_direction(struct criteria_state *criteria_state, Comm
             tree_move(current, direction);
             cmd_output.needs_tree_render = true;
         }
-    }
-
-    /* The move command should not disturb focus. con_exists is called because
-     * tree_move calls tree_flatten. */
-    if (global.focused != initially_focused && initially_focused != nullptr && initially_focused->exists()) {
-        initially_focused->con_activate();
     }
 
     // XXX: default reply for now, make this a better reply

@@ -175,6 +175,7 @@ state WORKSPACE_NUMBER:
 # focus output <output>
 # focus tiling|floating|mode_toggle
 # focus parent|child
+# focus workspace
 # focus
 state FOCUS:
   direction = 'left', 'right', 'up', 'down'
@@ -187,8 +188,10 @@ state FOCUS:
       -> call cmd::focus_window_mode($window_mode)
   level = 'parent', 'child'
       -> call cmd::focus_level($level)
+  workspace = 'workspace'
+      -> call cmd::focus(1)
   end
-      -> call cmd::focus()
+      -> call cmd::focus(0)
 
 state FOCUS_AUTO:
   'sibling'

@@ -711,27 +711,34 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     output_push_sticky_windows(global.focused);
 }
 
+static Con *placeholder_for_con(Con *con) {
+    /* Make sure this windows hasn't already been swallowed. */
+    if (con->window->swallowed) {
+        return nullptr;
+    }
+    Match *match;
+    Con *nc = con_for_window(global.croot, con->window, &match);
+    if (nc == nullptr || nc->window == nullptr || nc->window == con->window) {
+        return nullptr;
+    }
+    /* Make sure the placeholder that wants to swallow this window didn't spawn
+     * after the window to follow current behavior: adding a placeholder won't
+     * swallow windows currently managed. */
+    if (nc->window->managed_since > con->window->managed_since) {
+        return nullptr;
+    }
+    return nc;
+}
+
 /*
  * Remanages a window: performs a swallow check and runs assignments.
  * Returns con for the window regardless if it updated.
  *
  */
 Con *remanage_window(Con *con) {
-    /* Make sure this windows hasn't already been swallowed. */
-    if (con->window->swallowed) {
-        run_assignments(con->window);
-        return con;
-    }
-    Match *match;
-    Con *nc = con_for_window(global.croot, con->window, &match);
-    if (nc == nullptr || nc->window == nullptr || nc->window == con->window) {
-        run_assignments(con->window);
-        return con;
-    }
-    /* Make sure the placeholder that wants to swallow this window didn't spawn
-     * after the window to follow current behavior: adding a placeholder won't
-     * swallow windows currently managed. */
-    if (nc->window->managed_since > con->window->managed_since) {
+    Con *nc = placeholder_for_con(con);
+    if (!nc) {
+        /* The con is not updated, just run assignments */
         run_assignments(con->window);
         return con;
     }

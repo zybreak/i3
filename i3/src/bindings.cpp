@@ -689,6 +689,7 @@ void switch_mode(const std::string_view &new_mode) {
         current_mode = mode.get();
         translate_keysyms();
         grab_all_keys(*global.x);
+        regrab_all_buttons(*global.x);
 
         /* Reset all B_UPON_KEYRELEASE_IGNORE_MODS bindings to avoid possibly
          * activating one of them. */

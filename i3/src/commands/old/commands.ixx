@@ -184,7 +184,7 @@ namespace cmd {
      * Implementation of 'focus'.
      *
      */
-    void focus(struct criteria_state *criteria_state, CommandResultIR &cmd_output);
+    void focus(struct criteria_state *criteria_state, CommandResultIR &cmd_output, bool focus_workspace);
 
     /**
      * Implementation of 'fullscreen [enable|disable|toggle] [global]'.

@@ -163,6 +163,8 @@ export namespace cfg {
 
     void bar_status_command(criteria_state *criteria_state, ConfigResultIR &result, const char *command);
 
+    void bar_workspace_command(criteria_state *criteria_state, ConfigResultIR &result, const char *command);
+
     void bar_binding_mode_indicator(criteria_state *criteria_state, ConfigResultIR &result, const char *value);
 
     void bar_workspace_buttons(criteria_state *criteria_state, ConfigResultIR &result, const char *value);

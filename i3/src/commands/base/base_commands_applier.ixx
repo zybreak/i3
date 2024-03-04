@@ -185,7 +185,7 @@ export class BaseCommandsApplier {
      * Implementation of 'focus'.
      *
      */
-    virtual void focus(criteria_state *criteria_state, CommandResultIR &cmd_output) = 0;
+    virtual void focus(criteria_state *criteria_state, CommandResultIR &cmd_output, bool focus_workspace) = 0;
 
     /*
      * Implementation of 'fullscreen enable|toggle [global]' and

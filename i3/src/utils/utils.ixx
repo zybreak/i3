@@ -1,6 +1,7 @@
 module;
 #include <string>
 #include <string_view>
+#include <xcb/xcb.h>
 export module utils;
 
 export namespace utils {
@@ -89,3 +90,13 @@ export int mkdirp(const char *path, mode_t mode);
  */
 export void set_nonblock(int sockfd);
 
+/*
+ * Returns the colorpixel to use for the given hex color (think of HTML).
+ *
+ * The hex_color has to start with #, for example #FF00FF.
+ *
+ * NOTE that get_colorpixel() does _NOT_ check the given color code for validity.
+ * This has to be done by the caller.
+ *
+ */
+export uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *hex);

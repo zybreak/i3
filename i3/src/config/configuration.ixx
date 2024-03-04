@@ -347,6 +347,10 @@ export {
          * Will be passed to the shell. */
         char *status_command;
 
+        /** Command that should be run to get the workspace buttons. Will be passed
+         * to the shell. */
+        char *workspace_command;
+
         /** i3Font specification for all text rendered on the bar. */
         char *font;
 

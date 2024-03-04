@@ -24,6 +24,14 @@ import log;
 /* Forward declarations */
 static void draw_util_set_source_color(surface_t *surface, color_t color);
 
+/* We need to flush cairo surfaces twice to avoid an assertion bug. See #1989
+ * and https://bugs.freedesktop.org/show_bug.cgi?id=92455. */
+#define CAIRO_SURFACE_FLUSH(surface)  \
+    do {                              \
+        cairo_surface_flush(surface); \
+        cairo_surface_flush(surface); \
+    } while (0)
+
 static bool surface_initialized(surface_t *surface) {
     if (surface->id == XCB_NONE) {
         ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", fmt::ptr(surface)));
@@ -32,92 +40,76 @@ static bool surface_initialized(surface_t *surface) {
     return true;
 }
 
-/* We need to flush cairo surfaces twice to avoid an assertion bug. See #1989
- * and https://bugs.freedesktop.org/show_bug.cgi?id=92455. */
-static void CAIRO_SURFACE_FLUSH(_cairo_surface *surface) {
-    cairo_surface_flush(surface);
-    cairo_surface_flush(surface);
-}
-
-struct Colorpixel {
-    char hex[8];
-    uint32_t pixel;
-};
-
-static std::deque<std::unique_ptr<Colorpixel>> colorpixels{};
-
-static uint8_t RGB_8_TO_16(uint8_t i) {
-    return (65535 * ((i) & 0xFF) / 255);
-}
-
 /*
- * Returns the colorpixel to use for the given hex color (think of HTML).
+ * Get a GC for the given depth. The given drawable must have this depth.
  *
- * The hex_color has to start with #, for example #FF00FF.
- *
- * NOTE that get_colorpixel() does _NOT_ check the given color code for validity.
- * This has to be done by the caller.
- *
+ * Per the X11 protocol manual for "CreateGC":
+ * > The gcontext can be used with any destination drawable having the same root
+ * > and depth as the specified drawable;
  */
-static uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *hex) {
-    char alpha[2];
-    if (strlen(hex) == strlen("#rrggbbaa")) {
-        alpha[0] = hex[7];
-        alpha[1] = hex[8];
-    } else {
-        alpha[0] = alpha[1] = 'F';
-    }
+static xcb_gcontext_t get_gc(xcb_connection_t *conn, uint8_t depth, xcb_drawable_t drawable, bool *should_free) {
+    static struct {
+        uint8_t depth;
+        xcb_gcontext_t gc;
+    } gc_cache[2] = {
+        0,
+    };
 
-    char strgroups[4][3] = {
-        {hex[1], hex[2], '\0'},
-        {hex[3], hex[4], '\0'},
-        {hex[5], hex[6], '\0'},
-        {alpha[0], alpha[1], '\0'}};
-    uint8_t r = strtol(strgroups[0], nullptr, 16);
-    uint8_t g = strtol(strgroups[1], nullptr, 16);
-    uint8_t b = strtol(strgroups[2], nullptr, 16);
-    uint8_t a = strtol(strgroups[3], NULL, 16);
+    size_t index = 0;
+    bool cache = false;
 
-    /* Shortcut: if our screen is true color, no need to do a roundtrip to X11 */
-    if (root_screen == nullptr || root_screen->root_depth == 24 || root_screen->root_depth == 32) {
-        return (a << 24) | (r << 16 | g << 8 | b);
-    }
-
-    /* Lookup this colorpixel in the cache */
-    for (const auto &colorpixel : colorpixels) {
-        if (strcmp(colorpixel->hex, hex) == 0) {
-            return colorpixel->pixel;
+    *should_free = false;
+    for (; index < sizeof(gc_cache) / sizeof(gc_cache[0]); index++) {
+        if (gc_cache[index].depth == depth) {
+            return gc_cache[index].gc;
+        }
+        if (gc_cache[index].depth == 0) {
+            cache = true;
+            break;
         }
     }
 
-    int r16 = RGB_8_TO_16(r);
-    int g16 = RGB_8_TO_16(g);
-    int b16 = RGB_8_TO_16(b);
+    xcb_gcontext_t gc = xcb_generate_id(conn);
+    /* The drawable is only used to get the root and depth, thus the GC is not
+     * tied to the drawable and it can be re-used with different drawables. */
+    xcb_void_cookie_t gc_cookie = xcb_create_gc_checked(conn, gc, drawable, 0, NULL);
 
-    xcb_alloc_color_reply_t *reply;
-
-    reply = xcb_alloc_color_reply(conn, xcb_alloc_color(conn, root_screen->default_colormap, r16, g16, b16),
-                                  nullptr);
-
-    if (!reply) {
-        LOG("Could not allocate color\n");
-        exit(1);
+    xcb_generic_error_t *error = xcb_request_check(conn, gc_cookie);
+    if (error != nullptr) {
+        ELOG(fmt::sprintf("Could not create graphical context. Error code: %d. Please report this bug.\n", error->error_code));
+        free(error);
+        return gc;
     }
 
-    uint32_t pixel = reply->pixel;
-    free(reply);
+    if (cache) {
+        gc_cache[index].depth = depth;
+        gc_cache[index].gc = gc;
+    } else {
+        *should_free = true;
+    }
 
-    /* Store the result in the cache */
-    auto cache_pixel = std::make_unique<Colorpixel>();
+    return gc;
+}
 
-    strncpy(cache_pixel->hex, hex, 7);
-    cache_pixel->hex[7] = '\0';
+/*
+ * Get depth of visual specified by visualid
+ *
+ */
+uint16_t get_visual_depth(xcb_visualid_t visual_id) {
+    xcb_depth_iterator_t depth_iter;
 
-    cache_pixel->pixel = pixel;
+    depth_iter = xcb_screen_allowed_depths_iterator(global.x->root_screen);
+    for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
+        xcb_visualtype_iterator_t visual_iter;
 
-    colorpixels.push_front(std::move(cache_pixel));
-
-    return pixel;
+        visual_iter = xcb_depth_visuals_iterator(depth_iter.data);
+        for (; visual_iter.rem; xcb_visualtype_next(&visual_iter)) {
+            if (visual_id == visual_iter.data->visual_id) {
+                return depth_iter.data->depth;
+            }
+        }
+    }
+    return 0;
 }
 
 /*
@@ -134,15 +126,7 @@ void draw_util_surface_init(xcb_connection_t *conn, surface_t *surface, xcb_draw
         visual = global.x->visual_type;
     }
 
-    surface->gc = xcb_generate_id(conn);
-    xcb_void_cookie_t gc_cookie = xcb_create_gc_checked(conn, surface->gc, surface->id, 0, nullptr);
-
-    xcb_generic_error_t *error = xcb_request_check(conn, gc_cookie);
-    if (error != nullptr) {
-        ELOG(fmt::sprintf("Could not create graphical context. Error code: %d. Please report this bug.\n", error->error_code));
-        free(error);
-    }
-
+    surface->gc = get_gc(conn, get_visual_depth(visual->visual_id), drawable, &surface->owns_gc);
     surface->surface = cairo_xcb_surface_create(conn, surface->id, visual, width, height);
     surface->cr = cairo_create(surface->surface);
 }
@@ -161,11 +145,9 @@ void draw_util_surface_free(xcb_connection_t *conn, surface_t *surface) {
             status, cairo_status_to_string(status)));
     }
 
-    /* NOTE: This function is also called on uninitialised surface_t instances.
-     * The x11 error from xcb_free_gc(conn, XCB_NONE) is silently ignored
-     * elsewhere.
-     */
-    xcb_free_gc(conn, surface->gc);
+    if (surface->owns_gc) {
+        xcb_free_gc(conn, surface->gc);
+    }
     cairo_surface_destroy(surface->surface);
     cairo_destroy(surface->cr);
 

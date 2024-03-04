@@ -158,6 +158,7 @@ Match::Match(const Match &src) {
     if (is_initialized(src.instance))           this->instance = new Regex(*src.instance);
     if (is_initialized(src.window_role))        this->window_role = new Regex(*src.window_role);
     if (is_initialized(src.workspace))          this->workspace = new Regex(*src.workspace);
+    if (is_initialized(src.machine))            this->workspace = new Regex(*src.machine);
 }
 
 void checkWindowField(Regex *match_field, i3Window *window, char* (*window_field)(i3Window*)) {

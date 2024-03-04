@@ -93,15 +93,6 @@ export {
         void handle_map_request(xcb_map_request_event_t *event);
 
         /**
-         * Configure requests are received when the application wants to resize windows
-         * on their own.
-         *
-         * We generate a synthetic configure notify event to signalize the client its
-         * "new" position.
-         */
-        void handle_configure_request(xcb_configure_request_event_t *event);
-
-        /**
          * Gets triggered upon a RandR screen change event, that is when the user
          * changes the screen configuration in any way (mode, position, …)
          */
@@ -170,6 +161,15 @@ export {
          *
          */
         explicit PropertyHandlers(X *x);
+
+        /**
+         * Configure requests are received when the application wants to resize windows
+         * on their own.
+         *
+         * We generate a synthetic configure notify event to signalize the client its
+         * "new" position.
+         */
+        void handle_configure_request(xcb_configure_request_event_t *event);
 
         /**
          * Adds the given sequence to the list of events which are ignored.

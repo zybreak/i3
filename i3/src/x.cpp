@@ -200,9 +200,9 @@ void X::con_init(Con *con) {
     values[4] = win_colormap;
 
     Rect dims = {(uint32_t)-15, (uint32_t)-15, 10, 10};
-    xcb_window_t frame_id = create_window((xcb_connection_t*)**this, dims, con->depth, visual, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER, false, mask, values);
-    draw_util_surface_init(**this, &(con->frame), frame_id, get_visualtype_by_id(visual), dims.width, dims.height);
-    xcb_change_property(**this,
+    xcb_window_t frame_id = create_window((xcb_connection_t*)*this->conn, dims, con->depth, visual, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER, false, mask, values);
+    draw_util_surface_init(*this->conn, &(con->frame), frame_id, get_visualtype_by_id(visual), dims.width, dims.height);
+    xcb_change_property(*this->conn,
                         XCB_PROP_MODE_REPLACE,
                         con->frame.id,
                         XCB_ATOM_WM_CLASS,
@@ -668,6 +668,9 @@ void x_draw_decoration(Con *con) {
             /* Make sure the icon does not escape title boundaries */
             icon_offset_x = std::min(deco_width - icon_size - icon_padding - title_padding, title_offset_x + predict_text_width(config.font, **global.x, global.x->root_screen, title) + icon_padding);
             break;
+        default:
+            ELOG(fmt::sprintf("BUG: invalid config.title_align value %d\n", config.title_align));
+            return;
     }
 
     draw_util_text(**global.x, config.font, title, dest_surface,

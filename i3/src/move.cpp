@@ -250,6 +250,7 @@ static void move_to_output_directed(Con *con, direction_t direction) {
         con->con_focus();
         global.focused = old_ws;
         workspace_show(*ws);
+        con->con_focus();
     }
 
     /* force re-painting the indicators */
