@@ -274,12 +274,12 @@ void ConfigApplier::default_border(const std::string &windowtype, const std::str
     if (windowtype ==  "default_border"s || windowtype == "new_window"s) {
         DLOG(fmt::sprintf("default tiled border style = %d and border width = %d (%ld physical px)\n",
              border_style, border_width, logical_px(global.x->root_screen, border_width)));
-        config.default_border = (border_style_t)border_style;
+        config.default_border = static_cast<border_style_t>(border_style);
         config.default_border_width = logical_px(global.x->root_screen, border_width);
     } else {
         DLOG(fmt::sprintf("default floating border style = %d and border width = %d (%ld physical px)\n",
              border_style, border_width, logical_px(global.x->root_screen, border_width)));
-        config.default_floating_border = (border_style_t)border_style;
+        config.default_floating_border = static_cast<border_style_t>(border_style);
         config.default_floating_border_width = logical_px(global.x->root_screen, border_width);
     }
 }

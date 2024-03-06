@@ -72,7 +72,7 @@ static void ipc_push_pending(ipc_client *client) {
         return;
     }
 
-    if ((size_t)result == client->buffer_size) {
+    if (static_cast<size_t>(result) == client->buffer_size) {
         /* Everything was written successfully: clear the timer and stop the io
          * callback. */
         do {
@@ -112,9 +112,9 @@ static void ipc_push_pending(ipc_client *client) {
     }
 
     /* Shift the buffer to the left and reduce the allocated space. */
-    client->buffer_size -= (size_t)result;
+    client->buffer_size -= static_cast<size_t>(result);
     memmove(client->buffer, client->buffer + result, client->buffer_size);
-    client->buffer = (uint8_t*)srealloc(client->buffer, client->buffer_size);
+    client->buffer = static_cast<uint8_t*>(srealloc(client->buffer, client->buffer_size));
 }
 
 /*
@@ -128,7 +128,7 @@ static void ipc_send_client_message(ipc_client *client, const uint32_t message_t
 
     const i3ipc::i3_ipc_header_t header = {
         .magic = {'i', '3', '-', 'i', 'p', 'c'},
-        .size = (uint32_t)size,
+        .size = static_cast<uint32_t>(size),
         .type = message_type};
     const size_t header_size = sizeof(i3ipc::i3_ipc_header_t);
     const size_t message_size = header_size + size;
@@ -1047,7 +1047,7 @@ static void _sync_json_int(sync_state &state, long long val) {
     if (state.last_key == "rnd") {
         state.rnd = val;
     } else if (state.last_key == "window") {
-        state.window = (xcb_window_t)val;
+        state.window = static_cast<xcb_window_t>(val);
     }
 }
 

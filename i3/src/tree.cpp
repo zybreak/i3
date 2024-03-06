@@ -55,8 +55,8 @@ bool tree_restore(const std::string_view path, const xcb_get_geometry_reply_t *g
     /* TODO: refactor the following */
     global.croot = new RootCon();
     global.croot->rect = (Rect){
-        (uint32_t)geometry->x,
-        (uint32_t)geometry->y,
+        static_cast<uint32_t>(geometry->x),
+        static_cast<uint32_t>(geometry->y),
         geometry->width,
         geometry->height};
     global.focused = global.croot;
@@ -90,8 +90,8 @@ void tree_init(const xcb_get_geometry_reply_t *geometry) {
     global.croot = new RootCon();
     global.croot->layout = L_SPLITH;
     global.croot->rect = (Rect){
-        (uint32_t)geometry->x,
-        (uint32_t)geometry->y,
+        static_cast<uint32_t>(geometry->x),
+        static_cast<uint32_t>(geometry->y),
         geometry->width,
         geometry->height};
 }

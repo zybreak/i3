@@ -182,8 +182,8 @@ Output* RandR::output_containing_rect(Rect rect) {
     for (Output *output : outputs) {
         if (!output->active)
             continue;
-        int lx_o = (int)output->rect.x, uy_o = (int)output->rect.y;
-        int rx_o = (int)(output->rect.x + output->rect.width), by_o = (int)(output->rect.y + output->rect.height);
+        int lx_o = static_cast<int>(output->rect.x), uy_o = static_cast<int>(output->rect.y);
+        int rx_o = static_cast<int>(output->rect.x + output->rect.width), by_o = static_cast<int>(output->rect.y + output->rect.height);
         DLOG(fmt::sprintf("comparing x=%d y=%d with x=%d and y=%d width %d height %d\n",
              rect.x, rect.y, output->rect.x, output->rect.y, output->rect.width, output->rect.height));
         int left = std::max(lx, lx_o);

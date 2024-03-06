@@ -51,7 +51,7 @@ static string toString(antlr4::tree::ParseTree *p) {
         }
     }
 
-    return str.substr(0, std::max((int)str.size() - 1, 0));
+    return str.substr(0, std::max(static_cast<int>(str.size()) - 1, 0));
 }
 
 class VariableListener : public configGrammarBaseListener {

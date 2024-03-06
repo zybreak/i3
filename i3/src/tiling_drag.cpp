@@ -205,9 +205,9 @@ DRAGGING_CB(drag_callback) {
     /* Define the thresholds in pixels. The drop type depends on the cursor
      * position. */
     const uint32_t min_rect_dimension = std::min(rect.width, rect.height);
-    const uint32_t sibling_indicator_size = std::max(logical_px(global.x->root_screen, 2), (long)(sibling_indicator_percent_of_rect * min_rect_dimension));
+    const uint32_t sibling_indicator_size = std::max(logical_px(global.x->root_screen, 2), static_cast<long>(sibling_indicator_percent_of_rect * min_rect_dimension));
     const uint32_t parent_indicator_size = std::min(
-        (uint32_t)parent_indicator_max_size,
+        static_cast<uint32_t>(parent_indicator_max_size),
         /* For small containers, start where the sibling indicator finishes.
          * This is always at least 1 pixel. We use min() to not override the
          * sibling indicator: */

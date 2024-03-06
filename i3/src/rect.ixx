@@ -77,6 +77,6 @@ Rect& Rect::operator-=(const Rect &r) {
 }
 
 void Rect::rect_sanitize_dimensions() {
-    this->width = (int32_t)this->width <= 0 ? 1 : this->width;
-    this->height = (int32_t)this->height <= 0 ? 1 : this->height;
+    this->width = static_cast<int32_t>(this->width) <= 0 ? 1 : this->width;
+    this->height = static_cast<int32_t>(this->height) <= 0 ? 1 : this->height;
 }

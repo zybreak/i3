@@ -142,7 +142,7 @@ double percent_for_1px(Con *con) {
     const int parent_size = con_rect_size_in_orientation(con->parent);
     /* deco_rect.height is subtracted from each child in render_con_split */
     const int min_size = (con_orientation(con->parent) == HORIZ ? 1 : 1 + con->deco_rect.height);
-    return ((double)min_size / (double)parent_size);
+    return (static_cast<double>(min_size) / static_cast<double>(parent_size));
 }
 
 /*
@@ -160,11 +160,11 @@ bool resize_neighboring_cons(Con *first, Con *second, int px, int ppt) {
     double new_first_percent;
     double new_second_percent;
     if (ppt) {
-        new_first_percent = first->percent + ((double)ppt / 100.0);
-        new_second_percent = second->percent - ((double)ppt / 100.0);
+        new_first_percent = first->percent + (static_cast<double>(ppt) / 100.0);
+        new_second_percent = second->percent - (static_cast<double>(ppt) / 100.0);
     } else {
         /* Convert px change to change in percentages */
-        const double pct = (double)px / (double)con_rect_size_in_orientation(first->parent);
+        const double pct = static_cast<double>(px) / static_cast<double>(con_rect_size_in_orientation(first->parent));
         new_first_percent = first->percent + pct;
         new_second_percent = second->percent - pct;
     }

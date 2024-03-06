@@ -389,8 +389,8 @@ bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_g
         (size_hints.min_aspect_num >= 0) && (size_hints.min_aspect_den > 0) &&
         (size_hints.max_aspect_num >= 0) && (size_hints.max_aspect_den > 0)) {
         /* Convert numerator/denominator to a double */
-        double min_aspect = (double)size_hints.min_aspect_num / size_hints.min_aspect_den;
-        double max_aspect = (double)size_hints.max_aspect_num / size_hints.max_aspect_den;
+        double min_aspect = static_cast<double>(size_hints.min_aspect_num) / size_hints.min_aspect_den;
+        double max_aspect = static_cast<double>(size_hints.max_aspect_num) / size_hints.max_aspect_den;
         DLOG(fmt::sprintf("Aspect ratio set: minimum %f, maximum %f\n",  min_aspect, max_aspect));
         if (fabs(this->min_aspect_ratio - min_aspect) > DBL_EPSILON) {
             this->min_aspect_ratio = min_aspect;
@@ -559,15 +559,15 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
     uint32_t *data = nullptr;
     uint32_t width = 0, height = 0;
     uint64_t len = 0;
-    const auto pref_size = (uint32_t)(render_deco_height() - logical_px(global.x->root_screen, 2));
+    const auto pref_size = static_cast<uint32_t>(render_deco_height() - logical_px(global.x->root_screen, 2));
 
     if (!prop || prop->type != XCB_ATOM_CARDINAL || prop->format != 32) {
         DLOG("_NET_WM_ICON is not set\n");
         return;
     }
 
-    auto prop_value_len = (uint32_t)xcb_get_property_value_length(prop);
-    auto *prop_value = (uint32_t *)xcb_get_property_value(prop);
+    auto prop_value_len = static_cast<uint32_t>(xcb_get_property_value_length(prop));
+    auto *prop_value = static_cast<uint32_t*>(xcb_get_property_value(prop));
 
     /* Find an icon matching the preferred size.
      * If there is no such icon, take the smallest icon having at least
@@ -581,7 +581,7 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
         /* Check that the property is as long as it should be (in bytes),
            handling integer overflow. "+2" to handle the width and height
            fields. */
-        const uint64_t cur_len = cur_width * (uint64_t)cur_height;
+        const uint64_t cur_len = cur_width * static_cast<uint64_t>(cur_height);
         const uint64_t expected_len = (cur_len + 2) * 4;
 
         if (expected_len > prop_value_len) {
@@ -644,7 +644,7 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
         g = (g * a) / 0xff;
         b = (b * a) / 0xff;
 
-        icon[i] = ((uint32_t)a << 24) | (r << 16) | (g << 8) | b;
+        icon[i] = (static_cast<uint32_t>(a) << 24) | (r << 16) | (g << 8) | b;
     }
 
     if (this->icon != nullptr) {

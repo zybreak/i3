@@ -17,7 +17,7 @@ import log;
 static double dpi;
 
 static double init_dpi_fallback(xcb_screen_t *root_screen) {
-    return (double)root_screen->height_in_pixels * 25.4 / (double)root_screen->height_in_millimeters;
+    return static_cast<double>(root_screen->height_in_pixels) * 25.4 / static_cast<double>(root_screen->height_in_millimeters);
 }
 
 struct database_free

@@ -27,7 +27,7 @@ namespace i3ipc {
                 }
                 return n;
             }
-            written += (size_t)n;
+            written += static_cast<size_t>(n);
         }
 
         return written;

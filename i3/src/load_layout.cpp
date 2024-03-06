@@ -161,7 +161,7 @@ static void json_end_map(tree_append_ctx &ctx) {
             /* Force floating_enable to work */
             ctx.json_node->floating = FLOATING_AUTO_OFF;
             floating_enable(ctx.json_node, false);
-            ctx.json_node->floating = (con_floating_t)old_floating_mode;
+            ctx.json_node->floating = static_cast<con_floating_t>(old_floating_mode);
         }
 
         ctx.json_node = ctx.json_node->parent;
@@ -277,7 +277,7 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
              * last_split_layout. When we then encounter layout == "default",
              * we will use the last_split_layout as layout instead. */
             char *buf = nullptr;
-            sasprintf(&buf, "%.*s", (int)val.length(), val.c_str());
+            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
             if (strcasecmp(buf, "none") == 0 ||
                 strcasecmp(buf, "horizontal") == 0)
                 ctx.json_node->last_split_layout = L_SPLITH;
@@ -288,7 +288,7 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
             free(buf);
         } else if (ctx.last_key == "border") {
             char *buf = nullptr;
-            sasprintf(&buf, "%.*s", (int)val.length(), val.c_str());
+            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
             if (strcasecmp(buf, "none") == 0) {
                 ctx.json_node->max_user_border_style = BS_NONE;
                 ctx.json_node->border_style = BS_NONE;
@@ -308,7 +308,7 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
             free(buf);
         } else if (ctx.last_key == "type") {
             char *buf = nullptr;
-            sasprintf(&buf, "%.*s", (int)val.length(), val.c_str());
+            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
             if (strcasecmp(buf, "root") == 0)
                 ctx.json_node->type = CT_ROOT;
             else if (strcasecmp(buf, "output") == 0)
@@ -326,7 +326,7 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
             free(buf);
         } else if (ctx.last_key == "layout") {
             char *buf = nullptr;
-            sasprintf(&buf, "%.*s", (int)val.length(), val.c_str());
+            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
             if (strcasecmp(buf, "default") == 0)
                 /* This set above when we read "orientation". */
                 ctx.json_node->layout = ctx.json_node->last_split_layout;
@@ -347,7 +347,7 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
             free(buf);
         } else if (ctx.last_key == "workspace_layout") {
             char *buf = nullptr;
-            sasprintf(&buf, "%.*s", (int)val.length(), val.c_str());
+            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
             // TODO: needed to be commented out
             //if (strcasecmp(buf, "default") == 0)
             //    ctx.json_node->workspace_layout = L_DEFAULT;
@@ -360,7 +360,7 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
             free(buf);
         } else if (ctx.last_key == "last_split_layout") {
             char *buf = nullptr;
-            sasprintf(&buf, "%.*s", (int)val.length(), val.c_str());
+            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
             if (strcasecmp(buf, "splith") == 0)
                 ctx.json_node->last_split_layout = L_SPLITH;
             else if (strcasecmp(buf, "splitv") == 0)
@@ -370,7 +370,7 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
             free(buf);
         } else if (ctx.last_key == "floating") {
             char *buf = nullptr;
-            sasprintf(&buf, "%.*s", (int)val.length(), val.c_str());
+            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
             if (strcasecmp(buf, "auto_off") == 0)
                 ctx.json_node->floating = FLOATING_AUTO_OFF;
             else if (strcasecmp(buf, "auto_on") == 0)
@@ -382,7 +382,7 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
             free(buf);
         } else if (ctx.last_key == "scratchpad_state") {
             char *buf = nullptr;
-            sasprintf(&buf, "%.*s", (int)val.length(), val.c_str());
+            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
             if (strcasecmp(buf, "none") == 0)
                 ctx.json_node->scratchpad_state = SCRATCHPAD_NONE;
             else if (strcasecmp(buf, "fresh") == 0)
@@ -400,10 +400,10 @@ static void json_int(tree_append_ctx &ctx, long long val) {
     LOG(fmt::sprintf("int %lld for key %s\n",  val, ctx.last_key));
     /* For backwards compatibility with i3 < 4.8 */
     if (ctx.last_key == "type")
-        ctx.json_node->type = (con_type_t)val;
+        ctx.json_node->type = static_cast<con_type_t>(val);
 
     if (ctx.last_key == "fullscreen_mode")
-        ctx.json_node->fullscreen_mode = (fullscreen_mode_t)val;
+        ctx.json_node->fullscreen_mode = static_cast<fullscreen_mode_t>(val);
 
     if (ctx.last_key == "num")
         ctx.json_node->num = val;
@@ -456,7 +456,7 @@ static void json_int(tree_append_ctx &ctx, long long val) {
             ctx.swallow_is_empty = false;
         }
         if (ctx.last_key == "insert_where") {
-            current_swallow->insert_where = (match_insert_t)val;
+            current_swallow->insert_where = static_cast<match_insert_t>(val);
             ctx.swallow_is_empty = false;
         }
     }

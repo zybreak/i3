@@ -149,7 +149,7 @@ static int parse_restart_fd() {
         ELOG(fmt::sprintf("Malformed _I3_RESTART_FD \"%s\"\n", restart_fd));
         return -1;
     }
-    return (int)fd;
+    return static_cast<int>(fd);
 }
 
 void handle_extra_args(int argc, char *argv[]) {

@@ -94,7 +94,7 @@ export {
     void LOG(std::string_view msg, std::source_location loc = std::source_location::current()) {
         //spdlog::info(msg);
         //SPDLOG_INFO(msg);
-        spdlog::default_logger_raw()->log(spdlog::source_loc{loc.file_name(), (int)loc.line(), loc.function_name()}, spdlog::level::info, trim(msg));
+        spdlog::default_logger_raw()->log(spdlog::source_loc{loc.file_name(), static_cast<int>(loc.line()), loc.function_name()}, spdlog::level::info, trim(msg));
     }
 
     /**
@@ -103,7 +103,7 @@ export {
     void ELOG(std::string_view msg, std::source_location loc = std::source_location::current()) {
         //spdlog::error(msg);
         //SPDLOG_ERROR(msg);
-        spdlog::default_logger_raw()->log(spdlog::source_loc{loc.file_name(), (int)loc.line(), loc.function_name()}, spdlog::level::err, trim(msg));
+        spdlog::default_logger_raw()->log(spdlog::source_loc{loc.file_name(), static_cast<int>(loc.line()), loc.function_name()}, spdlog::level::err, trim(msg));
     }
 
     /**
@@ -114,6 +114,6 @@ export {
     void DLOG(std::string_view msg, std::source_location loc = std::source_location::current()) {
         //spdlog::debug(msg);
         //SPDLOG_DEBUG(msg);
-        spdlog::default_logger_raw()->log(spdlog::source_loc{loc.file_name(), (int)loc.line(), loc.function_name()}, spdlog::level::debug, trim(msg));
+        spdlog::default_logger_raw()->log(spdlog::source_loc{loc.file_name(), static_cast<int>(loc.line()), loc.function_name()}, spdlog::level::debug, trim(msg));
     }
 }

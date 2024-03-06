@@ -608,7 +608,7 @@ void x_draw_decoration(Con *con) {
 
     i3Window *win = con->window;
 
-    const int deco_width = (int)con->deco_rect.width;
+    const int deco_width = static_cast<int>(con->deco_rect.width);
     const int title_padding = logical_px(global.x->root_screen, 2);
 
     int mark_width = 0;
@@ -630,7 +630,7 @@ void x_draw_decoration(Con *con) {
 
     /* icon_padding is applied horizontally only, the icon will always use all
      * available vertical space. */
-    int icon_size = std::max(0, (int)(con->deco_rect.height - logical_px(global.x->root_screen, 2)));
+    int icon_size = std::max(0, static_cast<int>(con->deco_rect.height - logical_px(global.x->root_screen, 2)));
     int icon_padding = logical_px(global.x->root_screen, std::max(1, con->window_icon_padding));
     int total_icon_space = icon_size + 2 * icon_padding;
     const bool has_icon = (con->window_icon_padding > -1) && win && win->icon && (total_icon_space < deco_width);
@@ -994,8 +994,8 @@ void x_push_node(Con *con) {
             /* TODO: This is probably a bug in the condition above as we should
              * never enter this path for height == 0. Also, we should probably
              * handle width == 0 the same way. */
-            int width = std::max((int32_t)rect.width, 1);
-            int height = std::max((int32_t)rect.height, 1);
+            int width = std::max(static_cast<int32_t>(rect.width), 1);
+            int height = std::max(static_cast<int32_t>(rect.height), 1);
 
             DLOG(fmt::sprintf("creating %d x %d pixmap for con %p (con->frame_buffer.id = (pixmap_t)0x%08x) (con->frame.id (drawable_t)0x%08x)\n", width, height, fmt::ptr(con), con->frame_buffer.id, con->frame.id));
             xcb_create_pixmap(**global.x, win_depth, con->frame_buffer.id, con->frame.id, width, height);

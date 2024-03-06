@@ -88,10 +88,10 @@ void render_con(Con *con) {
     if (con->type == CT_WORKSPACE) {
         gaps_t gaps = calculate_effective_gaps(con);
         Rect inset = (Rect){
-            (uint32_t)gaps.left,
-            (uint32_t)gaps.top,
-            (uint32_t)-(gaps.left + gaps.right),
-            (uint32_t)-(gaps.top + gaps.bottom),
+            static_cast<uint32_t>(gaps.left),
+            static_cast<uint32_t>(gaps.top),
+            static_cast<uint32_t>(-gaps.left + gaps.right),
+            static_cast<uint32_t>(-gaps.top + gaps.bottom),
         };
         con->rect += inset;
         params.rect += inset;
@@ -102,10 +102,10 @@ void render_con(Con *con) {
     if (gaps_should_inset_con(con, params.children)) {
         gaps_t gaps = calculate_effective_gaps(con);
         Rect inset = (Rect){
-            (uint32_t)(gaps_has_adjacent_container(con, D_LEFT) ? gaps.inner / 2 : gaps.inner),
-            (uint32_t)(gaps_has_adjacent_container(con, D_UP) ? gaps.inner / 2 : gaps.inner),
-            (uint32_t)(gaps_has_adjacent_container(con, D_RIGHT) ? -(gaps.inner / 2) : -gaps.inner),
-            (uint32_t)(gaps_has_adjacent_container(con, D_DOWN) ? -(gaps.inner / 2) : -gaps.inner),
+            static_cast<uint32_t>(gaps_has_adjacent_container(con, D_LEFT) ? gaps.inner / 2 : gaps.inner),
+            static_cast<uint32_t>(gaps_has_adjacent_container(con, D_UP) ? gaps.inner / 2 : gaps.inner),
+            static_cast<uint32_t>(gaps_has_adjacent_container(con, D_RIGHT) ? -(gaps.inner / 2) : -gaps.inner),
+            static_cast<uint32_t>(gaps_has_adjacent_container(con, D_DOWN) ? -(gaps.inner / 2) : -gaps.inner),
         };
         inset.width -= inset.x;
         inset.height -= inset.y;
@@ -487,7 +487,7 @@ static void render_con_tabbed(Con *con, Con *child, render_params *p, int i) {
     child->rect.width = p->rect.width;
     child->rect.height = p->rect.height;
 
-    child->deco_rect.width = floor((double)child->rect.width / p->children);
+    child->deco_rect.width = floor(static_cast<double>(child->rect.width) / p->children);
     child->deco_rect.x = p->x - con->rect.x + i * child->deco_rect.width;
     child->deco_rect.y = p->y - con->rect.y;
 

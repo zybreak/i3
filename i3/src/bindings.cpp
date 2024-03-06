@@ -309,7 +309,7 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
          * keycode */
         bool found_keycode = false;
         if (input_type == B_KEYBOARD && !bind->symbol.empty()) {
-            auto input_keycode = (xcb_keycode_t)input_code;
+            auto input_keycode = static_cast<xcb_keycode_t>(input_code);
             for (auto &binding_keycode : bind->keycodes_head) {
                 const uint32_t modifiers_mask = (binding_keycode.modifiers & 0x0000FFFF);
                 const bool mods_match = (modifiers_mask == modifiers_state);
@@ -527,7 +527,7 @@ void translate_keysyms() {
         }
 
         DLOG(fmt::sprintf("Binding %p group = %d, event_state_mask = %d, &2 = %s, &3 = %s, &4 = %s\n",
-             (void*)bind.get(),
+             fmt::ptr(bind.get()),
              group,
              bind->event_state_mask,
              (bind->event_state_mask & I3_XKB_GROUP_MASK_2) ? "yes" : "no",

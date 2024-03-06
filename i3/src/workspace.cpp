@@ -482,7 +482,7 @@ void workspace_show(Con *workspace) {
 
     /* Display urgency hint for a while if the newly visible workspace would
      * focus and thereby immediately destroy it */
-    if (next->urgent && (int)(config.workspace_urgency_timer * 1000) > 0) {
+    if (next->urgent && static_cast<int>(config.workspace_urgency_timer * 1000) > 0) {
         /* focus for now… */
         next->urgent = false;
         next->con_focus();

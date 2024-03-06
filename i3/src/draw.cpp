@@ -251,7 +251,7 @@ void draw_util_image(cairo_surface_t *image, surface_t *surface, int x, int y, i
 
     const int src_width = cairo_image_surface_get_width(image);
     const int src_height = cairo_image_surface_get_height(image);
-    double scale = std::min((double)width / src_width, (double)height / src_height);
+    double scale = std::min(static_cast<double>(width) / src_width, static_cast<double>(height) / src_height);
     cairo_scale(surface->cr, scale, scale);
 
     cairo_set_source_surface(surface->cr, image, 0, 0);

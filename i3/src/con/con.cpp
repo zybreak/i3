@@ -1032,7 +1032,7 @@ void con_toggle_fullscreen(Con *con, int fullscreen_mode) {
     DLOG(fmt::sprintf("toggling fullscreen for %p / %s\n",  (void*)con, con->name));
 
     if (con->fullscreen_mode == CF_NONE) {
-        con_enable_fullscreen(con, (fullscreen_mode_t)fullscreen_mode);
+        con_enable_fullscreen(con, static_cast<fullscreen_mode_t>(fullscreen_mode));
     } else {
         con_disable_fullscreen(con);
     }
@@ -1641,9 +1641,9 @@ static Rect con_border_style_rect_without_title(Con *con) {
         return (Rect){0, 0, 0, 0};
     }
     if (border_style == BS_NORMAL) {
-        result = (Rect){(uint32_t)border_width, 0, (uint32_t)-(2 * border_width), (uint32_t)-(border_width)};
+        result = (Rect){static_cast<uint32_t>(border_width), 0, static_cast<uint32_t>(-2 * border_width), static_cast<uint32_t>(-border_width)};
     } else {
-        result = (Rect){(uint32_t)border_width, (uint32_t)border_width, (uint32_t)-(2 * border_width), (uint32_t)-(2 * border_width)};
+        result = (Rect){static_cast<uint32_t>(border_width), static_cast<uint32_t>(border_width), static_cast<uint32_t>(-2 * border_width), static_cast<uint32_t>(-2 * border_width)};
     }
 
     /* If hide_edge_borders is set to no_gaps and it did not pass the no border check, show all borders */
@@ -1701,16 +1701,16 @@ adjacent_t con_adjacent_borders(Con *con) {
 
     Con *workspace = con->con_get_workspace();
     if (con->rect.x == workspace->rect.x) {
-        result = (adjacent_t)(result | ADJ_LEFT_SCREEN_EDGE);
+        result = static_cast<adjacent_t>(result | ADJ_LEFT_SCREEN_EDGE);
     }
     if (con->rect.x + con->rect.width == workspace->rect.x + workspace->rect.width) {
-        result = (adjacent_t)(result | ADJ_RIGHT_SCREEN_EDGE);
+        result = static_cast<adjacent_t>(result | ADJ_RIGHT_SCREEN_EDGE);
     }
     if (con->rect.y == workspace->rect.y) {
-        result = (adjacent_t)(result | ADJ_UPPER_SCREEN_EDGE);
+        result = static_cast<adjacent_t>(result | ADJ_UPPER_SCREEN_EDGE);
     }
     if (con->rect.y + con->rect.height == workspace->rect.y + workspace->rect.height) {
-        result = (adjacent_t)(result | ADJ_LOWER_SCREEN_EDGE);
+        result = static_cast<adjacent_t>(result | ADJ_LOWER_SCREEN_EDGE);
     }
     return result;
 }
@@ -1760,7 +1760,7 @@ void con_set_border_style(Con *con, border_style_t border_style, int border_widt
 
     /* Handle the simple case: non-floating containerns */
     if (!con->con_is_floating()) {
-        con->border_style = (border_style_t)border_style;
+        con->border_style = static_cast<border_style_t>(border_style);
         con->current_border_width = border_width;
         return;
     }
@@ -1777,7 +1777,7 @@ void con_set_border_style(Con *con, border_style_t border_style, int border_widt
     parent->rect += bsr;
 
     /* Change the border style, get new border/decoration values. */
-    con->border_style = (border_style_t)border_style;
+    con->border_style = static_cast<border_style_t>(border_style);
     con->current_border_width = border_width;
     bsr = con_border_style_rect(con);
 

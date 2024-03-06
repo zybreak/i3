@@ -102,7 +102,7 @@ static cmdp_state next_state(const cmdp_token &token, stack &stack, criteria_sta
             }
         }
 
-        auto state = (cmdp_state)subcommand_output.next_state;
+        auto state = static_cast<cmdp_state>(subcommand_output.next_state);
         /* If any subcommand requires a tree_render(), we need to make the
          * whole parser result request a tree_render(). */
         if (subcommand_output.needs_tree_render) {
@@ -286,7 +286,7 @@ CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, i
 
     /* The "<=" operator is intentional: We also handle the terminating 0-byte
      * explicitly by looking for an 'end' token. */
-    while ((size_t)(walk - input.c_str()) <= len) {
+    while (static_cast<size_t>(walk - input.c_str()) <= len) {
         /* skip whitespace and newlines before every token */
         while ((*walk == ' ' || *walk == '\t' ||
                 *walk == '\r' || *walk == '\n') &&

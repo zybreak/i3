@@ -188,10 +188,10 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
 
        /* The reply data: approximate frame size */
        Rect r = {
-           (uint32_t)config.default_border_width, /* left */
-           (uint32_t)config.default_border_width, /* right */
-           (uint32_t)render_deco_height(),        /* top */
-           (uint32_t)config.default_border_width  /* bottom */
+           static_cast<uint32_t>(config.default_border_width), /* left */
+           static_cast<uint32_t>(config.default_border_width), /* right */
+           static_cast<uint32_t>(render_deco_height()),        /* top */
+           static_cast<uint32_t>(config.default_border_width)  /* bottom */
        };
        xcb_change_property(
            **global.x,
@@ -297,10 +297,10 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
        uint32_t y_root = event->data.data32[1];
        /* construct fake xcb_button_press_event_t */
        xcb_button_press_event_t fake = {
-           .root_x = (int16_t)x_root,
-           .root_y = (int16_t)y_root,
-           .event_x = (int16_t)(x_root - (con->rect.x)),
-           .event_y = (int16_t)(y_root - (con->rect.y))};
+           .root_x = static_cast<int16_t>(x_root),
+           .root_y = static_cast<int16_t>(y_root),
+           .event_x = static_cast<int16_t>(x_root - (con->rect.x)),
+           .event_y = static_cast<int16_t>(y_root - (con->rect.y))};
        switch (direction) {
            case _NET_WM_MOVERESIZE_MOVE:
                floating_drag_window(con->parent, &fake, false);

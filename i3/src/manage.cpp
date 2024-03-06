@@ -264,7 +264,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     cwindow->wm_desktop = NET_WM_DESKTOP_NONE;
     if (wm_desktop_reply != nullptr && xcb_get_property_value_length(wm_desktop_reply) != 0) {
         auto *wm_desktops = (uint32_t *)xcb_get_property_value(wm_desktop_reply);
-        cwindow->wm_desktop = (int32_t)wm_desktops[0];
+        cwindow->wm_desktop = static_cast<int32_t>(wm_desktops[0]);
     }
 
     /* check if the window needs WM_TAKE_FOCUS */
@@ -293,7 +293,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             cwindow->dock = i3Window::W_DOCK_BOTTOM;
         } else {
             DLOG("Ignoring invalid reserved edges (_NET_WM_STRUT_PARTIAL), using position as fallback:\n");
-            if (geom->y < (int16_t)(search_at->rect.height / 2)) {
+            if (geom->y < static_cast<int16_t>(search_at->rect.height / 2)) {
                 DLOG(fmt::sprintf("geom->y = %d < rect.height / 2 = %d, it is a top dock client\n",
                                   geom->y, (search_at->rect.height / 2)));
                 cwindow->dock = i3Window::W_DOCK_TOP;
@@ -438,7 +438,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         /* If this window is already fullscreen (after restarting!), skip
          * toggling fullscreen, that would drop it out of fullscreen mode. */
         if (fs != nc) {
-            Output *output = global.randr->get_output_with_dimensions((Rect){(uint32_t)geom->x, (uint32_t)geom->y, geom->width, geom->height});
+            Output *output = global.randr->get_output_with_dimensions((Rect){static_cast<uint32_t>(geom->x), static_cast<uint32_t>(geom->y), geom->width, geom->height});
             /* If the requested window geometry spans the whole area
              * of an output, move the window to that output. This is
              * needed e.g. for LibreOffice Impress multi-monitor
@@ -545,7 +545,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
      * which are not managed by the wm anyways). We store the original geometry
      * here because it’s used for dock clients. */
     if (nc->geometry.width == 0) {
-        nc->geometry = (Rect){(uint32_t)geom->x, (uint32_t)geom->y, geom->width, geom->height};
+        nc->geometry = (Rect){static_cast<uint32_t>(geom->x), static_cast<uint32_t>(geom->y), geom->width, geom->height};
     }
 
     if (want_floating) {

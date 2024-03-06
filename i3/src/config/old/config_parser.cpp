@@ -99,7 +99,7 @@ static void next_state(const cmdp_token *token, parser_ctx &ctx) {
         if (subcommand_output.has_errors) {
             ctx.has_errors = true;
         }
-        _next_state = (cmdp_state)subcommand_output.next_state;
+        _next_state = static_cast<cmdp_state>(subcommand_output.next_state);
         clear_stack(ctx.stack);
     }
 
@@ -111,7 +111,7 @@ static void next_state(const cmdp_token *token, parser_ctx &ctx) {
     /* See if we are jumping back to a state in which we were in previously
      * (statelist contains INITIAL) and just move statelist_idx accordingly. */
     for (int i = 0; i < ctx.statelist_idx; i++) {
-        if ((cmdp_state)(ctx.statelist[i]) != _next_state) {
+        if (static_cast<cmdp_state>(ctx.statelist[i]) != _next_state) {
             continue;
         }
         ctx.statelist_idx = i + 1;
@@ -424,7 +424,7 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
 
     /* The "<=" operator is intentional: We also handle the terminating 0-byte
      * explicitly by looking for an 'end' token. */
-    while ((size_t)(walk - input.c_str()) <= len) {
+    while (static_cast<size_t>(walk - input.c_str()) <= len) {
         /* Skip whitespace before every token, newlines are relevant since they
          * separate configuration directives. */
         while ((*walk == ' ' || *walk == '\t') && *walk != '\0') {
@@ -557,7 +557,7 @@ static void read_file(FILE *fstr, BaseResourceDatabase &resourceDatabase, char *
             if (!comment) {
                 continue;
             }
-            DLOG(fmt::sprintf("line continuation in comment is ignored: \"%.*s\"\n", (int)strlen(buffer) - 1, buffer));
+            DLOG(fmt::sprintf("line continuation in comment is ignored: \"%.*s\"\n", static_cast<int>(strlen(buffer)) - 1, buffer));
             continuation = nullptr;
         }
 

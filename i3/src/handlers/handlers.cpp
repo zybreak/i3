@@ -373,8 +373,8 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
         }
 
         if (event->value_mask & XCB_CONFIG_WINDOW_X || event->value_mask & XCB_CONFIG_WINDOW_Y) {
-            int16_t x = event->value_mask & XCB_CONFIG_WINDOW_X ? event->x : (int16_t)con->geometry.x;
-            int16_t y = event->value_mask & XCB_CONFIG_WINDOW_Y ? event->y : (int16_t)con->geometry.y;
+            int16_t x = event->value_mask & XCB_CONFIG_WINDOW_X ? event->x : static_cast<int16_t>(con->geometry.x);
+            int16_t y = event->value_mask & XCB_CONFIG_WINDOW_Y ? event->y : static_cast<int16_t>(con->geometry.y);
 
             Con *current_output = con->con_get_output();
             Output *target = global.randr->get_output_containing(x, y);
@@ -1433,7 +1433,7 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
 
         if (shape->shape_kind == XCB_SHAPE_SK_BOUNDING ||
             shape->shape_kind == XCB_SHAPE_SK_INPUT) {
-            x_set_shape(con, (xcb_shape_sk_t)shape->shape_kind, shape->shaped);
+            x_set_shape(con, static_cast<xcb_shape_sk_t>(shape->shape_kind), shape->shaped);
         }
 
         return;

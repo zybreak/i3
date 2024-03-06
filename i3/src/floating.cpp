@@ -156,7 +156,7 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
              * this case according to the ICCCM. */
             double width = floating_con->rect.width - window->base_width - border_rect.width;
             double height = floating_con->rect.height - window->base_height - border_rect.height;
-            const double ar = (double)width / (double)height;
+            const double ar = static_cast<double>(width) / static_cast<double>(height);
             double new_ar = -1;
             if (min_ar > 0 && ar < min_ar) {
                 new_ar = min_ar;
@@ -198,7 +198,7 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
         if (config.floating_minimum_height == 0) {
             floating_con->rect.height = std::max(floating_con->rect.height, floating_sane_min_height);
         } else {
-            floating_con->rect.height = std::max(floating_con->rect.height, (uint32_t)config.floating_minimum_height);
+            floating_con->rect.height = std::max(floating_con->rect.height, static_cast<uint32_t>(config.floating_minimum_height));
         }
         floating_con->rect.height += border_rect.height;
     }
@@ -208,7 +208,7 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
         if (config.floating_minimum_width == 0) {
             floating_con->rect.width = std::max(floating_con->rect.width, floating_sane_min_width);
         } else {
-            floating_con->rect.width = std::max(floating_con->rect.width, (uint32_t)config.floating_minimum_width);
+            floating_con->rect.width = std::max(floating_con->rect.width, static_cast<uint32_t>(config.floating_minimum_width));
         }
         floating_con->rect.width += border_rect.width;
     }
@@ -222,7 +222,7 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
         if (config.floating_maximum_height == 0) {
             floating_con->rect.height = std::min(floating_con->rect.height, floating_sane_max_dimensions.height);
         } else {
-            floating_con->rect.height = std::min(floating_con->rect.height, (uint32_t)config.floating_maximum_height);
+            floating_con->rect.height = std::min(floating_con->rect.height, static_cast<uint32_t>(config.floating_maximum_height));
         }
         floating_con->rect.height += border_rect.height;
     }
@@ -232,7 +232,7 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
         if (config.floating_maximum_width == 0) {
             floating_con->rect.width = std::min(floating_con->rect.width, floating_sane_max_dimensions.width);
         } else {
-            floating_con->rect.width = std::min(floating_con->rect.width, (uint32_t)config.floating_maximum_width);
+            floating_con->rect.width = std::min(floating_con->rect.width, static_cast<uint32_t>(config.floating_maximum_width));
         }
         floating_con->rect.width += border_rect.width;
     }
@@ -560,8 +560,8 @@ void floating_move_to_pointer(Con *con) {
     free(reply);
 
     /* Correct target coordinates to be in-bounds. */
-    x = std::max(x, (int32_t)output->rect.x);
-    y = std::max(y, (int32_t)output->rect.y);
+    x = std::max(x, static_cast<int32_t>(output->rect.x));
+    y = std::max(y, static_cast<int32_t>(output->rect.y));
     if (x + con->rect.width > output->rect.x + output->rect.width) {
         x = output->rect.x + output->rect.width - con->rect.width;
     }
@@ -570,7 +570,7 @@ void floating_move_to_pointer(Con *con) {
     }
 
     /* Update container's coordinates to position it correctly. */
-    floating_reposition(con, (Rect){(uint32_t)x, (uint32_t)y, con->rect.width, con->rect.height});
+    floating_reposition(con, (Rect){static_cast<uint32_t>(x), static_cast<uint32_t>(y), con->rect.width, con->rect.height});
 }
 
 static void drag_window_callback(Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y,
@@ -651,7 +651,7 @@ static void resize_window_callback(Con *con, const Rect &old_rect, uint32_t new_
     uint32_t dest_width;
     uint32_t dest_height;
 
-    double ratio = (double)old_rect.width / old_rect.height;
+    double ratio = static_cast<double>(old_rect.width) / old_rect.height;
 
     /* First guess: We resize by exactly the amount the mouse moved,
      * taking into account in which corner the client was grabbed */
@@ -669,11 +669,11 @@ static void resize_window_callback(Con *con, const Rect &old_rect, uint32_t new_
 
     /* User wants to keep proportions, so we may have to adjust our values */
     if (params->proportional) {
-        dest_width = std::max(dest_width, (uint32_t)(dest_height * ratio));
-        dest_height = std::max(dest_height, (uint32_t)(dest_width / ratio));
+        dest_width = std::max(dest_width, static_cast<uint32_t>(dest_height * ratio));
+        dest_height = std::max(dest_height, static_cast<uint32_t>(dest_width / ratio));
     }
 
-    con->rect = (Rect){(uint32_t)dest_x, (uint32_t)dest_y, dest_width, dest_height};
+    con->rect = (Rect){static_cast<uint32_t>(dest_x), static_cast<uint32_t>(dest_y), dest_width, dest_height};
 
     /* Obey window size */
     floating_check_size(con, false);
@@ -711,20 +711,20 @@ void floating_resize_window(Con *con, const bool proportional,
 
     /* corner saves the nearest corner to the original click. It contains
      * a bitmask of the nearest borders (BORDER_LEFT, BORDER_RIGHT, …) */
-    auto corner = (border_t)0;
+    auto corner = static_cast<border_t>(0);
 
-    if (event->event_x <= (int16_t)(con->rect.width / 2)) {
-        corner = (border_t)(corner | BORDER_LEFT);
+    if (event->event_x <= static_cast<int16_t>(con->rect.width / 2)) {
+        corner = static_cast<border_t>(corner | BORDER_LEFT);
     } else {
-        corner = (border_t)(corner | BORDER_RIGHT);
+        corner = static_cast<border_t>(corner | BORDER_RIGHT);
     }
 
     int cursor = 0;
-    if (event->event_y <= (int16_t)(con->rect.height / 2)) {
-        corner = (border_t)(corner | BORDER_TOP);
+    if (event->event_y <= static_cast<int16_t>(con->rect.height / 2)) {
+        corner = static_cast<border_t>(corner | BORDER_TOP);
         cursor = (corner & BORDER_LEFT) ? XCURSOR_CURSOR_TOP_LEFT_CORNER : XCURSOR_CURSOR_TOP_RIGHT_CORNER;
     } else {
-        corner = (border_t)(corner | BORDER_BOTTOM);
+        corner = static_cast<border_t>(corner | BORDER_BOTTOM);
         cursor = (corner & BORDER_LEFT) ? XCURSOR_CURSOR_BOTTOM_LEFT_CORNER : XCURSOR_CURSOR_BOTTOM_RIGHT_CORNER;
     }
 
@@ -828,15 +828,15 @@ void floating_fix_coordinates(Con *con, const Rect &old_rect, const Rect &new_re
                       new_rect.x, new_rect.y, new_rect.width, new_rect.height));
     /* First we get the x/y coordinates relative to the x/y coordinates
      * of the output on which the window is on */
-    int32_t rel_x = con->rect.x - old_rect.x + (int32_t)(con->rect.width / 2);
-    int32_t rel_y = con->rect.y - old_rect.y + (int32_t)(con->rect.height / 2);
+    int32_t rel_x = con->rect.x - old_rect.x + static_cast<int32_t>(con->rect.width / 2);
+    int32_t rel_y = con->rect.y - old_rect.y + static_cast<int32_t>(con->rect.height / 2);
     /* Then we calculate a fraction, for example 0.63 for a window
      * which is at y = 1212 of a 1920 px high output */
     DLOG(fmt::sprintf("rel_x = %d, rel_y = %d, fraction_x = %f, fraction_y = %f, output->w = %d, output->h = %d\n",
-                      rel_x, rel_y, (double)rel_x / old_rect.width, (double)rel_y / old_rect.height,
+                      rel_x, rel_y, static_cast<double>(rel_x) / old_rect.width, static_cast<double>(rel_y) / old_rect.height,
                       old_rect.width, old_rect.height));
     /* Here we have to multiply at first. Or we will lose precision when not compiled with -msse2 */
-    con->rect.x = (int32_t)new_rect.x + (double)(rel_x * (int32_t)new_rect.width) / (int32_t)old_rect.width - (int32_t)(con->rect.width / 2);
-    con->rect.y = (int32_t)new_rect.y + (double)(rel_y * (int32_t)new_rect.height) / (int32_t)old_rect.height - (int32_t)(con->rect.height / 2);
+    con->rect.x = static_cast<int32_t>(new_rect.x) + static_cast<double>(rel_x * static_cast<int32_t>(new_rect.width)) / static_cast<int32_t>(old_rect.width) - static_cast<int32_t>(con->rect.width / 2);
+    con->rect.y = static_cast<int32_t>(new_rect.y) + static_cast<double>(rel_y * static_cast<int32_t>(new_rect.height)) / static_cast<int32_t>(old_rect.height) - static_cast<int32_t>(con->rect.height / 2);
     DLOG(fmt::sprintf("Resulting coordinates: x = %d, y = %d\n", con->rect.x, con->rect.y));
 }

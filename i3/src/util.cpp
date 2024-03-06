@@ -163,7 +163,7 @@ static ssize_t writeall(int fd, const void *buf, size_t count) {
             }
             return n;
         }
-        written += (size_t)n;
+        written += static_cast<size_t>(n);
     }
 
     return written;
@@ -218,7 +218,7 @@ static std::string store_restart_layout() {
     close(fd);
 
     if (payload.length() > 0) {
-        DLOG(fmt::sprintf("layout: %.*s\n",  (int)payload.length(), payload));
+        DLOG(fmt::sprintf("layout: %.*s\n",  static_cast<int>(payload.length()), payload));
     }
 
     return filename;
@@ -354,7 +354,7 @@ ssize_t writeall_nonblock(int fd, const void *buf, size_t count) {
                 return n;
             }
         }
-        written += (size_t)n;
+        written += static_cast<size_t>(n);
     }
     return written;
 }
