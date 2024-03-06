@@ -152,10 +152,10 @@ static bool con_on_side_of_parent(Con *con, direction_t direction) {
  *
  */
 #define DRAGGING_CB(name)                                                      \
-    static void name(Con *con, Rect *old_rect, uint32_t new_x, uint32_t new_y, \
+    static void name(Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y, \
                      const xcb_button_press_event_t *event, const void *extra)
 
-void create_indicator(drop_type_t drop_type, direction_t direction, Con *target, Rect rect, bool draw_window, Con *con, Rect *old_rect, uint32_t new_x, uint32_t new_y, \
+void create_indicator(drop_type_t drop_type, direction_t direction, Con *target, Rect rect, bool draw_window, Con *con, const Rect&, uint32_t new_x, uint32_t new_y, \
                           const xcb_button_press_event_t *event, const callback_params *params) {
     if (draw_window) {
         if (*(params->indicator) == 0) {

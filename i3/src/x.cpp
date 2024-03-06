@@ -1448,9 +1448,9 @@ void x_set_i3_atoms() {
  * x_push_changes().
  *
  */
-void x_set_warp_to(Rect *rect) {
+void x_set_warp_to(std::optional<Rect> rect) {
     if (config.mouse_warping != POINTER_WARPING_NONE) {
-        global.x->warp_to = (rect != nullptr) ? std::optional{*rect} : std::nullopt;
+        global.x->warp_to = rect;
     }
 }
 

@@ -508,7 +508,7 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
     for (auto &workspace : content->nodes_head) {
         if (dynamic_cast<WorkspaceCon*>(workspace)) {
             for (auto &child : dynamic_cast<WorkspaceCon*>(workspace)->floating_windows) {
-                floating_fix_coordinates(child, &(workspace->rect), &(output->con->rect));
+                floating_fix_coordinates(child, workspace->rect, output->con->rect);
             }
         }
     }
@@ -828,7 +828,7 @@ static void move_content(Con *con) {
         DLOG("Fixing the coordinates of floating containers\n");
         if (dynamic_cast<WorkspaceCon*>(current)) {
             for (auto &floating_con : dynamic_cast<WorkspaceCon*>(current)->floating_windows) {
-                floating_fix_coordinates(floating_con, &(con->rect), &(first->rect));
+                floating_fix_coordinates(floating_con, con->rect, first->rect);
             }
         }
     }

@@ -401,7 +401,7 @@ bool floating_enable(Con *con, bool automatic) {
         /* If moving from one output to another, keep the relative position
          * consistent (e.g. a centered dialog will remain centered). */
         if (current_output) {
-            floating_fix_coordinates(nc, &current_output->con->rect, &correct_output->rect);
+            floating_fix_coordinates(nc, current_output->con->rect, correct_output->rect);
             /* Make sure that the result is in the correct output. */
             current_output = get_output_from_rect(nc->rect);
         }
@@ -573,11 +573,11 @@ void floating_move_to_pointer(Con *con) {
     floating_reposition(con, (Rect){(uint32_t)x, (uint32_t)y, con->rect.width, con->rect.height});
 }
 
-static void drag_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uint32_t new_y,
+static void drag_window_callback(Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y,
                                  const xcb_button_press_event_t *event, const void *extra) {
     /* Reposition the client correctly while moving */
-    con->rect.x = old_rect->x + (new_x - event->root_x);
-    con->rect.y = old_rect->y + (new_y - event->root_y);
+    con->rect.x = old_rect.x + (new_x - event->root_x);
+    con->rect.y = old_rect.y + (new_y - event->root_y);
 
     render_con(con);
     x_push_node(con);
@@ -588,7 +588,7 @@ static void drag_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uint3
         return;
     }
     /* Ensure not to warp the pointer while dragging */
-    x_set_warp_to(nullptr);
+    x_set_warp_to(std::nullopt);
     tree_render();
 }
 
@@ -641,7 +641,7 @@ struct resize_window_callback_params {
     const bool proportional;
 };
 
-static void resize_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uint32_t new_y,
+static void resize_window_callback(Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y,
                                    const xcb_button_press_event_t *event, const void *extra) {
     const struct resize_window_callback_params *params = (struct resize_window_callback_params *)extra;
     border_t corner = params->corner;
@@ -651,20 +651,20 @@ static void resize_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uin
     uint32_t dest_width;
     uint32_t dest_height;
 
-    double ratio = (double)old_rect->width / old_rect->height;
+    double ratio = (double)old_rect.width / old_rect.height;
 
     /* First guess: We resize by exactly the amount the mouse moved,
      * taking into account in which corner the client was grabbed */
     if (corner & BORDER_LEFT) {
-        dest_width = old_rect->width - (new_x - event->root_x);
+        dest_width = old_rect.width - (new_x - event->root_x);
     } else {
-        dest_width = old_rect->width + (new_x - event->root_x);
+        dest_width = old_rect.width + (new_x - event->root_x);
     }
 
     if (corner & BORDER_TOP) {
-        dest_height = old_rect->height - (new_y - event->root_y);
+        dest_height = old_rect.height - (new_y - event->root_y);
     } else {
-        dest_height = old_rect->height + (new_y - event->root_y);
+        dest_height = old_rect.height + (new_y - event->root_y);
     }
 
     /* User wants to keep proportions, so we may have to adjust our values */
@@ -681,11 +681,11 @@ static void resize_window_callback(Con *con, Rect *old_rect, uint32_t new_x, uin
     /* If not the lower right corner is grabbed, we must also reposition
      * the client by exactly the amount we resized it */
     if (corner & BORDER_LEFT) {
-        dest_x = old_rect->x + (old_rect->width - con->rect.width);
+        dest_x = old_rect.x + (old_rect.width - con->rect.width);
     }
 
     if (corner & BORDER_TOP) {
-        dest_y = old_rect->y + (old_rect->height - con->rect.height);
+        dest_y = old_rect.y + (old_rect.height - con->rect.height);
     }
 
     con->rect.x = dest_x;
@@ -819,24 +819,24 @@ void floating_resize(Con *floating_con, uint32_t x, uint32_t y) {
  * reassigned to a different output (or when the output’s rect changes).
  *
  */
-void floating_fix_coordinates(Con *con, Rect *old_rect, Rect *new_rect) {
+void floating_fix_coordinates(Con *con, const Rect &old_rect, const Rect &new_rect) {
     DLOG(fmt::sprintf("Fixing coordinates of floating window %p (rect (%d, %d), %d x %d)\n",
                       (void *)con, con->rect.x, con->rect.y, con->rect.width, con->rect.height));
     DLOG(fmt::sprintf("old_rect = (%d, %d), %d x %d\n",
-                      old_rect->x, old_rect->y, old_rect->width, old_rect->height));
+                      old_rect.x, old_rect.y, old_rect.width, old_rect.height));
     DLOG(fmt::sprintf("new_rect = (%d, %d), %d x %d\n",
-                      new_rect->x, new_rect->y, new_rect->width, new_rect->height));
+                      new_rect.x, new_rect.y, new_rect.width, new_rect.height));
     /* First we get the x/y coordinates relative to the x/y coordinates
      * of the output on which the window is on */
-    int32_t rel_x = con->rect.x - old_rect->x + (int32_t)(con->rect.width / 2);
-    int32_t rel_y = con->rect.y - old_rect->y + (int32_t)(con->rect.height / 2);
+    int32_t rel_x = con->rect.x - old_rect.x + (int32_t)(con->rect.width / 2);
+    int32_t rel_y = con->rect.y - old_rect.y + (int32_t)(con->rect.height / 2);
     /* Then we calculate a fraction, for example 0.63 for a window
      * which is at y = 1212 of a 1920 px high output */
     DLOG(fmt::sprintf("rel_x = %d, rel_y = %d, fraction_x = %f, fraction_y = %f, output->w = %d, output->h = %d\n",
-                      rel_x, rel_y, (double)rel_x / old_rect->width, (double)rel_y / old_rect->height,
-                      old_rect->width, old_rect->height));
+                      rel_x, rel_y, (double)rel_x / old_rect.width, (double)rel_y / old_rect.height,
+                      old_rect.width, old_rect.height));
     /* Here we have to multiply at first. Or we will lose precision when not compiled with -msse2 */
-    con->rect.x = (int32_t)new_rect->x + (double)(rel_x * (int32_t)new_rect->width) / (int32_t)old_rect->width - (int32_t)(con->rect.width / 2);
-    con->rect.y = (int32_t)new_rect->y + (double)(rel_y * (int32_t)new_rect->height) / (int32_t)old_rect->height - (int32_t)(con->rect.height / 2);
+    con->rect.x = (int32_t)new_rect.x + (double)(rel_x * (int32_t)new_rect.width) / (int32_t)old_rect.width - (int32_t)(con->rect.width / 2);
+    con->rect.y = (int32_t)new_rect.y + (double)(rel_y * (int32_t)new_rect.height) / (int32_t)old_rect.height - (int32_t)(con->rect.height / 2);
     DLOG(fmt::sprintf("Resulting coordinates: x = %d, y = %d\n", con->rect.x, con->rect.y));
 }

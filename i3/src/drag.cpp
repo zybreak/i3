@@ -160,7 +160,7 @@ static bool drain_drag_events(EV_P_ struct drag_x11_cb *dragloop) {
     if (dragloop->threshold_exceeded && (!dragloop->con || dragloop->con->exists())) {
         dragloop->callback(
             dragloop->con,
-            &(dragloop->old_rect),
+            dragloop->old_rect,
             last_motion_notify->root_x,
             last_motion_notify->root_y,
             dragloop->event,

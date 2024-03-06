@@ -34,12 +34,10 @@ export {
 }
 
 bool Rect::rect_contains(uint32_t _x, uint32_t _y) {
-    Rect *rect = this;
-
-    return (_x >= rect->x &&
-            _x <= (rect->x + rect->width) &&
-            _y >= rect->y &&
-            _y <= (rect->y + rect->height));
+    return (_x >= this->x &&
+            _x <= (this->x + this->width) &&
+            _y >= this->y &&
+            _y <= (this->y + this->height));
 }
 
 Rect Rect::operator+(const Rect &r) const {
@@ -79,7 +77,6 @@ Rect& Rect::operator-=(const Rect &r) {
 }
 
 void Rect::rect_sanitize_dimensions() {
-    Rect *rect = this;
-    rect->width = (int32_t)rect->width <= 0 ? 1 : rect->width;
-    rect->height = (int32_t)rect->height <= 0 ? 1 : rect->height;
+    this->width = (int32_t)this->width <= 0 ? 1 : this->width;
+    this->height = (int32_t)this->height <= 0 ? 1 : this->height;
 }

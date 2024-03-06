@@ -544,7 +544,7 @@ void workspace_show(Con *workspace) {
     /* Set mouse pointer */
     Con *new_output = global.focused->con_get_output();
     if (old_output != new_output) {
-        x_set_warp_to(&next->rect);
+        x_set_warp_to(next->rect);
     }
 
     /* Update the EWMH hints */
@@ -1089,7 +1089,7 @@ void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
 
     /* fix the coordinates of the floating containers */
     for (auto &floating_con : ws->floating_windows) {
-        floating_fix_coordinates(floating_con, &(old_content->rect), &(content->rect));
+        floating_fix_coordinates(floating_con, old_content->rect, content->rect);
     }
 
     ipc_send_workspace_event("move", ws, nullptr);

@@ -582,7 +582,7 @@ void tree_next(Con *con, direction_t direction) {
 
         workspace_show(next);
         focus->con_activate();
-        x_set_warp_to(&(focus->rect));
+        x_set_warp_to(focus->rect);
         return;
     } else if (next->type == CT_FLOATING_CON) {
         /* Raise the floating window on top of other windows preserving relative

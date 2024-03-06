@@ -20,7 +20,7 @@ class Con;
 
 export {
     /** Callback for dragging */
-    typedef void (*callback_t)(Con *, Rect *, uint32_t, uint32_t,
+    typedef void (*callback_t)(Con *, const Rect&, uint32_t, uint32_t,
                                const xcb_button_press_event_t *, const void *);
 
     /**

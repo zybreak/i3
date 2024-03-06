@@ -1228,7 +1228,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
         /* Take the relative coordinates of the current output, then add them
          * to the coordinate space of the correct output */
         if (fix_coordinates && con->type == CT_FLOATING_CON) {
-            floating_fix_coordinates(con, &(source_output->rect), &(dest_output->rect));
+            floating_fix_coordinates(con, source_output->rect, dest_output->rect);
         } else {
             DLOG(fmt::sprintf("Not fixing coordinates, fix_coordinates flag = %d\n",  fix_coordinates));
         }
@@ -1292,7 +1292,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
         workspace_show(current_ws);
         if (dont_warp) {
             DLOG("x_set_warp_to(NULL) because dont_warp is set\n");
-            x_set_warp_to(nullptr);
+            x_set_warp_to(std::nullopt);
         }
     }
 
