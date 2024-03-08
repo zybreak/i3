@@ -740,10 +740,10 @@ static void set_hidden_state(Con *con) {
     }
 
     if (should_be_hidden) {
-        DLOG(fmt::sprintf("setting _NET_WM_STATE_HIDDEN for con = %p\n",  (void*)con));
+        DLOG(fmt::sprintf("setting _NET_WM_STATE_HIDDEN for con = %p\n", fmt::ptr(con)));
         xcb_add_property_atom(**global.x, con->window->id, A__NET_WM_STATE, A__NET_WM_STATE_HIDDEN);
     } else {
-        DLOG(fmt::sprintf("removing _NET_WM_STATE_HIDDEN for con = %p\n",  (void*)con));
+        DLOG(fmt::sprintf("removing _NET_WM_STATE_HIDDEN for con = %p\n", fmt::ptr(con)));
         xcb_remove_property_atom(**global.x, con->window->id, A__NET_WM_STATE, A__NET_WM_STATE_HIDDEN);
     }
 
@@ -790,7 +790,7 @@ static void set_shape_state(Con *con, bool need_reshape) {
 
     struct con_state *state;
     if ((state = state_for_frame(con->frame.id)) == nullptr) {
-        ELOG(fmt::sprintf("window state for con %p not found\n",  (void*)con));
+        ELOG(fmt::sprintf("window state for con %p not found\n", fmt::ptr(con)));
         return;
     }
 
@@ -855,7 +855,7 @@ void x_reinit(Con *con) {
         return;
     }
 
-    DLOG(fmt::sprintf("resetting state %p to initial\n",  (void*)state));
+    DLOG(fmt::sprintf("resetting state %p to initial\n", fmt::ptr(state)));
     state->initial = true;
     state->child_mapped = false;
     state->con = con;
@@ -875,7 +875,7 @@ void x_push_node(Con *con) {
     state = state_for_frame(con->frame.id);
 
     if (state->name.empty()) {
-        DLOG(fmt::sprintf("pushing name %s for con %p\n",  state->name, (void*)con));
+        DLOG(fmt::sprintf("pushing name %s for con %p\n",  state->name, fmt::ptr(con)));
 
         xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->frame.id,
                             XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8, state->name.length(), state->name.c_str());
@@ -928,7 +928,7 @@ void x_push_node(Con *con) {
 
         con->ignore_unmap++;
         DLOG(fmt::sprintf("ignore_unmap for reparenting of con %p (win 0x%08x) is now %d\n",
-             (void*)con, con->window->id, con->ignore_unmap));
+             fmt::ptr(con), con->window->id, con->ignore_unmap));
 
         need_reshape = true;
     }
@@ -1142,13 +1142,13 @@ static void x_push_node_unmaps(Con *con) {
         }
 
         cookie = xcb_unmap_window(**global.x, con->frame.id);
-        DLOG(fmt::sprintf("unmapping container %p / %s (serial %d)\n",  (void*)con, con->name, cookie.sequence));
+        DLOG(fmt::sprintf("unmapping container %p / %s (serial %d)\n", fmt::ptr(con), con->name, cookie.sequence));
         /* we need to increase ignore_unmap for this container (if it
          * contains a window) and for every window "under" this one which
          * contains a window */
         if (con->window != nullptr) {
             con->ignore_unmap++;
-            DLOG(fmt::sprintf("ignore_unmap for con %p (frame 0x%08x) now %d\n",  (void*)con, con->frame.id, con->ignore_unmap));
+            DLOG(fmt::sprintf("ignore_unmap for con %p (frame 0x%08x) now %d\n", fmt::ptr(con), con->frame.id, con->ignore_unmap));
         }
         state->mapped = con->mapped;
     }
@@ -1317,7 +1317,7 @@ void x_push_changes(Con *con) {
 
     if (global.x->focused_id != to_focus) {
         if (!global.focused->mapped) {
-            DLOG(fmt::sprintf("Not updating focus (to %p / %s), focused window is not mapped.\n",  (void*)global.focused, global.focused->name));
+            DLOG(fmt::sprintf("Not updating focus (to %p / %s), focused window is not mapped.\n", fmt::ptr(global.focused), global.focused->name));
             /* Invalidate focused_id to correctly focus new windows with the same ID */
             global.x->focused_id = XCB_NONE;
         } else {
@@ -1325,7 +1325,7 @@ void x_push_changes(Con *con) {
                 global.focused->window->needs_take_focus &&
                 global.focused->window->doesnt_accept_focus) {
                 DLOG(fmt::sprintf("Updating focus by sending WM_TAKE_FOCUS to window 0x%08x (focused: %p / %s)\n",
-                     to_focus, (void*)global.focused, global.focused->name));
+                     to_focus, fmt::ptr(global.focused), global.focused->name));
                 send_take_focus(to_focus, global.last_timestamp);
 
                 change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->window->id : XCB_WINDOW_NONE), global.x->last_focused);
@@ -1334,7 +1334,7 @@ void x_push_changes(Con *con) {
                     ipc_send_window_event("focus", global.focused);
                 }
             } else {
-                DLOG(fmt::sprintf("Updating focus (focused: %p / %s) to X11 window 0x%08x\n",  (void*)global.focused, global.focused->name, to_focus));
+                DLOG(fmt::sprintf("Updating focus (focused: %p / %s) to X11 window 0x%08x\n", fmt::ptr(global.focused), global.focused->name, to_focus));
                 /* We remove XCB_EVENT_MASK_FOCUS_CHANGE from the event mask to get
                  * no focus change events for our own focus changes. We only want
                  * these generated by the clients. */
@@ -1474,7 +1474,7 @@ void x_mask_event_mask(uint32_t mask) {
  */
 void x_set_shape(Con *con, xcb_shape_sk_t kind, bool enable) {
     if (state_for_frame(con->frame.id) == nullptr) {
-        ELOG(fmt::sprintf("window state for con %p not found\n",  (void*)con));
+        ELOG(fmt::sprintf("window state for con %p not found\n", fmt::ptr(con)));
         return;
     }
 
@@ -1487,7 +1487,7 @@ void x_set_shape(Con *con, xcb_shape_sk_t kind, bool enable) {
             break;
         default:
             ELOG(fmt::sprintf("Received unknown shape event kind for con %p. This is a bug.\n",
-                 (void*)con));
+                 fmt::ptr(con)));
             return;
     }
 

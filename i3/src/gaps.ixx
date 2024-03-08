@@ -43,5 +43,5 @@ export {
      * reloading the configuration file.
      *
      */
-    void gaps_reapply_workspace_assignments(void);
+    void gaps_reapply_workspace_assignments();
 }

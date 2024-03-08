@@ -37,7 +37,7 @@ using namespace std::literals;
 criteria_state* ConfigApplier::criteria_create(int _state) {
     criteria_state *st = new criteria_state(_state);
 
-    DLOG(fmt::sprintf("Creating criteria, current_match = %p, state = %d\n",  (void*)&(st->current_match), _state));
+    DLOG(fmt::sprintf("Creating criteria, current_match = %p, state = %d\n", fmt::ptr(&(st->current_match)), _state));
     st->current_match = Match();
 
     return st;
@@ -47,7 +47,7 @@ void ConfigApplier::criteria_init(criteria_state *st, int _state) {
     //criteria_state *st = new criteria_state();
     st->criteria_next_state = _state;
 
-    DLOG(fmt::sprintf("Initializing criteria, current_match = %p, state = %d\n",  (void*)&(st->current_match), _state));
+    DLOG(fmt::sprintf("Initializing criteria, current_match = %p, state = %d\n",  fmt::ptr(&(st->current_match)), _state));
     st->current_match = Match();
 }
 

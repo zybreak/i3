@@ -135,7 +135,7 @@ void insert_con_into(Con *con, Con *target, position_t position) {
             con->percent = 0.0;
             split->con_fix_percent();
             con = split;
-            DLOG(fmt::sprintf("ok, continuing with con %p instead\n", (void *)con));
+            DLOG(fmt::sprintf("ok, continuing with con %p instead\n", fmt::ptr(con)));
             con->con_detach();
         }
     }
@@ -397,7 +397,7 @@ void tree_move(Con *con, direction_t direction) {
         return;
     }
 
-    DLOG(fmt::sprintf("above = %p\n", (void *)above));
+    DLOG(fmt::sprintf("above = %p\n", fmt::ptr(above)));
 
     Con *next = (direction == D_UP || direction == D_LEFT) ? con::previous(above, above->parent->nodes_head) : con::next(above, above->parent->nodes_head);
 

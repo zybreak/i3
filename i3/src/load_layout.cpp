@@ -67,7 +67,7 @@ static void json_start_map(tree_append_ctx &ctx) {
                 ctx.json_node = new ConCon(nullptr, nullptr, true);
                 ctx.json_node->name.clear();
                 ctx.json_node->parent = ws;
-                DLOG(fmt::sprintf("Parent is workspace = %p\n",  (void*)ws));
+                DLOG(fmt::sprintf("Parent is workspace = %p\n", fmt::ptr(ws)));
             } else {
                 Con *parent = ctx.json_node;
                 ctx.json_node = new ConCon(nullptr, nullptr, true);
@@ -129,7 +129,7 @@ static void json_end_map(tree_append_ctx &ctx) {
         // That’s why we make sure the con is attached at the right place
         // in the hierarchy in case it’s floating.
         if (ctx.json_node->type == CT_FLOATING_CON) {
-            DLOG(fmt::sprintf("fixing parent which currently is %p / %s\n",  (void*)ctx.json_node->parent, ctx.json_node->parent->name));
+            DLOG(fmt::sprintf("fixing parent which currently is %p / %s\n", fmt::ptr(ctx.json_node->parent), ctx.json_node->parent->name));
             ctx.json_node->parent = ctx.json_node->parent->con_get_workspace();
 
             // Also set a size if none was supplied, otherwise the placeholder
@@ -200,7 +200,7 @@ static void json_end_array(tree_append_ctx &ctx) {
             for (auto &con : ctx.json_node->focus_head) {
                 if (con->old_id != *mapping)
                     continue;
-                LOG(fmt::sprintf("got it! %p\n",  (void*)con));
+                LOG(fmt::sprintf("got it! %p\n", fmt::ptr(con)));
                 /* Move this entry to the top of the focus list. */
                 std::erase(ctx.json_node->focus_head, con);
                 ctx.json_node->focus_head.push_front(con);
@@ -598,7 +598,7 @@ void tree_append_json(Con *con, std::string &fb, char **errormsg) {
         ELOG(fmt::sprintf("JSON parsing error: %s\n",  e.what()));
         while (ctx.incomplete-- > 0) {
             Con *parent = ctx.json_node->parent;
-            DLOG(fmt::sprintf("freeing incomplete container %p\n",  (void*)ctx.json_node));
+            DLOG(fmt::sprintf("freeing incomplete container %p\n", fmt::ptr(ctx.json_node)));
             if (ctx.json_node == ctx.to_focus) {
                 ctx.to_focus = nullptr;
             }

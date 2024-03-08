@@ -376,7 +376,7 @@ static void workspace_reassign_sticky(Con *con) {
             continue;
         }
 
-        LOG(fmt::sprintf("Ah, this one is sticky: %s / %p\n",  current->name, (void*)current));
+        LOG(fmt::sprintf("Ah, this one is sticky: %s / %p\n",  current->name, fmt::ptr(current)));
         /* 2: find a window which we can re-assign */
         Con *output = current->con_get_output();
         Con *src = _get_sticky(output, current->sticky_group, current);
@@ -395,7 +395,7 @@ static void workspace_reassign_sticky(Con *con) {
 
         x_reparent_child(current, src);
 
-        LOG(fmt::sprintf("re-assigned window from src %p to dest %p\n",  (void*)src, (void*)current));
+        LOG(fmt::sprintf("re-assigned window from src %p to dest %p\n", fmt::ptr(src), fmt::ptr(current)));
     }
 
     if (dynamic_cast<WorkspaceCon*>(con)) {
@@ -419,7 +419,7 @@ static void workspace_defer_update_urgent_hint_cb(EV_P_ ev_timer *w, int revents
     con->urgency_timer = nullptr;
 
     if (con->urgent) {
-        DLOG(fmt::sprintf("Resetting urgency flag of con %p by timer\n",  (void*)con));
+        DLOG(fmt::sprintf("Resetting urgency flag of con %p by timer\n", fmt::ptr(con)));
         con_set_urgency(con, false);
         con_update_parents_urgency(con);
         workspace_update_urgent_flag(con->con_get_workspace());
@@ -474,7 +474,7 @@ void workspace_show(Con *workspace) {
 
     workspace_reassign_sticky(workspace);
 
-    DLOG(fmt::sprintf("switching to %p / %s\n",  (void*)workspace, workspace->name));
+    DLOG(fmt::sprintf("switching to %p / %s\n", fmt::ptr(workspace), workspace->name));
     Con *next = con_descend_focused(workspace);
 
     /* Memorize current output */
@@ -495,7 +495,7 @@ void workspace_show(Con *workspace) {
 
         if (global.focused->urgency_timer == nullptr) {
             DLOG(fmt::sprintf("Deferring reset of urgency flag of con %p on newly shown workspace %p\n",
-                              (void *)global.focused, (void *)workspace));
+                              fmt::ptr(global.focused), fmt::ptr(workspace)));
             global.focused->urgency_timer = new ev_timer{};
             /* use a repeating timer to allow for easy resets */
             ev_timer_init(global.focused->urgency_timer, workspace_defer_update_urgent_hint_cb,
@@ -504,7 +504,7 @@ void workspace_show(Con *workspace) {
             ev_timer_start(global.eventHandler->main_loop, global.focused->urgency_timer);
         } else {
             DLOG(fmt::sprintf("Resetting urgency timer of con %p on workspace %p\n",
-                              (void *)global.focused, (void *)workspace));
+                              fmt::ptr(global.focused), fmt::ptr(workspace)));
             ev_timer_again(global.eventHandler->main_loop, global.focused->urgency_timer);
         }
     } else {
@@ -513,7 +513,7 @@ void workspace_show(Con *workspace) {
 
     ipc_send_workspace_event("focus", workspace, current);
 
-    DLOG(fmt::sprintf("old = %p / %s\n",  (void*)old, (old ? old->name : "(null)")));
+    DLOG(fmt::sprintf("old = %p / %s\n", fmt::ptr(old), (old ? old->name : "(null)")));
     /* Close old workspace if necessary. This must be done *after* doing
      * urgency handling, because tree_close_internal() will do a con_focus() on the next
      * client, which will clear the urgency flag too early. Also, there is no
@@ -522,7 +522,7 @@ void workspace_show(Con *workspace) {
     if (old && old->nodes_head.empty() && dynamic_cast<WorkspaceCon*>(old) != nullptr && dynamic_cast<WorkspaceCon*>(old)->floating_windows.empty()) {
         /* check if this workspace is currently visible */
         if (!workspace_is_visible(old)) {
-            LOG(fmt::sprintf("Closing old workspace (%p / %s), it is empty\n",  (void*)old, old->name));
+            LOG(fmt::sprintf("Closing old workspace (%p / %s), it is empty\n", fmt::ptr(old), old->name));
             auto gen = ipc_marshal_workspace_event("empty", old, nullptr);
             tree_close_internal(old, DONT_KILL_WINDOW, false);
 
@@ -539,7 +539,7 @@ void workspace_show(Con *workspace) {
     }
 
     workspace->fullscreen_mode = CF_OUTPUT;
-    LOG(fmt::sprintf("focused now = %p / %s\n",  (void*)global.focused, global.focused->name));
+    LOG(fmt::sprintf("focused now = %p / %s\n", fmt::ptr(global.focused), global.focused->name));
 
     /* Set mouse pointer */
     Con *new_output = global.focused->con_get_output();
@@ -941,7 +941,7 @@ void ws_force_orientation(Con *ws, orientation_t orientation) {
     DLOG(fmt::sprintf("split->layout = %d, ws->layout = %d\n",  split->layout, ws->layout));
 
     /* 5: attach the new split container to the workspace */
-    DLOG(fmt::sprintf("Attaching new split (%p) to ws (%p)\n",  (void*)split, (void*)ws));
+    DLOG(fmt::sprintf("Attaching new split (%p) to ws (%p)\n", fmt::ptr(split), fmt::ptr(ws)));
     split->con_attach(ws, false);
 
     /* 6: fix the percentages */
@@ -959,7 +959,7 @@ void ws_force_orientation(Con *ws, orientation_t orientation) {
  *
  */
 Con *workspace_attach_to(WorkspaceCon *ws) {
-    DLOG(fmt::sprintf("Attaching a window to workspace %p / %s\n",  (void*)ws, ws->name));
+    DLOG(fmt::sprintf("Attaching a window to workspace %p / %s\n", fmt::ptr(ws), ws->name));
 
     if (ws->workspace_layout == L_DEFAULT) {
         DLOG("Default layout, just attaching it to the workspace itself.\n");
@@ -975,7 +975,7 @@ Con *workspace_attach_to(WorkspaceCon *ws) {
     new_con->layout = ws->workspace_layout;
 
     /* 4: attach the new split container to the workspace */
-    DLOG(fmt::sprintf("Attaching new split %p to workspace %p\n",  (void*)new_con, (void*)ws));
+    DLOG(fmt::sprintf("Attaching new split %p to workspace %p\n", fmt::ptr(new_con), fmt::ptr(ws)));
     new_con->con_attach(ws, false);
 
     /* 5: fix the percentages */
@@ -992,7 +992,7 @@ Con *workspace_attach_to(WorkspaceCon *ws) {
  */
 Con *workspace_encapsulate(Con *ws) {
     if (ws->nodes_head.empty()) {
-        ELOG(fmt::sprintf("Workspace %p / %s has no children to encapsulate\n",  (void*)ws, ws->name));
+        ELOG(fmt::sprintf("Workspace %p / %s has no children to encapsulate\n", fmt::ptr(ws), ws->name));
         return nullptr;
     }
 
@@ -1002,7 +1002,7 @@ Con *workspace_encapsulate(Con *ws) {
 
     auto focus_order = ws->get_focus_order();
 
-    DLOG(fmt::sprintf("Moving children of workspace %p / %s into container %p\n",  (void*)ws, ws->name, (void*)new_con));
+    DLOG(fmt::sprintf("Moving children of workspace %p / %s into container %p\n", fmt::ptr(ws), ws->name, fmt::ptr(new_con)));
     Con *child;
     while (!ws->nodes_head.empty()) {
         child = con::first(ws->nodes_head);
@@ -1022,11 +1022,11 @@ Con *workspace_encapsulate(Con *ws) {
  * Move the given workspace to the specified output.
  */
 void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
-     DLOG(fmt::sprintf("Moving workspace %p / %s to output %p / \"%s\".\n", (void*)ws, ws->name, (void*)output, output->output_primary_name()));
+     DLOG(fmt::sprintf("Moving workspace %p / %s to output %p / \"%s\".\n", fmt::ptr(ws), ws->name, fmt::ptr(output), output->output_primary_name()));
 
     Output *current_output = get_output_for_con(ws);
     Con *content = output->con->output_get_content();
-    DLOG(fmt::sprintf("got output %p with content %p\n",  (void*)output, (void*)content));
+    DLOG(fmt::sprintf("got output %p with content %p\n", fmt::ptr(output), fmt::ptr(content)));
 
     if (ws->parent == content) {
         DLOG("Nothing to do, workspace already there\n");
@@ -1035,7 +1035,7 @@ void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
 
     Con *previously_visible_ws = con::first(content->focus_head);
     if (previously_visible_ws) {
-        DLOG(fmt::sprintf("Previously visible workspace = %p / %s\n",  (void*)previously_visible_ws, previously_visible_ws->name));
+        DLOG(fmt::sprintf("Previously visible workspace = %p / %s\n", fmt::ptr(previously_visible_ws), previously_visible_ws->name));
     } else {
         DLOG("No previously visible workspace on output.\n");
     }
@@ -1082,7 +1082,7 @@ void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
         /* The workspace which we just detached was visible, so focus the next
          * one in the focus-stack. */
         Con *focus_ws = con::first(old_content->focus_head);
-        DLOG(fmt::sprintf("workspace was visible, focusing %p / %s now\n",  (void*)focus_ws, focus_ws->name));
+        DLOG(fmt::sprintf("workspace was visible, focusing %p / %s now\n", fmt::ptr(focus_ws), focus_ws->name));
         workspace_show(focus_ws);
     }
     ws->con_attach(content, false);

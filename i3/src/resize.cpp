@@ -80,7 +80,7 @@ static void resize_callback(Con *con, const Rect&, uint32_t new_x, uint32_t new_
 }
 
 bool resize_find_tiling_participants(Con **current, Con **other, direction_t direction, bool both_sides) {
-    DLOG(fmt::sprintf("Find two participants for resizing container=%p in direction=%i\n",  (void*)other, direction));
+    DLOG(fmt::sprintf("Find two participants for resizing container=%p in direction=%i\n", fmt::ptr(other), direction));
     Con *first = *current;
     Con *second = nullptr;
     if (first == nullptr) {
@@ -122,7 +122,7 @@ bool resize_find_tiling_participants(Con **current, Con **other, direction_t dir
         }
     }
 
-    DLOG(fmt::sprintf("Found participants: first=%p and second=%p.\n",  (void*)first, (void*)second));
+    DLOG(fmt::sprintf("Found participants: first=%p and second=%p.\n",  fmt::ptr(first), fmt::ptr(second)));
     *current = first;
     *other = second;
     if (first == nullptr || second == nullptr) {

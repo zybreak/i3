@@ -167,7 +167,7 @@ void PropertyHandlers::handle_enter_notify(xcb_enter_notify_event_t *event) {
     if (layout == L_DEFAULT) {
         for (auto &child : con->nodes_head | std::views::reverse) {
             if (child->deco_rect.rect_contains(event->event_x, event->event_y)) {
-                LOG(fmt::sprintf("using child %p / %s instead!\n", (void *)child, child->name));
+                LOG(fmt::sprintf("using child %p / %s instead!\n", fmt::ptr(child), child->name));
                 con = child;
                 break;
             }
@@ -364,7 +364,7 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
 
     /* Dock windows can be reconfigured in their height and moved to another output. */
     if (con->parent && con->parent->type == CT_DOCKAREA) {
-        DLOG(fmt::sprintf("Reconfiguring dock window (con = %p).\n", (void *)con));
+        DLOG(fmt::sprintf("Reconfiguring dock window (con = %p).\n", fmt::ptr(con)));
         if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
             DLOG(fmt::sprintf("Dock client wants to change height to %d, we can do that.\n", event->height));
 
@@ -382,7 +382,7 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
                 DLOG(fmt::sprintf("Dock client is requested to be moved to output %s, moving it there.\n", target->output_primary_name()));
                 Match *match;
                 Con *nc = con_for_window(target->con, con->window, &match);
-                DLOG(fmt::sprintf("Dock client will be moved to container %p.\n", (void *)nc));
+                DLOG(fmt::sprintf("Dock client will be moved to container %p.\n", fmt::ptr(nc)));
                 con->con_detach();
                 con->con_attach(nc, false);
 
@@ -415,17 +415,17 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
         }
 
         if (config.focus_on_window_activation == FOWA_FOCUS || (config.focus_on_window_activation == FOWA_SMART && workspace_is_visible(workspace))) {
-            DLOG(fmt::sprintf("Focusing con = %p\n", (void *)con));
+            DLOG(fmt::sprintf("Focusing con = %p\n", fmt::ptr(con)));
             workspace_show(workspace);
             con->con_activate_unblock();
             tree_render();
         } else if (config.focus_on_window_activation == FOWA_URGENT || (config.focus_on_window_activation == FOWA_SMART && !workspace_is_visible(workspace))) {
-            DLOG(fmt::sprintf("Marking con = %p urgent\n", (void *)con));
+            DLOG(fmt::sprintf("Marking con = %p urgent\n", fmt::ptr(con)));
             con_set_urgency(con, true);
             con = remanage_window(con);
             tree_render();
         } else {
-            DLOG(fmt::sprintf("Ignoring request for con = %p.\n", (void *)con));
+            DLOG(fmt::sprintf("Ignoring request for con = %p.\n", fmt::ptr(con)));
         }
     }
 
@@ -481,7 +481,7 @@ void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event
             con->ignore_unmap--;
         /* See the end of this function. */
         cookie = xcb_get_input_focus(**x);
-        DLOG(fmt::sprintf("ignore_unmap = %d for frame of container %p\n", con->ignore_unmap, (void *)con));
+        DLOG(fmt::sprintf("ignore_unmap = %d for frame of container %p\n", con->ignore_unmap, fmt::ptr(con)));
         goto ignore_end;
     }
 
@@ -949,7 +949,9 @@ static void handle_client_message(xcb_client_message_event_t *event) {
 }
 
 static bool handle_window_type(Con *con, xcb_get_property_reply_t *reply) {
-    con->window->window_update_type(reply);
+    if (con->window->window_update_type(reply)) {
+        run_assignments(con->window);
+    }
     return true;
 }
 
@@ -1028,7 +1030,7 @@ void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
     Con *con;
     if ((con = con_by_window_id(event->event)) == nullptr || con->window == nullptr)
         return;
-    DLOG(fmt::sprintf("That is con %p / %s\n", (void *)con, con->name));
+    DLOG(fmt::sprintf("That is con %p / %s\n", fmt::ptr(con), con->name));
 
     if (event->mode == XCB_NOTIFY_MODE_GRAB ||
         event->mode == XCB_NOTIFY_MODE_UNGRAB) {
@@ -1194,7 +1196,7 @@ static bool handle_motif_hints_change(Con *con, xcb_get_property_reply_t *prop) 
     bool has_mwm_hints = con->window->window_update_motif_hints(prop, &motif_border_style);
 
     if (has_mwm_hints && motif_border_style != con->border_style) {
-        DLOG(fmt::sprintf("Update border style of con %p to %d\n", (void *)con, motif_border_style));
+        DLOG(fmt::sprintf("Update border style of con %p to %d\n", fmt::ptr(con), motif_border_style));
         con_set_border_style(con, motif_border_style, con->current_border_width);
 
         x_push_changes(global.croot);
@@ -1267,7 +1269,7 @@ static bool handle_strut_partial_change(Con *con, xcb_get_property_reply_t *prop
  *
  */
 static bool handle_i3_floating(Con *con, xcb_get_property_reply_t *prop) {
-    DLOG(fmt::sprintf("floating change for con %p\n", (void *)con));
+    DLOG(fmt::sprintf("floating change for con %p\n", fmt::ptr(con)));
 
     remanage_window(con);
 

@@ -341,7 +341,7 @@ void output_init_con(Output *output) {
 
         con = current;
         reused = true;
-        DLOG(fmt::sprintf("Using existing con %p / %s\n",  (void*)con, con->name));
+        DLOG(fmt::sprintf("Using existing con %p / %s\n",  fmt::ptr(con), con->name));
         break;
     }
 
@@ -711,7 +711,7 @@ void RandR::handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
     icookie = xcb_randr_get_crtc_info(**global.x, output->crtc, cts);
     if ((crtc = xcb_randr_get_crtc_info_reply(**global.x, icookie, nullptr)) == nullptr) {
         DLOG(fmt::sprintf("Skipping output %s: could not get CRTC (%p)\n",
-             new_output->output_primary_name(), (void*)crtc));
+             new_output->output_primary_name(), fmt::ptr(crtc)));
         free(new_output);
         return;
     }
@@ -817,13 +817,13 @@ static void move_content(Con *con) {
         current = con::first(old_content->nodes_head);
         if (current != next && current->focus_head.empty()) {
             /* the workspace is empty and not focused, get rid of it */
-            DLOG(fmt::sprintf("Getting rid of current = %p / %s (empty, unfocused)\n",  (void*)current, current->name));
+            DLOG(fmt::sprintf("Getting rid of current = %p / %s (empty, unfocused)\n", fmt::ptr(current), current->name));
             tree_close_internal(current, DONT_KILL_WINDOW, false);
             continue;
         }
-        DLOG(fmt::sprintf("Detaching current = %p / %s\n",  (void*)current, current->name));
+        DLOG(fmt::sprintf("Detaching current = %p / %s\n", fmt::ptr(current), current->name));
         current->con_detach();
-        DLOG(fmt::sprintf("Re-attaching current = %p / %s\n",  (void*)current, current->name));
+        DLOG(fmt::sprintf("Re-attaching current = %p / %s\n", fmt::ptr(current), current->name));
         current->con_attach(first_content, false);
         DLOG("Fixing the coordinates of floating containers\n");
         if (dynamic_cast<WorkspaceCon*>(current)) {
@@ -835,7 +835,7 @@ static void move_content(Con *con) {
 
     /* Restore focus after con_detach / con_attach. next can be NULL, see #3523. */
     if (next) {
-        DLOG(fmt::sprintf("now focusing next = %p\n",  (void*)next));
+        DLOG(fmt::sprintf("now focusing next = %p\n", fmt::ptr(next)));
         next->con_focus();
         workspace_show(next->con_get_workspace());
     }
@@ -845,14 +845,14 @@ static void move_content(Con *con) {
         if (child->type != CT_DOCKAREA) {
             continue;
         }
-        DLOG(fmt::sprintf("Handling dock con %p\n",  (void*)child));
+        DLOG(fmt::sprintf("Handling dock con %p\n", fmt::ptr(child)));
         Con *dock;
         while (!child->nodes_head.empty()) {
             dock = con::first(child->nodes_head);
             Con *nc;
             Match *match;
             nc = con_for_window(first, dock->window, &match);
-            DLOG(fmt::sprintf("Moving dock client %p to nc %p\n",  (void*)dock, (void*)nc));
+            DLOG(fmt::sprintf("Moving dock client %p to nc %p\n", fmt::ptr(dock), fmt::ptr(nc)));
             dock->con_detach();
             DLOG("Re-attaching\n");
             dock->con_attach(nc, false);
@@ -860,7 +860,7 @@ static void move_content(Con *con) {
         }
     }
 
-    DLOG(fmt::sprintf("Destroying disappearing con %p\n",  (void*)con));
+    DLOG(fmt::sprintf("Destroying disappearing con %p\n", fmt::ptr(con)));
     tree_close_internal(con, DONT_KILL_WINDOW, true);
 }
 
@@ -894,7 +894,7 @@ void RandR::randr_query_outputs() {
         if (!output->active || output->to_be_disabled)
             continue;
         DLOG(fmt::sprintf("output %p / %s, position (%d, %d), checking for clones\n",
-             (void*)output, output->output_primary_name(), output->rect.x, output->rect.y));
+             fmt::ptr(output), output->output_primary_name(), output->rect.x, output->rect.y));
 
         for (auto other_it = it; other_it != outputs.end(); ++other_it) {
             auto other = *other_it;
@@ -906,7 +906,7 @@ void RandR::randr_query_outputs() {
                 continue;
 
             DLOG(fmt::sprintf("output %p has the same position, its mode = %d x %d\n",
-                 (void*)other, other->rect.width, other->rect.height));
+                 fmt::ptr(other), other->rect.width, other->rect.height));
             uint32_t width = std::min(other->rect.width, output->rect.width);
             uint32_t height = std::min(other->rect.height, output->rect.height);
 
@@ -919,7 +919,7 @@ void RandR::randr_query_outputs() {
             update_if_necessary(&(other->rect.width), width);
             update_if_necessary(&(other->rect.height), height);
 
-            DLOG(fmt::sprintf("disabling output %p (%s)\n",  (void*)other, other->output_primary_name()));
+            DLOG(fmt::sprintf("disabling output %p (%s)\n", fmt::ptr(other), other->output_primary_name()));
             other->to_be_disabled = true;
 
             DLOG(fmt::sprintf("new output mode %d x %d, other mode %d x %d\n",

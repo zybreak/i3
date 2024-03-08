@@ -36,7 +36,7 @@ enum click_destination_t {
  *
  */
 static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press_event_t *event, bool use_threshold) {
-    DLOG(fmt::sprintf("border = %d, con = %p\n", border, (void *)con));
+    DLOG(fmt::sprintf("border = %d, con = %p\n", border, fmt::ptr(con)));
     Con *second = nullptr;
     Con *first = con;
     direction_t search_direction;
@@ -138,7 +138,7 @@ static bool tiling_resize(Con *con, xcb_button_press_event_t *event, const click
     /* check if this was a click on the window border (and on which one) */
     Rect bsr = con_border_style_rect(con);
     DLOG(fmt::sprintf("BORDER x = %d, y = %d for con %p, window 0x%08x\n",
-                      event->event_x, event->event_y, (void *)con, event->event));
+                      event->event_x, event->event_y, fmt::ptr(con), event->event));
     DLOG(fmt::sprintf("checks for right >= %d\n", con->window_rect.x + con->window_rect.width));
     if (dest == CLICK_DECORATION) {
         return tiling_resize_for_border(con, BORDER_TOP, event, use_threshold);
@@ -174,7 +174,7 @@ static void allow_replay_pointer(xcb_timestamp_t time) {
  */
 static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *event, const bool mod_pressed, const click_destination_t dest) {
     DLOG(fmt::sprintf("--> click properties: mod = %d, destination = %d\n", mod_pressed, dest));
-    DLOG(fmt::sprintf("--> OUTCOME = %p\n", (void *)con));
+    DLOG(fmt::sprintf("--> OUTCOME = %p\n", fmt::ptr(con)));
     DLOG(fmt::sprintf("type = %d, name = %s\n", con->type, con->name));
 
     /* don’t handle dockarea cons, they must not be focused */

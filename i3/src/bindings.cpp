@@ -190,7 +190,7 @@ static bool binding_in_current_group(const Binding *bind) {
 static void grab_keycode_for_binding(x_connection *conn, Binding *bind, uint32_t keycode) {
     /* Grab the key in all combinations */
     auto mods = (bind->event_state_mask & 0xFFFF);
-    DLOG(fmt::sprintf("Binding %p Grabbing keycode %d with event state mask 0x%x (mods 0x%x)\n", (void*)bind, keycode, bind->event_state_mask, mods));
+    DLOG(fmt::sprintf("Binding %p Grabbing keycode %d with event state mask 0x%x (mods 0x%x)\n", fmt::ptr(bind), keycode, bind->event_state_mask, mods));
 
     /* Also bind the key with active NumLock */
     /* Also bind the key with active CapsLock */
@@ -242,7 +242,7 @@ void grab_all_keys(x_connection *conn) {
         for (const auto& binding_keycode : bind->keycodes_head) {
             const int keycode = binding_keycode.keycode;
             auto mods = (binding_keycode.modifiers & 0xFFFF);
-            DLOG(fmt::sprintf("Binding %p Grabbing keycode %d with mods %d\n",  (void*)bind.get(), keycode, mods));
+            DLOG(fmt::sprintf("Binding %p Grabbing keycode %d with mods %d\n", fmt::ptr(bind.get()), keycode, mods));
             conn->grab_key(0, global.x->root, mods, keycode, XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_ASYNC);
         }
     }
@@ -300,7 +300,7 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
         const uint32_t xkb_group_mask = (bind->event_state_mask & 0xFFFF0000);
         const bool groups_match = ((xkb_group_state & xkb_group_mask) == xkb_group_mask);
         if (!groups_match) {
-            DLOG(fmt::sprintf("skipping binding %p because XKB groups do not match\n",  (void*)bind.get()));
+            DLOG(fmt::sprintf("skipping binding %p because XKB groups do not match\n",  fmt::ptr(bind.get())));
             continue;
         }
 
@@ -348,7 +348,7 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
          * actual key or button and the release event will still be matched. */
         if (bind->release == B_UPON_KEYRELEASE && !is_release) {
             bind->release = B_UPON_KEYRELEASE_IGNORE_MODS;
-            DLOG(fmt::sprintf("marked bind %p as B_UPON_KEYRELEASE_IGNORE_MODS\n",  (void*)bind.get()));
+            DLOG(fmt::sprintf("marked bind %p as B_UPON_KEYRELEASE_IGNORE_MODS\n", fmt::ptr(bind.get())));
             if (result) {
                 break;
             }
@@ -820,7 +820,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
     if (con == nullptr) {
         command = bind->command;
     } else {
-        command = fmt::format("[con_id=\"{}\"] {}", (void *)con, bind->command);
+        command = fmt::format("[con_id=\"{}\"] {}", fmt::ptr(con), bind->command);
     }
 
     /* The "mode" command might change the current mode, so back it up to

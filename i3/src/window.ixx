@@ -186,7 +186,7 @@ export {
          * Updates the _NET_WM_WINDOW_TYPE property.
          *
          */
-        void window_update_type(xcb_get_property_reply_t *reply);
+        bool window_update_type(xcb_get_property_reply_t *reply);
 
         /**
          * Updates the WM_NORMAL_HINTS

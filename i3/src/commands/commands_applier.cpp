@@ -134,7 +134,7 @@ static void con_toggle_layout(Con *con, const char *toggle_mode) {
      * user means "change the layout of the parent split container". */
     if (con->type != CT_WORKSPACE)
         parent = con->parent;
-    DLOG(fmt::sprintf("con_toggle_layout(%p, %s), parent = %p\n",  (void*)con, toggle_mode, (void*)parent));
+    DLOG(fmt::sprintf("con_toggle_layout(%p, %s), parent = %p\n", fmt::ptr(con), toggle_mode, fmt::ptr(parent)));
 
     const char delim[] = " ";
 
@@ -244,7 +244,7 @@ void CommandsApplier::criteria_match_windows(struct criteria_state *criteria_sta
         /* make a copy of the next pointer and advance the pointer to the
          * next element as we are going to invalidate the element’s
          * next/prev pointers by calling TAILQ_INSERT_TAIL later */
-        DLOG(fmt::sprintf("checking if con %p / %s matches\n",  (void*)current, current->name));
+        DLOG(fmt::sprintf("checking if con %p / %s matches\n", fmt::ptr(current), current->name));
 
         /* We use this flag to prevent matching on window-less containers if
          * only window-specific criteria were specified. */
@@ -279,7 +279,7 @@ void CommandsApplier::criteria_match_windows(struct criteria_state *criteria_sta
     }
 
     for (auto c: criteria_state->owindows) {
-        DLOG(fmt::sprintf("matching: %p / %s\n",  (void*)c, c->name));
+        DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(c), c->name));
     }
 }
 
@@ -294,7 +294,7 @@ void CommandsApplier::criteria_add(struct criteria_state *criteria_state, Comman
 
 static void move_matches_to_workspace(struct criteria_state *criteria_state, Con *ws) {
     for (auto current: criteria_state->owindows) {
-        DLOG(fmt::sprintf("matching: %p / %s\n",  (void*)current, current->name));
+        DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
         con_move_to_workspace(current, ws, true, false, false);
     }
 }
@@ -548,7 +548,7 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
 
     /* Ensure all the other children have a percentage set. */
     for (auto &child : current->parent->nodes_head) {
-        LOG(fmt::sprintf("child->percent = %f (child %p)\n",  child->percent, (void*)child));
+        LOG(fmt::sprintf("child->percent = %f (child %p)\n", child->percent, fmt::ptr(child)));
         if (child->percent == 0.0)
             child->percent = percentage;
     }
@@ -577,7 +577,7 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
                 continue;
             }
             if (child->percent - subtract_percent < percent_for_1px(child)) {
-                yerror(cmd_output.json_gen, fmt::sprintf("Not resizing, already at minimum size (child %p would end up with a size of %.f", (void*)child,
+                yerror(cmd_output.json_gen, fmt::sprintf("Not resizing, already at minimum size (child %p would end up with a size of %.f", fmt::ptr(child),
                        child->percent - subtract_percent));
                 return false;
             }
@@ -591,7 +591,7 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
         if (child == current)
             continue;
         child->percent -= subtract_percent;
-        LOG(fmt::sprintf("child->percent after (%p) = %f\n",  (void*)child, child->percent));
+        LOG(fmt::sprintf("child->percent after (%p) = %f\n", fmt::ptr(child), child->percent));
     }
 
     return true;
@@ -613,7 +613,7 @@ void CommandsApplier::resize(struct criteria_state *criteria_state, CommandResul
     for (auto current: criteria_state->owindows) {
         /* Don't handle dock windows (issue #1201) */
         if (current->window && current->window->dock) {
-            DLOG(fmt::sprintf("This is a dock window. Not resizing (con = %p)\n)",  (void*)current));
+            DLOG(fmt::sprintf("This is a dock window. Not resizing (con = %p)\n)", fmt::ptr(current)));
             continue;
         }
 
@@ -704,7 +704,7 @@ void CommandsApplier::resize_set(struct criteria_state *criteria_state, CommandR
             floating_resize(floating_con, cwidth, cheight);
         } else {
             if (current->window && current->window->dock) {
-                DLOG(fmt::sprintf("This is a dock window. Not resizing (con = %p)\n)",  (void*)current));
+                DLOG(fmt::sprintf("This is a dock window. Not resizing (con = %p)\n)", fmt::ptr(current)));
                 continue;
             }
 
@@ -755,7 +755,7 @@ void CommandsApplier::border(struct criteria_state *criteria_state, CommandResul
     HANDLE_EMPTY_MATCH(criteria_state);
 
     for (auto current: criteria_state->owindows) {
-        DLOG(fmt::sprintf("matching: %p / %s\n",  (void*)current, current->name));
+        DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
 
         border_style_t border_style;
         if (strcmp(border_style_str, "toggle") == 0) {
@@ -825,7 +825,7 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
         while (parent->type != CT_WORKSPACE && !parent->con_accepts_window())
             parent = parent->parent;
     }
-    DLOG(fmt::sprintf("Appending to parent=%p instead of focused=%p\n",  (void*)parent, (void*)global.focused));
+    DLOG(fmt::sprintf("Appending to parent=%p instead of focused=%p\n", fmt::ptr(parent), fmt::ptr(global.focused)));
     char *errormsg = nullptr;
     tree_append_json(parent, buf, &errormsg);
     if (errormsg != nullptr) {
@@ -855,7 +855,7 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
     cmd_output.needs_tree_render = true;
 }
 
-static void disable_global_fullscreen(void) {
+static void disable_global_fullscreen() {
     Con *fs = global.croot->con_get_fullscreen_con(CF_GLOBAL);
     if (fs) {
         con_disable_fullscreen(fs);
@@ -1084,7 +1084,7 @@ void CommandsApplier::floating(struct criteria_state *criteria_state, CommandRes
     HANDLE_EMPTY_MATCH(criteria_state);
 
     for (auto current: criteria_state->owindows) {
-        DLOG(fmt::sprintf("matching: %p / %s\n",  (void*)current, current->name));
+        DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
         if (strcmp(floating_mode, "toggle") == 0) {
             DLOG("should toggle mode\n");
             toggle_floating_mode(current, false);
@@ -1117,7 +1117,7 @@ void CommandsApplier::split(struct criteria_state *criteria_state, CommandResult
             continue;
         }
 
-        DLOG(fmt::sprintf("matching: %p / %s\n",  (void*)current, current->name));
+        DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
         if (direction[0] == 't') {
             layout_t current_layout;
             if (current->type == CT_WORKSPACE) {
@@ -1394,7 +1394,7 @@ void CommandsApplier::fullscreen(struct criteria_state *criteria_state, CommandR
     HANDLE_EMPTY_MATCH(criteria_state);
 
     for (auto current: criteria_state->owindows) {
-        DLOG(fmt::sprintf("matching: %p / %s\n",  (void*)current, current->name));
+        DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
         if (strcmp(action, "toggle") == 0) {
             con_toggle_fullscreen(current, mode);
         } else if (strcmp(action, "enable") == 0) {
@@ -1419,10 +1419,10 @@ void CommandsApplier::sticky(struct criteria_state *criteria_state, CommandResul
 
     for (auto current: criteria_state->owindows) {
         if (current->window == nullptr) {
-            ELOG(fmt::sprintf("only containers holding a window can be made sticky, skipping con = %p\n",  (void*)current));
+            ELOG(fmt::sprintf("only containers holding a window can be made sticky, skipping con = %p\n", fmt::ptr(current)));
             continue;
         }
-        DLOG(fmt::sprintf("setting sticky for container = %p / %s\n",  (void*)current, current->name));
+        DLOG(fmt::sprintf("setting sticky for container = %p / %s\n", fmt::ptr(current), current->name));
 
         bool sticky = false;
         if (strcmp(action, "enable") == 0)
@@ -1510,7 +1510,7 @@ void CommandsApplier::layout(struct criteria_state *criteria_state, CommandResul
             continue;
         }
 
-        DLOG(fmt::sprintf("matching: %p / %s\n",  (void*)current, current->name));
+        DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
         con_set_layout(current, layout);
     }
 
@@ -1534,7 +1534,7 @@ void CommandsApplier::layout_toggle(struct criteria_state *criteria_state, Comma
         con_toggle_layout(global.focused, toggle_mode);
     else {
         for (auto current: criteria_state->owindows) {
-            DLOG(fmt::sprintf("matching: %p / %s\n",  (void*)current, current->name));
+            DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
             con_toggle_layout(current, toggle_mode);
         }
     }
@@ -1726,7 +1726,7 @@ void CommandsApplier::move_window_to_center(struct criteria_state *criteria_stat
         Con *floating_con = current->con_inside_floating();
         if (floating_con == nullptr) {
             ELOG(fmt::sprintf("con %p / %s is not floating, cannot move it to the center.\n",
-                 (void*)current, current->name));
+                 fmt::ptr(current), current->name));
 
             if (!has_error) {
                 yerror(cmd_output.json_gen, "Cannot change position of a window/container because it is not floating.");
@@ -1768,11 +1768,11 @@ void CommandsApplier::move_window_to_mouse(struct criteria_state *criteria_state
         Con *floating_con = current->con_inside_floating();
         if (floating_con == nullptr) {
             DLOG(fmt::sprintf("con %p / %s is not floating, cannot move it to the mouse position.\n",
-                 (void*)current, current->name));
+                 fmt::ptr(current), current->name));
             continue;
         }
 
-        DLOG(fmt::sprintf("moving floating container %p / %s to cursor position\n",  (void*)floating_con, floating_con->name));
+        DLOG(fmt::sprintf("moving floating container %p / %s to cursor position\n", fmt::ptr(floating_con), floating_con->name));
         floating_move_to_pointer(floating_con);
     }
 
@@ -1789,7 +1789,7 @@ void CommandsApplier::title_format(struct criteria_state *criteria_state, Comman
     HANDLE_EMPTY_MATCH(criteria_state);
 
     for (auto current: criteria_state->owindows) {
-        DLOG(fmt::sprintf("setting title_format for %p / %s\n",  (void*)current, current->name));
+        DLOG(fmt::sprintf("setting title_format for %p / %s\n", fmt::ptr(current), current->name));
         current->title_format.clear();
 
         /* If we only display the title without anything else, we can skip the parsing step,

@@ -169,7 +169,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
         }
 
         sasprintf(&serialized, "%s]", serialized);
-        DLOG(fmt::sprintf("con %p (placeholder 0x%08x) line %d: %s\n",  (void*)state->con, state->window, n, serialized));
+        DLOG(fmt::sprintf("con %p (placeholder 0x%08x) line %d: %s\n", fmt::ptr(state->con), state->window, n, serialized));
 
         std::string str{serialized};
         draw_util_text(*conn, config.font, str, &(state->surface), foreground, background,
@@ -222,7 +222,7 @@ static void open_placeholder_window(x_connection *conn, Con *con) {
                                 A__NET_WM_NAME, A_UTF8_STRING, 8, con->name.length(), con->name.c_str());
         }
         DLOG(fmt::sprintf("Created placeholder window 0x%08x for leaf container %p / %s\n",
-             placeholder, (void*)con, con->name));
+             placeholder, fmt::ptr(con), con->name));
 
         auto state = std::make_unique<placeholder_state>();
         state->window = placeholder;
@@ -301,7 +301,7 @@ static void expose_event(xcb_expose_event_t *event) {
             continue;
         }
 
-        DLOG(fmt::sprintf("refreshing window 0x%08x contents (con %p)\n",  state->window, (void*)state->con));
+        DLOG(fmt::sprintf("refreshing window 0x%08x contents (con %p)\n",  state->window, fmt::ptr(state->con)));
 
         update_placeholder_contents(*global.x, state.get());
 
@@ -324,7 +324,7 @@ static void configure_notify(xcb_configure_notify_event_t *event) {
         }
 
         DLOG(fmt::sprintf("ConfigureNotify: window 0x%08x has now width=%d, height=%d (con %p)\n",
-             state->window, event->width, event->height, (void*)state->con));
+             state->window, event->width, event->height, fmt::ptr(state->con)));
 
         state->rect.width = event->width;
         state->rect.height = event->height;

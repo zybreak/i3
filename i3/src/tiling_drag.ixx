@@ -19,7 +19,7 @@ export {
      * Used to only initiate a drag when there is something to drop onto.
      *
      */
-    bool has_drop_targets(void);
+    bool has_drop_targets();
 
     /**
      * Initiates a mouse drag operation on a tiled window.

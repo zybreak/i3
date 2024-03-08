@@ -1175,7 +1175,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
     socklen_t so_len = sizeof(peercred);
     if (getsockopt(client->fd, SOL_SOCKET, SO_PEERCRED, &peercred, &so_len) != 0) {
         if (!cmdline) {
-            ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n",  (void*)client, client->fd));
+            ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));
         }
 
         free_ipc_client(client, -1);
@@ -1188,7 +1188,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
     free(exepath);
     if (fd == -1) {
         if (!cmdline) {
-            ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n",  (void*)client, client->fd));
+            ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));
         }
 
         free_ipc_client(client, -1);
@@ -1199,7 +1199,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
     close(fd);
     if (n < 0) {
         if (!cmdline) {
-            ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n",  (void*)client, client->fd));
+            ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));
         }
 
         free_ipc_client(client, -1);
@@ -1213,12 +1213,12 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
     cmdline = buf;
 
     if (cmdline) {
-        ELOG(fmt::sprintf("client %p with pid %d and cmdline '%s' on fd %d timed out, killing\n",  (void*)client, peercred.pid, cmdline, client->fd));
+        ELOG(fmt::sprintf("client %p with pid %d and cmdline '%s' on fd %d timed out, killing\n", fmt::ptr(client), peercred.pid, cmdline, client->fd));
     }
 
 #endif
     if (!cmdline) {
-        ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n",  (void*)client, client->fd));
+        ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));
     }
 
     free_ipc_client(client, -1);
@@ -1310,7 +1310,7 @@ void ipc_send_workspace_event(const char *change, Con *current, Con *old) {
  */
 void ipc_send_window_event(const char *property, Con *con) {
     DLOG(fmt::sprintf("Issue IPC window %s event (con = %p, window = 0x%08x)\n",
-         property, (void*)con, (con->window ? con->window->id : XCB_WINDOW_NONE)));
+         property, fmt::ptr(con), (con->window ? con->window->id : XCB_WINDOW_NONE)));
 
     setlocale(LC_NUMERIC, "C");
     nlohmann::json j;

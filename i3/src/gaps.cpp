@@ -161,7 +161,7 @@ gaps_t gaps_for_workspace(WorkspaceCon *ws) {
  * reloading the configuration file.
  *
  */
-void gaps_reapply_workspace_assignments(void) {
+void gaps_reapply_workspace_assignments() {
     for (auto &output : global.croot->nodes_head) {
         Con *content = output->output_get_content();
         for (auto &workspace : content->nodes_head) {

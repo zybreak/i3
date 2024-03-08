@@ -400,7 +400,7 @@ void Match::parse_property(const char *ctype, const char *cvalue) {
             this->error = sstrdup("invalid con_id");
         } else {
             this->con_id = (Con *)parsed;
-            DLOG(fmt::sprintf("id as int = %p\n",  (void*)this->con_id));
+            DLOG(fmt::sprintf("id as int = %p\n",  fmt::ptr(this->con_id)));
         }
         return;
     }

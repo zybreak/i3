@@ -119,7 +119,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
            else if (event->data.data32[0] == _NET_WM_STATE_TOGGLE)
                con->sticky = !con->sticky;
 
-           DLOG(fmt::sprintf("New sticky status for con = %p is %i.\n", (void *)con, con->sticky));
+           DLOG(fmt::sprintf("New sticky status for con = %p is %i.\n", fmt::ptr(con), con->sticky));
            ewmh_update_sticky(con->window->id, con->sticky);
            output_push_sticky_windows(global.focused);
            ewmh_update_wm_desktop();
@@ -148,7 +148,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
        if (event->data.data32[0] == 2) {
            /* Always focus the con if it is from a pager, because this is most
             * likely from some user action */
-           DLOG(fmt::sprintf("This request came from a pager. Focusing con = %p\n", (void *)con));
+           DLOG(fmt::sprintf("This request came from a pager. Focusing con = %p\n", fmt::ptr(con)));
 
            workspace_show(ws);
            /* Re-set focus, even if unchanged from i3’s perspective. */
@@ -157,13 +157,13 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
        } else {
            /* Request is from an application. */
            if (config.focus_on_window_activation == FOWA_FOCUS || (config.focus_on_window_activation == FOWA_SMART && workspace_is_visible(ws))) {
-               DLOG(fmt::sprintf("Focusing con = %p\n", (void *)con));
+               DLOG(fmt::sprintf("Focusing con = %p\n", fmt::ptr(con)));
                con->con_activate_unblock();
            } else if (config.focus_on_window_activation == FOWA_URGENT || (config.focus_on_window_activation == FOWA_SMART && !workspace_is_visible(ws))) {
-               DLOG(fmt::sprintf("Marking con = %p urgent\n", (void *)con));
+               DLOG(fmt::sprintf("Marking con = %p urgent\n", fmt::ptr(con)));
                con_set_urgency(con, true);
            } else
-               DLOG(fmt::sprintf("Ignoring request for con = %p.\n", (void *)con));
+               DLOG(fmt::sprintf("Ignoring request for con = %p.\n", fmt::ptr(con)));
        }
 
        tree_render();
@@ -271,7 +271,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
         */
        Con *con = con_by_window_id(event->window);
        if (con) {
-           DLOG(fmt::sprintf("Handling _NET_CLOSE_WINDOW request (con = %p)\n", (void *)con));
+           DLOG(fmt::sprintf("Handling _NET_CLOSE_WINDOW request (con = %p)\n", fmt::ptr(con)));
 
            if (event->data.data32[0])
                global.last_timestamp = event->data.data32[0];
@@ -291,7 +291,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
            DLOG(fmt::sprintf("Couldn't find con for _NET_WM_MOVERESIZE request, or con not floating (window = %08x)\n", event->window));
            return;
        }
-       DLOG(fmt::sprintf("Handling _NET_WM_MOVERESIZE request (con = %p)\n", (void *)con));
+       DLOG(fmt::sprintf("Handling _NET_WM_MOVERESIZE request (con = %p)\n", fmt::ptr(con)));
        uint32_t direction = event->data.data32[2];
        uint32_t x_root = event->data.data32[0];
        uint32_t y_root = event->data.data32[1];

@@ -114,7 +114,7 @@ Con::~Con() {
 
     this->swallow.clear();
 
-    DLOG(fmt::sprintf("con %p freed\n",  (void*)this));
+    DLOG(fmt::sprintf("con %p freed\n", fmt::ptr(this)));
 }
 
 /*
@@ -264,7 +264,7 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
     /* Insert the container after the tiling container, if found.
      * When adding to a CT_OUTPUT, just append one after another. */
     if (current != nullptr && parent->type != CT_OUTPUT) {
-        DLOG(fmt::sprintf("Inserting con = %p after con %p\n", (void *)this, (void *)current));
+        DLOG(fmt::sprintf("Inserting con = %p after con %p\n", fmt::ptr(this), fmt::ptr(current)));
         current->insert_after(this);
     } else {
         nodes_head.push_back(this);
@@ -352,7 +352,7 @@ void Con::con_detach() {
  *
  */
 void Con::con_focus() {
-    DLOG(fmt::sprintf("con_focus = %p\n",  (void*)this));
+    DLOG(fmt::sprintf("con_focus = %p\n", fmt::ptr(this)));
 
     /* 1: set focused-pointer to the new con */
     /* 2: exchange the position of the container in focus stack of the parent all the way up */
@@ -454,18 +454,18 @@ void Con::con_activate_unblock() {
  *
  */
 void Con::con_close(kill_window_t kill_window) {
-    DLOG(fmt::sprintf("Closing con = %p.\n",  (void*)this));
+    DLOG(fmt::sprintf("Closing con = %p.\n", fmt::ptr(this)));
 
     /* We never close output or root containers. */
     if (this->type == CT_OUTPUT || this->type == CT_ROOT) {
-        DLOG(fmt::sprintf("con = %p is of type %d, not closing anything.\n",  (void*)this, this->type));
+        DLOG(fmt::sprintf("con = %p is of type %d, not closing anything.\n", fmt::ptr(this), this->type));
         return;
     }
 
     if (this->type == CT_WORKSPACE) {
-        DLOG(fmt::sprintf("con = %p is a workspace, closing all children instead.\n",  (void*)this));
+        DLOG(fmt::sprintf("con = %p is a workspace, closing all children instead.\n", fmt::ptr(this)));
         for (auto &child : this->focus_head) {
-            DLOG(fmt::sprintf("killing child = %p.\n",  (void*)child));
+            DLOG(fmt::sprintf("killing child = %p.\n", fmt::ptr(child)));
             tree_close_internal(child, kill_window, false);
         }
 
@@ -575,7 +575,7 @@ bool Con::con_accepts_window() {
 
 bool ConCon::con_accepts_window() {
     if (this->con_is_split()) {
-        DLOG(fmt::sprintf("container %p does not accept windows, it is a split container.\n",  (void*)this));
+        DLOG(fmt::sprintf("container %p does not accept windows, it is a split container.\n", fmt::ptr(this)));
         return false;
     }
 
@@ -625,7 +625,7 @@ WorkspaceCon* Con::con_get_workspace() {
  *
  */
 Con* Con::con_parent_with_orientation(orientation_t orientation) {
-    DLOG(fmt::sprintf("Searching for parent of Con %p with orientation %d\n",  (void*)this, orientation));
+    DLOG(fmt::sprintf("Searching for parent of Con %p with orientation %d\n", fmt::ptr(this), orientation));
     Con *parent = this->parent;
     if (parent->type == CT_FLOATING_CON) {
         return nullptr;
@@ -644,7 +644,7 @@ Con* Con::con_parent_with_orientation(orientation_t orientation) {
             break;
         }
     }
-    DLOG(fmt::sprintf("Result: %p\n",  (void*)parent));
+    DLOG(fmt::sprintf("Result: %p\n", fmt::ptr(parent)));
     return parent;
 }
 
@@ -1029,7 +1029,7 @@ void con_toggle_fullscreen(Con *con, int fullscreen_mode) {
         return;
     }
 
-    DLOG(fmt::sprintf("toggling fullscreen for %p / %s\n",  (void*)con, con->name));
+    DLOG(fmt::sprintf("toggling fullscreen for %p / %s\n", fmt::ptr(con), con->name));
 
     if (con->fullscreen_mode == CF_NONE) {
         con_enable_fullscreen(con, static_cast<fullscreen_mode_t>(fullscreen_mode));
@@ -1060,10 +1060,10 @@ static void con_set_fullscreen_mode(xcb_connection_t *conn, Con *con, fullscreen
     }
 
     if (con->fullscreen_mode != CF_NONE) {
-        DLOG(fmt::sprintf("Setting _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n",  (void*)con, con->window->id));
+        DLOG(fmt::sprintf("Setting _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n", fmt::ptr(con), con->window->id));
         xcb_add_property_atom(conn, con->window->id, A__NET_WM_STATE, A__NET_WM_STATE_FULLSCREEN);
     } else {
-        DLOG(fmt::sprintf("Removing _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n",  (void*)con, con->window->id));
+        DLOG(fmt::sprintf("Removing _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n", fmt::ptr(con), con->window->id));
         xcb_remove_property_atom(conn, con->window->id, A__NET_WM_STATE, A__NET_WM_STATE_FULLSCREEN);
     }
 }
@@ -1088,13 +1088,13 @@ void con_enable_fullscreen(Con *con, fullscreen_mode_t fullscreen_mode) {
     assert(fullscreen_mode == CF_GLOBAL || fullscreen_mode == CF_OUTPUT);
 
     if (fullscreen_mode == CF_GLOBAL) {
-        DLOG(fmt::sprintf("enabling global fullscreen for %p / %s\n",  (void*)con, con->name));
+        DLOG(fmt::sprintf("enabling global fullscreen for %p / %s\n", fmt::ptr(con), con->name));
     } else {
-        DLOG(fmt::sprintf("enabling fullscreen for %p / %s\n",  (void*)con, con->name));
+        DLOG(fmt::sprintf("enabling fullscreen for %p / %s\n", fmt::ptr(con), con->name));
     }
 
     if (con->fullscreen_mode == fullscreen_mode) {
-        DLOG(fmt::sprintf("fullscreen already enabled for %p / %s\n",  (void*)con, con->name));
+        DLOG(fmt::sprintf("fullscreen already enabled for %p / %s\n", fmt::ptr(con), con->name));
         return;
     }
 
@@ -1136,10 +1136,10 @@ void con_disable_fullscreen(Con *con) {
         return;
     }
 
-    DLOG(fmt::sprintf("disabling fullscreen for %p / %s\n",  (void*)con, con->name));
+    DLOG(fmt::sprintf("disabling fullscreen for %p / %s\n", fmt::ptr(con), con->name));
 
     if (con->fullscreen_mode == CF_NONE) {
-        DLOG(fmt::sprintf("fullscreen already disabled for %p / %s\n",  (void*)con, con->name));
+        DLOG(fmt::sprintf("fullscreen already disabled for %p / %s\n", fmt::ptr(con), con->name));
         return;
     }
 
@@ -1205,7 +1205,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
 
     /* 2: we go up one level, but only when target is a normal container */
     if (target->type != CT_WORKSPACE) {
-        DLOG(fmt::sprintf("target originally = %p / %s / type %d\n",  (void*)target, target->name, target->type));
+        DLOG(fmt::sprintf("target originally = %p / %s / type %d\n", fmt::ptr(target), target->name, target->type));
         target = target->parent;
     }
 
@@ -1220,7 +1220,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
 
     if (con->type == CT_FLOATING_CON) {
         Con *ws = target->con_get_workspace();
-        DLOG(fmt::sprintf("This is a floating window, using workspace %p / %s\n",  (void*)ws, ws->name));
+        DLOG(fmt::sprintf("This is a floating window, using workspace %p / %s\n", fmt::ptr(ws), ws->name));
         target = ws;
     }
 
@@ -1250,7 +1250,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
         fullscreen = nullptr;
     }
 
-    DLOG(fmt::sprintf("Re-attaching container to %p / %s\n",  (void*)target, target->name));
+    DLOG(fmt::sprintf("Re-attaching container to %p / %s\n", fmt::ptr(target), target->name));
     /* 4: re-attach the con to the parent of this focused container */
     Con *parent = con->parent;
     con->con_detach();
@@ -1405,7 +1405,7 @@ void con_move_to_workspace(Con *con, Con *workspace, bool fix_coordinates, bool 
 void con_move_to_output(Con *con, Output *output, bool fix_coordinates) {
     auto ws = std::ranges::find_if(output->con->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
     assert(ws != output->con->output_get_content()->nodes_head.end());
-    DLOG(fmt::sprintf("Moving con %p to output %s\n",  (void*)con, output->output_primary_name()));
+    DLOG(fmt::sprintf("Moving con %p to output %s\n", fmt::ptr(con), output->output_primary_name()));
     con_move_to_workspace(con, *ws, fix_coordinates, false, false);
 }
 
@@ -1433,7 +1433,7 @@ orientation_t con_orientation(Con *con) {
 
         case L_DOCKAREA:
         case L_OUTPUT:
-            ELOG(fmt::sprintf("con_orientation() called on dockarea/output (%d) container %p\n",  con->layout, (void*)con));
+            ELOG(fmt::sprintf("con_orientation() called on dockarea/output (%d) container %p\n", con->layout, fmt::ptr(con)));
             assert(false);
     }
     /* should not be reached */
@@ -1460,7 +1460,7 @@ Con *con_next_focused(Con *con) {
      * it’s currently focused already */
     Con *next = con::first(con->parent->focus_head);
     if (next != con) {
-        DLOG(fmt::sprintf("Using first entry %p\n",  (void*)next));
+        DLOG(fmt::sprintf("Using first entry %p\n", fmt::ptr(next)));
     } else {
         /* try to focus the next container on the same level as this one or fall
          * back to its parent */
@@ -1534,7 +1534,7 @@ Con *con_descend_tiling_focused(Con *con) {
 Con *con_descend_direction(Con *con, direction_t direction) {
     Con *most = nullptr;
     int orientation = con_orientation(con);
-    DLOG(fmt::sprintf("con_descend_direction(%p, orientation %d, direction %d)\n",  (void*)con, orientation, direction));
+    DLOG(fmt::sprintf("con_descend_direction(%p, orientation %d, direction %d)\n", fmt::ptr(con), orientation, direction));
     if (direction == D_LEFT || direction == D_RIGHT) {
         if (orientation == HORIZ) {
             /* If the direction is horizontal, we can use either the first
@@ -1793,7 +1793,7 @@ void con_set_border_style(Con *con, border_style_t border_style, int border_widt
  */
 void con_set_layout(Con *con, layout_t layout) {
     DLOG(fmt::sprintf("con_set_layout(%p, %d), con->type = %d\n",
-         (void*)con, layout, con->type));
+         fmt::ptr(con), layout, con->type));
 
     /* Users can focus workspaces, but not any higher in the hierarchy.
      * Focus on the workspace is a special case, since in every other case, the
@@ -1894,7 +1894,7 @@ void Con::on_remove_child() {
     /* For workspaces, close them only if they're not visible anymore */
     if (this->type == CT_WORKSPACE) {
         if (this->focus_head.empty() && !workspace_is_visible(this)) {
-            LOG(fmt::sprintf("Closing old workspace (%p / %s), it is empty\n",  (void*)this, this->name));
+            LOG(fmt::sprintf("Closing old workspace (%p / %s), it is empty\n", fmt::ptr(this), this->name));
             auto gen = ipc_marshal_workspace_event("empty", this, nullptr);
             tree_close_internal(this, DONT_KILL_WINDOW, false);
 

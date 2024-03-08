@@ -236,17 +236,17 @@ void i3Window::window_update_role(xcb_get_property_reply_t *prop) {
  * Updates the _NET_WM_WINDOW_TYPE property.
  *
  */
-void i3Window::window_update_type(xcb_get_property_reply_t *reply) {
+bool i3Window::window_update_type(xcb_get_property_reply_t *reply) {
     xcb_atom_t new_type = xcb_get_preferred_window_type(reply);
     if (new_type == XCB_NONE) {
         DLOG("cannot read _NET_WM_WINDOW_TYPE from window.\n");
-        return;
+        return false;
     }
 
     this->window_type = new_type;
     LOG(fmt::sprintf("_NET_WM_WINDOW_TYPE changed to %i.\n",  this->window_type));
 
-    run_assignments(this);
+    return true;
 }
 
 /*

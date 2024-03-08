@@ -357,7 +357,7 @@ static void render_output(Con *con) {
             }
             content = child;
         } else if (child->type != CT_DOCKAREA) {
-            DLOG(fmt::sprintf("Child %p of type %d is inside the OUTPUT con\n", (void *)child, child->type));
+            DLOG(fmt::sprintf("Child %p of type %d is inside the OUTPUT con\n", fmt::ptr(child), child->type));
             assert(false);
         }
     }

@@ -332,7 +332,7 @@ bool floating_enable(Con *con, bool automatic) {
         tree_close_internal(parent, DONT_KILL_WINDOW, false);
     }
 
-    x_set_name(nc, fmt::format("[i3 con] floatingcon around {}", (void *)con));
+    x_set_name(nc, fmt::format("[i3 con] floatingcon around {}", fmt::ptr(con)));
 
     DLOG(fmt::sprintf("Original rect: (%d, %d) with %d x %d\n", con->rect.x, con->rect.y, con->rect.width, con->rect.height));
     DLOG(fmt::sprintf("Geometry = (%d, %d) with %d x %d\n", con->geometry.x, con->geometry.y, con->geometry.width, con->geometry.height));
@@ -460,7 +460,7 @@ void floating_disable(Con *con) {
 void toggle_floating_mode(Con *con, bool automatic) {
     /* forbid the command to toggle floating on a CT_FLOATING_CON */
     if (con->type == CT_FLOATING_CON) {
-        ELOG(fmt::sprintf("Cannot toggle floating mode on con = %p because it is of type CT_FLOATING_CON.\n", (void *)con));
+        ELOG(fmt::sprintf("Cannot toggle floating mode on con = %p because it is of type CT_FLOATING_CON.\n", fmt::ptr(con)));
         return;
     }
 
@@ -480,7 +480,7 @@ void toggle_floating_mode(Con *con, bool automatic) {
  *
  */
 void floating_raise_con(Con *con) {
-    DLOG(fmt::sprintf("Raising floating con %p / %s\n", (void *)con, con->name));
+    DLOG(fmt::sprintf("Raising floating con %p / %s\n", fmt::ptr(con), con->name));
     if (dynamic_cast<WorkspaceCon *>(con->parent)) {
         WorkspaceCon *workspace = dynamic_cast<WorkspaceCon *>(con->parent);
         auto con_ptr = std::ranges::find(workspace->floating_windows, con);
@@ -513,7 +513,7 @@ bool floating_maybe_reassign_ws(Con *con) {
 
     Con *content = output->con->output_get_content();
     Con *ws = con::first(content->focus_head);
-    DLOG(fmt::sprintf("Moving con %p / %s to workspace %p / %s\n", (void *)con, con->name, (void *)ws, ws->name));
+    DLOG(fmt::sprintf("Moving con %p / %s to workspace %p / %s\n", fmt::ptr(con), con->name, fmt::ptr(ws), ws->name));
     Con *needs_focus = con_descend_focused(con);
     if (!needs_focus->con_inside_focused()) {
         needs_focus = nullptr;
@@ -821,7 +821,7 @@ void floating_resize(Con *floating_con, uint32_t x, uint32_t y) {
  */
 void floating_fix_coordinates(Con *con, const Rect &old_rect, const Rect &new_rect) {
     DLOG(fmt::sprintf("Fixing coordinates of floating window %p (rect (%d, %d), %d x %d)\n",
-                      (void *)con, con->rect.x, con->rect.y, con->rect.width, con->rect.height));
+                      fmt::ptr(con), con->rect.x, con->rect.y, con->rect.width, con->rect.height));
     DLOG(fmt::sprintf("old_rect = (%d, %d), %d x %d\n",
                       old_rect.x, old_rect.y, old_rect.width, old_rect.height));
     DLOG(fmt::sprintf("new_rect = (%d, %d), %d x %d\n",
