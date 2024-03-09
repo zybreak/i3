@@ -44,7 +44,7 @@ std::string Output::output_primary_name() const {
 }
 
 Output *get_output_for_con(Con *con) {
-    Con *output_con = con->con_get_output();
+    OutputCon *output_con = con->con_get_output();
     Output *output = global.randr->get_output_by_name(output_con->name, true);
     assert(output != nullptr);
 

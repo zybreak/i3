@@ -328,7 +328,7 @@ Output *create_root_output(xcb_connection_t *conn) {
  *
  */
 void output_init_con(Output *output) {
-    Con *con = nullptr;
+    OutputCon *con = nullptr;
     bool reused = false;
 
     DLOG(fmt::sprintf("init_con for output %s\n",  output->output_primary_name()));
@@ -339,7 +339,7 @@ void output_init_con(Output *output) {
         if (strcmp(current->name.c_str(), output->output_primary_name().c_str()) != 0)
             continue;
 
-        con = current;
+        con = dynamic_cast<OutputCon*>(current);
         reused = true;
         DLOG(fmt::sprintf("Using existing con %p / %s\n",  fmt::ptr(con), con->name));
         break;

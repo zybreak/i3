@@ -20,6 +20,7 @@ export module i3:output;
 import rect;
 
 class Con;
+class OutputCon;
 
 export {
     /**
@@ -50,7 +51,7 @@ export {
         std::deque<std::string> names{};
 
         /** Pointer to the Con which represents this output */
-        Con *con{};
+        OutputCon *con{};
 
         /** x, y, width, height */
         Rect rect{};
