@@ -470,13 +470,13 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         /* Insert the new container in focus stack *after* the currently
          * focused (fullscreen) con. This way, the new container will be
          * focused after we return from fullscreen mode */
-        Con *first = con::first(nc->parent->focus_head);
+        Con *first = con::first(nc->parent->focused);
         if (first != nc) {
             /* We only modify the focus stack if the container is not already
              * the first one. This can happen when existing containers swallow
              * new windows, for example when restarting. */
-            std::erase(nc->parent->focus_head, nc);
-            nc->parent->focus_head.push_front(nc);
+            std::erase(nc->parent->focused, nc);
+            nc->parent->focused.push_front(nc);
         }
     }
 

@@ -137,7 +137,7 @@ static void json_end_map(tree_append_ctx &ctx) {
             // height=0 are invalid.
             if (ctx.json_node->rect == (Rect){0, 0, 0, 0}) {
                 DLOG("Geometry not set, combining children\n");
-                for (auto &child : ctx.json_node->nodes_head) {
+                for (auto &child : ctx.json_node->nodes) {
                     DLOG(fmt::sprintf("child geometry: %d x %d\n",  child->geometry.width, child->geometry.height));
                     ctx.json_node->rect.width += child->geometry.width;
                     ctx.json_node->rect.height = std::max(ctx.json_node->rect.height, child->geometry.height);
@@ -197,13 +197,13 @@ static void json_end_array(tree_append_ctx &ctx) {
         /* Clear the list of focus mappings */
         for (auto mapping = ctx.focus_mappings.end(); mapping != ctx.focus_mappings.begin();--mapping) {
             LOG(fmt::sprintf("focus (reverse) %d\n",  (*mapping)));
-            for (auto &con : ctx.json_node->focus_head) {
+            for (auto &con : ctx.json_node->focused) {
                 if (con->old_id != *mapping)
                     continue;
                 LOG(fmt::sprintf("got it! %p\n", fmt::ptr(con)));
                 /* Move this entry to the top of the focus list. */
-                std::erase(ctx.json_node->focus_head, con);
-                ctx.json_node->focus_head.push_front(con);
+                std::erase(ctx.json_node->focused, con);
+                ctx.json_node->focused.push_front(con);
                 break;
             }
         }

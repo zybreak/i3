@@ -547,7 +547,7 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
     LOG(fmt::sprintf("default percentage = %f\n",  percentage));
 
     /* Ensure all the other children have a percentage set. */
-    for (auto &child : current->parent->nodes_head) {
+    for (auto &child : current->parent->nodes) {
         LOG(fmt::sprintf("child->percent = %f (child %p)\n", child->percent, fmt::ptr(child)));
         if (child->percent == 0.0)
             child->percent = percentage;
@@ -572,7 +572,7 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
     LOG(fmt::sprintf("subtract_percent = %f\n",  subtract_percent));
     /* Ensure that the new percentages are positive. */
     if (subtract_percent >= 0.0) {
-        for (auto &child : current->parent->nodes_head) {
+        for (auto &child : current->parent->nodes) {
             if (child == current) {
                 continue;
             }
@@ -587,7 +587,7 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
     current->percent = new_current_percent;
     LOG(fmt::sprintf("current->percent after = %f\n",  current->percent));
 
-    for (auto &child : current->parent->nodes_head) {
+    for (auto &child : current->parent->nodes) {
         if (child == current)
             continue;
         child->percent -= subtract_percent;
@@ -1295,7 +1295,7 @@ void CommandsApplier::focus_window_mode(struct criteria_state *criteria_state, C
 
     Con *ws = global.focused->con_get_workspace();
     bool success = false;
-    for (auto &current : ws->focus_head) {
+    for (auto &current : ws->focused) {
         if ((to_floating && current->type != CT_FLOATING_CON) ||
             (!to_floating && current->type == CT_FLOATING_CON))
             continue;
@@ -1660,8 +1660,8 @@ void CommandsApplier::focus_output(struct criteria_state *criteria_state, Comman
         success = true;
 
         /* get visible workspace on output */
-        auto ws = std::ranges::find_if(target_output->con->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
-        if (ws == target_output->con->output_get_content()->nodes_head.end()) {
+        auto ws = std::ranges::find_if(target_output->con->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
+        if (ws == target_output->con->output_get_content()->nodes.end()) {
             throw std::runtime_error("BUG: No workspace found on output.");
         }
 
@@ -1933,8 +1933,8 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
      * Instead, we loop through the available workspaces and only focus
      * previously_focused if we still find it. */
     if (previously_focused_content) {
-        auto workspace = std::ranges::find_if(previously_focused_content->nodes_head, [&previously_focused](auto &child) { return child == previously_focused; });
-        can_restore_focus &= (workspace != previously_focused->nodes_head.end());
+        auto workspace = std::ranges::find_if(previously_focused_content->nodes, [&previously_focused](auto &child) { return child == previously_focused; });
+        can_restore_focus &= (workspace != previously_focused->nodes.end());
     }
 
     if (can_restore_focus) {
@@ -2178,8 +2178,8 @@ static bool gaps_update(gap_accessor get, const char *scope, const char *mode, i
     }
 
     if (strcmp(scope, "all") == 0) {
-        for (auto &output : global.croot->nodes_head) {
-            for (auto &ws : output->output_get_content()->nodes_head) {
+        for (auto &output : global.croot->nodes) {
+            for (auto &ws : output->output_get_content()->nodes) {
                 WorkspaceCon *cur_ws = dynamic_cast<WorkspaceCon*>(ws);
                 int *gaps_value = get(&(cur_ws->gaps));
                 DLOG(fmt::sprintf("current gaps_value = %d\n", *gaps_value));

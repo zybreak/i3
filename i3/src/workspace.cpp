@@ -36,9 +36,9 @@ static std::deque<std::string> binding_workspace_names{};
  */
 WorkspaceCon *get_existing_workspace_by_name(const std::string &name) {
     WorkspaceCon *workspace = nullptr;
-    for (auto &output : global.croot->nodes_head) {
-        auto ws = std::ranges::find_if(output->output_get_content()->nodes_head, [&name](auto &child) { return !strcasecmp(child->name.c_str(), name.c_str()); });
-        if (ws != output->output_get_content()->nodes_head.end()) {
+    for (auto &output : global.croot->nodes) {
+        auto ws = std::ranges::find_if(output->output_get_content()->nodes, [&name](auto &child) { return !strcasecmp(child->name.c_str(), name.c_str()); });
+        if (ws != output->output_get_content()->nodes.end()) {
             workspace = dynamic_cast<WorkspaceCon*>(*ws);
         }
     }
@@ -53,9 +53,9 @@ WorkspaceCon *get_existing_workspace_by_name(const std::string &name) {
  */
 WorkspaceCon *get_existing_workspace_by_num(int num) {
     WorkspaceCon *workspace = nullptr;
-    for (auto &output : global.croot->nodes_head) {
-        auto ws = std::ranges::find_if(output->output_get_content()->nodes_head, [&num](auto &child) { return child->num == num; });
-        if (ws != output->output_get_content()->nodes_head.end()) {
+    for (auto &output : global.croot->nodes) {
+        auto ws = std::ranges::find_if(output->output_get_content()->nodes, [&num](auto &child) { return child->num == num; });
+        if (ws != output->output_get_content()->nodes.end()) {
             workspace = dynamic_cast<WorkspaceCon*>(*ws);
         }
     }
@@ -324,7 +324,7 @@ bool workspace_is_visible(Con *ws) {
  *
  */
 static Con *_get_sticky(Con *con, const std::string &sticky_group, Con *exclude) {
-    for (auto &current : con->nodes_head) {
+    for (auto &current : con->nodes) {
         if (current != exclude &&
             !current->sticky_group.empty() &&
             current->window != nullptr &&
@@ -370,7 +370,7 @@ static void workspace_reassign_sticky(Con *con) {
     /* 1: go through all containers */
 
     /* handle all children and floating windows of this node */
-    for (auto &current : con->nodes_head) {
+    for (auto &current : con->nodes) {
         if (current->sticky_group.empty()) {
             workspace_reassign_sticky(current);
             continue;
@@ -437,7 +437,7 @@ void workspace_show(Con *workspace) {
 
     /* disable fullscreen for the other workspaces and get the workspace we are
      * currently on. */
-    for (auto &c : workspace->parent->nodes_head) {
+    for (auto &c : workspace->parent->nodes) {
         current = c;
         if (current->fullscreen_mode == CF_OUTPUT) {
             old = current;
@@ -519,7 +519,7 @@ void workspace_show(Con *workspace) {
      * client, which will clear the urgency flag too early. Also, there is no
      * way for con_focus() to know about when to clear urgency immediately and
      * when to defer it. */
-    if (old && old->nodes_head.empty() && dynamic_cast<WorkspaceCon*>(old) != nullptr && dynamic_cast<WorkspaceCon*>(old)->floating_windows.empty()) {
+    if (old && old->nodes.empty() && dynamic_cast<WorkspaceCon*>(old) != nullptr && dynamic_cast<WorkspaceCon*>(old)->floating_windows.empty()) {
         /* check if this workspace is currently visible */
         if (!workspace_is_visible(old)) {
             LOG(fmt::sprintf("Closing old workspace (%p / %s), it is empty\n", fmt::ptr(old), old->name));
@@ -572,14 +572,14 @@ WorkspaceCon *workspace_next() {
 
     if (current->num == -1) {
         /* If currently a named workspace, find next named workspace. */
-        auto it = std::ranges::find(current->parent->nodes_head, current);
-        if (std::next(it) == current->parent->nodes_head.end()) {
+        auto it = std::ranges::find(current->parent->nodes, current);
+        if (std::next(it) == current->parent->nodes.end()) {
             return dynamic_cast<WorkspaceCon*>(*(++it));
         }
         bool found_current = false;
-        for (auto &output : global.croot->nodes_head) {
+        for (auto &output : global.croot->nodes) {
             for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-                for (auto &c : output->output_get_content()->nodes_head) {
+                for (auto &c : output->output_get_content()->nodes) {
                     child = c;
                     if (child->type != CT_WORKSPACE) {
                         continue;
@@ -601,9 +601,9 @@ WorkspaceCon *workspace_next() {
         }
     } else {
         /* If currently a numbered workspace, find next numbered workspace. */
-        for (auto &output : global.croot->nodes_head) {
+        for (auto &output : global.croot->nodes) {
             for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-                for (auto &c : output->output_get_content()->nodes_head) {
+                for (auto &c : output->output_get_content()->nodes) {
                     child = c;
                     if (child->type != CT_WORKSPACE) {
                         continue;
@@ -645,16 +645,16 @@ WorkspaceCon *workspace_prev() {
 
     if (current->num == -1) {
         /* If named workspace, find previous named workspace. */
-        auto c_itr = std::ranges::find(current->parent->nodes_head, current);
-        prev = c_itr == current->parent->nodes_head.begin() ? nullptr : *(--c_itr);
+        auto c_itr = std::ranges::find(current->parent->nodes, current);
+        prev = c_itr == current->parent->nodes.begin() ? nullptr : *(--c_itr);
         if (prev && prev->num != -1) {
             prev = nullptr;
         }
         if (!prev) {
             bool found_current = false;
-            for (auto &output : global.croot->nodes_head | std::views::reverse) {
+            for (auto &output : global.croot->nodes | std::views::reverse) {
                 for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-                    for (auto &c : output->output_get_content()->nodes_head | std::views::reverse) {
+                    for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
                         child = c;
                         if (child->type != CT_WORKSPACE) {
                             continue;
@@ -677,9 +677,9 @@ WorkspaceCon *workspace_prev() {
         }
     } else {
         /* If numbered workspace, find previous numbered workspace. */
-        for (auto &output : global.croot->nodes_head | std::views::reverse) {
+        for (auto &output : global.croot->nodes | std::views::reverse) {
             for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-                for (auto &c : output->output_get_content()->nodes_head | std::views::reverse) {
+                for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
                     child = c;
                     if (child->type != CT_WORKSPACE) {
                         continue;
@@ -722,11 +722,11 @@ WorkspaceCon *workspace_next_on_output() {
 
     if (current->num == -1) {
         /* If currently a named workspace, find next named workspace. */
-        next = con::next(current, current->parent->nodes_head);
+        next = con::next(current, current->parent->nodes);
     } else {
         /* If currently a numbered workspace, find next numbered workspace. */
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-            for (auto &c : output->output_get_content()->nodes_head) {
+            for (auto &c : output->output_get_content()->nodes) {
                 child = c;
                 if (child->type != CT_WORKSPACE) {
                     continue;
@@ -748,7 +748,7 @@ WorkspaceCon *workspace_next_on_output() {
     if (!next) {
         bool found_current = false;
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-            for (auto &c : output->output_get_content()->nodes_head) {
+            for (auto &c : output->output_get_content()->nodes) {
                 child = c;
                 if (child->type != CT_WORKSPACE) {
                     continue;
@@ -766,7 +766,7 @@ WorkspaceCon *workspace_next_on_output() {
     /* Find first workspace. */
     if (!next) {
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-            for (auto &c : output->output_get_content()->nodes_head) {
+            for (auto &c : output->output_get_content()->nodes) {
                 child = c;
                 if (child->type != CT_WORKSPACE) {
                     continue;
@@ -793,14 +793,14 @@ WorkspaceCon *workspace_prev_on_output() {
 
     if (current->num == -1) {
         /* If named workspace, find previous named workspace. */
-        prev = con::previous(current, current->parent->nodes_head);
+        prev = con::previous(current, current->parent->nodes);
         if (prev && prev->num != -1) {
             prev = nullptr;
         }
     } else {
         /* If numbered workspace, find previous numbered workspace. */
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-            for (auto &c : output->output_get_content()->nodes_head | std::views::reverse) {
+            for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
                 child = c;
                 if (child->type != CT_WORKSPACE || child->num == -1) {
                     continue;
@@ -819,7 +819,7 @@ WorkspaceCon *workspace_prev_on_output() {
     if (!prev) {
         bool found_current = false;
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-            for (auto &c : output->output_get_content()->nodes_head | std::views::reverse) {
+            for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
                 child = c;
                 if (child->type != CT_WORKSPACE) {
                     continue;
@@ -837,7 +837,7 @@ WorkspaceCon *workspace_prev_on_output() {
     /* Find last workspace. */
     if (!prev) {
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-            for (auto &c : output->output_get_content()->nodes_head | std::views::reverse) {
+            for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
                 child = c;
                 if (child->type != CT_WORKSPACE) {
                     continue;
@@ -880,7 +880,7 @@ WorkspaceCon *workspace_back_and_forth_get() {
 }
 
 static bool get_urgency_flag(Con *con) {
-    for (auto &child : con->nodes_head) {
+    for (auto &child : con->nodes) {
         if (child->urgent || get_urgency_flag(child)) {
             return true;
         }
@@ -927,8 +927,8 @@ void ws_force_orientation(Con *ws, orientation_t orientation) {
     auto focus_order = ws->get_focus_order();
 
     DLOG("Moving cons\n");
-    while (!ws->nodes_head.empty()) {
-        Con *child = con::first(ws->nodes_head);
+    while (!ws->nodes.empty()) {
+        Con *child = con::first(ws->nodes);
         child->con_detach();
         child->con_attach(split, true);
     }
@@ -991,7 +991,7 @@ Con *workspace_attach_to(WorkspaceCon *ws) {
  * The container inherits the layout from the workspace.
  */
 Con *workspace_encapsulate(Con *ws) {
-    if (ws->nodes_head.empty()) {
+    if (ws->nodes.empty()) {
         ELOG(fmt::sprintf("Workspace %p / %s has no children to encapsulate\n", fmt::ptr(ws), ws->name));
         return nullptr;
     }
@@ -1004,8 +1004,8 @@ Con *workspace_encapsulate(Con *ws) {
 
     DLOG(fmt::sprintf("Moving children of workspace %p / %s into container %p\n", fmt::ptr(ws), ws->name, fmt::ptr(new_con)));
     Con *child;
-    while (!ws->nodes_head.empty()) {
-        child = con::first(ws->nodes_head);
+    while (!ws->nodes.empty()) {
+        child = con::first(ws->nodes);
         child->con_detach();
         child->con_attach(new_con, true);
     }
@@ -1033,7 +1033,7 @@ void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
         return;
     }
 
-    Con *previously_visible_ws = con::first(content->focus_head);
+    Con *previously_visible_ws = con::first(content->focused);
     if (previously_visible_ws) {
         DLOG(fmt::sprintf("Previously visible workspace = %p / %s\n", fmt::ptr(previously_visible_ws), previously_visible_ws->name));
     } else {
@@ -1081,7 +1081,7 @@ void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
     if (workspace_was_visible) {
         /* The workspace which we just detached was visible, so focus the next
          * one in the focus-stack. */
-        Con *focus_ws = con::first(old_content->focus_head);
+        Con *focus_ws = con::first(old_content->focused);
         DLOG(fmt::sprintf("workspace was visible, focusing %p / %s now\n", fmt::ptr(focus_ws), focus_ws->name));
         workspace_show(focus_ws);
     }
@@ -1109,7 +1109,7 @@ void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
      * order/number of other workspaces on the output. Instead, we loop through
      * the available workspaces and only work with previously_visible_ws if we
      * still find it. */
-    for (auto &ws : content->nodes_head) {
+    for (auto &ws : content->nodes) {
         if (ws != previously_visible_ws) {
             continue;
         }

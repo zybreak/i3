@@ -37,7 +37,7 @@ import rect;
  *
  */
 Con* Con::output_get_content() {
-    for (auto &child : this->nodes_head) {
+    for (auto &child : this->nodes) {
         if (child->type == CT_CON) {
             return child;
         }
@@ -137,23 +137,23 @@ static int strcasecmp_nullable(const char *a, const char *b) {
 void WorkspaceCon::con_attach(Con *parent, bool ignore_focus, Con *previous) {
     this->parent = parent;
     Con *current = previous;
-    auto &nodes_head = parent->nodes_head;
-    auto &focus_head = parent->focus_head;
+    auto &nodes = parent->nodes;
+    auto &focused = parent->focused;
 
     /* Workspaces are handled differently: they need to be inserted at the
      * right position. */
     DLOG(fmt::sprintf("it's a workspace. num = %d\n",  this->num));
-    if (this->num == -1 || nodes_head.empty()) {
-        nodes_head.push_back(this);
+    if (this->num == -1 || nodes.empty()) {
+        nodes.push_back(this);
     } else {
-        current = con::first(nodes_head);
+        current = con::first(nodes);
         if (this->num < current->num) {
             /* we need to insert the container at the beginning */
-            nodes_head.push_front(this);
+            nodes.push_front(this);
         } else {
             while (current && current->num != -1 && this->num > current->num) {
-                current = con::next(current, nodes_head);
-                if (current == con::last(nodes_head)) {
+                current = con::next(current, nodes);
+                if (current == con::last(nodes)) {
                     current = nullptr;
                     break;
                 }
@@ -162,7 +162,7 @@ void WorkspaceCon::con_attach(Con *parent, bool ignore_focus, Con *previous) {
             if (current) {
                 current->insert_before(this);
             } else {
-                nodes_head.push_back(this);
+                nodes.push_back(this);
             }
         }
     }
@@ -170,13 +170,13 @@ void WorkspaceCon::con_attach(Con *parent, bool ignore_focus, Con *previous) {
     /* We insert to the TAIL because con_focus() will correct this.
      * This way, we have the option to insert Cons without having
      * to focus them. */
-    focus_head.push_back(this);
+    focused.push_back(this);
     con_force_split_parents_redraw(this);
 }
 
 void FloatingCon::con_attach(Con *parent, bool ignore_focus, Con *previous) {
     this->parent = parent;
-    auto &focus_head = parent->focus_head;
+    auto &focused = parent->focused;
 
     DLOG("Inserting into floating containers\n");
     dynamic_cast<WorkspaceCon*>(parent)->floating_windows.push_back(this);
@@ -184,7 +184,7 @@ void FloatingCon::con_attach(Con *parent, bool ignore_focus, Con *previous) {
     /* We insert to the TAIL because con_focus() will correct this.
      * This way, we have the option to insert Cons without having
      * to focus them. */
-    focus_head.push_back(this);
+    focused.push_back(this);
     con_force_split_parents_redraw(this);
 }
 
@@ -201,8 +201,8 @@ void FloatingCon::con_attach(Con *parent, bool ignore_focus, Con *previous) {
 void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
     this->parent = parent;
     Con *current = previous;
-    auto &nodes_head = parent->nodes_head;
-    auto &focus_head = parent->focus_head;
+    auto &nodes = parent->nodes;
+    auto &focused = parent->focused;
 
     if (parent->type == CT_DOCKAREA) {
         /* Insert dock client, sorting alphanumerically by class and then
@@ -210,7 +210,7 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
          * effect, bars without a custom bar id will be sorted according to
          * their declaration order in the config file. See #3491. */
         current = nullptr;
-        for (auto &loop : nodes_head) {
+        for (auto &loop : nodes) {
             int result = strcasecmp_nullable(this->window->class_class, loop->window->class_class);
             if (result == 0) {
                 result = strcasecmp_nullable(this->window->class_instance, loop->window->class_instance);
@@ -223,14 +223,14 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
         if (current) {
             current->insert_before(this);
         } else {
-            nodes_head.push_back(this);
+            nodes.push_back(this);
         }
-        goto add_to_focus_head;
+        goto add_to_focused;
     }
 
     if (!ignore_focus) {
         /* Get the first tiling container in focus stack */
-        for (auto &loop : parent->focus_head) {
+        for (auto &loop : parent->focused) {
             if (loop->type == CT_FLOATING_CON) {
                 continue;
             }
@@ -253,8 +253,8 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
         Con *target = workspace_attach_to(dynamic_cast<WorkspaceCon*>(parent));
 
         /* Attach the original con to this new split con instead */
-        nodes_head = target->nodes_head;
-        focus_head = target->focus_head;
+        nodes = target->nodes;
+        focused = target->focused;
         this->parent = target;
         current = nullptr;
 
@@ -267,14 +267,14 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
         DLOG(fmt::sprintf("Inserting con = %p after con %p\n", fmt::ptr(this), fmt::ptr(current)));
         current->insert_after(this);
     } else {
-        nodes_head.push_back(this);
+        nodes.push_back(this);
     }
 
-    add_to_focus_head:
+    add_to_focused:
     /* We insert to the TAIL because con_focus() will correct this.
      * This way, we have the option to insert Cons without having
      * to focus them. */
-    focus_head.push_back(this);
+    focused.push_back(this);
     con_force_split_parents_redraw(this);
 }
 
@@ -315,25 +315,25 @@ namespace con {
 }
 
 void Con::insert_before(Con *con) {
-    auto c_itr = std::ranges::find(this->parent->nodes_head, this);
+    auto c_itr = std::ranges::find(this->parent->nodes, this);
 
-    if (c_itr != this->parent->nodes_head.end()) {
-        this->parent->nodes_head.insert(c_itr, con);
+    if (c_itr != this->parent->nodes.end()) {
+        this->parent->nodes.insert(c_itr, con);
     }
 }
 
 void Con::insert_after(Con *con) {
-    auto c_itr = std::ranges::find(this->parent->nodes_head, this);
+    auto c_itr = std::ranges::find(this->parent->nodes, this);
 
-    if (c_itr != this->parent->nodes_head.end()) {
-        this->parent->nodes_head.insert(std::next(c_itr), con);
+    if (c_itr != this->parent->nodes.end()) {
+        this->parent->nodes.insert(std::next(c_itr), con);
     }
 }
 
 void FloatingCon::con_detach() {
     con_force_split_parents_redraw(this);
     std::erase(dynamic_cast<WorkspaceCon*>(this->parent)->floating_windows, this);
-    std::erase(this->parent->focus_head, this);
+    std::erase(this->parent->focused, this);
 }
 
 /*
@@ -342,8 +342,8 @@ void FloatingCon::con_detach() {
  */
 void Con::con_detach() {
     con_force_split_parents_redraw(this);
-    std::erase(this->parent->nodes_head, this);
-    std::erase(this->parent->focus_head, this);
+    std::erase(this->parent->nodes, this);
+    std::erase(this->parent->focused, this);
 }
 
 /*
@@ -356,8 +356,8 @@ void Con::con_focus() {
 
     /* 1: set focused-pointer to the new con */
     /* 2: exchange the position of the container in focus stack of the parent all the way up */
-    std::erase(this->parent->focus_head, this);
-    this->parent->focus_head.push_front(this);
+    std::erase(this->parent->focused, this);
+    this->parent->focused.push_front(this);
     if (this->parent->parent != nullptr) {
         this->parent->con_focus();
     }
@@ -387,8 +387,8 @@ static bool con_has_urgent_child(Con *con) {
     }
 
     /* We are not interested in floating windows since they can only be
-     * attached to a workspace → nodes_head instead of focus_head */
-    return std::ranges::any_of(con->nodes_head, [](Con *child) { return con_has_urgent_child(child); });
+     * attached to a workspace → nodes instead of focused */
+    return std::ranges::any_of(con->nodes, [](Con *child) { return con_has_urgent_child(child); });
 }
 
 /*
@@ -464,7 +464,7 @@ void Con::con_close(kill_window_t kill_window) {
 
     if (this->type == CT_WORKSPACE) {
         DLOG(fmt::sprintf("con = %p is a workspace, closing all children instead.\n", fmt::ptr(this)));
-        for (auto &child : this->focus_head) {
+        for (auto &child : this->focused) {
             DLOG(fmt::sprintf("killing child = %p.\n", fmt::ptr(child)));
             tree_close_internal(child, kill_window, false);
         }
@@ -480,7 +480,7 @@ void Con::con_close(kill_window_t kill_window) {
  *
  */
 bool Con::con_is_leaf() const {
-    return this->nodes_head.empty();
+    return this->nodes.empty();
 }
 
 /*
@@ -535,7 +535,7 @@ bool Con::con_is_hidden() {
     while (current != nullptr && current->type != CT_WORKSPACE) {
         Con *parent = current->parent;
         if (parent != nullptr && (parent->layout == L_TABBED || parent->layout == L_STACKED)) {
-            if (con::first(parent->focus_head) != current) {
+            if (con::first(parent->focused) != current) {
                 return true;
             }
         }
@@ -555,7 +555,7 @@ bool Con::con_is_sticky() {
         return true;
     }
 
-    for (auto &child : this->nodes_head) {
+    for (auto &child : this->nodes) {
         if (child->con_is_sticky()) {
             return true;
         }
@@ -666,7 +666,7 @@ Con* Con::con_get_fullscreen_con(fullscreen_mode_t fullscreen_mode) {
 
         bfs.pop_front();
 
-        for (auto &child : current->nodes_head) {
+        for (auto &child : current->nodes) {
             bfs.push_back(child);
         }
 
@@ -845,7 +845,7 @@ bool con_find_transient_for_window(Con *start, xcb_window_t target) {
  */
 Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
 
-    for (auto &child : con->nodes_head) {
+    for (auto &child : con->nodes) {
         for (auto &match : child->swallow) {
             if (!match->match_matches_window(window)) {
                 continue;
@@ -889,8 +889,8 @@ Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
  */
 std::vector<Con*> Con::get_focus_order() {
     std::vector<Con*> focus_order;
-    focus_order.reserve(focus_head.size());
-    for (auto &current : focus_head) {
+    focus_order.reserve(focused.size());
+    for (auto &current : focused) {
         focus_order.push_back(current);
     }
 
@@ -905,8 +905,8 @@ std::vector<Con*> Con::get_focus_order() {
  *
  */
 void Con::set_focus_order(std::vector<Con*> focus_order) {
-    auto focus_heads = this->focus_head.size();
-    this->focus_head.clear();
+    auto focus_heads = this->focused.size();
+    this->focused.clear();
 
     for (int idx = 0; idx < focus_heads; idx++) {
         /* Useful when encapsulating a workspace. */
@@ -915,7 +915,7 @@ void Con::set_focus_order(std::vector<Con*> focus_order) {
             continue;
         }
 
-        this->focus_head.push_back(focus_order[idx]);
+        this->focused.push_back(focus_order[idx]);
     }
 }
 
@@ -924,7 +924,7 @@ void Con::set_focus_order(std::vector<Con*> focus_order) {
  *
  */
 unsigned long Con::con_num_children() const {
-    return this->nodes_head.size();
+    return this->nodes.size();
 }
 
 /*
@@ -934,7 +934,7 @@ unsigned long Con::con_num_children() const {
  */
 int Con::con_num_visible_children() {
     int children = 0;
-    for (auto &current : this->nodes_head) {
+    for (auto &current : this->nodes) {
         /* Visible leaf nodes are a child. */
         if (!current->con_is_hidden() && current->con_is_leaf()) {
             children++;
@@ -957,7 +957,7 @@ int Con::con_num_windows() {
     }
 
     int num = 0;
-    for (auto &current : this->nodes_head) {
+    for (auto &current : this->nodes) {
         num += current->con_num_windows();
     }
 
@@ -983,7 +983,7 @@ void Con::con_fix_percent() {
      * with a percentage set we have */
     double total = 0.0;
     int children_with_percent = 0;
-    for (auto &child : this->nodes_head) {
+    for (auto &child : this->nodes) {
         if (child->percent > 0.0) {
             total += child->percent;
             ++children_with_percent;
@@ -993,7 +993,7 @@ void Con::con_fix_percent() {
     /* if there were children without a percentage set, set to a value that
      * will make those children proportional to all others */
     if (children_with_percent != children) {
-        for (auto &child : this->nodes_head) {
+        for (auto &child : this->nodes) {
             if (child->percent <= 0.0) {
                 if (children_with_percent == 0) {
                     total += (child->percent = 1.0);
@@ -1007,11 +1007,11 @@ void Con::con_fix_percent() {
     /* if we got a zero, just distribute the space equally, otherwise
      * distribute according to the proportions we got */
     if (total == 0.0) {
-        for (auto &child : this->nodes_head) {
+        for (auto &child : this->nodes) {
             child->percent = 1.0 / children;
         }
     } else if (total != 1.0) {
-        for (auto &child : this->nodes_head) {
+        for (auto &child : this->nodes) {
             child->percent /= total;
         }
     }
@@ -1273,7 +1273,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
         /* We need to save the focused workspace on the output in case the
          * new workspace is hidden and it's necessary to immediately switch
          * back to the originally-focused workspace. */
-        Con *old_focus_ws = con::first(dest_output->output_get_content()->focus_head);
+        Con *old_focus_ws = con::first(dest_output->output_get_content()->focused);
         Con *old_focus = global.focused;
         con_descend_focused(con)->con_activate();
 
@@ -1305,7 +1305,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
     /* 8. If anything within the container is associated with a startup sequence,
      * delete it so child windows won't be created on the old workspace. */
     if (!con->con_is_leaf()) {
-        for (auto &child : con->nodes_head) {
+        for (auto &child : con->nodes) {
             if (!child->window) {
                 continue;
             }
@@ -1353,7 +1353,7 @@ bool con_move_to_target(Con *con, Con *target) {
      * con to a new tab behind the focused tab. */
     if (target->con_is_split()) {
         DLOG("target is a split container, descending to the currently focused child.\n");
-        target = con::first(target->focus_head);
+        target = con::first(target->focused);
     }
 
     if (con == target || target->con_has_parent(con)) {
@@ -1401,8 +1401,8 @@ void con_move_to_workspace(Con *con, WorkspaceCon *workspace, bool fix_coordinat
  *
  */
 void con_move_to_output(Con *con, Output *output, bool fix_coordinates) {
-    auto ws = std::ranges::find_if(output->con->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
-    assert(ws != output->con->output_get_content()->nodes_head.end());
+    auto ws = std::ranges::find_if(output->con->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
+    assert(ws != output->con->output_get_content()->nodes.end());
     DLOG(fmt::sprintf("Moving con %p to output %s\n", fmt::ptr(con), output->output_primary_name()));
     con_move_to_workspace(con, dynamic_cast<WorkspaceCon*>(*ws), fix_coordinates, false, false);
 }
@@ -1456,21 +1456,21 @@ Con *con_next_focused(Con *con) {
 
     /* if 'con' is not the first entry in the focus stack, use the first one as
      * it’s currently focused already */
-    Con *next = con::first(con->parent->focus_head);
+    Con *next = con::first(con->parent->focused);
     if (next != con) {
         DLOG(fmt::sprintf("Using first entry %p\n", fmt::ptr(next)));
     } else {
         /* try to focus the next container on the same level as this one or fall
          * back to its parent */
-        if (!(next = con::next(con, con->parent->focus_head))) {
+        if (!(next = con::next(con, con->parent->focused))) {
             next = con->parent;
         }
     }
 
     /* now go down the focus stack as far as
      * possible, excluding the current container */
-    while (!next->focus_head.empty() && con::first(next->focus_head) != con) {
-        next = con::first(next->focus_head);
+    while (!next->focused.empty() && con::first(next->focused) != con) {
+        next = con::first(next->focused);
     }
 
     if (con->type == CT_FLOATING_CON && next != con->parent) {
@@ -1488,8 +1488,8 @@ Con *con_next_focused(Con *con) {
  */
 Con *con_descend_focused(Con *con) {
     Con *next = con;
-    while (next != global.focused && !next->focus_head.empty()) {
-        next = con::first(next->focus_head);
+    while (next != global.focused && !next->focused.empty()) {
+        next = con::first(next->focused);
     }
     return next;
 }
@@ -1510,7 +1510,7 @@ Con *con_descend_tiling_focused(Con *con) {
     }
     do {
         before = next;
-        for (auto &child : next->focus_head) {
+        for (auto &child : next->focused) {
             if (child->type == CT_FLOATING_CON) {
                 continue;
             }
@@ -1538,15 +1538,15 @@ Con *con_descend_direction(Con *con, direction_t direction) {
             /* If the direction is horizontal, we can use either the first
              * (D_RIGHT) or the last con (D_LEFT) */
             if (direction == D_RIGHT) {
-                most = con::first(con->nodes_head);
+                most = con::first(con->nodes);
             } else {
-                most = con::last(con->nodes_head);
+                most = con::last(con->nodes);
             }
         } else if (orientation == VERT) {
             /* Wrong orientation. We use the last focused con. Within that con,
              * we recurse to chose the left/right con or at least the last
              * focused one. */
-            for (auto &current : con->focus_head) {
+            for (auto &current : con->focused) {
                 if (current->type != CT_FLOATING_CON) {
                     most = current;
                     break;
@@ -1564,15 +1564,15 @@ Con *con_descend_direction(Con *con, direction_t direction) {
             /* If the direction is vertical, we can use either the first
              * (D_DOWN) or the last con (D_UP) */
             if (direction == D_UP) {
-                most = con::last(con->nodes_head);
+                most = con::last(con->nodes);
             } else {
-                most = con::first(con->nodes_head);
+                most = con::first(con->nodes);
             }
         } else if (orientation == HORIZ) {
             /* Wrong orientation. We use the last focused con. Within that con,
              * we recurse to chose the top/bottom con or at least the last
              * focused one. */
-            for (auto &current : con->focus_head) {
+            for (auto &current : con->focused) {
                 if (current->type != CT_FLOATING_CON) {
                     most = current;
                     break;
@@ -1835,8 +1835,8 @@ void con_set_layout(Con *con, layout_t layout) {
 
             DLOG("Moving cons\n");
             Con *child;
-            while (!con->nodes_head.empty()) {
-                child = con::first(con->nodes_head);
+            while (!con->nodes.empty()) {
+                child = con::first(con->nodes);
                 child->con_detach();
                 child->con_attach(new_con, true);
             }
@@ -1891,7 +1891,7 @@ void Con::on_remove_child() {
 
     /* For workspaces, close them only if they're not visible anymore */
     if (this->type == CT_WORKSPACE) {
-        if (this->focus_head.empty() && !workspace_is_visible(this)) {
+        if (this->focused.empty() && !workspace_is_visible(this)) {
             LOG(fmt::sprintf("Closing old workspace (%p / %s), it is empty\n", fmt::ptr(this), this->name));
             auto gen = ipc_marshal_workspace_event("empty", this, nullptr);
             tree_close_internal(this, DONT_KILL_WINDOW, false);
@@ -2095,8 +2095,8 @@ std::string con_get_tree_representation(Con *con) {
     buf.push_back('[');
 
     /* 2) append representation of children */
-    for (auto &child : con->nodes_head) {
-        buf.append((con::first(con->nodes_head) == child ? "" : " "));
+    for (auto &child : con->nodes) {
+        buf.append((con::first(con->nodes) == child ? "" : " "));
         buf.append(con_get_tree_representation(child));
     }
 

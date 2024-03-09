@@ -50,7 +50,7 @@ static Rect total_outputs_dimensions(xcb_screen_t *root_screen) {
  */
 static void floating_set_hint_atom(Con *con, bool floating) {
     if (!con->con_is_leaf()) {
-        for (auto &child : con->nodes_head) {
+        for (auto &child : con->nodes) {
             floating_set_hint_atom(child, floating);
         }
     }
@@ -263,7 +263,7 @@ bool floating_enable(Con *con, bool automatic) {
          * We need to reuse its focus position later. */
         Con *ancestor = con;
         while (ancestor->parent->type != CT_WORKSPACE) {
-            focus_before_parent &= con::first(ancestor->parent->focus_head) == ancestor;
+            focus_before_parent &= con::first(ancestor->parent->focused) == ancestor;
             ancestor = ancestor->parent;
         }
         /* Consider the part of the focus stack of our current workspace:
@@ -277,9 +277,9 @@ bool floating_enable(Con *con, bool automatic) {
          * or before S_{i+1}.
          */
         if (focus_before_parent) {
-            focus_head_placeholder = con::previous(ancestor, ancestor->parent->focus_head);
+            focus_head_placeholder = con::previous(ancestor, ancestor->parent->focused);
         } else {
-            focus_head_placeholder = con::next(ancestor, ancestor->parent->focus_head);
+            focus_head_placeholder = con::next(ancestor, ancestor->parent->focused);
         }
     }
 
@@ -302,7 +302,7 @@ bool floating_enable(Con *con, bool automatic) {
      * closed in tree_close_internal()) even though it’s not. */
     ws->floating_windows.push_front(nc);
 
-    auto &fh = ws->focus_head;
+    auto &fh = ws->focused;
     if (focus_before_parent) {
         if (focus_head_placeholder) {
             auto it = std::ranges::find(fh, focus_head_placeholder);
@@ -341,15 +341,15 @@ bool floating_enable(Con *con, bool automatic) {
      * sensible one by combining the geometry of all children */
     if (nc->rect == (Rect){0, 0, 0, 0}) {
         DLOG("Geometry not set, combining children\n");
-        for (auto &child : con->nodes_head) {
+        for (auto &child : con->nodes) {
             DLOG(fmt::sprintf("child geometry: %d x %d\n", child->geometry.width, child->geometry.height));
             nc->rect.width += child->geometry.width;
             nc->rect.height = std::max(nc->rect.height, child->geometry.height);
         }
     }
 
-    nc->nodes_head.push_back(con);
-    nc->focus_head.push_back(con);
+    nc->nodes.push_back(con);
+    nc->focused.push_back(con);
 
     /* 3: attach the child to the new parent container. We need to do this
      * because con_border_style_rect() needs to access con->parent. */
@@ -512,7 +512,7 @@ bool floating_maybe_reassign_ws(Con *con) {
     DLOG("Need to re-assign!\n");
 
     Con *content = output->con->output_get_content();
-    WorkspaceCon *ws = dynamic_cast<WorkspaceCon*>(con::first(content->focus_head));
+    WorkspaceCon *ws = dynamic_cast<WorkspaceCon*>(con::first(content->focused));
     DLOG(fmt::sprintf("Moving con %p / %s to workspace %p / %s\n", fmt::ptr(con), con->name, fmt::ptr(ws), ws->name));
     Con *needs_focus = con_descend_focused(con);
     if (!needs_focus->con_inside_focused()) {

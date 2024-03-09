@@ -211,7 +211,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
     Con *focused_workspace = global.focused->con_get_workspace();
 
     if (!ws) {
-        ws = con::first(con->con_get_output()->output_get_content()->focus_head);
+        ws = con::first(con->con_get_output()->output_get_content()->focused);
         if (!ws) {
             allow_replay_pointer(event->time);
             return;
@@ -239,7 +239,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
 
         /* Use the focused child of the tabbed / stacked container, not the
          * container the user scrolled on. */
-        Con *current = con::first(con->parent->focus_head);
+        Con *current = con::first(con->parent->focused);
         const position_t direction =
             (event->detail == XCB_BUTTON_SCROLL_UP || event->detail == XCB_BUTTON_SCROLL_LEFT) ? BEFORE : AFTER;
         Con *next = get_tree_next_sibling(current, direction);
@@ -269,8 +269,8 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
          * focused, focus the tab container itself. If the tab container was
          * already focused, cycle back to focusing the tab contents. */
         if (was_focused || !global.focused->con_has_parent(con)) {
-            while (!con_to_focus->focus_head.empty()) {
-                con_to_focus = con::first(con_to_focus->focus_head);
+            while (!con_to_focus->focused.empty()) {
+                con_to_focus = con::first(con_to_focus->focused);
             }
         }
     }
@@ -404,12 +404,12 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
          * click coordinates and focus the output's active workspace. */
         if (event->event == global.x->root && event->response_type == XCB_BUTTON_PRESS) {
             Con *output, *ws;
-            for (auto &c : global.croot->nodes_head) {
+            for (auto &c : global.croot->nodes) {
                 output = c;
                 if (!output->rect.rect_contains(event->event_x, event->event_y))
                     continue;
 
-                ws = con::first(output->output_get_content()->focus_head);
+                ws = con::first(output->output_get_content()->focused);
                 if (ws != global.focused->con_get_workspace()) {
                     workspace_show(ws);
                     tree_render();
@@ -432,7 +432,7 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
             return;
         }
     } else {
-        for (auto &child : con->nodes_head | std::views::reverse) {
+        for (auto &child : con->nodes | std::views::reverse) {
             if (!child->deco_rect.rect_contains(event->event_x, event->event_y))
                 continue;
 

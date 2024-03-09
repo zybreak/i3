@@ -25,8 +25,8 @@ gaps_t calculate_effective_gaps(Con *con) {
 
     bool one_child = workspace->con_num_visible_children() <= 1 ||
                      (workspace->con_num_children() == 1 &&
-                      (con::first(workspace->nodes_head)->layout == L_TABBED ||
-                       con::first(workspace->nodes_head)->layout == L_STACKED));
+                      (con::first(workspace->nodes)->layout == L_TABBED ||
+                       con::first(workspace->nodes)->layout == L_STACKED));
 
     if (config.smart_gaps == SMART_GAPS_ON && one_child)
         return (gaps_t){0, 0, 0, 0, 0};
@@ -162,9 +162,9 @@ gaps_t gaps_for_workspace(WorkspaceCon *ws) {
  *
  */
 void gaps_reapply_workspace_assignments() {
-    for (auto &output : global.croot->nodes_head) {
+    for (auto &output : global.croot->nodes) {
         Con *content = output->output_get_content();
-        for (auto &workspace : content->nodes_head) {
+        for (auto &workspace : content->nodes) {
             WorkspaceCon *ws = dynamic_cast<WorkspaceCon *>(workspace);
             if (ws == nullptr)
                 continue;

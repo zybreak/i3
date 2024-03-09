@@ -144,8 +144,8 @@ export {
         /** Cache for the decoration rendering */
         struct deco_render_params *deco_render_params{};
 
-        std::deque<Con *> nodes_head{};
-        std::deque<Con *> focus_head{};
+        std::deque<Con *> nodes{};
+        std::deque<Con *> focused{};
 
         std::deque<std::unique_ptr<Match>> swallow{};
 

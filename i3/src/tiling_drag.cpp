@@ -53,9 +53,9 @@ bool has_drop_targets() {
 
     /* In addition to tiling containers themselves, an visible but empty
      * workspace (in a multi-monitor scenario) also is a drop target. */
-    for (auto &output : global.croot->focus_head) {
-        auto visible_ws = std::ranges::find_if(output->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
-        if (visible_ws != output->output_get_content()->nodes_head.end() && (*visible_ws)->con_num_children() == 0) {
+    for (auto &output : global.croot->focused) {
+        auto visible_ws = std::ranges::find_if(output->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
+        if (visible_ws != output->output_get_content()->nodes.end() && (*visible_ws)->con_num_children() == 0) {
             drop_targets++;
         }
     }
@@ -373,9 +373,9 @@ void tiling_drag(Con *con, xcb_button_press_event_t *event, bool use_threshold) 
                  * middle of the container. Thus, after a directional move, con
                  * will still be bound to the tabbed/stacked parent. */
                 if (position == BEFORE) {
-                    target = con::first(target->parent->nodes_head);
+                    target = con::first(target->parent->nodes);
                 } else {
-                    target = con::last(target->parent->nodes_head);
+                    target = con::last(target->parent->nodes);
                 }
             }
             if (con != target) {

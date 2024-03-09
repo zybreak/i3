@@ -464,7 +464,7 @@ void x_draw_decoration(Con *con) {
         p->color = &config.client.urgent;
     } else if (con == global.focused || con->con_inside_focused()) {
         p->color = &config.client.focused;
-    } else if (con == con::first(parent->focus_head)) {
+    } else if (con == con::first(parent->focused)) {
         if (config.client.got_focused_tab_title && !leaf && con_descend_focused(con) == global.focused) {
             /* Stacked/tabbed parent of focused container */
             p->color = &config.client.focused_tab_title;
@@ -496,7 +496,7 @@ void x_draw_decoration(Con *con) {
         return;
     }
 
-    for (auto c_itr = std::ranges::find(con->parent->nodes_head, con); c_itr != con->parent->nodes_head.end(); ++c_itr) {
+    for (auto c_itr = std::ranges::find(con->parent->nodes, con); c_itr != con->parent->nodes.end(); ++c_itr) {
         delete (*c_itr)->deco_render_params;
         (*c_itr)->deco_render_params = nullptr;
     }
@@ -550,8 +550,8 @@ void x_draw_decoration(Con *con) {
          * (which is undistinguishable from a single window outside a split
          * container otherwise. */
         Rect br = con_border_style_rect(con);
-        if (con::next(con, con->parent->nodes_head) == nullptr &&
-            con::previous(con, con->parent->nodes_head) == nullptr &&
+        if (con::next(con, con->parent->nodes) == nullptr &&
+            con::previous(con, con->parent->nodes) == nullptr &&
             con->parent->type != CT_FLOATING_CON) {
             if (p->parent_layout == L_SPLITH) {
                 draw_util_rectangle(&(con->frame_buffer), p->color->indicator,
@@ -582,7 +582,7 @@ void x_draw_decoration(Con *con) {
     /* For the first child, we clear the parent pixmap to ensure there's no
      * garbage left on there. This is important to avoid tearing when using
      * transparency. */
-    if (con == con::first(con->parent->nodes_head)) {
+    if (con == con::first(con->parent->nodes)) {
         delete con->parent->deco_render_params;
         con->parent->deco_render_params = nullptr;
     }
@@ -699,11 +699,11 @@ void x_draw_decoration(Con *con) {
  *
  */
 void x_deco_recurse(Con *con) {
-    bool leaf = con->nodes_head.empty() && (dynamic_cast<WorkspaceCon*>(con) == nullptr || dynamic_cast<WorkspaceCon*>(con)->floating_windows.empty());
+    bool leaf = con->nodes.empty() && (dynamic_cast<WorkspaceCon*>(con) == nullptr || dynamic_cast<WorkspaceCon*>(con)->floating_windows.empty());
     con_state *state = state_for_frame(con->frame.id);
 
     if (!leaf) {
-        for (auto &current : con->nodes_head) {
+        for (auto &current : con->nodes) {
             x_deco_recurse(current);
         }
 
@@ -886,7 +886,7 @@ void x_push_node(Con *con) {
         /* Calculate the height of all window decorations which will be drawn on to
          * this frame. */
         uint32_t max_y = 0, max_height = 0;
-        for (auto &current : con->nodes_head) {
+        for (auto &current : con->nodes) {
             Rect *dr = &(current->deco_rect);
             if (dr->y >= max_y && dr->height >= max_height) {
                 max_y = dr->y;
@@ -1019,7 +1019,7 @@ void x_push_node(Con *con) {
              * TODO: Should this work the same way for L_TABBED? */
             if (!con->parent ||
                 con->parent->layout != L_STACKED ||
-                con::first(con->parent->focus_head) == con) {
+                con::first(con->parent->focused) == con) {
                 /* Render the decoration now to make the correct decoration visible
                  * from the very first moment. Later calls will be cached, so this
                  * doesn’t hurt performance. */
@@ -1110,7 +1110,7 @@ void x_push_node(Con *con) {
     /* Handle all children and floating windows of this node. We recurse
      * in focus order to display the focused client in a stack first when
      * switching workspaces (reduces flickering). */
-    for (auto &current : con->focus_head) {
+    for (auto &current : con->focused) {
         x_push_node(current);
     }
 }
@@ -1154,7 +1154,7 @@ static void x_push_node_unmaps(Con *con) {
     }
 
     /* handle all children and floating windows of this node */
-    for (auto &current : con->nodes_head) {
+    for (auto &current : con->nodes) {
         x_push_node_unmaps(current);
     }
 
@@ -1175,7 +1175,7 @@ static bool is_con_attached(Con *con) {
         return false;
     }
 
-    return std::ranges::any_of(con->parent->nodes_head, [&con](Con* current){ return current == con;});
+    return std::ranges::any_of(con->parent->nodes, [&con](Con* current){ return current == con;});
 }
 
 /*

@@ -64,15 +64,15 @@ bool tree_restore(const std::string_view path, const xcb_get_geometry_reply_t *g
     tree_append_json(global.focused, buf, nullptr);
 
     DLOG("appended tree, using new root\n");
-    global.croot = dynamic_cast<RootCon*>(con::first(global.croot->nodes_head));
+    global.croot = dynamic_cast<RootCon*>(con::first(global.croot->nodes));
     if (!global.croot) {
         /* tree_append_json failed. Continuing here would segfault. */
         return result;
     }
     DLOG(fmt::sprintf("new root = %p\n", fmt::ptr(global.croot)));
-    Con *out = con::first(global.croot->nodes_head);
+    Con *out = con::first(global.croot->nodes);
     DLOG(fmt::sprintf("out = %p\n", fmt::ptr(out)));
-    Con *ws = con::first(out->nodes_head);
+    Con *ws = con::first(out->nodes);
     DLOG(fmt::sprintf("ws = %p\n", fmt::ptr(ws)));
 
     restore_open_placeholder_windows(global.croot);
@@ -155,8 +155,8 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
     DLOG(fmt::sprintf("closing %p, kill_window = %d\n", fmt::ptr(con), kill_window));
     bool abort_kill = false;
     /* We cannot use TAILQ_FOREACH because the children get deleted
-     * in their parent’s nodes_head */
-    for (auto &child : con->nodes_head) {
+     * in their parent’s nodes */
+    for (auto &child : con->nodes) {
         DLOG(fmt::sprintf("killing child=%p\n", fmt::ptr(child)));
         if (!tree_close_internal(child, kill_window, true)) {
             abort_kill = true;
@@ -320,9 +320,9 @@ void tree_split(Con *con, orientation_t orientation) {
 
     /* 2: replace it with a new Con */
     Con *new_con = new ConCon();
-    auto nodes_it = std::ranges::find(parent->nodes_head, con);
+    auto nodes_it = std::ranges::find(parent->nodes, con);
     *nodes_it = new_con;
-    auto con_it = std::ranges::find(parent->focus_head, con);
+    auto con_it = std::ranges::find(parent->focused, con);
     *con_it = new_con;
     new_con->parent = parent;
     new_con->layout = (orientation == HORIZ) ? L_SPLITH : L_SPLITV;
@@ -364,19 +364,19 @@ bool level_up() {
  */
 bool level_down() {
     /* Go down the focus stack of the current node */
-    Con *next = con::first(global.focused->focus_head);
-    if (next == con::last(global.focused->focus_head)) {
+    Con *next = con::first(global.focused->focused);
+    if (next == con::last(global.focused->focused)) {
         DLOG("cannot go down\n");
         return false;
     } else if (next->type == CT_FLOATING_CON) {
         /* Floating cons shouldn't be directly focused; try immediately
          * going to the grandchild of the focused con. */
-        Con *child = con::first(next->focus_head);
-        if (child == con::last(next->focus_head)) {
+        Con *child = con::first(next->focused);
+        if (child == con::last(next->focused)) {
             DLOG("cannot go down\n");
             return false;
         } else
-            next = con::first(next->focus_head);
+            next = con::first(next->focused);
     }
 
     next->con_activate();
@@ -386,7 +386,7 @@ bool level_down() {
 static void mark_unmapped(Con *con) {
 
     con->mapped = false;
-    for (auto &current : con->nodes_head) {
+    for (auto &current : con->nodes) {
         mark_unmapped(current);
     }
     if (con->type == CT_WORKSPACE) {
@@ -442,8 +442,8 @@ static Con *get_tree_next_workspace(Con *con, direction_t direction) {
     DLOG(fmt::sprintf("Next output is %s\n",  next_output->output_primary_name()));
 
     /* Find visible workspace on next output */
-    auto workspace = std::ranges::find_if(next_output->con->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
-    return workspace == next_output->con->output_get_content()->nodes_head.end() ? nullptr : *workspace;
+    auto workspace = std::ranges::find_if(next_output->con->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
+    return workspace == next_output->con->output_get_content()->nodes.end() ? nullptr : *workspace;
 }
 
 /*
@@ -518,13 +518,13 @@ static Con *get_tree_next(Con *con, direction_t direction) {
         }
 
         if (parent->con_num_children() > 1 && con_orientation(parent) == orientation) {
-            Con *const next = previous ? con::previous(con, con->parent->nodes_head) : con::next(con, con->parent->nodes_head);
+            Con *const next = previous ? con::previous(con, con->parent->nodes) : con::next(con, con->parent->nodes);
             if (next && con_fullscreen_permits_focusing(next)) {
                 return next;
             }
 
-            Con *const wrap = previous ? con::last(parent->nodes_head)
-                                       : con::first(parent->nodes_head);
+            Con *const wrap = previous ? con::last(parent->nodes)
+                                       : con::first(parent->nodes);
             switch (config.focus_wrapping) {
                 case FOCUS_WRAPPING_OFF:
                     break;
@@ -604,7 +604,7 @@ void tree_next(Con *con, direction_t direction) {
  *
  */
 Con *get_tree_next_sibling(Con *con, position_t direction) {
-    Con *to_focus = (direction == BEFORE) ? con::previous(con, con->parent->nodes_head) : con::next(con, con->parent->nodes_head);
+    Con *to_focus = (direction == BEFORE) ? con::previous(con, con->parent->nodes) : con::next(con, con->parent->nodes);
     if (to_focus && con_fullscreen_permits_focusing(to_focus)) {
         return to_focus;
     }
@@ -633,7 +633,7 @@ void tree_flatten(Con *con) {
         parent->layout == L_OUTPUT || /* con == "content" */
         con->window != nullptr) {
         /* We cannot use normal foreach here because tree_flatten might close the current container. */
-        for (auto &current : con->nodes_head) {
+        for (auto &current : con->nodes) {
             tree_flatten(current);
         }
 
@@ -646,9 +646,9 @@ void tree_flatten(Con *con) {
     }
 
     /* Ensure it got only one child */
-    if (con->nodes_head.size() != 1) {
+    if (con->nodes.size() != 1) {
         /* We cannot use normal foreach here because tree_flatten might close the current container. */
-        for (auto &current : con->nodes_head) {
+        for (auto &current : con->nodes) {
             tree_flatten(current);
         }
 
@@ -660,7 +660,7 @@ void tree_flatten(Con *con) {
         return;
     }
 
-    child = con->nodes_head.front();
+    child = con->nodes.front();
 
     DLOG(fmt::sprintf("child = %p, con = %p, parent = %p\n", fmt::ptr(child), fmt::ptr(con), fmt::ptr(parent)));
 
@@ -673,7 +673,7 @@ void tree_flatten(Con *con) {
         con_orientation(con) == con_orientation(child) ||
         con_orientation(child) != con_orientation(parent)) {
         /* We cannot use normal foreach here because tree_flatten might close the current container. */
-        for (auto &current : con->nodes_head) {
+        for (auto &current : con->nodes) {
             tree_flatten(current);
         }
 
@@ -687,12 +687,12 @@ void tree_flatten(Con *con) {
 
     DLOG("Alright, I have to flatten this situation now. Stay calm.\n");
     /* 1: save focus */
-    Con *focus_next = con::first(child->focus_head);
+    Con *focus_next = con::first(child->focused);
 
     DLOG("detaching...\n");
     /* 2: re-attach the children to the parent before con */
-    while (!child->nodes_head.empty()) {
-        auto current = con::first(child->nodes_head);
+    while (!child->nodes.empty()) {
+        auto current = con::first(child->nodes);
         DLOG(fmt::sprintf("detaching current=%p / %s\n", fmt::ptr(current), current->name));
         current->con_detach();
         DLOG("re-attaching\n");
@@ -703,17 +703,17 @@ void tree_flatten(Con *con) {
         current->parent = parent;
         con->insert_before(current);
         DLOG("attaching to focus list\n");
-        parent->focus_head.push_back(current);
+        parent->focused.push_back(current);
         current->percent = con->percent;
     }
     DLOG("re-attached all\n");
 
     /* 3: restore focus, if con was focused */
     if (focus_next != nullptr &&
-        con::first(parent->focus_head) == con) {
+        con::first(parent->focused) == con) {
         DLOG(fmt::sprintf("restoring focus to focus_next=%p\n", fmt::ptr(focus_next)));
-        std::erase(parent->focus_head, focus_next);
-        parent->focus_head.push_front(focus_next);
+        std::erase(parent->focused, focus_next);
+        parent->focused.push_front(focus_next);
         DLOG("restored focus.\n");
     }
 

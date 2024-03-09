@@ -165,7 +165,7 @@ void PropertyHandlers::handle_enter_notify(xcb_enter_notify_event_t *event) {
     /* see if the user entered the window on a certain window decoration */
     layout_t layout = (enter_child ? con->parent->layout : con->layout);
     if (layout == L_DEFAULT) {
-        for (auto &child : con->nodes_head | std::views::reverse) {
+        for (auto &child : con->nodes | std::views::reverse) {
             if (child->deco_rect.rect_contains(event->event_x, event->event_y)) {
                 LOG(fmt::sprintf("using child %p / %s instead!\n", fmt::ptr(child), child->name));
                 con = child;
@@ -224,7 +224,7 @@ void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
     if (con->window != NULL) {
         if (con->deco_rect.rect_contains(event->event_x, event->event_y)) {
             /* We found the rect, let’s see if this window is focused */
-            if (con::first(con->parent->focus_head) == con)
+            if (con::first(con->parent->focused) == con)
                 return;
 
             con->con_focus();
@@ -232,12 +232,12 @@ void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
             return;
         }
     } else {
-        for (auto &current : con->nodes_head | std::views::reverse) {
+        for (auto &current : con->nodes | std::views::reverse) {
             if (!current->deco_rect.rect_contains(event->event_x, event->event_y))
                 continue;
 
             /* We found the rect, let’s see if this window is focused */
-            if (con::first(con->focus_head) == current)
+            if (con::first(con->focused) == current)
                 return;
 
             current->con_focus();

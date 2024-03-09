@@ -190,7 +190,7 @@ void render_con(Con *con) {
     } else if (con->type == CT_ROOT) {
         render_root(con, fullscreen);
     } else {
-        for (auto &child : con->nodes_head) {
+        for (auto &child : con->nodes) {
             assert(params.children > 0);
 
             if (con->layout == L_SPLITH || con->layout == L_SPLITV) {
@@ -227,13 +227,13 @@ void render_con(Con *con) {
         /* in a stacking or tabbed container, we ensure the focused client is raised */
         if (con->layout == L_STACKED || con->layout == L_TABBED) {
             // TODO: swap is ambigous when using the views::reverse
-            //for (auto &it : con->focus_head | std::views::reverse) {
+            //for (auto &it : con->focused | std::views::reverse) {
             //    x_raise_con(it);
             //}
-            for (auto it = con->focus_head.rbegin(); it != con->focus_head.rend(); ++it) {
+            for (auto it = con->focused.rbegin(); it != con->focused.rend(); ++it) {
                 x_raise_con(*it);
             }
-            Con *child = con::first(con->focus_head);
+            Con *child = con::first(con->focused);
             if (child != nullptr) {
                 /* By rendering the stacked container again, we handle the case
                  * that we have a non-leaf-container inside the stack. In that
@@ -260,11 +260,11 @@ static std::vector<int> precalculate_sizes(Con *con, render_params *p) {
 
     std::vector<int> sizes(p->children);
 
-    assert(!con->nodes_head.empty());
+    assert(!con->nodes.empty());
 
     int i = 0, assigned = 0;
     int total = con_rect_size_in_orientation(con);
-    for (auto &child : con->nodes_head) {
+    for (auto &child : con->nodes) {
         double percentage = child->percent > 0.0 ? child->percent : 1.0 / p->children;
         assigned += sizes[i++] = lround(percentage * total);
     }
@@ -284,7 +284,7 @@ static std::vector<int> precalculate_sizes(Con *con, render_params *p) {
 
 static void render_root(Con *con, Con *fullscreen) {
     if (!fullscreen) {
-        for (auto &output : con->nodes_head) {
+        for (auto &output : con->nodes) {
             render_con(output);
         }
     }
@@ -294,14 +294,14 @@ static void render_root(Con *con, Con *fullscreen) {
      * all times. This is important when the user places floating
      * windows/containers so that they overlap on another output. */
     DLOG("Rendering floating windows:\n");
-    for (auto &output : con->nodes_head) {
+    for (auto &output : con->nodes) {
         /* Get the active workspace of that output */
         Con *content = output->output_get_content();
-        if (!content || content->focus_head.empty()) {
+        if (!content || content->focused.empty()) {
             DLOG("Skipping this output because it is currently being destroyed.\n");
             continue;
         }
-        Con *workspace = con::first(content->focus_head);
+        Con *workspace = con::first(content->focused);
         if (workspace == nullptr) {
             continue;
         }
@@ -349,7 +349,7 @@ static void render_output(Con *con) {
     /* Find the content container and ensure that there is exactly one. Also
      * check for any non-CT_DOCKAREA clients. */
     Con *content = nullptr;
-    for (auto &child : con->nodes_head) {
+    for (auto &child : con->nodes) {
         if (child->type == CT_CON) {
             if (content != nullptr) {
                 DLOG("More than one CT_CON on output container\n");
@@ -385,13 +385,13 @@ static void render_output(Con *con) {
 
     /* First pass: determine the height of all CT_DOCKAREAs (the sum of their
      * children) and figure out how many pixels we have left for the rest */
-    for (auto &child : con->nodes_head) {
+    for (auto &child : con->nodes) {
         if (child->type != CT_DOCKAREA) {
             continue;
         }
 
         child->rect.height = 0;
-        for (auto &dockchild : child->nodes_head) {
+        for (auto &dockchild : child->nodes) {
             child->rect.height += dockchild->geometry.height;
         }
 
@@ -399,7 +399,7 @@ static void render_output(Con *con) {
     }
 
     /* Second pass: Set the widths/heights */
-    for (auto &child : con->nodes_head) {
+    for (auto &child : con->nodes) {
         if (child->type == CT_CON) {
             child->rect.x = x;
             child->rect.y = y;

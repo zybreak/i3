@@ -240,7 +240,7 @@ static void open_placeholder_window(x_connection *conn, Con *con) {
         con->swallow.push_front(std::move(temp_id));
     }
 
-    for (auto &child : con->nodes_head) {
+    for (auto &child : con->nodes) {
         open_placeholder_window(conn, child);
     }
     if (dynamic_cast<WorkspaceCon*>(con)) {
@@ -258,7 +258,7 @@ static void open_placeholder_window(x_connection *conn, Con *con) {
  *
  */
 void restore_open_placeholder_windows(Con *parent) {
-    for (auto &child : parent->nodes_head) {
+    for (auto &child : parent->nodes) {
         open_placeholder_window(*global.x, child);
     }
     if (dynamic_cast<WorkspaceCon*>(parent)) {

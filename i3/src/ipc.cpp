@@ -571,7 +571,7 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
 
     if (con->type != CT_DOCKAREA || !inplace_restart) {
         auto a = nlohmann::json::array();
-        std::ranges::transform(con->nodes_head, std::back_inserter(a), [&inplace_restart](Con *node) { return dump_node(node, inplace_restart); });
+        std::ranges::transform(con->nodes, std::back_inserter(a), [&inplace_restart](Con *node) { return dump_node(node, inplace_restart); });
         j["nodes"] = a;
     }
 
@@ -582,7 +582,7 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
     }
 
     auto focus_nodes_array = nlohmann::json::array();
-    std::ranges::transform(con->focus_head, std::back_inserter(focus_nodes_array), [](Con *node) { return (uintptr_t)node; });
+    std::ranges::transform(con->focused, std::back_inserter(focus_nodes_array), [](Con *node) { return (uintptr_t)node; });
     j["focus"] = focus_nodes_array;
 
     j["fullscreen_mode"] = con->fullscreen_mode;
@@ -809,8 +809,8 @@ static void handle_get_workspaces(ipc_client *client, uint8_t *message, int size
 
     Con *focused_ws = global.focused->con_get_workspace();
 
-    for (auto &output : global.croot->nodes_head) {
-        for (auto &ws : output->output_get_content()->nodes_head) {
+    for (auto &output : global.croot->nodes) {
+        for (auto &ws : output->output_get_content()->nodes) {
             assert(ws->type == CT_WORKSPACE);
 
             a.push_back({

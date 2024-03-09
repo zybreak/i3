@@ -335,7 +335,7 @@ void output_init_con(Output *output) {
 
     /* Search for a Con with that name directly below the root node. There
      * might be one from a restored layout. */
-    for (auto &current : global.croot->nodes_head) {
+    for (auto &current : global.croot->nodes) {
         if (strcmp(current->name.c_str(), output->output_primary_name().c_str()) != 0)
             continue;
 
@@ -400,8 +400,8 @@ void output_init_con(Output *output) {
     bottomdock->con_attach(con, false);
 
     /* Change focus to the content container */
-    std::erase(con->focus_head, content);
-    con->focus_head.push_front(content);
+    std::erase(con->focused, content);
+    con->focused.push_front(content);
 }
 
 /*
@@ -449,12 +449,12 @@ void init_ws_for_output(Output *output) {
     global.focused = content;
 
     /* if a workspace exists, we are done now */
-    if (!content->nodes_head.empty()) {
+    if (!content->nodes.empty()) {
         /* ensure that one of the workspaces is actually visible (in fullscreen
          * mode), if they were invisible before, this might not be the case. */
-        auto visible = std::ranges::find_if(content->nodes_head, [](auto &child) { return child->fullscreen_mode == CF_OUTPUT; });
-        if (visible == content->nodes_head.end()) {
-            visible = content->nodes_head.begin();
+        auto visible = std::ranges::find_if(content->nodes, [](auto &child) { return child->fullscreen_mode == CF_OUTPUT; });
+        if (visible == content->nodes.end()) {
+            visible = content->nodes.begin();
             workspace_show(*visible);
         }
         goto restore_focus;
@@ -505,7 +505,7 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
 
     /* Fix the position of all floating windows on this output.
      * The 'rect' of each workspace will be updated in src/render.c. */
-    for (auto &workspace : content->nodes_head) {
+    for (auto &workspace : content->nodes) {
         if (dynamic_cast<WorkspaceCon*>(workspace)) {
             for (auto &child : dynamic_cast<WorkspaceCon*>(workspace)->floating_windows) {
                 floating_fix_coordinates(child, workspace->rect, output->con->rect);
@@ -517,7 +517,7 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
      * the workspaces and their children depending on output resolution. This is
      * only done for workspaces with maximum one child. */
     if (config.default_orientation == NO_ORIENTATION) {
-        for (auto &workspace : content->nodes_head) {
+        for (auto &workspace : content->nodes) {
             /* Workspaces with more than one child are left untouched because
              * we do not want to change an existing layout. */
             if (workspace->con_num_children() > 1)
@@ -525,8 +525,8 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
 
             workspace->layout = (output->rect.height > output->rect.width) ? L_SPLITV : L_SPLITH;
             DLOG(fmt::sprintf("Setting workspace [%d,%s]'s layout to %d.\n",  workspace->num, workspace->name, workspace->layout));
-            if (!workspace->nodes_head.empty()) {
-                auto child = con::first(workspace->nodes_head);
+            if (!workspace->nodes.empty()) {
+                auto child = con::first(workspace->nodes);
                 if (child->layout == L_SPLITV || child->layout == L_SPLITH)
                     child->layout = workspace->layout;
                 DLOG(fmt::sprintf("Setting child [%d,%s]'s layout to %d.\n",  child->num, child->name, child->layout));
@@ -813,9 +813,9 @@ static void move_content(Con *con) {
      * of floating containers as we go */
     Con *current;
     Con *old_content = con->output_get_content();
-    while (!old_content->nodes_head.empty()) {
-        current = con::first(old_content->nodes_head);
-        if (current != next && current->focus_head.empty()) {
+    while (!old_content->nodes.empty()) {
+        current = con::first(old_content->nodes);
+        if (current != next && current->focused.empty()) {
             /* the workspace is empty and not focused, get rid of it */
             DLOG(fmt::sprintf("Getting rid of current = %p / %s (empty, unfocused)\n", fmt::ptr(current), current->name));
             tree_close_internal(current, DONT_KILL_WINDOW, false);
@@ -841,14 +841,14 @@ static void move_content(Con *con) {
     }
 
     /* 3: move the dock clients to the first output */
-    for (auto &child : con->nodes_head) {
+    for (auto &child : con->nodes) {
         if (child->type != CT_DOCKAREA) {
             continue;
         }
         DLOG(fmt::sprintf("Handling dock con %p\n", fmt::ptr(child)));
         Con *dock;
-        while (!child->nodes_head.empty()) {
-            dock = con::first(child->nodes_head);
+        while (!child->nodes.empty()) {
+            dock = con::first(child->nodes);
             Con *nc;
             Match *match;
             nc = con_for_window(first, dock->window, &match);
@@ -945,7 +945,7 @@ void RandR::randr_query_outputs() {
      * those mentioned #3767 e.g. when a CT_OUTPUT is created from an in-place
      * restart's layout but the output is disabled by a randr query happening
      * at the same time. */
-    for (auto &con : global.croot->nodes_head) {
+    for (auto &con : global.croot->nodes) {
         if (this->get_output_by_name(con->name, true) == nullptr) {
             DLOG(fmt::sprintf("No output %s found, moving its old content to first output\n",  con->name));
             move_content(con);
@@ -970,7 +970,7 @@ void RandR::randr_query_outputs() {
         if (!output->active)
             continue;
         Con *content = output->con->output_get_content();
-        if (!content->nodes_head.empty())
+        if (!content->nodes.empty())
             continue;
         DLOG(fmt::sprintf("Should add ws for output %s\n",  output->output_primary_name()));
         init_ws_for_output(output);
@@ -983,7 +983,7 @@ void RandR::randr_query_outputs() {
 
         DLOG(fmt::sprintf("Focusing primary output %s\n",  output->output_primary_name()));
         Con *content = output->con->output_get_content();
-        Con *ws = con::first(content->focus_head);
+        Con *ws = con::first(content->focused);
         workspace_show(ws);
     }
 

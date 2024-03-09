@@ -55,7 +55,7 @@ static Con *child_containing_con_recursively(Con *ancestor, Con *con) {
 static bool is_focused_descendant(Con *con, Con *ancestor) {
     Con *current = con;
     while (current != ancestor) {
-        if (con::first(current->parent->focus_head) != current) {
+        if (con::first(current->parent->focused) != current) {
             return false;
         }
         current = current->parent;
@@ -97,10 +97,10 @@ void insert_con_into(Con *con, Con *target, position_t position) {
         focus_before = moves_focus_from_ancestor;
     } else {
         /* Look at the focus stack order of the children of the lowest common ancestor. */
-        auto current_it = std::ranges::find_if(lca->focus_head, [&con_ancestor, &target_ancestor](auto &current) {
+        auto current_it = std::ranges::find_if(lca->focused, [&con_ancestor, &target_ancestor](auto &current) {
             return (current == con_ancestor || current == target_ancestor);
         });
-        focus_before = (current_it != lca->focus_head.end() && *current_it == con_ancestor);
+        focus_before = (current_it != lca->focused.end() && *current_it == con_ancestor);
     }
 
     /* If con is the focused container in our old ancestor we place the new ancestor
@@ -110,13 +110,13 @@ void insert_con_into(Con *con, Con *target, position_t position) {
      * original workspace. Without the change focus would move to B instead of staying
      * with A. */
     if (moves_focus_from_ancestor && focus_before) {
-        auto place_it = std::ranges::find(con_ancestor->parent->focus_head, con_ancestor);
-        std::erase(lca->focus_head, target_ancestor);
-        if (place_it != con_ancestor->parent->focus_head.end()) {
-            place_it = (place_it == con_ancestor->parent->focus_head.begin()) ? place_it : std::prev(place_it);
-            lca->focus_head.insert(place_it, target_ancestor);
+        auto place_it = std::ranges::find(con_ancestor->parent->focused, con_ancestor);
+        std::erase(lca->focused, target_ancestor);
+        if (place_it != con_ancestor->parent->focused.end()) {
+            place_it = (place_it == con_ancestor->parent->focused.begin()) ? place_it : std::prev(place_it);
+            lca->focused.insert(place_it, target_ancestor);
         } else {
-            lca->focus_head.push_front(target_ancestor);
+            lca->focused.push_front(target_ancestor);
         }
     }
 
@@ -145,23 +145,23 @@ void insert_con_into(Con *con, Con *target, position_t position) {
     if (parent == lca) {
         if (focus_before) {
             /* Example layout: H [ A B* ], we move A up/down. 'target' will be H. */
-            auto it = std::ranges::find(target->parent->focus_head, target);
-            target->parent->focus_head.insert(it, con);
+            auto it = std::ranges::find(target->parent->focused, target);
+            target->parent->focused.insert(it, con);
         } else {
             /* Example layout: H [ A B* ], we move A up/down. 'target' will be H. */
-            auto it = std::ranges::find(parent->focus_head, target);
-            if (std::next(it) != parent->focus_head.end()) {
+            auto it = std::ranges::find(parent->focused, target);
+            if (std::next(it) != parent->focused.end()) {
                 it++;
             }
-            parent->focus_head.insert(it, con);
+            parent->focused.insert(it, con);
         }
     } else {
         if (focus_before) {
             /* Example layout: V [ H [ A B ] C* ], we move C up. 'target' will be A. */
-            parent->focus_head.push_front(con);
+            parent->focused.push_front(con);
         } else {
             /* Example layout: V [ H [ A* B ] C ], we move C up. 'target' will be A. */
-            parent->focus_head.push_back(con);
+            parent->focused.push_back(con);
         }
     }
 
@@ -192,11 +192,11 @@ static void attach_to_workspace(Con *con, Con *ws, direction_t direction) {
     con->parent = ws;
 
     if (direction == D_RIGHT || direction == D_DOWN) {
-        ws->nodes_head.push_front(con);
+        ws->nodes.push_front(con);
     } else {
-        ws->nodes_head.push_back(con);
+        ws->nodes.push_back(con);
     }
-    ws->focus_head.push_back(con);
+    ws->focused.push_back(con);
 
     /* Pretend the con was just opened with regards to size percent values.
      * Since the con is moved to a completely different con, the old value
@@ -222,9 +222,9 @@ static void move_to_output_directed(Con *con, direction_t direction) {
         return;
     }
 
-    auto ws = std::ranges::find_if(output->con->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
+    auto ws = std::ranges::find_if(output->con->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
 
-    if (ws != output->con->output_get_content()->nodes_head.end()) {
+    if (ws != output->con->output_get_content()->nodes.end()) {
         DLOG("No workspace on output in this direction found. Not moving.\n");
         return;
     }
@@ -326,8 +326,8 @@ void tree_move(Con *con, direction_t direction) {
         /* easy case: the move is within this container */
         if (same_orientation == con->parent) {
             Con *swap = (direction == D_LEFT || direction == D_UP)
-                            ? con::previous(con, con->parent->nodes_head)
-                            : con::next(con, con->parent->nodes_head);
+                            ? con::previous(con, con->parent->nodes)
+                            : con::next(con, con->parent->nodes);
             if (swap) {
                 if (!swap->con_is_leaf()) {
                     DLOG("Moving into our bordering branch\n");
@@ -350,14 +350,14 @@ void tree_move(Con *con, direction_t direction) {
 
                 DLOG("Swapping with sibling.\n");
                 if (direction == D_LEFT || direction == D_UP) {
-                    auto swap_itr = std::ranges::find(con->parent->nodes_head, swap);
-                    auto con_itr = std::ranges::find(con->parent->nodes_head, con);
+                    auto swap_itr = std::ranges::find(con->parent->nodes, swap);
+                    auto con_itr = std::ranges::find(con->parent->nodes, con);
 
                     *swap_itr = con;
                     *con_itr = swap;
                 } else {
-                    auto swap_itr = std::ranges::find(con->parent->nodes_head, swap);
-                    auto con_itr = std::ranges::find(con->parent->nodes_head, con);
+                    auto swap_itr = std::ranges::find(con->parent->nodes, swap);
+                    auto con_itr = std::ranges::find(con->parent->nodes, con);
 
                     *swap_itr = con;
                     *con_itr = swap;
@@ -399,7 +399,7 @@ void tree_move(Con *con, direction_t direction) {
 
     DLOG(fmt::sprintf("above = %p\n", fmt::ptr(above)));
 
-    Con *next = (direction == D_UP || direction == D_LEFT) ? con::previous(above, above->parent->nodes_head) : con::next(above, above->parent->nodes_head);
+    Con *next = (direction == D_UP || direction == D_LEFT) ? con::previous(above, above->parent->nodes) : con::next(above, above->parent->nodes);
 
     if (next && !next->con_is_leaf()) {
         DLOG("Moving into the bordering branch of our adjacent container\n");
