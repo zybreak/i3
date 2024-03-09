@@ -512,7 +512,7 @@ bool floating_maybe_reassign_ws(Con *con) {
     DLOG("Need to re-assign!\n");
 
     Con *content = output->con->output_get_content();
-    Con *ws = con::first(content->focus_head);
+    WorkspaceCon *ws = dynamic_cast<WorkspaceCon*>(con::first(content->focus_head));
     DLOG(fmt::sprintf("Moving con %p / %s to workspace %p / %s\n", fmt::ptr(con), con->name, fmt::ptr(ws), ws->name));
     Con *needs_focus = con_descend_focused(con);
     if (!needs_focus->con_inside_focused()) {

@@ -1150,7 +1150,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
     Con *orig_target = target;
 
     /* Prevent moving if this would violate the fullscreen focus restrictions. */
-    Con *target_ws = target->con_get_workspace();
+    WorkspaceCon *target_ws = target->con_get_workspace();
     if (!ignore_focus && !con_fullscreen_permits_focusing(target_ws)) {
         LOG("Cannot move out of a fullscreen container.\n");
         return false;
@@ -1344,7 +1344,7 @@ bool con_move_to_target(Con *con, Con *target) {
 
     if (target->type == CT_WORKSPACE && target->con_is_leaf()) {
         DLOG("target container is an empty workspace, simply moving the container there.\n");
-        con_move_to_workspace(con, target, true, false, false);
+        con_move_to_workspace(con, dynamic_cast<WorkspaceCon*>(target), true, false, false);
         return true;
     }
 
@@ -1384,10 +1384,8 @@ bool con_move_to_target(Con *con, Con *target) {
  * TODO: is there a better place for this function?
  *
  */
-void con_move_to_workspace(Con *con, Con *workspace, bool fix_coordinates, bool dont_warp, bool ignore_focus) {
-    assert(workspace->type == CT_WORKSPACE);
-
-    Con *source_ws = con->con_get_workspace();
+void con_move_to_workspace(Con *con, WorkspaceCon *workspace, bool fix_coordinates, bool dont_warp, bool ignore_focus) {
+    WorkspaceCon *source_ws = con->con_get_workspace();
     if (workspace == source_ws) {
         DLOG("Not moving, already there\n");
         return;
@@ -1406,7 +1404,7 @@ void con_move_to_output(Con *con, Output *output, bool fix_coordinates) {
     auto ws = std::ranges::find_if(output->con->output_get_content()->nodes_head, [](auto &child) { return workspace_is_visible(child); });
     assert(ws != output->con->output_get_content()->nodes_head.end());
     DLOG(fmt::sprintf("Moving con %p to output %s\n", fmt::ptr(con), output->output_primary_name()));
-    con_move_to_workspace(con, *ws, fix_coordinates, false, false);
+    con_move_to_workspace(con, dynamic_cast<WorkspaceCon*>(*ws), fix_coordinates, false, false);
 }
 
 /*

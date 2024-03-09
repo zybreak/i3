@@ -80,8 +80,8 @@ static bool maybe_back_and_forth(CommandResultIR &cmd_output, const char *name) 
  * Return the passed workspace unless it is the current one and auto back and
  * forth is enabled, in which case the back_and_forth workspace is returned.
  */
-static Con *maybe_auto_back_and_forth_workspace(Con *workspace) {
-    Con *current, *baf;
+static WorkspaceCon *maybe_auto_back_and_forth_workspace(WorkspaceCon *workspace) {
+    WorkspaceCon *current, *baf;
 
     if (!config.workspace_auto_back_and_forth)
         return workspace;
@@ -292,7 +292,7 @@ void CommandsApplier::criteria_add(struct criteria_state *criteria_state, Comman
     criteria_state->current_match.parse_property(ctype, cvalue);
 }
 
-static void move_matches_to_workspace(struct criteria_state *criteria_state, Con *ws) {
+static void move_matches_to_workspace(struct criteria_state *criteria_state, WorkspaceCon *ws) {
     for (auto current: criteria_state->owindows) {
         DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
         con_move_to_workspace(current, ws, true, false, false);
@@ -333,7 +333,7 @@ void CommandsApplier::move_con_to_workspace(struct criteria_state *criteria_stat
     CHECK_MOVE_CON_TO_WORKSPACE(criteria_state);
 
     /* get the workspace */
-    Con *ws;
+    WorkspaceCon *ws;
     if (strcmp(which, "next") == 0)
         ws = workspace_next();
     else if (strcmp(which, "prev") == 0)
@@ -360,7 +360,7 @@ void CommandsApplier::move_con_to_workspace(struct criteria_state *criteria_stat
  *
  */
 void CommandsApplier::move_con_to_workspace_back_and_forth(struct criteria_state *criteria_state, CommandResultIR &cmd_output) {
-    Con *ws = workspace_back_and_forth_get();
+    WorkspaceCon *ws = workspace_back_and_forth_get();
     if (ws == nullptr) {
         throw std::runtime_error("No workspace was previously active.");
     }
@@ -387,7 +387,7 @@ void CommandsApplier::move_con_to_workspace_name(struct criteria_state *criteria
 
     LOG(fmt::sprintf("should move window to workspace %s\n",  name));
     /* get the workspace */
-    Con *ws = workspace_get(name);
+    WorkspaceCon *ws = workspace_get(name);
 
     if (no_auto_back_and_forth == nullptr) {
         ws = maybe_auto_back_and_forth_workspace(ws);
@@ -415,7 +415,7 @@ void CommandsApplier::move_con_to_workspace_number(struct criteria_state *criter
         throw std::runtime_error(fmt::sprintf("Could not parse number \"%s\"", which));
     }
 
-    Con *ws = get_existing_workspace_by_num(parsed_num);
+    WorkspaceCon *ws = get_existing_workspace_by_num(parsed_num);
     if (!ws) {
         ws = workspace_get(which);
     }
@@ -867,7 +867,7 @@ static void disable_global_fullscreen() {
  *
  */
 void CommandsApplier::workspace(struct criteria_state *criteria_state, CommandResultIR &cmd_output, const char *which) {
-    Con *ws;
+    WorkspaceCon *ws;
 
     DLOG(fmt::sprintf("which=%s\n",  which));
 

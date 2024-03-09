@@ -352,7 +352,7 @@ void ewmh_setup_hints() {
  * This is the reverse of ewmh_get_workspace_index.
  *
  */
-Con *ewmh_get_workspace_by_index(uint32_t idx) {
+WorkspaceCon *ewmh_get_workspace_by_index(uint32_t idx) {
     if (idx == NET_WM_DESKTOP_NONE) {
         return nullptr;
     }
@@ -362,7 +362,7 @@ Con *ewmh_get_workspace_by_index(uint32_t idx) {
     for (auto &output : global.croot->nodes_head) {
         for (auto &ws : output->output_get_content()->nodes_head) {
             if (current_index == idx) {
-                return ws;
+                return dynamic_cast<WorkspaceCon*>(ws);
             }
             current_index++;
         }

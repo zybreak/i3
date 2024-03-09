@@ -579,7 +579,7 @@ export {
      * TODO: is there a better place for this function?
      *
      */
-    void con_move_to_workspace(Con * con, Con * workspace, bool fix_coordinates,
+    void con_move_to_workspace(Con * con, WorkspaceCon * workspace, bool fix_coordinates,
                                bool dont_warp, bool ignore_focus);
 
     /**

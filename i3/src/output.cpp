@@ -80,7 +80,7 @@ void output_push_sticky_windows(Con *old_focus) {
                 }
 
                 bool ignore_focus = (old_focus == nullptr) || (current != old_focus->parent);
-                con_move_to_workspace(current, *visible_ws, true, false, ignore_focus);
+                con_move_to_workspace(current, dynamic_cast<WorkspaceCon*>(*visible_ws), true, false, ignore_focus);
                 if (!ignore_focus) {
                     Con *current_ws = global.focused->con_get_workspace();
                     con_descend_focused(current)->con_activate();

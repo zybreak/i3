@@ -15,6 +15,7 @@ module;
 export module i3:ewmh;
 
 class Con;
+class WorkspaceCon;
 
 export {
     /**
@@ -113,7 +114,7 @@ export {
      * This is the reverse of ewmh_get_workspace_index.
      *
      */
-    Con *ewmh_get_workspace_by_index(uint32_t idx);
+    WorkspaceCon *ewmh_get_workspace_by_index(uint32_t idx);
 
     /**
      * Returns the EWMH desktop index for the workspace the given container is on.

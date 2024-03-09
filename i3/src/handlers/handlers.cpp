@@ -855,7 +855,7 @@ static void handle_client_message(xcb_client_message_event_t *event) {
                 output_push_sticky_windows(global.focused);
             }
         } else {
-            Con *ws = ewmh_get_workspace_by_index(index);
+            WorkspaceCon *ws = ewmh_get_workspace_by_index(index);
             if (ws == nullptr) {
                 ELOG("Could not determine workspace for this index, ignoring request.\n");
                 return;
