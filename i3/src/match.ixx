@@ -117,6 +117,6 @@ export {
          * Check if a match data structure matches the given window.
          *
          */
-        bool match_matches_window(i3Window *window) const;
+        bool match_matches_window(const i3Window *window) const;
     };
 }

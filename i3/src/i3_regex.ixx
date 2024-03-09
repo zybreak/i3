@@ -42,7 +42,7 @@ export {
         Regex(Regex &&other) noexcept;
         Regex &operator=(Regex &&other) noexcept;
         ~Regex();
-        bool regex_matches(const char *input);
+        bool regex_matches(const char *input) const;
     };
 }
 
@@ -108,7 +108,7 @@ Regex::~Regex() {
  * be visible without debug logging.
  *
  */
-bool Regex::regex_matches(const char *input) {
+bool Regex::regex_matches(const char *input) const {
     pcre2_match_data *match_data;
     int rc;
 

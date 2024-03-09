@@ -1,18 +1,17 @@
 module;
 #include <string>
 #include <optional>
+#include <ranges>
+#include <deque>
 export module i3:assignments;
 
 import :match;
+import log;
 
 export {
-    enum assignment_type_t : unsigned int {
-        A_ANY = 0,
-        A_COMMAND = (1 << 0),
-        A_TO_WORKSPACE = (1 << 1),
-        A_NO_FOCUS = (1 << 2),
-        A_TO_WORKSPACE_NUMBER = (1 << 3),
-        A_TO_OUTPUT = (1 << 4)
+    enum class workspace_assignment_type {
+        WORKSPACE,
+        WORKSPACE_NUMBER,
     };
 
     /**
@@ -25,39 +24,48 @@ export {
      */
     class Assignment {
        public:
-        /** type of this assignment:
-         *
-         * A_COMMAND = run the specified command for the matching window
-         * A_TO_WORKSPACE = assign the matching window to the specified workspace
-         * A_NO_FOCUS = don't focus matched window when it is managed
-         *
-         * While the type is a bitmask, only one value can be set at a time. It is
-         * a bitmask to allow filtering for multiple types, for example in the
-         * assignment_for() function.
-         *
-         */
-        assignment_type_t type;
-
         /** the criteria to check if a window matches */
-        Match *match;
+        Match match;
 
-        virtual ~Assignment();
+        Assignment(Match &&match) : match(match) {}
+
+        virtual ~Assignment() {
+
+        }
     };
 
+    /**
+     * A_COMMAND = run the specified command for the matching window
+     */
     class CommandAssignment : public Assignment {
        public:
         std::string command;
+        CommandAssignment(Match &&match) : Assignment(std::move(match)) {}
     };
 
+    /**
+     * A_TO_WORKSPACE = assign the matching window to the specified workspace
+     */
     class WorkspaceAssignment : public Assignment {
        public:
+        workspace_assignment_type type;
         /** destination workspace/command/output, depending on the type */
         std::string workspace;
+        WorkspaceAssignment(Match &&match) : Assignment(std::move(match)) {}
     };
 
     class OutputAssignment : public Assignment {
        public:
         std::string output;
+        OutputAssignment(Match &&match) : Assignment(std::move(match)) {}
+    };
+
+    /**
+     * A_NO_FOCUS = don't focus matched window when it is managed
+     */
+    class NoFocusAssignment : public Assignment {
+       public:
+        NoFocusAssignment(Match &&match) : Assignment(std::move(match)) {}
     };
 
     /**
@@ -71,5 +79,16 @@ export {
      * Returns the first matching assignment for the given window.
      *
      */
-    std::optional<std::reference_wrapper<Assignment>> assignment_for(i3Window * window, assignment_type_t type);
+    template<typename T>
+    std::optional<std::reference_wrapper<T>> assignment_for(const std::deque<std::unique_ptr<Assignment>> &assignments, const i3Window *window) {
+        auto assignment = std::ranges::find_if(assignments, [&](auto &a) {
+            return ((dynamic_cast<T*>(a.get())) && (a->match.match_matches_window(window)));
+        });
+
+        if (assignment != assignments.end()) {
+            DLOG("got a matching assignment\n");
+            return std::reference_wrapper<T>(*static_cast<T*>(assignment->get()));
+        }
+        return std::nullopt;
+    }
 }

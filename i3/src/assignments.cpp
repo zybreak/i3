@@ -11,6 +11,7 @@ module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
 #include <optional>
+#include <ranges>
 module i3;
 
 import :window;
@@ -19,10 +20,6 @@ import :assignments;
 import :tree;
 import :commands_applier;
 import i3_commands_base;
-
-Assignment::~Assignment() {
-    delete this->match;
-}
 
 /*
  * Checks the list of assignments for the given window and runs all matching
@@ -36,7 +33,7 @@ void run_assignments(i3Window *window) {
 
     /* Check if any assignments match */
     for (const auto &current : global.assignments) {
-        if (current->type != A_COMMAND || (current->match == nullptr || !current->match->match_matches_window(window))) {
+        if (dynamic_cast<CommandAssignment*>(current.get()) == nullptr || !current->match.match_matches_window(window)) {
             continue;
         }
 
@@ -76,21 +73,4 @@ void run_assignments(i3Window *window) {
     if (needs_tree_render) {
         tree_render();
     }
-}
-
-/*
- * Returns the first matching assignment for the given window.
- *
- */
-std::optional<std::reference_wrapper<Assignment>> assignment_for(i3Window *window, assignment_type_t type) {
-    for (const auto &assignment : global.assignments) {
-        if ((type != A_ANY && (assignment->type & type) == 0) ||
-            (assignment->match == nullptr || !assignment->match->match_matches_window(window))) {
-            continue;
-        }
-        DLOG("got a matching assignment\n");
-        return *assignment;
-    }
-
-    return std::nullopt;
 }

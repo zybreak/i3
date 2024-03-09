@@ -161,7 +161,7 @@ Match::Match(const Match &src) {
     if (is_initialized(src.machine))            this->workspace = new Regex(*src.machine);
 }
 
-void checkWindowField(Regex *match_field, i3Window *window, char* (*window_field)(i3Window*)) {
+static void checkWindowField(const Regex *match_field, const i3Window *window, char* (*window_field)(const i3Window*)) {
     if (is_initialized(match_field)) {
         const char *window_field_str = window_field(window) == nullptr ? "" : window_field(window);
         if (strcmp(match_field->pattern, "__focused__") == 0 &&
@@ -180,12 +180,12 @@ void checkWindowField(Regex *match_field, i3Window *window, char* (*window_field
  * Check if a match data structure matches the given window.
  *
  */
-bool Match::match_matches_window(i3Window *window) const {
+bool Match::match_matches_window(const i3Window *window) const {
     LOG(fmt::sprintf("Checking window 0x%08x (class %s)\n",  window->id, window->class_class));
 
     try {
-        checkWindowField(this->window_class, window, [](i3Window *window) { return window->class_class; });
-        checkWindowField(this->instance, window, [](i3Window *window) { return window->class_instance; });
+        checkWindowField(this->window_class, window, [](const i3Window *window) { return window->class_class; });
+        checkWindowField(this->instance, window, [](const i3Window *window) { return window->class_instance; });
 
         if (this->id != XCB_NONE) {
             if (window->id == this->id) {
@@ -196,8 +196,8 @@ bool Match::match_matches_window(i3Window *window) const {
             }
         }
 
-        checkWindowField(this->title, window, [](i3Window *window) { return !window->name.empty() ? (char*)window->name.c_str() : nullptr; });
-        checkWindowField(this->window_role, window, [](i3Window *window) { return window->role; });
+        checkWindowField(this->title, window, [](const i3Window *window) { return !window->name.empty() ? (char*)window->name.c_str() : nullptr; });
+        checkWindowField(this->window_role, window, [](const i3Window *window) { return window->role; });
 
         if (this->window_type != UINT32_MAX) {
             if (window->window_type == this->window_type) {
@@ -207,7 +207,7 @@ bool Match::match_matches_window(i3Window *window) const {
             }
         }
 
-        checkWindowField(this->machine, window, [](i3Window *window) { return window->machine; });
+        checkWindowField(this->machine, window, [](const i3Window *window) { return window->machine; });
     } catch (std::logic_error &e) {
         return false;
     }
