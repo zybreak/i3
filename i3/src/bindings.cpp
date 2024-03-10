@@ -86,8 +86,8 @@ Binding::Binding(const Binding &bind) {
 
     this->command = bind.command;
 
-    for (auto &binding_keycode : bind.keycodes_head) {
-        this->keycodes_head.push_back(binding_keycode);
+    for (auto &binding_keycode : bind.keycodes) {
+        this->keycodes.push_back(binding_keycode);
     }
 }
 
@@ -239,7 +239,7 @@ void grab_all_keys(x_connection *conn) {
             continue;
         }
 
-        for (const auto& binding_keycode : bind->keycodes_head) {
+        for (const auto& binding_keycode : bind->keycodes) {
             const int keycode = binding_keycode.keycode;
             auto mods = (binding_keycode.modifiers & 0xFFFF);
             DLOG(fmt::sprintf("Binding %p Grabbing keycode %d with mods %d\n", fmt::ptr(bind.get()), keycode, mods));
@@ -310,7 +310,7 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
         bool found_keycode = false;
         if (input_type == B_KEYBOARD && !bind->symbol.empty()) {
             auto input_keycode = static_cast<xcb_keycode_t>(input_code);
-            for (auto &binding_keycode : bind->keycodes_head) {
+            for (auto &binding_keycode : bind->keycodes) {
                 const uint32_t modifiers_mask = (binding_keycode.modifiers & 0x0000FFFF);
                 const bool mods_match = (modifiers_mask == modifiers_state);
                 DLOG(fmt::sprintf("binding_keycode->modifiers = %d, modifiers_mask = %d, modifiers_state = %d, mods_match = %s\n",
@@ -327,7 +327,7 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
                 continue;
             }
 
-            for (auto &binding_keycode : bind->keycodes_head) {
+            for (auto &binding_keycode : bind->keycodes) {
                 const uint32_t modifiers_mask = (binding_keycode.modifiers & 0x0000FFFF);
                 const bool mods_match = (modifiers_mask == modifiers_state);
                 DLOG(fmt::sprintf("binding_keycode->modifiers = %d, modifiers_mask = %d, modifiers_state = %d, mods_match = %s\n",
@@ -454,12 +454,12 @@ static void add_keycode_if_matches(xkb_keymap *keymap, xkb_keycode_t key, void *
 
     xcb_keycode_t code = key;
     i3_event_state_mask_t mods = bind->event_state_mask;
-    bind->keycodes_head.emplace_back(code, mods);
+    bind->keycodes.emplace_back(code, mods);
 
     /* Also bind the key with active CapsLock */
     xcb_keycode_t code1 = key;
     i3_event_state_mask_t mods1 = bind->event_state_mask | XCB_MOD_MASK_LOCK;
-    bind->keycodes_head.emplace_back(code1, mods1);
+    bind->keycodes.emplace_back(code1, mods1);
 
     /* If this binding is not explicitly for NumLock, check whether we need to
      * add a fallback. */
@@ -473,12 +473,12 @@ static void add_keycode_if_matches(xkb_keymap *keymap, xkb_keycode_t key, void *
             /* Also bind the key with active NumLock */
             xcb_keycode_t code2 = key;
             i3_event_state_mask_t mods2 = bind->event_state_mask | global.x->xcb_numlock_mask;
-            bind->keycodes_head.emplace_back(code2, mods2);
+            bind->keycodes.emplace_back(code2, mods2);
 
             /* Also bind the key with active NumLock+CapsLock */
             xcb_keycode_t code3 = key;
             i3_event_state_mask_t mods3 = bind->event_state_mask | global.x->xcb_numlock_mask | XCB_MOD_MASK_LOCK;
-            bind->keycodes_head.emplace_back(code3, mods3);
+            bind->keycodes.emplace_back(code3, mods3);
         } else {
             DLOG(fmt::sprintf("Skipping automatic numlock fallback, key %d resolves to 0x%x with numlock\n",
                  key, sym_numlock));
@@ -572,18 +572,18 @@ void translate_keysyms() {
         if (bind->keycode > 0) {
             /* We need to specify modifiers for the keycode binding (numlock
              * fallback). */
-            bind->keycodes_head.clear();
+            bind->keycodes.clear();
 
             Binding *bind1 = bind.get();
             xcb_keycode_t code = bind->keycode;
             i3_event_state_mask_t mods = bind->event_state_mask;
-            bind1->keycodes_head.emplace_back(code, mods);
+            bind1->keycodes.emplace_back(code, mods);
 
             /* Also bind the key with active CapsLock */
             Binding *bind2 = bind.get();
             xcb_keycode_t code1 = bind->keycode;
             i3_event_state_mask_t mods1 = bind->event_state_mask | XCB_MOD_MASK_LOCK;
-            bind2->keycodes_head.emplace_back(code1, mods1);
+            bind2->keycodes.emplace_back(code1, mods1);
 
             /* If this binding is not explicitly for NumLock, check whether we need to
              * add a fallback. */
@@ -599,13 +599,13 @@ void translate_keysyms() {
                     Binding *bind3 = bind.get();
                     xcb_keycode_t code2 = bind->keycode;
                     i3_event_state_mask_t mods2 = bind->event_state_mask | global.x->xcb_numlock_mask;
-                    bind3->keycodes_head.emplace_back(code2, mods2);
+                    bind3->keycodes.emplace_back(code2, mods2);
 
                     /* Also bind the key with active NumLock+CapsLock */
                     Binding *bind4 = bind.get();
                     xcb_keycode_t code3 = bind->keycode;
                     i3_event_state_mask_t mods3 = bind->event_state_mask | global.x->xcb_numlock_mask | XCB_MOD_MASK_LOCK;
-                    bind4->keycodes_head.emplace_back(code3, mods3);
+                    bind4->keycodes.emplace_back(code3, mods3);
                 } else {
                     DLOG(fmt::sprintf("Skipping automatic numlock fallback, key %d resolves to 0x%x with numlock\n",
                          bind->keycode, sym_numlock));
@@ -632,12 +632,12 @@ void translate_keysyms() {
             .xkb_state_numlock_no_shift = dummy_state_numlock_no_shift,
         };
 
-        bind->keycodes_head.clear();
+        bind->keycodes.clear();
 
         xkb_keymap_key_for_each(keymap, add_keycode_if_matches, &resolving);
         std::string keycodes{};
         int num_keycodes = 0;
-        for (auto &binding_keycode : bind->keycodes_head) {
+        for (auto &binding_keycode : bind->keycodes) {
             keycodes.append(fmt::sprintf(" %d", binding_keycode.keycode));
             num_keycodes++;
 

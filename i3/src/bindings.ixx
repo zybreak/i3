@@ -111,7 +111,7 @@ export {
         /** Only in use if symbol != NULL. Contains keycodes which generate the
          * specified symbol. Useful for unbinding and checking which binding was
          * used when a key press event comes in. */
-        std::deque<Binding_Keycode> keycodes_head{};
+        std::deque<Binding_Keycode> keycodes{};
 
         /** Command, like in command mode */
         std::string command{};
