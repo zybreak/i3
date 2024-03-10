@@ -69,6 +69,7 @@ list(APPEND i3_src
         src/handlers/click.cpp
         src/handlers/client_message.cpp
         src/handlers/handlers.cpp
+        src/handlers/notify.cpp
         src/ipc.cpp
         src/load_layout.cpp
         src/nagbar/nagbar.cpp

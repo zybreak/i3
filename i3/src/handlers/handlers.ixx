@@ -28,23 +28,6 @@ export {
         time_t added;
     };
 
-    /* Returns false if the event could not be processed (e.g. the window could not
-     * be found), true otherwise */
-    using cb_property_handler_t = bool (*)(Con *con, xcb_get_property_reply_t *property);
-
-    struct property_handler_t {
-        xcb_atom_t atom;
-        uint32_t long_len;
-        cb_property_handler_t cb;
-
-        property_handler_t(
-            xcb_atom_t _atom,
-            uint32_t _long_len,
-            cb_property_handler_t _cb)
-            : atom(_atom), long_len(_long_len), cb(_cb) {
-        }
-    };
-
     // TODO: zybreak Rename to EventHandlers
     class PropertyHandlers {
        private:
@@ -55,7 +38,6 @@ export {
            changing workspaces */
         std::mutex mtx{};
 
-        std::vector<property_handler_t> property_handlers{};
         std::vector<std::unique_ptr<Ignore_Event>> ignore_events{};
 
         /**
