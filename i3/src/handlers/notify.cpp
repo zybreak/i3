@@ -37,6 +37,7 @@ module;
 #include <config.h>
 #include <fmt/printf.h>
 #include <mutex>
+#include <map>
 module i3;
 
 import log;
@@ -325,30 +326,31 @@ void PropertyHandlers::property_notify(xcb_property_notify_event_t *event) {
     xcb_window_t window = event->window;
     xcb_atom_t atom = event->atom;
 
-    std::vector<property_handler_t> property_handlers{};
-    property_handlers.emplace_back(A__NET_WM_NAME, 128, handle_windowname_change);
-    property_handlers.emplace_back(XCB_ATOM_WM_HINTS, UINT_MAX, handle_hints);
-    property_handlers.emplace_back(XCB_ATOM_WM_NAME, 128, handle_windowname_change_legacy);
-    property_handlers.emplace_back(XCB_ATOM_WM_NORMAL_HINTS, UINT_MAX, handle_normal_hints);
-    property_handlers.emplace_back(A_WM_CLIENT_LEADER, UINT_MAX, handle_clientleader_change);
-    property_handlers.emplace_back(XCB_ATOM_WM_TRANSIENT_FOR, UINT_MAX, handle_transient_for);
-    property_handlers.emplace_back(A_WM_WINDOW_ROLE, 128, handle_windowrole_change);
-    property_handlers.emplace_back(XCB_ATOM_WM_CLASS, 128, handle_class_change);
-    property_handlers.emplace_back(A__NET_WM_STRUT_PARTIAL, UINT_MAX, handle_strut_partial_change);
-    property_handlers.emplace_back(A__NET_WM_WINDOW_TYPE, UINT_MAX, handle_window_type);
-    property_handlers.emplace_back(A_I3_FLOATING_WINDOW, UINT_MAX, handle_i3_floating);
-    property_handlers.emplace_back(XCB_ATOM_WM_CLIENT_MACHINE, 128, handle_machine_change);
-    property_handlers.emplace_back(A__MOTIF_WM_HINTS, 5 * sizeof(uint64_t), handle_motif_hints_change);
-    property_handlers.emplace_back(A__NET_WM_ICON, UINT_MAX, handle_windowicon_change);
+    static std::map<xcb_atom_t, property_handler_t> property_handlers{
+        {A__NET_WM_NAME, {A__NET_WM_NAME, 128, handle_windowname_change}},
+        {XCB_ATOM_WM_HINTS, {XCB_ATOM_WM_HINTS, UINT_MAX, handle_hints}},
+        {XCB_ATOM_WM_NAME, {XCB_ATOM_WM_NAME, 128, handle_windowname_change_legacy}},
+        {XCB_ATOM_WM_NORMAL_HINTS, {XCB_ATOM_WM_NORMAL_HINTS, UINT_MAX, handle_normal_hints}},
+        {A_WM_CLIENT_LEADER, {A_WM_CLIENT_LEADER, UINT_MAX, handle_clientleader_change}},
+        {XCB_ATOM_WM_TRANSIENT_FOR, {XCB_ATOM_WM_TRANSIENT_FOR, UINT_MAX, handle_transient_for}},
+        {A_WM_WINDOW_ROLE, {A_WM_WINDOW_ROLE, 128, handle_windowrole_change}},
+        {XCB_ATOM_WM_CLASS, {XCB_ATOM_WM_CLASS, 128, handle_class_change}},
+        {A__NET_WM_STRUT_PARTIAL, {A__NET_WM_STRUT_PARTIAL, UINT_MAX, handle_strut_partial_change}},
+        {A__NET_WM_WINDOW_TYPE, {A__NET_WM_WINDOW_TYPE, UINT_MAX, handle_window_type}},
+        {A_I3_FLOATING_WINDOW, {A_I3_FLOATING_WINDOW, UINT_MAX, handle_i3_floating}},
+        {XCB_ATOM_WM_CLIENT_MACHINE, {XCB_ATOM_WM_CLIENT_MACHINE, 128, handle_machine_change}},
+        {A__MOTIF_WM_HINTS, {A__MOTIF_WM_HINTS, 5 * sizeof(uint64_t), handle_motif_hints_change}},
+        {A__NET_WM_ICON, {A__NET_WM_ICON, UINT_MAX, handle_windowicon_change}}
+    };
 
-    auto it = std::ranges::find_if(property_handlers, [&atom](auto &property_handler) { return property_handler.atom == atom; });
+    auto it = property_handlers.find(atom);
 
     if (it == property_handlers.end()) {
         // LOG(fmt::sprintf("Unhandled property notify for atom %d (0x%08x)\n",  atom, atom));
         return;
     }
 
-    auto &handler = *it;
+    auto &handler = it->second;
 
     if ((con = con_by_window_id(window)) == nullptr || con->window == nullptr) {
         DLOG(fmt::sprintf("Received property for atom %d for unknown client\n", atom));
