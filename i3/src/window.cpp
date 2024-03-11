@@ -29,12 +29,6 @@ import log;
 
 import utils;
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 /*
  * Frees an i3Window and all its members.
  *
@@ -65,14 +59,10 @@ void i3Window::window_update_class(xcb_get_property_reply_t *prop) {
     char *new_class = (char*)xcb_get_property_value(prop);
     const size_t class_class_index = strnlen(new_class, prop_length) + 1;
 
-    do {
-        free(this->class_instance);
-        this->class_instance = __null;
-    } while (0);
-    do {
-        free(this->class_class);
-        this->class_class = __null;
-    } while (0);
+    free(this->class_instance);
+    this->class_instance = nullptr;
+    free(this->class_class);
+    this->class_class = nullptr;
 
     this->class_instance = sstrndup(new_class, prop_length);
     if (class_class_index < prop_length) {
@@ -224,10 +214,7 @@ void i3Window::window_update_role(xcb_get_property_reply_t *prop) {
     char *new_role;
     sasprintf(&new_role, "%.*s", xcb_get_property_value_length(prop),
               (char *)xcb_get_property_value(prop));
-    do {
-        free(this->role);
-        this->role = __null;
-    } while (0);
+    free(this->role);
     this->role = new_role;
      LOG(fmt::sprintf("WM_WINDOW_ROLE changed to \"%s\"\n", this->role));
 }
@@ -547,10 +534,7 @@ void i3Window::window_update_machine(xcb_get_property_reply_t *prop) {
         return;
     }
 
-    do {
-        free(this->machine);
-        this->machine = __null;
-    } while (0);
+    free(this->machine);
     this->machine = sstrndup((char *)xcb_get_property_value(prop), xcb_get_property_value_length(prop));
      LOG(fmt::sprintf("WM_CLIENT_MACHINE changed to \"%s\"\n", this->machine));
 }
