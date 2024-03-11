@@ -13,6 +13,7 @@ module;
 #include <xcb/xcb_icccm.h>
 #include <fmt/core.h>
 #include <fmt/printf.h>
+#include <chrono>
 
 #include "i3_ipc/i3-ipc.h"
 #include "i3.h"
@@ -630,7 +631,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     }
     render_con(global.croot);
 
-    cwindow->managed_since = time(nullptr);
+    cwindow->managed_since = std::chrono::system_clock::now();
 
     /* Send an event about window creation */
     ipc_send_window_event("new", nc);

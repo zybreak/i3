@@ -14,7 +14,7 @@ module;
 #include <deque>
 #include <xcb/xcb.h>
 #include <string>
-
+#include <chrono>
 export module i3:window;
 
 class Assignment;
@@ -130,7 +130,7 @@ export {
 
         /* Time when the window became managed. Used to determine whether a window
          * should be swallowed after initial management. */
-        time_t managed_since;
+        std::chrono::time_point<std::chrono::system_clock> managed_since;
 
         /* The window has been swallowed. */
         bool swallowed;
