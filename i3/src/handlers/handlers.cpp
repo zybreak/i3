@@ -1117,7 +1117,7 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
     }
 
     if (global.shape->shape_supported && type == global.shape->shape_base + XCB_SHAPE_NOTIFY) {
-        auto *shape = (xcb_shape_notify_event_t *)event;
+        auto *shape = reinterpret_cast<xcb_shape_notify_event_t*>(event);
 
         DLOG(fmt::sprintf("shape_notify_event for window 0x%08x, shape_kind = %d, shaped = %d\n",
                           shape->affected_window, shape->shape_kind, shape->shaped));
@@ -1140,75 +1140,75 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
     switch (type) {
         case XCB_KEY_PRESS:
         case XCB_KEY_RELEASE:
-            handle_key_press((xcb_key_press_event_t *)event);
+            handle_key_press(reinterpret_cast<xcb_key_press_event_t *>(event));
             break;
 
         case XCB_BUTTON_PRESS:
         case XCB_BUTTON_RELEASE:
-            handle_button_press((xcb_button_press_event_t *)event);
+            handle_button_press(reinterpret_cast<xcb_button_press_event_t *>(event));
             break;
 
         case XCB_MAP_REQUEST:
-            handle_map_request((xcb_map_request_event_t *)event);
+            handle_map_request(reinterpret_cast<xcb_map_request_event_t *>(event));
             break;
 
         case XCB_UNMAP_NOTIFY:
-            handle_unmap_notify_event((xcb_unmap_notify_event_t *)event);
+            handle_unmap_notify_event(reinterpret_cast<xcb_unmap_notify_event_t *>(event));
             break;
 
         case XCB_DESTROY_NOTIFY:
-            handle_destroy_notify_event((xcb_destroy_notify_event_t *)event);
+            handle_destroy_notify_event(reinterpret_cast<xcb_destroy_notify_event_t *>(event));
             break;
 
         case XCB_EXPOSE:
-            handle_expose_event((xcb_expose_event_t *)event);
+            handle_expose_event(reinterpret_cast<xcb_expose_event_t *>(event));
             break;
 
         case XCB_MOTION_NOTIFY:
-            handle_motion_notify((xcb_motion_notify_event_t *)event);
+            handle_motion_notify(reinterpret_cast<xcb_motion_notify_event_t *>(event));
             break;
 
         /* Enter window = user moved their mouse over the window */
         case XCB_ENTER_NOTIFY:
-            handle_enter_notify((xcb_enter_notify_event_t *)event);
+            handle_enter_notify(reinterpret_cast<xcb_enter_notify_event_t *>(event));
             break;
 
         /* Client message are sent to the root window. The only interesting
          * client message for us is _NET_WM_STATE, we honour
          * _NET_WM_STATE_FULLSCREEN and _NET_WM_STATE_DEMANDS_ATTENTION */
         case XCB_CLIENT_MESSAGE:
-            handle_client_message((xcb_client_message_event_t *)event);
+            handle_client_message(reinterpret_cast<xcb_client_message_event_t *>(event));
             break;
 
         /* Configure request = window tried to change size on its own */
         case XCB_CONFIGURE_REQUEST:
-            handle_configure_request((xcb_configure_request_event_t *)event);
+            handle_configure_request(reinterpret_cast<xcb_configure_request_event_t *>(event));
             break;
 
         /* Mapping notify = keyboard mapping changed (Xmodmap), re-grab bindings */
         case XCB_MAPPING_NOTIFY:
-            handle_mapping_notify((xcb_mapping_notify_event_t *)event);
+            handle_mapping_notify(reinterpret_cast<xcb_mapping_notify_event_t *>(event));
             break;
 
         case XCB_FOCUS_IN:
-            handle_focus_in((xcb_focus_in_event_t *)event);
+            handle_focus_in(reinterpret_cast<xcb_focus_in_event_t *>(event));
             break;
 
         case XCB_FOCUS_OUT:
-            handle_focus_out((xcb_focus_out_event_t *)event);
+            handle_focus_out(reinterpret_cast<xcb_focus_out_event_t *>(event));
             break;
 
         case XCB_PROPERTY_NOTIFY: {
-            property_notify((xcb_property_notify_event_t *)event);
+            property_notify(reinterpret_cast<xcb_property_notify_event_t *>(event));
             break;
         }
 
         case XCB_CONFIGURE_NOTIFY:
-            handle_configure_notify((xcb_configure_notify_event_t *)event);
+            handle_configure_notify(reinterpret_cast<xcb_configure_notify_event_t *>(event));
             break;
 
         case XCB_SELECTION_CLEAR:
-            handle_selection_clear((xcb_selection_clear_event_t *)event);
+            handle_selection_clear(reinterpret_cast<xcb_selection_clear_event_t *>(event));
             break;
 
         default:
