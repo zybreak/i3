@@ -93,7 +93,7 @@ static void startup_timeout(EV_P_ ev_timer *w, int revents) {
  *
  */
 static int _prune_startup_sequences() {
-    time_t current_time = time(nullptr);
+    auto current_time = std::chrono::system_clock::now();
     int active_sequences = 0;
 
     /* Traverse the list and delete everything which was marked for deletion 30
@@ -101,12 +101,12 @@ static int _prune_startup_sequences() {
     for (auto it = startup_sequences.begin(); it != startup_sequences.end(); ++it) {
         auto &current = *it;
         if (current != nullptr) {
-            if (current->delete_at == 0) {
+            if (!current->delete_at) {
                 active_sequences++;
                 continue;
             }
 
-            if (current_time <= current->delete_at) {
+            if (current_time <= current->delete_at.value()) {
                 continue;
             }
         } else {
@@ -127,8 +127,7 @@ static int _prune_startup_sequences() {
  */
 Startup_Sequence::~Startup_Sequence() {
     auto sequence = this;
-    DLOG(fmt::sprintf("Deleting startup sequence %s, delete_at = %lld, current_time = %lld\n",
-         sequence->id, (long long)sequence->delete_at, (long long)time(nullptr)));
+    DLOG(fmt::format("Deleting startup sequence {}", sequence->id));
 
     /* Unref the context, will be free()d */
     sn_launcher_context_unref(sequence->context);
@@ -214,6 +213,8 @@ void start_application(const std::string_view command, bool no_startup_id) {
  *
  */
 void startup_monitor_event(SnMonitorEvent *event, void *userdata) {
+    using namespace std::literals;
+
     SnStartupSequence *snsequence;
 
     snsequence = sn_monitor_event_get_startup_sequence(event);
@@ -240,10 +241,10 @@ void startup_monitor_event(SnMonitorEvent *event, void *userdata) {
             DLOG(fmt::sprintf("startup sequence %s completed\n",  sn_startup_sequence_get_id(snsequence)));
 
             /* Mark the given sequence for deletion in 30 seconds. */
-            time_t current_time = time(nullptr);
-            sequence->delete_at = current_time + 30;
-            DLOG(fmt::sprintf("Will delete startup sequence %s at timestamp %lld\n",
-                 sequence->id, (long long)sequence->delete_at));
+            auto current_time = std::chrono::system_clock::now();
+            sequence->delete_at = current_time + 30s;
+            DLOG(fmt::format("Will delete startup sequence {}",
+                 sequence->id));
 
             if (_prune_startup_sequences() == 0) {
                 DLOG("No more startup sequences running, changing root window cursor to default pointer.\n");
@@ -339,8 +340,8 @@ char *startup_workspace_for_window(i3Window *cwindow, xcb_get_property_reply_t *
     }
 
     /* If the startup sequence's time span has elapsed, delete it. */
-    time_t current_time = time(nullptr);
-    if (seq_opt->get().delete_at > 0 && current_time > seq_opt->get().delete_at) {
+    auto current_time = std::chrono::system_clock::now();
+    if (seq_opt->get().delete_at && current_time > seq_opt->get().delete_at.value()) {
         DLOG(fmt::sprintf("Deleting expired startup sequence %s\n",  seq_opt->get().id));
         remove_startup_sequence(seq_opt->get().id);
 

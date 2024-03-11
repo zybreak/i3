@@ -16,6 +16,7 @@ module;
 #include <string_view>
 #include <memory>
 #include <vector>
+#include <optional>
 
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-monitor.h>
@@ -43,7 +44,7 @@ export {
         SnLauncherContext *context{};
         /** time at which this sequence should be deleted (after it was marked as
          * completed) */
-        time_t delete_at{};
+        std::optional<std::chrono::time_point<std::chrono::system_clock>> delete_at{};
 
         virtual ~Startup_Sequence();
     };

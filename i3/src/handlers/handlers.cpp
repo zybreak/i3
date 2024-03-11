@@ -62,7 +62,7 @@ void PropertyHandlers::add_ignore_event(const int sequence, const int response_t
 
     event->sequence = sequence;
     event->response_type = response_type;
-    event->added = time(nullptr);
+    event->added = std::chrono::system_clock::now();
 
     ignore_events.insert(ignore_events.begin(), std::move(event));
 }
@@ -72,10 +72,11 @@ void PropertyHandlers::add_ignore_event(const int sequence, const int response_t
  *
  */
 bool PropertyHandlers::event_is_ignored(const int sequence, const int response_type) {
+    using namespace std::literals;
     std::lock_guard<std::mutex> guard(mtx);
 
-    time_t now = time(nullptr);
-    ignore_events.erase(std::remove_if(ignore_events.begin(), ignore_events.end(), [now](const auto &it) { return (now - it->added) > 5; }), ignore_events.end());
+    auto now = std::chrono::system_clock::now();
+    ignore_events.erase(std::remove_if(ignore_events.begin(), ignore_events.end(), [now](const auto &it) { return (now - it->added) > 5s; }), ignore_events.end());
 
     return std::any_of(
         ignore_events.begin(),

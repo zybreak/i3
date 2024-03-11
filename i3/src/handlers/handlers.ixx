@@ -14,6 +14,7 @@ module;
 #include <vector>
 #include <memory>
 #include <mutex>
+#include <chrono>
 
 #include <xcb/randr.h>
 export module i3:handlers;
@@ -25,7 +26,7 @@ export {
     struct Ignore_Event {
         int sequence;
         int response_type;
-        time_t added;
+        std::chrono::time_point<std::chrono::system_clock> added{};
     };
 
     // TODO: zybreak Rename to EventHandlers
