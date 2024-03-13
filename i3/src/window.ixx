@@ -15,6 +15,7 @@ module;
 #include <xcb/xcb.h>
 #include <string>
 #include <chrono>
+#include <optional>
 export module i3:window;
 
 class Assignment;
@@ -52,8 +53,8 @@ export {
          * (assignments run only once) */
         std::deque<Assignment *> ran_assignments{};
 
-        char *class_class;
-        char *class_instance;
+        std::string class_class{};
+        std::string class_instance{};
 
         /** The name of the window. */
         std::string name{};
@@ -61,10 +62,10 @@ export {
         /** The WM_WINDOW_ROLE of this window (for example, the pidgin buddy window
          * sets "buddy list"). Useful to match specific windows in assignments or
          * for_window. */
-        char *role;
+        std::string role{};
 
         /** WM_CLIENT_MACHINE of the window */
-        char *machine;
+        std::string machine{};
 
         /** Flag to force re-rendering the decoration upon changes */
         bool name_x_changed;
@@ -91,10 +92,10 @@ export {
                W_DOCK_BOTTOM = 2 } dock;
 
         /** When this window was marked urgent. 0 means not urgent */
-        timeval urgent;
+        std::optional<std::chrono::time_point<std::chrono::system_clock>> urgent{};
 
         /** Pixels the window reserves. left/right/top/bottom */
-        struct reservedpx reserved;
+        reservedpx reserved;
 
         /** Depth of the window */
         uint16_t depth;
@@ -130,7 +131,7 @@ export {
 
         /* Time when the window became managed. Used to determine whether a window
          * should be swallowed after initial management. */
-        std::chrono::time_point<std::chrono::system_clock> managed_since;
+        std::chrono::time_point<std::chrono::system_clock> managed_since{};
 
         /* The window has been swallowed. */
         bool swallowed;

@@ -545,16 +545,16 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
          * they are very useful and save i3-save-tree dealing with X11. */
         auto map = nlohmann::json::object();
 
-        if (con->window->class_class != nullptr) {
+        if (!con->window->class_class.empty()) {
             map["class"] = con->window->class_class;
         }
-        if (con->window->class_instance != nullptr) {
+        if (!con->window->class_instance.empty()) {
             map["instance"] = con->window->class_instance;
         }
-        if (con->window->role != nullptr) {
+        if (!con->window->role.empty()) {
             map["window_role"] = con->window->role;
         }
-        if (con->window->machine != nullptr) {
+        if (!con->window->machine.empty()) {
             map["machine"] = con->window->machine;
         }
 

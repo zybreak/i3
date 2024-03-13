@@ -211,9 +211,9 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
          * their declaration order in the config file. See #3491. */
         current = nullptr;
         for (auto &loop : nodes) {
-            int result = strcasecmp_nullable(this->window->class_class, loop->window->class_class);
+            int result = strcasecmp_nullable(this->window->class_class.c_str(), loop->window->class_class.c_str());
             if (result == 0) {
-                result = strcasecmp_nullable(this->window->class_instance, loop->window->class_instance);
+                result = strcasecmp_nullable(this->window->class_instance.c_str(), loop->window->class_instance.c_str());
             }
             if (result < 0) {
                 current = loop;
@@ -2027,10 +2027,9 @@ void con_set_urgency(Con *con, bool urgent) {
 
     if (con->window) {
         if (con->urgent) {
-            gettimeofday(&con->window->urgent, nullptr);
+            con->window->urgent = std::chrono::system_clock::now();
         } else {
-            con->window->urgent.tv_sec = 0;
-            con->window->urgent.tv_usec = 0;
+            con->window->urgent = std::nullopt;
         }
     }
 
@@ -2066,14 +2065,14 @@ std::string con_get_tree_representation(Con *con) {
     /* end of recursion */
     if (con->con_is_leaf()) {
         if (!con->window) {
-            return sstrdup("nowin");
+            return "nowin";
         }
 
-        if (!con->window->class_instance) {
-            return sstrdup("noinstance");
+        if (con->window->class_instance.empty()) {
+            return "noinstance";
         }
 
-        return sstrdup(con->window->class_instance);
+        return con->window->class_instance;
     }
 
     std::string buf{};
@@ -2125,9 +2124,9 @@ std::string con_parse_title_format(Con *con) {
         machine = "";
     } else {
         title = pango_escape_markup(win->name);
-        window_class = pango_escape_markup((win->class_class == nullptr) ? "" : win->class_class);
-        instance = pango_escape_markup((win->class_instance == nullptr) ? "" : win->class_instance);
-        machine = pango_escape_markup((win->machine == nullptr) ? "" : win->machine);
+        window_class = pango_escape_markup((win->class_class.empty()) ? "" : win->class_class.c_str());
+        instance = pango_escape_markup((win->class_instance.empty()) ? "" : win->class_instance.c_str());
+        machine = pango_escape_markup((win->machine.empty()) ? "" : win->machine.c_str());
     }
 
     std::vector<placeholder_t> placeholders = {

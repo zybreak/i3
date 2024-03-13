@@ -34,10 +34,6 @@ import utils;
  *
  */
 i3Window::~i3Window() {
-    free(this->class_class);
-    free(this->class_instance);
-    free(this->role);
-    free(this->machine);
     cairo_surface_destroy(this->icon);
 }
 
@@ -59,16 +55,12 @@ void i3Window::window_update_class(xcb_get_property_reply_t *prop) {
     char *new_class = (char*)xcb_get_property_value(prop);
     const size_t class_class_index = strnlen(new_class, prop_length) + 1;
 
-    free(this->class_instance);
-    this->class_instance = nullptr;
-    free(this->class_class);
-    this->class_class = nullptr;
+    this->class_instance.clear();
+    this->class_class.clear();
 
-    this->class_instance = sstrndup(new_class, prop_length);
+    this->class_instance.assign(new_class, prop_length);
     if (class_class_index < prop_length) {
-        this->class_class = sstrndup(new_class + class_class_index, prop_length - class_class_index);
-    } else {
-        this->class_class = nullptr;
+        this->class_class.assign(new_class + class_class_index, prop_length - class_class_index);
     }
     LOG(fmt::sprintf("WM_CLASS changed to %s (instance), %s (class)\n",
         this->class_instance, this->class_class));
@@ -211,11 +203,7 @@ void i3Window::window_update_role(xcb_get_property_reply_t *prop) {
         return;
     }
 
-    char *new_role;
-    sasprintf(&new_role, "%.*s", xcb_get_property_value_length(prop),
-              (char *)xcb_get_property_value(prop));
-    free(this->role);
-    this->role = new_role;
+    this->role.assign((char *)xcb_get_property_value(prop), xcb_get_property_value_length(prop));
      LOG(fmt::sprintf("WM_WINDOW_ROLE changed to \"%s\"\n", this->role));
 }
 
@@ -534,8 +522,7 @@ void i3Window::window_update_machine(xcb_get_property_reply_t *prop) {
         return;
     }
 
-    free(this->machine);
-    this->machine = sstrndup((char *)xcb_get_property_value(prop), xcb_get_property_value_length(prop));
+    this->machine.assign((char *)xcb_get_property_value(prop), xcb_get_property_value_length(prop));
      LOG(fmt::sprintf("WM_CLIENT_MACHINE changed to \"%s\"\n", this->machine));
 }
 

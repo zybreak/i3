@@ -184,8 +184,8 @@ bool Match::match_matches_window(const i3Window *window) const {
     LOG(fmt::sprintf("Checking window 0x%08x (class %s)\n",  window->id, window->class_class));
 
     try {
-        checkWindowField(this->window_class, window, [](const i3Window *window) { return window->class_class; });
-        checkWindowField(this->instance, window, [](const i3Window *window) { return window->class_instance; });
+        checkWindowField(this->window_class, window, [](const i3Window *window) { return !window->class_class.empty() ? (char*)window->class_class.c_str() : nullptr; });
+        checkWindowField(this->instance, window, [](const i3Window *window) { return !window->class_instance.empty() ? (char*)window->class_instance.c_str() : nullptr; });
 
         if (this->id != XCB_NONE) {
             if (window->id == this->id) {
@@ -197,7 +197,7 @@ bool Match::match_matches_window(const i3Window *window) const {
         }
 
         checkWindowField(this->title, window, [](const i3Window *window) { return !window->name.empty() ? (char*)window->name.c_str() : nullptr; });
-        checkWindowField(this->window_role, window, [](const i3Window *window) { return window->role; });
+        checkWindowField(this->window_role, window, [](const i3Window *window) { return !window->role.empty() ? (char*)window->role.c_str() : nullptr; });
 
         if (this->window_type != UINT32_MAX) {
             if (window->window_type == this->window_type) {
@@ -207,7 +207,7 @@ bool Match::match_matches_window(const i3Window *window) const {
             }
         }
 
-        checkWindowField(this->machine, window, [](const i3Window *window) { return window->machine; });
+        checkWindowField(this->machine, window, [](const i3Window *window) { return !window->machine.empty() ? (char*)window->machine.c_str() : nullptr; });
     } catch (std::logic_error &e) {
         return false;
     }
