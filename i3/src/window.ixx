@@ -219,7 +219,7 @@ export {
          * Updates the WM_CLIENT_MACHINE
          *
          */
-        void window_update_machine(const std::string &_machine);
+        void window_update_machine(xcb_get_property_reply_t *prop);
 
         /**
          * Updates the _NET_WM_ICON

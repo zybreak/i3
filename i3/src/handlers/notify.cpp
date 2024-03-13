@@ -260,14 +260,7 @@ static bool handle_i3_floating(Con *con, xcb_get_property_reply_t *prop) {
  *
  */
 static bool handle_machine_change(Con *con, xcb_get_property_reply_t *prop) {
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-        DLOG("WM_CLIENT_MACHINE not set.\n");
-        return true;
-    }
-
-    std::string machine(reinterpret_cast<const char *>(xcb_get_property_value(prop)), xcb_get_property_value_length(prop));
-
-    con->window->window_update_machine(machine);
+    con->window->window_update_machine(prop);
     con = remanage_window(con);
     return true;
 }

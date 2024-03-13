@@ -143,17 +143,6 @@ void con_merge_into(Con *old, Con *new_con) {
     tree_close_internal(old, DONT_KILL_WINDOW, false);
 }
 
-static void handle_machine_change(i3Window *window, xcb_get_property_reply_t *prop) {
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-        DLOG("WM_CLIENT_MACHINE not set.\n");
-        return;
-    }
-
-    std::string machine(reinterpret_cast<const char *>(xcb_get_property_value(prop)), xcb_get_property_value_length(prop));
-
-    window->window_update_machine(machine);
-}
-
 /*
  * Do some sanity checks and then reparent the window.
  *
@@ -257,7 +246,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     border_style_t motif_border_style = BS_NORMAL;
     bool has_mwm_hints = cwindow->window_update_motif_hints((motif_wm_hints_cookie.get() != nullptr ? motif_wm_hints_cookie.get().get() : nullptr), &motif_border_style);
     cwindow->window_update_normal_hints((wm_normal_hints_cookie.get() != nullptr) ? wm_normal_hints_cookie.get().get() : nullptr, geom.get().get());
-    handle_machine_change(cwindow, (wm_machine_cookie.get() != nullptr ? wm_machine_cookie.get().get() : nullptr));
+    cwindow->window_update_machine((wm_machine_cookie.get() != nullptr ? wm_machine_cookie.get().get() : nullptr));
     xcb_get_property_reply_t *type_reply = (wm_type_cookie.get() != nullptr ? wm_type_cookie.get().get() : nullptr);
     xcb_get_property_reply_t *state_reply = (state_cookie.get() != nullptr ? state_cookie.get().get() : nullptr);
 

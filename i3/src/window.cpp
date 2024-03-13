@@ -516,8 +516,13 @@ bool i3Window::window_update_motif_hints(xcb_get_property_reply_t *prop, border_
  * Updates the WM_CLIENT_MACHINE
  *
  */
-void i3Window::window_update_machine(const std::string &_machine) {
-    this->machine = _machine;
+void i3Window::window_update_machine(xcb_get_property_reply_t *prop) {
+    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+        DLOG("WM_CLIENT_MACHINE not set.\n");
+        return;
+    }
+
+    this->machine.assign((char *)xcb_get_property_value(prop), xcb_get_property_value_length(prop));
      LOG(fmt::sprintf("WM_CLIENT_MACHINE changed to \"%s\"\n", this->machine));
 }
 
