@@ -45,17 +45,17 @@ import rect;
 import :output;
 import utils;
 
-static bool window_name_changed(i3Window *window, char *old_name) {
-    if ((old_name == nullptr) && (window->name.empty())) {
+static bool window_name_changed(const i3Window *window, std::string &old_name) {
+    if ((old_name.empty()) && (window->name.empty())) {
         return false;
     }
 
     /* Either the old or the new one is NULL, but not both. */
-    if ((old_name == nullptr) ^ (window->name.empty())) {
+    if ((old_name.empty()) ^ (window->name.empty())) {
         return true;
     }
 
-    return (strcmp(old_name, window->name.c_str()) != 0);
+    return old_name != window->name;
 }
 
 /*
@@ -63,7 +63,7 @@ static bool window_name_changed(i3Window *window, char *old_name) {
  *
  */
 static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
-    char *old_name = (!con->window->name.empty() ? sstrdup(con->window->name.c_str()) : nullptr);
+    std::string old_name = con->window->name;
 
     con->window->window_update_name(prop);
 
@@ -74,11 +74,6 @@ static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
     if (window_name_changed(con->window, old_name)) {
         ipc_send_window_event("title", con);
     }
-
-    do {
-        free(old_name);
-        old_name = __null;
-    } while (0);
 
     return true;
 }
@@ -102,7 +97,7 @@ static bool handle_hints(Con *con, xcb_get_property_reply_t *reply) {
  *
  */
 static bool handle_windowname_change_legacy(Con *con, xcb_get_property_reply_t *prop) {
-    char *old_name = (!con->window->name.empty() ? sstrdup(con->window->name.c_str()) : nullptr);
+    std::string old_name = con->window->name;
 
     con->window->window_update_name_legacy(prop);
 
@@ -113,10 +108,6 @@ static bool handle_windowname_change_legacy(Con *con, xcb_get_property_reply_t *
     if (window_name_changed(con->window, old_name)) {
         ipc_send_window_event("title", con);
     }
-    do {
-        free(old_name);
-        old_name = __null;
-    } while (0);
 
     return true;
 }
@@ -269,7 +260,14 @@ static bool handle_i3_floating(Con *con, xcb_get_property_reply_t *prop) {
  *
  */
 static bool handle_machine_change(Con *con, xcb_get_property_reply_t *prop) {
-    con->window->window_update_machine(prop);
+    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+        DLOG("WM_CLIENT_MACHINE not set.\n");
+        return true;
+    }
+
+    std::string machine(reinterpret_cast<const char *>(xcb_get_property_value(prop)), xcb_get_property_value_length(prop));
+
+    con->window->window_update_machine(machine);
     con = remanage_window(con);
     return true;
 }
