@@ -70,6 +70,7 @@ list(APPEND i3_src
         src/handlers/client_message.cpp
         src/handlers/handlers.cpp
         src/handlers/notify.cpp
+        src/handlers/handle_property.cpp
         src/ipc.cpp
         src/load_layout.cpp
         src/nagbar/nagbar.cpp
@@ -128,6 +129,7 @@ target_sources(i3_lib PUBLIC
         src/config/resource_database.ixx
         src/commands/commands.ixx
         src/commands/commands_applier.ixx
+        src/handlers/handle_property.ixx
         src/con/con.ixx
         src/gaps.ixx
         src/util.ixx

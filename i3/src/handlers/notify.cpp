@@ -260,7 +260,9 @@ static bool handle_i3_floating(Con *con, xcb_get_property_reply_t *prop) {
  *
  */
 static bool handle_machine_change(Con *con, xcb_get_property_reply_t *prop) {
-    con->window->window_update_machine(prop);
+    if (auto opt_machine = handle_property::window_update_machine(prop)) {
+        con->window->window_update_machine(*opt_machine);
+    }
     con = remanage_window(con);
     return true;
 }

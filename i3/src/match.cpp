@@ -17,6 +17,7 @@ module;
 #include <cstdint>
 #include <cstring>
 #include <ranges>
+#include <chrono>
 
 #include <xcb/xcb.h>
 
@@ -35,8 +36,9 @@ import :util;
 
 /* From sys/time.h, not sure if it’s available on all systems. */
 template<typename Comp = std::ranges::less>
-static bool i3_timercmp(timeval a, timeval b, Comp cmp) {
-    return a.tv_sec == b.tv_sec ? cmp(a.tv_usec, b.tv_usec) : cmp(a.tv_sec, b.tv_sec);
+static bool i3_timercmp(std::optional<std::chrono::time_point<std::chrono::system_clock>> a, std::optional<std::chrono::time_point<std::chrono::system_clock>> b, Comp cmp) {
+    auto epoch_time_point = std::chrono::system_clock::from_time_t(0);
+    return (a && b) ? cmp(a, b) : a ? cmp(a, epoch_time_point) : cmp(epoch_time_point, b);
 }
 
 static bool is_initialized(const Regex *regex) {
@@ -215,7 +217,7 @@ bool Match::match_matches_window(const i3Window *window) const {
     Con *con = nullptr;
     if (this->urgent == U_LATEST) {
         /* if the window isn't urgent, no sense in searching */
-        if (window->urgent.tv_sec == 0) {
+        if (!window->urgent) {
             return false;
         }
         /* if we find a window that is newer than this one, bail */
@@ -230,14 +232,14 @@ bool Match::match_matches_window(const i3Window *window) const {
 
     if (this->urgent == U_OLDEST) {
         /* if the window isn't urgent, no sense in searching */
-        if (window->urgent.tv_sec == 0) {
+        if (!window->urgent) {
             return false;
         }
         /* if we find a window that is older than this one (and not 0), bail */
         for (const auto &c : global.all_cons) {
             con = c;
             if ((con->window != nullptr) &&
-                (con->window->urgent.tv_sec != 0) &&
+                con->window->urgent &&
                 i3_timercmp(con->window->urgent, window->urgent, std::ranges::less())) {
                 return false;
             }

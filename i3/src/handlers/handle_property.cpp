@@ -1,69 +1,47 @@
-/*
- * vim:ts=4:sw=4:expandtab
- *
- * i3 - an improved dynamic tiling window manager
- * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
- *
- * window.c: Updates window attributes (X11 hints/properties).
- *
- */
 module;
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <cassert>
-
+#include <optional>
+#include <utility>
+#include <string>
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
-
-#include <cmath>
-
 #include <cairo.h>
-
+#include <cmath>
 #include <fmt/printf.h>
-
-#include <float.h>
 module i3;
 
 import log;
 
-import utils;
-
-/*
- * Frees an i3Window and all its members.
- *
- */
-i3Window::~i3Window() {
-    cairo_surface_destroy(this->icon);
-}
+namespace handle_property {
 
 /*
  * Updates the WM_CLASS (consisting of the class and instance) for the
  * given window.
  *
  */
-void i3Window::window_update_class(xcb_get_property_reply_t *prop) {
+std::optional<window_class> window_update_class(xcb_get_property_reply_t *prop) {
     if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
         DLOG("WM_CLASS not set.\n");
-        return;
+        return std::nullopt;
     }
 
     /* We cannot use asprintf here since this property contains two
      * null-terminated strings (for compatibility reasons). Instead, we
      * use strdup() on both strings */
     const size_t prop_length = xcb_get_property_value_length(prop);
-    char *new_class = (char*)xcb_get_property_value(prop);
+    char *new_class = (char *)xcb_get_property_value(prop);
     const size_t class_class_index = strnlen(new_class, prop_length) + 1;
 
-    this->class_instance.clear();
-    this->class_class.clear();
+    std::string class_instance{};
+    std::string class_class{};
 
-    this->class_instance.assign(new_class, prop_length);
+    class_instance.assign(new_class, prop_length);
     if (class_class_index < prop_length) {
-        this->class_class.assign(new_class + class_class_index, prop_length - class_class_index);
+        class_class.assign(new_class + class_class_index, prop_length - class_class_index);
     }
-    LOG(fmt::sprintf("WM_CLASS changed to %s (instance), %s (class)\n",
-        this->class_instance, this->class_class));
+
+    return window_class{
+        .class_name = class_class,
+        .class_instance = class_instance};
 }
 
 /*
@@ -71,27 +49,17 @@ void i3Window::window_update_class(xcb_get_property_reply_t *prop) {
  * window. Further updates using window_update_name_legacy will be ignored.
  *
  */
-void i3Window::window_update_name(xcb_get_property_reply_t *prop) {
+std::optional<std::string> window_update_name(xcb_get_property_reply_t *prop) {
     if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
         DLOG("_NET_WM_NAME not specified, not changing\n");
-        return;
+        return std::nullopt;
     }
 
     /* Truncate the name at the first zero byte. See #3515. */
-    const int len = xcb_get_property_value_length(prop);
-    char *prop_name = sstrndup((const char *)xcb_get_property_value(prop), len);
-    this->name = prop_name;
-    free(prop_name);
+    auto len = static_cast<std::string::size_type>(xcb_get_property_value_length(prop));
+    std::string name{(const char *)xcb_get_property_value(prop), len};
 
-    Con *con = con_by_window_id(id);
-    if (con != nullptr && !con->title_format.empty()) {
-        std::string title = con_parse_title_format(con);
-        ewmh_update_visible_name(id, title.c_str());
-    }
-    name_x_changed = true;
-    LOG(fmt::sprintf("_NET_WM_NAME changed to \"%s\"\n", this->name));
-
-    uses_net_wm_name = true;
+    return name;
 }
 
 /*
@@ -101,134 +69,108 @@ void i3Window::window_update_name(xcb_get_property_reply_t *prop) {
  * window_update_name()).
  *
  */
-void i3Window::window_update_name_legacy(xcb_get_property_reply_t *prop) {
+std::optional<std::string> window_update_name_legacy(xcb_get_property_reply_t *prop) {
     if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
         DLOG("WM_NAME not set (_NET_WM_NAME is what you want anyways).\n");
-        return;
+        return std::nullopt;
     }
 
-    /* ignore update when the window is known to already have a UTF-8 name */
-    if (uses_net_wm_name) {
-        return;
-    }
+    const auto len = static_cast<std::string::size_type>(xcb_get_property_value_length(prop));
+    std::string name{(const char *)xcb_get_property_value(prop), len};
 
-    const int len = xcb_get_property_value_length(prop);
-    char *prop_name = sstrndup((const char *)xcb_get_property_value(prop), len);
-    this->name = prop_name;
-    free(prop_name);
-
-    Con *con = con_by_window_id(id);
-    if (con != nullptr && !con->title_format.empty()) {
-        std::string title = con_parse_title_format(con);
-        ewmh_update_visible_name(id, title.c_str());
-    }
-
-    LOG(fmt::sprintf("WM_NAME changed to \"%s\"\n", this->name));
-    LOG("Using legacy window title. Note that in order to get Unicode window "
-        "titles in i3, the application has to set _NET_WM_NAME (UTF-8)\n");
-
-    name_x_changed = true;
+    return name;
 }
 
 /*
  * Updates the CLIENT_LEADER (logical parent window).
  *
  */
-void i3Window::window_update_leader(xcb_get_property_reply_t *prop) {
+std::optional<xcb_window_t> window_update_leader(xcb_get_property_reply_t *prop) {
     if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-        DLOG(fmt::sprintf("CLIENT_LEADER not set on window 0x%08x.\n",  this->id));
-        this->leader = XCB_NONE;
-        return;
+        DLOG(fmt::sprintf("CLIENT_LEADER not set.\n"));
+        return std::nullopt;
     }
 
-    auto *leader_prop = (xcb_window_t*)xcb_get_property_value(prop);
+    auto *leader_prop = (xcb_window_t *)xcb_get_property_value(prop);
     if (leader_prop == nullptr) {
-        return;
+        return std::nullopt;
     }
 
-    DLOG(fmt::sprintf("Client leader changed to %08x\n",  *leader_prop));
-
-    this->leader = *leader_prop;
+    return *leader_prop;
 }
 
 /*
  * Updates the TRANSIENT_FOR (logical parent window).
  *
  */
-void i3Window::window_update_transient_for(xcb_get_property_reply_t *prop) {
+std::optional<xcb_window_t> window_update_transient_for(xcb_get_property_reply_t *prop) {
     if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-        DLOG(fmt::sprintf("TRANSIENT_FOR not set on window 0x%08x.\n",  this->id));
-        this->transient_for = XCB_NONE;
-        return;
+        return std::nullopt;
     }
 
     xcb_window_t transient_for;
     if (!xcb_icccm_get_wm_transient_for_from_reply(&transient_for, prop)) {
-        return;
+        return std::nullopt;
     }
 
-    DLOG(fmt::sprintf("Transient for changed to 0x%08x (window 0x%08x)\n",  transient_for, this->id));
-
-    this->transient_for = transient_for;
+    return transient_for;
 }
 
 /*
  * Updates the _NET_WM_STRUT_PARTIAL (reserved pixels at the screen edges)
  *
  */
-void i3Window::window_update_strut_partial(xcb_get_property_reply_t *prop) {
+std::optional<reservedpx> window_update_strut_partial(xcb_get_property_reply_t *prop) {
     if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-        DLOG("_NET_WM_STRUT_PARTIAL not set.\n");
-        return;
+        return std::nullopt;
     }
 
     uint32_t *strut;
-    if (!(strut = (uint32_t*)xcb_get_property_value(prop))) {
-        return;
+    if (!(strut = (uint32_t *)xcb_get_property_value(prop))) {
+        return std::nullopt;
     }
 
-    DLOG(fmt::sprintf("Reserved pixels changed to: left = %d, right = %d, top = %d, bottom = %d\n",
-         strut[0], strut[1], strut[2], strut[3]));
-
-    this->reserved = (struct reservedpx){strut[0], strut[1], strut[2], strut[3]};
+    return reservedpx{
+        .left = strut[0],
+        .right = strut[1],
+        .top = strut[2],
+        .bottom = strut[3]};
 }
 
 /*
  * Updates the WM_WINDOW_ROLE
  *
  */
-void i3Window::window_update_role(xcb_get_property_reply_t *prop) {
+std::optional<std::string> window_update_role(xcb_get_property_reply_t *prop) {
     if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-        DLOG("WM_WINDOW_ROLE not set.\n");
-        return;
+        return std::nullopt;
     }
 
-    this->role.assign((char *)xcb_get_property_value(prop), xcb_get_property_value_length(prop));
-     LOG(fmt::sprintf("WM_WINDOW_ROLE changed to \"%s\"\n", this->role));
+    std::string role{(char *)xcb_get_property_value(prop), static_cast<std::string::size_type>(xcb_get_property_value_length(prop))};
+    return role;
 }
 
 /*
  * Updates the _NET_WM_WINDOW_TYPE property.
  *
  */
-bool i3Window::window_update_type(xcb_get_property_reply_t *reply) {
+std::optional<xcb_atom_t> window_update_type(xcb_get_property_reply_t *reply) {
     xcb_atom_t new_type = xcb_get_preferred_window_type(reply);
     if (new_type == XCB_NONE) {
-        DLOG("cannot read _NET_WM_WINDOW_TYPE from window.\n");
-        return false;
+        return std::nullopt;
     }
 
-    this->window_type = new_type;
-    LOG(fmt::sprintf("_NET_WM_WINDOW_TYPE changed to %i.\n",  this->window_type));
-
-    return true;
+    return new_type;
 }
 
+#if 0
 /*
  * Updates the WM_NORMAL_HINTS
  *
  */
-bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_get_geometry_reply_t *geom) {
+
+// TODO: FIXME
+bool window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_get_geometry_reply_t *geom) {
     bool changed = false;
     xcb_size_hints_t size_hints;
 
@@ -390,36 +332,36 @@ bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_g
 
     return changed;
 }
+#endif
 
 /*
  * Updates the WM_HINTS (we only care about the input focus handling part).
  *
  */
-void i3Window::window_update_hints(xcb_get_property_reply_t *prop, bool *urgency_hint) {
-    if (urgency_hint != nullptr) {
-        *urgency_hint = false;
-    }
-
+std::optional<window_hints> window_update_hints(xcb_get_property_reply_t *prop) {
     if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
         DLOG("WM_HINTS not set.\n");
-        return;
+        return std::nullopt;
     }
 
     xcb_icccm_wm_hints_t hints;
+    bool doesnt_accept_focus = false;
 
     if (!xcb_icccm_get_wm_hints_from_reply(&hints, prop)) {
         DLOG("Could not get WM_HINTS\n");
-        return;
+        return std::nullopt;
     }
 
     if (hints.flags & XCB_ICCCM_WM_HINT_INPUT) {
-        this->doesnt_accept_focus = !hints.input;
-         LOG(fmt::sprintf("WM_HINTS.input changed to \"%d\"\n", hints.input));
+        doesnt_accept_focus = !hints.input;
+        LOG(fmt::sprintf("WM_HINTS.input changed to \"%d\"\n", hints.input));
     }
 
-    if (urgency_hint != nullptr) {
-        *urgency_hint = (xcb_icccm_wm_hints_get_urgency(&hints) != 0);
-    }
+    bool urgency_hint = (xcb_icccm_wm_hints_get_urgency(&hints) != 0);
+
+    return window_hints{
+        .doesnt_accept_focus = doesnt_accept_focus,
+        .urgency_hint = urgency_hint};
 }
 
 /* See `man VendorShell' for more info, `XmNmwmDecorations' section:
@@ -477,14 +419,13 @@ static border_style_t border_style_from_motif_value(uint32_t value) {
  * it is still in use by popular widget toolkits such as GTK+ and Java AWT.
  *
  */
-bool i3Window::window_update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_border_style) {
+std::optional<uint32_t> window_update_motif_hints(xcb_get_property_reply_t *prop) {
     if (prop == nullptr) {
-        return false;
+        return std::nullopt;
     }
-    assert(motif_border_style != nullptr);
 
     if (xcb_get_property_value_length(prop) == 0) {
-        return false;
+        return std::nullopt;
     }
 
     /* The property consists of an array of 5 uint32_t's. The first value is a
@@ -496,39 +437,32 @@ bool i3Window::window_update_motif_hints(xcb_get_property_reply_t *prop, border_
      * (64-bits long on amd64 for example). On the other hand,
      * xcb_get_property_value() behaves strictly according to documentation,
      * i.e. returns 32-bit data fields. */
-    uint32_t *motif_hints = (uint32_t *)xcb_get_property_value(prop);
+    uint32_t *motif_hints = reinterpret_cast<uint32_t *>(xcb_get_property_value(prop));
 
     if (motif_hints[MWM_HINTS_FLAGS_FIELD] & MWM_HINTS_DECORATIONS) {
-        *motif_border_style = border_style_from_motif_value(motif_hints[MWM_HINTS_DECORATIONS_FIELD]);
-        return true;
+        return border_style_from_motif_value(motif_hints[MWM_HINTS_DECORATIONS_FIELD]);
     }
-    return false;
+    return std::nullopt;
 }
 
 /*
  * Updates the WM_CLIENT_MACHINE
  *
  */
-void i3Window::window_update_machine(const std::string &machine) {
-    this->machine = machine;
-    LOG(fmt::sprintf("WM_CLIENT_MACHINE changed to \"%s\"\n", this->machine));
-}
-
-/*
- * Updates the WM_CLIENT_MACHINE
- *
- */
-void i3Window::window_update_machine(xcb_get_property_reply_t *prop) {
+std::optional<std::string> window_update_machine(xcb_get_property_reply_t *prop) {
     if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
         DLOG("WM_CLIENT_MACHINE not set.\n");
-        return;
+        return std::nullopt;
     }
 
-    this->machine.assign((char *)xcb_get_property_value(prop), xcb_get_property_value_length(prop));
-     LOG(fmt::sprintf("WM_CLIENT_MACHINE changed to \"%s\"\n", this->machine));
+    std::string machine{(char *)xcb_get_property_value(prop), static_cast<std::string::size_type>(xcb_get_property_value_length(prop))};
+
+    return machine;
 }
 
-void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
+#if 0
+// TODO: FIXME
+void window_update_icon(xcb_get_property_reply_t *prop) {
     uint32_t *data = nullptr;
     uint32_t width = 0, height = 0;
     uint64_t len = 0;
@@ -598,7 +532,7 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
     }
 
     DLOG(fmt::sprintf("Using icon of size (%d,%d) (preferred size: %d)\n",
-         width, height, pref_size));
+                      width, height, pref_size));
 
     this->name_x_changed = true; /* trigger a redraw */
 
@@ -631,4 +565,7 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
         width * 4);
     static cairo_user_data_key_t free_data;
     cairo_surface_set_user_data(this->icon, &free_data, icon, free);
+}
+#endif
+
 }
