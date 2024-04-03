@@ -615,7 +615,6 @@ static std::string replace_variables(std::string &buf, parser_ctx &ctx) {
     return destwalk;
 }
 
-
 OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, resourceDatabase, parent_ctx.parser->load_type, applier) {
     this->parent_ctx = &parent_ctx;
     this->ctx.variables = parent_ctx.variables;
