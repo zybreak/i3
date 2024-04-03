@@ -183,8 +183,8 @@ static void unhandled_token(const std::string &input, const char *filename, int 
      * currently is. */
     std::string possible_tokens = get_possible_tokens(ptr);
     /* Go back to the beginning of the line */
-    auto beginning = input.begin();
-    auto input_end = input.end();
+    auto beginning = input.cbegin();
+    auto input_end = input.cend();
     std::string::const_iterator error_line = start_of_line(walk, beginning);
 
     /* Contains the same amount of characters as 'input' has, but with
@@ -409,10 +409,10 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
 
     /* The "<=" operator is intentional: We also handle the terminating 0-byte
      * explicitly by looking for an 'end' token. */
-    while (walk <= input.end()) {
+    while (walk <= input.cend()) {
         /* Skip whitespace before every token, newlines are relevant since they
          * separate configuration directives. */
-        while (walk != input.end() && (*walk == ' ' || *walk == '\t')) {
+        while (walk != input.cend() && (*walk == ' ' || *walk == '\t')) {
             walk++;
         }
 
@@ -571,26 +571,26 @@ const bool caseInsensitiveCompare(char a, char b) {
     return std::tolower(a) == std::tolower(b);
 }
 
-const std::string::iterator caseInsensitiveSearch(std::string& str, std::string::iterator &pos, std::string& substr) {
-    return std::search(pos, str.end(), substr.begin(), substr.end(), caseInsensitiveCompare);
+const std::string::const_iterator caseInsensitiveSearch(const std::string& str, std::string::const_iterator &pos, const std::string& substr) {
+    return std::search(pos, str.cend(), substr.cbegin(), substr.cend(), caseInsensitiveCompare);
 }
 
 /* Allocate a new buffer and copy the file over to the new one,
  * and replace occurrences of our variables */
 static std::string replace_variables(std::string &buf, parser_ctx &ctx) {
-    std::string::iterator walk = buf.begin();
+    std::string::const_iterator walk = buf.cbegin();
     std::string destwalk{};
-    while (walk != buf.end()) {
-        std::map<std::string, std::string::iterator> next_match{};
+    while (walk != buf.cend()) {
+        std::map<std::string, std::string::const_iterator> next_match{};
         Variable *nearest = nullptr;
         /* Find the next variable */
         for (auto &variable : ctx.variables) {
             auto pos = caseInsensitiveSearch(buf, walk, variable->key);
-            if (pos != buf.end()) {
+            if (pos != buf.cend()) {
                 next_match[variable->key] = pos;
             }
         }
-        std::string::iterator distance = buf.end();
+        std::string::const_iterator distance = buf.cend();
         for (auto &variable : ctx.variables) {
             if (!next_match.contains(variable->key)) {
                 continue;
@@ -602,7 +602,7 @@ static std::string replace_variables(std::string &buf, parser_ctx &ctx) {
         }
         if (nearest == nullptr) {
             /* If there are no more variables, we just copy the rest */
-            destwalk.append(walk, buf.end());
+            destwalk.append(walk, buf.cend());
             break;
         } else {
             /* Copy until the next variable, then copy its value */
