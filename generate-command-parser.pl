@@ -118,7 +118,7 @@ open(my $enumfh, '>', "GENERATED_${prefix}_enums.h");
 
 my %statenum;
 say $enumfh '#pragma once';
-say $enumfh 'typedef enum {';
+say $enumfh 'enum cmdp_state {';
 my $cnt = 0;
 for my $state (@keys, '__CALL') {
     say $enumfh ',' if $cnt > 0;
@@ -126,7 +126,7 @@ for my $state (@keys, '__CALL') {
     $statenum{$state} = $cnt;
     $cnt++;
 }
-say $enumfh "\n} cmdp_state;";
+say $enumfh "\n};";
 close($enumfh);
 
 # Third step: Generate the call function.
@@ -211,10 +211,11 @@ close($callfh);
 
 open(my $tokfh, '>', "GENERATED_${prefix}_tokens.h");
 say $tokfh '#pragma once';
+say $tokfh '#include <vector>';
 
 for my $state (@keys) {
     my $tokens = $states{$state};
-    say $tokfh 'static cmdp_token tokens_' . $state . '[' . scalar @$tokens . '] = {';
+    say $tokfh 'static std::vector<cmdp_token> tokens_' . $state . ' = {';
     for my $token (@$tokens) {
         my $call_identifier = 0;
         my $token_name = $token->{token};
@@ -238,15 +239,15 @@ for my $state (@keys) {
         else{
             $identifier = qq|"$token->{identifier}"|;
         }
-        say $tokfh qq|    { "$token_name", $identifier, $next_state, { $call_identifier } },|;
+        say $tokfh qq|    { "$token_name", $identifier, $next_state, $call_identifier },|;
     }
     say $tokfh '};';
 }
 
-say $tokfh 'static cmdp_token_ptr tokens[' . scalar @keys . '] = {';
+say $tokfh 'static std::vector<std::vector<cmdp_token>> tokens = {';
 for my $state (@keys) {
     my $tokens = $states{$state};
-    say $tokfh '    { tokens_' . $state . ', ' . scalar @$tokens . ' },';
+    say $tokfh '    tokens_' . $state . ', ';
 }
 say $tokfh '};';
 

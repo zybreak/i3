@@ -72,14 +72,7 @@ struct cmdp_token {
     const char *identifier;
     /* This might be __CALL */
     cmdp_state next_state;
-    union {
-        uint16_t call_identifier;
-    } extra;
-};
-
-struct cmdp_token_ptr {
-    cmdp_token *array;
-    int n;
+    uint16_t call_identifier;
 };
 
 #include "GENERATED_config_tokens.h"
@@ -90,14 +83,14 @@ struct cmdp_token_ptr {
 
 #include "GENERATED_config_call.h"
 
-static void next_state(const cmdp_token *token, parser_ctx &ctx) {
-    cmdp_state _next_state = token->next_state;
+static void next_state(const cmdp_token &token, parser_ctx &ctx) {
+    cmdp_state _next_state = token.next_state;
 
-    if (token->next_state == __CALL) {
+    if (token.next_state == __CALL) {
         ConfigResultIR subcommand_output = {
             .ctx = ctx,
         };
-        GENERATED_call(ctx.criteria_state, ctx.stack, token->extra.call_identifier, subcommand_output);
+        GENERATED_call(ctx.criteria_state, ctx.stack, token.call_identifier, subcommand_output);
         if (subcommand_output.has_errors) {
             ctx.has_errors = true;
         }
@@ -149,25 +142,25 @@ static std::string_view single_line(std::string::const_iterator &start, std::str
     return std::string_view(start, newline_pos);
 }
 
-static std::string get_possible_tokens(const cmdp_token_ptr *ptr) {
+static std::string get_possible_tokens(const std::vector<cmdp_token> &ptr) {
     std::string possible_tokens{};
-    for (int c = 0; c < ptr->n; c++) {
-        auto token = &(ptr->array[c]);
-        if (token->name[0] == '\'') {
+    for (int c = 0; c < ptr.size(); c++) {
+        auto &token = ptr.at(c);
+        if (token.name[0] == '\'') {
             /* A literal is copied to the error message enclosed with
              * single quotes. */
-            possible_tokens.append(fmt::format("'{}'", token->name + 1));
+            possible_tokens.append(fmt::format("'{}'", token.name + 1));
         } else {
             /* Skip error tokens in error messages, they are used
              * internally only and might confuse users. */
-            if (strcmp(token->name, "error") == 0) {
+            if (strcmp(token.name, "error") == 0) {
                 continue;
             }
             /* Any other token is copied to the error message enclosed
              * with angle brackets. */
-            possible_tokens.append(fmt::format("<{}>", token->name));
+            possible_tokens.append(fmt::format("<{}>", token.name));
         }
-        if (c < (ptr->n - 1)) {
+        if (c < (ptr.size() - 1)) {
             possible_tokens.append(", ");
         }
     }
@@ -177,7 +170,7 @@ static std::string get_possible_tokens(const cmdp_token_ptr *ptr) {
 
 /* Figure out how much memory we will need to fill in the names of
  * all tokens afterwards. */
-static void unhandled_token(const std::string &input, const char *filename, int linecnt, const cmdp_token_ptr *ptr, parser_ctx &ctx, bool &has_errors, std::string::const_iterator &walk) {
+static void unhandled_token(const std::string &input, const char *filename, int linecnt, const std::vector<cmdp_token> &ptr, parser_ctx &ctx, bool &has_errors, std::string::const_iterator &walk) {
     /* Build up a decent error message. We include the problem, the
      * full input, and underline the position where the parser
      * currently is. */
@@ -239,12 +232,12 @@ static void unhandled_token(const std::string &input, const char *filename, int 
      * and follow that one. */
     bool error_token_found = false;
     for (int i = ctx.statelist_idx - 1; (i >= 0) && !error_token_found; i--) {
-        cmdp_token_ptr *errptr = &(tokens[ctx.statelist[i]]);
-        for (int j = 0; j < errptr->n; j++) {
-            if (strcmp(errptr->array[j].name, "error") != 0) {
+        std::vector<cmdp_token> errptr = tokens[ctx.statelist[i]];
+        for (int j = 0; j < errptr.size(); j++) {
+            if (strcmp(errptr.at(j).name, "error") != 0) {
                 continue;
             }
-            next_state(&(errptr->array[j]), ctx);
+            next_state(errptr.at(j), ctx);
             error_token_found = true;
             break;
         }
@@ -264,12 +257,12 @@ static void log_config(const std::string &input) {
     }
 }
 
-static bool handle_literal(std::string::const_iterator &walk, const cmdp_token *token, parser_ctx &ctx) {
-    if (strncasecmp(std::to_address(walk), token->name + 1, strlen(token->name) - 1) == 0) {
-        if (token->identifier != nullptr) {
-            push_string_append(ctx.stack, token->identifier, token->name + 1);
+static bool handle_literal(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx) {
+    if (strncasecmp(std::to_address(walk), token.name + 1, strlen(token.name) - 1) == 0) {
+        if (token.identifier != nullptr) {
+            push_string_append(ctx.stack, token.identifier, token.name + 1);
         }
-        walk += strlen(token->name) - 1;
+        walk += strlen(token.name) - 1;
         next_state(token, ctx);
         return true;
     }
@@ -277,7 +270,7 @@ static bool handle_literal(std::string::const_iterator &walk, const cmdp_token *
     return false;
 }
 
-static bool handle_number(std::string::const_iterator &walk, const cmdp_token *token, parser_ctx &ctx) {
+static bool handle_number(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx) {
     char *end = nullptr;
     errno = 0;
     long int num = std::strtol(std::to_address(walk), &end, 10);
@@ -291,8 +284,8 @@ static bool handle_number(std::string::const_iterator &walk, const cmdp_token *t
         return false;
     }
 
-    if (token->identifier != nullptr) {
-        push_long(ctx.stack, token->identifier, num);
+    if (token.identifier != nullptr) {
+        push_long(ctx.stack, token.identifier, num);
     }
 
     /* Set walk to the first non-number character */
@@ -301,7 +294,7 @@ static bool handle_number(std::string::const_iterator &walk, const cmdp_token *t
     return true;
 }
 
-static bool handle_word(std::string::const_iterator &walk, const cmdp_token *token, parser_ctx &ctx) {
+static bool handle_word(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx) {
     std::string::const_iterator beginning = walk;
     /* Handle quoted strings (or words). */
     if (*walk == '"') {
@@ -311,7 +304,7 @@ static bool handle_word(std::string::const_iterator &walk, const cmdp_token *tok
             walk++;
         }
     } else {
-        if (token->name[0] == 's') {
+        if (token.name[0] == 's') {
             while (*walk != '\0' && *walk != '\r' && *walk != '\n') {
                 walk++;
             }
@@ -343,8 +336,8 @@ static bool handle_word(std::string::const_iterator &walk, const cmdp_token *tok
             }
             str[outpos] = beginning[inpos];
         }
-        if (token->identifier) {
-            push_string_append(ctx.stack, token->identifier, str.c_str());
+        if (token.identifier) {
+            push_string_append(ctx.stack, token.identifier, str.c_str());
         }
         /* If we are at the end of a quoted string, skip the ending
                      * double quote. */
@@ -358,7 +351,7 @@ static bool handle_word(std::string::const_iterator &walk, const cmdp_token *tok
     return false;
 }
 
-static bool handle_line(std::string::const_iterator &walk, const cmdp_token *token, parser_ctx &ctx) {
+static bool handle_line(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx) {
     while (*walk != '\0' && *walk != '\n' && *walk != '\r') {
         walk++;
     }
@@ -367,7 +360,7 @@ static bool handle_line(std::string::const_iterator &walk, const cmdp_token *tok
     return true;
 }
 
-static bool handle_end(std::string::const_iterator &walk, const cmdp_token *token, parser_ctx &ctx, ConfigResultIR &subcommand_output, int *linecnt) {
+static bool handle_end(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx, ConfigResultIR &subcommand_output, int *linecnt) {
     if (*walk == '\0' || *walk == '\n' || *walk == '\r') {
         next_state(token, ctx);
         /* To make sure we start with an appropriate matching
@@ -416,23 +409,23 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
             walk++;
         }
 
-        cmdp_token_ptr *ptr = &(tokens[ctx.state]);
+        auto &ptr = tokens[ctx.state];
         bool token_handled = false;
-        for (int c = 0; c < ptr->n && !token_handled; c++) {
-            auto token = &(ptr->array[c]);
+        for (int c = 0; c < ptr.size() && !token_handled; c++) {
+            auto &token = ptr.at(c);
 
             /* A literal. */
-            if (token->name[0] == '\'') {
+            if (token.name[0] == '\'') {
                 token_handled = handle_literal(walk, token, ctx);
-            } else if (strcmp(token->name, "number") == 0) {
+            } else if (strcmp(token.name, "number") == 0) {
                 /* Handle numbers. We only accept decimal numbers for now. */
                 token_handled = handle_number(walk, token, ctx);
-            } else if (strcmp(token->name, "string") == 0 || strcmp(token->name, "word") == 0) {
+            } else if (strcmp(token.name, "string") == 0 || strcmp(token.name, "word") == 0) {
                 token_handled = handle_word(walk, token, ctx);
-            } else if (strcmp(token->name, "line") == 0) {
+            } else if (strcmp(token.name, "line") == 0) {
                 token_handled = handle_line(walk, token, ctx);
                 linecnt++;
-            } else if (strcmp(token->name, "end") == 0) {
+            } else if (strcmp(token.name, "end") == 0) {
                token_handled = handle_end(walk, token, ctx, subcommand_output, &linecnt);
             }
         }

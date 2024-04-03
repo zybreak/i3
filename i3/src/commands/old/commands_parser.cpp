@@ -58,14 +58,7 @@ struct cmdp_token {
     const char *identifier;
     /* This might be __CALL */
     cmdp_state next_state;
-    union {
-        uint16_t call_identifier;
-    } extra;
-};
-
-struct cmdp_token_ptr {
-    cmdp_token *array;
-    int n;
+    uint16_t call_identifier;
 };
 
 #include "GENERATED_command_tokens.h"
@@ -92,7 +85,7 @@ static cmdp_state next_state(const cmdp_token &token, stack &stack, criteria_sta
         subcommand_output.needs_tree_render = false;
 
         try {
-            GENERATED_call(criteria_state, stack, token.extra.call_identifier, subcommand_output);
+            GENERATED_call(criteria_state, stack, token.call_identifier, subcommand_output);
         } catch (const std::exception &e) {
             if (subcommand_output.json_gen != nullptr) {
                 subcommand_output.json_gen->push_back({
@@ -193,12 +186,12 @@ bool handle_end(const char **walk, const cmdp_token &token, cmdp_state *state, s
     return false;
 }
 
-void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, const std::string &input, const size_t len, cmdp_token_ptr &ptr, const char **walk) {
+void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, const std::string &input, const size_t len, const std::vector<cmdp_token> &ptr, const char **walk) {
     /* Figure out how much memory we will need to fill in the names of
              * all tokens afterwards. */
     size_t tokenlen = 0;
-    for (int c = 0; c < ptr.n; c++) {
-        tokenlen += strlen(ptr.array[c].name) + strlen("'', ");
+    for (int c = 0; c < ptr.size(); c++) {
+        tokenlen += strlen(ptr.at(c).name) + strlen("'', ");
     }
 
     /* Build up a decent error message. We include the problem, the
@@ -206,8 +199,8 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
              * currently is. */
     std::string possible_tokens{};
     possible_tokens.reserve(tokenlen + 1);
-    for (int c = 0; c < ptr.n; c++) {
-        auto &token = ptr.array[c];
+    for (int c = 0; c < ptr.size(); c++) {
+        auto &token = ptr.at(c);
         if (token.name[0] == '\'') {
             /* A literal is copied to the error message enclosed with
                      * single quotes. */
@@ -221,7 +214,7 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
             possible_tokens += token.name;
             possible_tokens += '>';
         }
-        if (c < (ptr.n - 1)) {
+        if (c < (ptr.size() - 1)) {
             possible_tokens += ", ";
         }
     }
@@ -294,10 +287,10 @@ CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, i
             walk++;
         }
 
-        cmdp_token_ptr &ptr = tokens[state];
+        std::vector<cmdp_token> &ptr = tokens[state];
         bool token_handled = false;
-        for (c = 0; c < ptr.n && !token_handled; c++) {
-            const cmdp_token &token = ptr.array[c];
+        for (c = 0; c < ptr.size() && !token_handled; c++) {
+            const cmdp_token &token = ptr.at(c);
 
             /* A literal. */
             if (token.name[0] == '\'') {
