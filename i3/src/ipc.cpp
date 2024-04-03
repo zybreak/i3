@@ -69,10 +69,8 @@ static void ipc_push_pending(ipc_client *client) {
     if (static_cast<size_t>(result) == client->buffer_size) {
         /* Everything was written successfully: clear the timer and stop the io
          * callback. */
-        do {
-            free(client->buffer);
-            client->buffer = __null;
-        } while (0);
+        free(client->buffer);
+        client->buffer = nullptr;
         client->buffer_size = 0;
         if (client->timeout) {
             ev_timer_stop(global.eventHandler->main_loop, client->timeout);
@@ -1128,20 +1126,14 @@ static void ipc_receive_message(EV_P_ ev_io *w, int revents) {
     if (ret < 0) {
         /* Was this a spurious read? See ev(3) */
         if (ret == -1 && errno == EAGAIN) {
-            do {
-                free(message);
-                message = __null;
-            } while (0);
+            free(message);
             return;
         }
 
         /* If not, there was some kind of error. We don’t bother and close the
          * connection. Delete the client from the list of clients. */
         free_ipc_client(client, -1);
-        do {
-            free(message);
-            message = __null;
-        } while (0);
+        free(message);
         return;
     }
 
@@ -1152,10 +1144,7 @@ static void ipc_receive_message(EV_P_ ev_io *w, int revents) {
         h(client, message, 0, message_length, message_type);
     }
 
-    do {
-        free(message);
-        message = __null;
-    } while (0);
+    free(message);
 }
 
 static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
