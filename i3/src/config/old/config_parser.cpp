@@ -687,5 +687,3 @@ void OldParser::parse_file() {
         throw std::domain_error("");
     }
 }
-
-
