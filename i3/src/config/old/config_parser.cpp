@@ -265,7 +265,7 @@ static void log_config(const std::string &input) {
 }
 
 static bool handle_literal(std::string::const_iterator &walk, const cmdp_token *token, parser_ctx &ctx) {
-    if (strncasecmp(&*walk, token->name + 1, strlen(token->name) - 1) == 0) {
+    if (strncasecmp(std::to_address(walk), token->name + 1, strlen(token->name) - 1) == 0) {
         if (token->identifier != nullptr) {
             push_string_append(ctx.stack, token->identifier, token->name + 1);
         }
@@ -280,7 +280,7 @@ static bool handle_literal(std::string::const_iterator &walk, const cmdp_token *
 static bool handle_number(std::string::const_iterator &walk, const cmdp_token *token, parser_ctx &ctx) {
     char *end = nullptr;
     errno = 0;
-    long int num = std::strtol(&*walk, &end, 10);
+    long int num = std::strtol(std::to_address(walk), &end, 10);
     if ((errno == ERANGE && (num == LONG_MIN || num == LONG_MAX)) ||
         (errno != 0 && num == 0)) {
         return false;
