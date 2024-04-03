@@ -647,13 +647,13 @@ void CommandsApplier::resize(struct criteria_state *criteria_state, CommandResul
 static bool
 resize_set_tiling(struct criteria_state *criteria_state, CommandResultIR &cmd_output, Con *target, orientation_t resize_orientation, bool is_ppt, long target_size) {
     direction_t search_direction;
-    char *mode;
+    const char *mode;
     if (resize_orientation == HORIZ) {
         search_direction = D_LEFT;
-        mode = (char *) "width";
+        mode = "width";
     } else {
         search_direction = D_DOWN;
-        mode = (char *) "height";
+        mode = "height";
     }
 
     /* Get the appropriate current container (skip stacked/tabbed cons) */
