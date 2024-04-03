@@ -567,12 +567,10 @@ static std::string read_file(FILE *fstr, BaseResourceDatabase &resourceDatabase,
     return buf;
 }
 
-const bool caseInsensitiveCompare(char a, char b) {
-    return std::tolower(a) == std::tolower(b);
-}
-
-const std::string::const_iterator caseInsensitiveSearch(const std::string& str, std::string::const_iterator &pos, const std::string& substr) {
-    return std::search(pos, str.cend(), substr.cbegin(), substr.cend(), caseInsensitiveCompare);
+static std::string::const_iterator caseInsensitiveSearch(const std::string& str, std::string::const_iterator &pos, const std::string& substr) {
+    return std::search(pos, str.cend(), substr.cbegin(), substr.cend(), [](char a, char b) {
+      return std::tolower(a) == std::tolower(b);
+    });
 }
 
 /* Allocate a new buffer and copy the file over to the new one,
