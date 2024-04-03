@@ -1,6 +1,7 @@
 module;
 #include <stdlib.h>
 #include <cstring>
+#include <string>
 export module i3_config_base:base_parser;
 
 import :base_resource_database;
@@ -19,18 +20,16 @@ export {
      */
     class IncludedFile {
        public:
-        char *path = nullptr;
+        std::string path{};
         char *raw_contents = nullptr;
-        char *variable_replaced_contents = nullptr;
+        std::string variable_replaced_contents{};
 
-        IncludedFile(const char *path) {
-            this->path = strdup(path);
+        IncludedFile(const std::string path) {
+            this->path = path;
         }
 
         ~IncludedFile() {
-            free(path);
             free(raw_contents);
-            free(variable_replaced_contents);
         }
     };
 

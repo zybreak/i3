@@ -33,6 +33,7 @@ struct criteria_state;
 #include <map>
 #include <stdexcept>
 #include <iterator>
+#include <algorithm>
 
 #include <cstdint>
 #include <cstdio>
@@ -390,17 +391,6 @@ static void reset_statelist(parser_ctx &ctx) {
     ctx.statelist_idx = 1;
 }
 
-Variable::~Variable() {
-    do {
-        free(key);
-        key = __null;
-    } while (0);
-    do {
-        free(value);
-        value = __null;
-    } while (0);
-}
-
 bool parse_config(parser_ctx &ctx, const std::string &input, const char *filename) {
     bool has_errors = false;
     std::string::const_iterator walk = input.begin();
@@ -460,28 +450,24 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
  */
 static void upsert_variable(std::vector<std::shared_ptr<Variable>> &variables, char *key, char *value) {
     for (auto &current : variables) {
-        if (strcmp(current->key, key) != 0) {
+        if (strcmp(current->key.c_str(), key) != 0) {
             continue;
         }
 
         DLOG(fmt::sprintf("Updated variable: %s = %s -> %s\n",  key, current->value, value));
-        do {
-            free(current->value);
-            current->value = __null;
-        } while (0);
-        current->value = sstrdup(value);
+        current->value = value;
         return;
     }
 
     DLOG(fmt::sprintf("Defined new variable: %s = %s\n",  key, value));
     auto n = std::make_shared<Variable>();
     auto loc = variables.begin();
-    n->key = sstrdup(key);
-    n->value = sstrdup(value);
+    n->key = key;
+    n->value = value;
     /* ensure that the correct variable is matched in case of one being
      * the prefix of another */
     while (loc != variables.end()) {
-        if (strlen(n->key) >= strlen((*loc)->key)) {
+        if (n->key.length() >= (*loc)->key.length()) {
             break;
         }
         ++loc;
@@ -494,37 +480,9 @@ static void upsert_variable(std::vector<std::shared_ptr<Variable>> &variables, c
     }
 }
 
-/* We need to copy the buffer because we need to invalidate the
- * variables (otherwise we will count them twice, which is bad when
- * 'extra' is negative)
- */
-static size_t count_extra_bytes(const char *buf, __off_t size, parser_ctx &ctx) {
-    size_t extra_bytes = 0;
-    char *bufcopy = sstrdup(buf);
-    for (auto &variable : ctx.variables) {
-        auto current = variable.get();
-        size_t extra = (strlen(current->value) - strlen(current->key));
-        char *next;
-        for (next = bufcopy;
-             next < (bufcopy + size) &&
-             (next = strcasestr(next, current->key)) != nullptr;) {
-            /* We need to invalidate variables completely (otherwise we may count
-             * the same variable more than once, thus causing buffer overflow or
-             * allocation failure) with spaces (variable names cannot contain spaces) */
-            char *end = next + strlen(current->key);
-            while (next < end) {
-                *next++ = ' ';
-            }
-            extra_bytes += extra;
-        }
-    }
-    free(bufcopy);
-
-    return extra_bytes;
-}
-
-static void read_file(FILE *fstr, BaseResourceDatabase &resourceDatabase, char *buf, parser_ctx &ctx) {
+static std::string read_file(FILE *fstr, BaseResourceDatabase &resourceDatabase, parser_ctx &ctx) {
     char buffer[4096], key[512], value[4096], *continuation = nullptr;
+    std::string buf{};
 
     while (!feof(fstr)) {
         if (!continuation) {
@@ -555,7 +513,7 @@ static void read_file(FILE *fstr, BaseResourceDatabase &resourceDatabase, char *
             continuation = nullptr;
         }
 
-        strcpy(buf + strlen(buf), buffer);
+        buf.append(buffer);
 
         /* Skip comments and empty lines. */
         if (skip_line || comment) {
@@ -605,49 +563,56 @@ static void read_file(FILE *fstr, BaseResourceDatabase &resourceDatabase, char *
             continue;
         }
     }
+    return buf;
+}
+
+const bool caseInsensitiveCompare(char a, char b) {
+    return std::tolower(a) == std::tolower(b);
+}
+
+const std::string::iterator caseInsensitiveSearch(std::string& str, std::string::iterator &pos, std::string& substr) {
+    return std::search(pos, str.end(), substr.begin(), substr.end(), caseInsensitiveCompare);
 }
 
 /* Allocate a new buffer and copy the file over to the new one,
  * and replace occurrences of our variables */
-static char* replace_variables(char *n, char *buf, __off_t size, parser_ctx &ctx) {
-    char *walk = buf, *destwalk;
-    destwalk = n;
-    while (walk < (buf + size)) {
-        std::map<char*, char*> next_match{};
+static std::string replace_variables(std::string &buf, parser_ctx &ctx) {
+    std::string::iterator walk = buf.begin();
+    std::string destwalk{};
+    while (walk != buf.end()) {
+        std::map<std::string, std::string::iterator> next_match{};
         Variable *nearest = nullptr;
         /* Find the next variable */
         for (auto &variable : ctx.variables) {
-            char *match = strcasestr(walk, variable->key);
-            if (match != nullptr) {
-                next_match[variable->key] = match;
+            auto pos = caseInsensitiveSearch(buf, walk, variable->key);
+            if (pos != buf.end()) {
+                next_match[variable->key] = pos;
             }
         }
-        long distance = size;
+        std::string::iterator distance = buf.end();
         for (auto &variable : ctx.variables) {
             if (!next_match.contains(variable->key)) {
                 continue;
             }
-            if ((next_match[variable->key] - walk) < distance) {
-                distance = (next_match[variable->key] - walk);
+            if (next_match[variable->key] < distance) {
+                distance = next_match[variable->key];
                 nearest = variable.get();
             }
         }
         if (nearest == nullptr) {
             /* If there are no more variables, we just copy the rest */
-            strncpy(destwalk, walk, (buf + size) - walk);
-            destwalk += (buf + size) - walk;
-            *destwalk = '\0';
+            destwalk.append(walk, buf.end());
             break;
         } else {
             /* Copy until the next variable, then copy its value */
-            strncpy(destwalk, walk, distance);
-            strcpy(destwalk + distance, nearest->value);
-            walk += distance + strlen(nearest->key);
-            destwalk += distance + strlen(nearest->value);
+            destwalk.append(walk, distance);
+            destwalk.append(nearest->value);
+            walk = distance;
+            std::advance(walk, nearest->key.length());
         }
     }
 
-    return n;
+    return destwalk;
 }
 
 
@@ -696,8 +661,6 @@ void OldParser::parse_file() {
         throw std::runtime_error("");
     }
 
-    char *buf = (char*)calloc(stbuf.st_size + 1, 1);
-
     auto included_file = std::make_unique<IncludedFile>(filename);
 
     included_file->raw_contents = (char*)scalloc(stbuf.st_size + 1, 1);
@@ -706,19 +669,13 @@ void OldParser::parse_file() {
     }
     rewind(fstr);
 
-    read_file(fstr, resourceDatabase, buf, ctx);
-
-    /* For every custom variable, see how often it occurs in the file and
-     * how much extra bytes it requires when replaced. */
-    auto extra_bytes = count_extra_bytes(buf, stbuf.st_size, ctx);
-
-    char *n = (char*)scalloc(stbuf.st_size + extra_bytes + 1, 1);
+    std::string buf = read_file(fstr, resourceDatabase, ctx);
 
     /* Then, allocate a new buffer and copy the file over to the new one,
      * but replace occurrences of our variables */
-    replace_variables(n, buf, stbuf.st_size, ctx);
+    std::string n = replace_variables(buf, ctx);
 
-    included_file->variable_replaced_contents = sstrdup(n);
+    included_file->variable_replaced_contents = n;
 
     included_files.push_back(std::move(included_file));
 
@@ -726,9 +683,6 @@ void OldParser::parse_file() {
     if (ctx.has_errors) {
         has_errors = true;
     }
-
-    free(n);
-    free(buf);
 
     if (has_errors) {
         throw std::domain_error("");

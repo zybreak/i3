@@ -21,9 +21,6 @@ import :parser_ctx;
 
 export {
 
-
-
-
     /**
      * Parses the given file by first replacing the variables, then calling
      * parse_config and launching i3-nagbar if use_nagbar is true.

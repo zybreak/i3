@@ -17,10 +17,8 @@ export {
      */
     class Variable {
        public:
-        char *key;
-        char *value;
-
-        ~Variable();
+        std::string key{};
+        std::string value{};
     };
 
     class parser_ctx {

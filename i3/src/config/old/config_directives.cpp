@@ -67,7 +67,7 @@ namespace cfg {
             }
 
             auto skip = std::ranges::find_if(result.ctx.parser->included_files, [&resolved_path](auto & included_file) {
-                return (strcmp(included_file->path, resolved_path) == 0);
+                return (strcmp(included_file->path.c_str(), resolved_path) == 0);
             });
             if (skip != result.ctx.parser->included_files.end()) {
                 LOG(fmt::sprintf("Skipping file %s (already included)\n",  resolved_path));
