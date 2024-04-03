@@ -118,7 +118,7 @@ open(my $enumfh, '>', "GENERATED_${prefix}_enums.h");
 
 my %statenum;
 say $enumfh '#pragma once';
-say $enumfh 'enum cmdp_state {';
+say $enumfh 'enum class cmdp_state : int {';
 my $cnt = 0;
 for my $state (@keys, '__CALL') {
     say $enumfh ',' if $cnt > 0;
@@ -173,7 +173,7 @@ for my $state (@keys) {
         $fmt = $funcname . $fmt;
 
         say $callfh "         case $call_id:";
-        say $callfh "             result.next_state = $next_state;";
+        say $callfh "             result.next_state = std::to_underlying(cmdp_state::$next_state);";
         say $callfh '#ifndef TEST_PARSER';
         my $real_cmd = $cmd;
         if ($real_cmd =~ /\(\)/) {
@@ -187,7 +187,7 @@ for my $state (@keys) {
         $cmd =~ s/[^(]+\(//;
         $cmd =~ s/\)$//;
         $cmd = ", $cmd" if length($cmd) > 0;
-        $cmd =~ s/, NULL//g;
+        $cmd =~ s/, nullptr//g;
         say $callfh qq|           fprintf(stderr, "$fmt\\n"$cmd);|;
         # The cfg_criteria functions have side-effects which are important for
         # testing. They are implemented as stubs in the test parser code.
@@ -239,7 +239,7 @@ for my $state (@keys) {
         else{
             $identifier = qq|"$token->{identifier}"|;
         }
-        say $tokfh qq|    { "$token_name", $identifier, $next_state, $call_identifier },|;
+        say $tokfh qq|    { "$token_name", $identifier, cmdp_state::$next_state, $call_identifier },|;
     }
     say $tokfh '};';
 }

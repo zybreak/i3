@@ -34,6 +34,7 @@ struct criteria_state;
 #include <stdexcept>
 #include <iterator>
 #include <algorithm>
+#include <utility>
 
 #include <cstdint>
 #include <cstdio>
@@ -86,7 +87,7 @@ struct cmdp_token {
 static void next_state(const cmdp_token &token, parser_ctx &ctx) {
     cmdp_state _next_state = token.next_state;
 
-    if (token.next_state == __CALL) {
+    if (token.next_state == cmdp_state::__CALL) {
         ConfigResultIR subcommand_output = {
             .ctx = ctx,
         };
@@ -98,8 +99,8 @@ static void next_state(const cmdp_token &token, parser_ctx &ctx) {
         clear_stack(ctx.stack);
     }
 
-    ctx.state = _next_state;
-    if (ctx.state == INITIAL) {
+    ctx.state = std::to_underlying(_next_state);
+    if (ctx.state == std::to_underlying(cmdp_state::INITIAL)) {
         clear_stack(ctx.stack);
     }
 
@@ -114,7 +115,7 @@ static void next_state(const cmdp_token &token, parser_ctx &ctx) {
     }
 
     /* Otherwise, the state is new and we add it to the list */
-    ctx.statelist[ctx.statelist_idx++] = _next_state;
+    ctx.statelist[ctx.statelist_idx++] = std::to_underlying(_next_state);
 }
 
 /*
@@ -367,7 +368,7 @@ static bool handle_end(std::string::const_iterator &walk, const cmdp_token &toke
                      * datastructure for commands which do *not* specify any
                      * criteria, we re-initialize the criteria system after
                      * every command. */
-        cfg::criteria_init(ctx.criteria_state, subcommand_output, INITIAL);
+        cfg::criteria_init(ctx.criteria_state, subcommand_output, std::to_underlying(cmdp_state::INITIAL));
         (*linecnt)++;
         walk++;
 
@@ -378,9 +379,9 @@ static bool handle_end(std::string::const_iterator &walk, const cmdp_token &toke
 }
 
 static void reset_statelist(parser_ctx &ctx) {
-    ctx.state = INITIAL;
+    ctx.state = std::to_underlying(cmdp_state::INITIAL);
     for (int & i : ctx.statelist) {
-        i = INITIAL;
+        i = std::to_underlying(cmdp_state::INITIAL);
     }
     ctx.statelist_idx = 1;
 }
@@ -398,7 +399,7 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
         .ctx = ctx,
     };
 
-    cfg::criteria_init(ctx.criteria_state, subcommand_output, INITIAL);
+    cfg::criteria_init(ctx.criteria_state, subcommand_output, std::to_underlying(cmdp_state::INITIAL));
 
     /* The "<=" operator is intentional: We also handle the terminating 0-byte
      * explicitly by looking for an 'end' token. */

@@ -28,6 +28,7 @@ struct criteria_state;
 
 #include <cerrno>
 #include <climits>
+#include <utility>
 
 #include <err.h>
 #include <cstdlib>
@@ -78,7 +79,7 @@ static CommandResultIR command_output;
 
 [[nodiscard("PURE FUN")]]
 static cmdp_state next_state(const cmdp_token &token, stack &stack, criteria_state *criteria_state) {
-    if (token.next_state == __CALL) {
+    if (token.next_state == cmdp_state::__CALL) {
         subcommand_output.json_gen = command_output.json_gen;
         subcommand_output.client = command_output.client;
         subcommand_output.applier = command_output.applier;
@@ -106,7 +107,7 @@ static cmdp_state next_state(const cmdp_token &token, stack &stack, criteria_sta
     }
 
     auto state = token.next_state;
-    if (state == INITIAL) {
+    if (state == cmdp_state::INITIAL) {
         clear_stack(stack);
     }
     return state;
@@ -260,9 +261,9 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
  */
 CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier *applier) {
     //DLOG(fmt::sprintf("COMMAND: *%.4000s*\n",  input));
-    cmdp_state state = INITIAL;
+    cmdp_state state = cmdp_state::INITIAL;
     stack stack{};
-    struct criteria_state* criteria_state = applier->create_criteria_state(state);
+    struct criteria_state* criteria_state = applier->create_criteria_state(std::to_underlying(state));
     auto result = CommandResult{};
 
     command_output.applier = applier;
@@ -287,7 +288,7 @@ CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, i
             walk++;
         }
 
-        std::vector<cmdp_token> &ptr = tokens[state];
+        std::vector<cmdp_token> &ptr = tokens.at(std::to_underlying(state));
         bool token_handled = false;
         for (c = 0; c < ptr.size() && !token_handled; c++) {
             const cmdp_token &token = ptr.at(c);
