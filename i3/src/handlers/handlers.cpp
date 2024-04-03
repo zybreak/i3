@@ -39,14 +39,14 @@ module;
 #include <mutex>
 module i3;
 
-#define _NET_WM_STATE_REMOVE 0
-#define _NET_WM_STATE_ADD 1
-#define _NET_WM_STATE_TOGGLE 2
-
 import log;
 import rect;
 import :output;
 import utils;
+
+static const uint32_t _NET_WM_STATE_REMOVE = 0;
+static const uint32_t _NET_WM_STATE_ADD = 1;
+static const uint32_t _NET_WM_STATE_TOGGLE = 2;
 
 /*
  * Adds the given sequence to the list of events which are ignored.
@@ -572,23 +572,23 @@ void PropertyHandlers::handle_expose_event(xcb_expose_event_t *event) {
     xcb_flush(**global.x);
 }
 
-#define _NET_WM_MOVERESIZE_SIZE_TOPLEFT 0
-#define _NET_WM_MOVERESIZE_SIZE_TOP 1
-#define _NET_WM_MOVERESIZE_SIZE_TOPRIGHT 2
-#define _NET_WM_MOVERESIZE_SIZE_RIGHT 3
-#define _NET_WM_MOVERESIZE_SIZE_BOTTOMRIGHT 4
-#define _NET_WM_MOVERESIZE_SIZE_BOTTOM 5
-#define _NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT 6
-#define _NET_WM_MOVERESIZE_SIZE_LEFT 7
-#define _NET_WM_MOVERESIZE_MOVE 8           /* movement only */
-#define _NET_WM_MOVERESIZE_SIZE_KEYBOARD 9  /* size via keyboard */
-#define _NET_WM_MOVERESIZE_MOVE_KEYBOARD 10 /* move via keyboard */
-#define _NET_WM_MOVERESIZE_CANCEL 11        /* cancel operation */
+static const uint32_t _NET_WM_MOVERESIZE_SIZE_TOPLEFT = 0;
+static const uint32_t _NET_WM_MOVERESIZE_SIZE_TOP = 1;
+static const uint32_t _NET_WM_MOVERESIZE_SIZE_TOPRIGHT = 2;
+static const uint32_t _NET_WM_MOVERESIZE_SIZE_RIGHT = 3;
+static const uint32_t _NET_WM_MOVERESIZE_SIZE_BOTTOMRIGHT = 4;
+static const uint32_t _NET_WM_MOVERESIZE_SIZE_BOTTOM = 5;
+static const uint32_t _NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT = 6;
+static const uint32_t _NET_WM_MOVERESIZE_SIZE_LEFT = 7;
+static const uint32_t _NET_WM_MOVERESIZE_MOVE = 8;           /* movement only */
+static const uint32_t _NET_WM_MOVERESIZE_SIZE_KEYBOARD = 9;  /* size via keyboard */
+static const uint32_t _NET_WM_MOVERESIZE_MOVE_KEYBOARD = 10; /* move via keyboard */
+static const uint32_t _NET_WM_MOVERESIZE_CANCEL = 11;        /* cancel operation */
 
-#define _NET_MOVERESIZE_WINDOW_X (1 << 8)
-#define _NET_MOVERESIZE_WINDOW_Y (1 << 9)
-#define _NET_MOVERESIZE_WINDOW_WIDTH (1 << 10)
-#define _NET_MOVERESIZE_WINDOW_HEIGHT (1 << 11)
+static const uint32_t _NET_MOVERESIZE_WINDOW_X = (1 << 8);
+static const uint32_t _NET_MOVERESIZE_WINDOW_Y = (1 << 9);
+static const uint32_t _NET_MOVERESIZE_WINDOW_WIDTH = (1 << 10);
+static const uint32_t _NET_MOVERESIZE_WINDOW_HEIGHT = (1 << 11);
 
 /*
  * Handle client messages (EWMH)

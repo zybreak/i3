@@ -41,9 +41,9 @@ module i3;
 import log;
 import rect;
 
-#define _NET_WM_STATE_REMOVE 0
-#define _NET_WM_STATE_ADD 1
-#define _NET_WM_STATE_TOGGLE 2
+static const uint32_t _NET_WM_STATE_REMOVE = 0;
+static const uint32_t _NET_WM_STATE_ADD = 1;
+static const uint32_t _NET_WM_STATE_TOGGLE = 2;
 
 enum NET_WM {
     _NET_WM_MOVERESIZE_SIZE_TOPLEFT = 0,
