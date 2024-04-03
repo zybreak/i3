@@ -998,7 +998,7 @@ static void handle_get_config(ipc_client *client, uint8_t *message, int size, ui
     auto a = nlohmann::json::array();
 
     for (auto &included_file : std::ranges::drop_view{included_files,1}) {
-        a.push_back(std::string(included_file->raw_contents));
+        a.emplace_back(included_file->raw_contents);
     }
 
     nlohmann::json j = {

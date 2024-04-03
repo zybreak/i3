@@ -982,12 +982,12 @@ static void user_output_names_add(std::vector<std::string> &list, const char *na
         /* "next" (or "nonprimary") here work like a wildcard: It "expands" to
          * all available (or non-primary) outputs. */
         for (Output *output: global.randr->outputs) {
-            list.push_back(std::string(output->output_primary_name()));
+            list.emplace_back(output->output_primary_name());
         }
         return;
     }
 
-    list.push_back(std::string(name));
+    list.emplace_back(name);
 
     return;
 }
