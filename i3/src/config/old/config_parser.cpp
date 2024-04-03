@@ -129,8 +129,8 @@ static void next_state(const cmdp_token *token, parser_ctx &ctx) {
  * \n) or the start of the input, if this is the first line.
  *
  */
-static std::string::const_iterator start_of_line(std::string::const_iterator walk, const std::string &beginning) {
-    while (walk >= beginning.begin() && *walk != '\n' && *walk != '\r') {
+static std::string::const_iterator start_of_line(std::string::const_iterator walk, std::string::const_iterator beginning) {
+    while (walk >= beginning && *walk != '\n' && *walk != '\r') {
         walk--;
     }
 
@@ -183,7 +183,9 @@ static void unhandled_token(const std::string &input, const char *filename, int 
      * currently is. */
     std::string possible_tokens = get_possible_tokens(ptr);
     /* Go back to the beginning of the line */
-    std::string::const_iterator error_line = start_of_line(walk, input);
+    auto beginning = input.begin();
+    auto input_end = input.end();
+    std::string::const_iterator error_line = start_of_line(walk, beginning);
 
     /* Contains the same amount of characters as 'input' has, but with
      * the unparsable part highlighted using ^ characters. */
@@ -198,15 +200,14 @@ static void unhandled_token(const std::string &input, const char *filename, int 
 
     ELOG(fmt::sprintf("CONFIG: Expected one of these tokens: %s\n", possible_tokens));
     ELOG(fmt::sprintf("CONFIG: (in file %s)\n", filename));
-    auto input_end = input.end();
     std::string_view error_copy = single_line(error_line, input_end);
 
     /* Print context lines *before* the error, if any. */
     if (linecnt > 1) {
-        auto context_p1_start = start_of_line(error_line - 2, input);
+        auto context_p1_start = start_of_line(error_line - 2, beginning);
         std::string_view context_p1_line = single_line(context_p1_start, input_end);
         if (linecnt > 2) {
-            auto context_p2_start = start_of_line(context_p1_start - 2, input);
+            auto context_p2_start = start_of_line(context_p1_start - 2, beginning);
             std::string_view context_p2_line = single_line(context_p2_start, input_end);
             ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 2, context_p2_line));
         }
