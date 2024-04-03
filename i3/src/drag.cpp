@@ -18,13 +18,6 @@ module i3;
 import log;
 import rect;
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
-
 /* Custom data structure used to track dragging-related events. */
 struct drag_x11_cb {
     ev_prepare prepare;

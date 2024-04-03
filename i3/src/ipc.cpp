@@ -43,12 +43,6 @@ import rect;
 import i3_commands_base;
 import i3_config_base;
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 static std::vector<ipc_client*> all_clients{};
 
 static void ipc_client_timeout(EV_P_ ev_timer *w, int revents);

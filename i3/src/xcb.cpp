@@ -21,12 +21,6 @@ import utils;
 import log;
 import rect;
 
-#define FREE(pointer)   \
-    do {                \
-        free(pointer);  \
-        pointer = NULL; \
-    } while (0)
-
 /*
  * Convenience wrapper around xcb_create_window which takes care of depth, generating an ID and checking
  * for errors.
