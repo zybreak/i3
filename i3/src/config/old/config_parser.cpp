@@ -32,6 +32,7 @@ struct criteria_state;
 #include <sstream>
 #include <map>
 #include <stdexcept>
+#include <iterator>
 
 #include <cstdint>
 #include <cstdio>
@@ -127,8 +128,8 @@ static void next_state(const cmdp_token *token, parser_ctx &ctx) {
  * \n) or the start of the input, if this is the first line.
  *
  */
-static const char *start_of_line(const char *walk, const std::string &beginning) {
-    while (walk >= beginning.c_str() && *walk != '\n' && *walk != '\r') {
+static std::string::const_iterator start_of_line(std::string::const_iterator walk, const std::string &beginning) {
+    while (walk >= beginning.begin() && *walk != '\n' && *walk != '\r') {
         walk--;
     }
 
@@ -141,12 +142,10 @@ static const char *start_of_line(const char *walk, const std::string &beginning)
  * The caller has to free() the result.
  *
  */
-static char *single_line(const char *start) {
-    char *result = sstrdup(start);
-    char *end = strchr(result, '\n');
-    if (end != nullptr)
-        *end = '\0';
-    return result;
+static std::string_view single_line(std::string::const_iterator &start, std::string::const_iterator &end) {
+    auto newline_pos = std::find(start, end, '\n');
+
+    return std::string_view(start, newline_pos);
 }
 
 static std::string get_possible_tokens(const cmdp_token_ptr *ptr) {
@@ -177,64 +176,60 @@ static std::string get_possible_tokens(const cmdp_token_ptr *ptr) {
 
 /* Figure out how much memory we will need to fill in the names of
  * all tokens afterwards. */
-static void unhandled_token(const std::string &input, const char *filename, int linecnt, const size_t len, const cmdp_token_ptr *ptr, parser_ctx &ctx, bool &has_errors, const char **walk) {
+static void unhandled_token(const std::string &input, const char *filename, int linecnt, const cmdp_token_ptr *ptr, parser_ctx &ctx, bool &has_errors, std::string::const_iterator &walk) {
     /* Build up a decent error message. We include the problem, the
      * full input, and underline the position where the parser
      * currently is. */
     std::string possible_tokens = get_possible_tokens(ptr);
     /* Go back to the beginning of the line */
-    const char *error_line = start_of_line(*walk, input);
+    std::string::const_iterator error_line = start_of_line(walk, input);
 
     /* Contains the same amount of characters as 'input' has, but with
      * the unparsable part highlighted using ^ characters. */
-    char *position = (char*)scalloc(strlen(error_line) + 1, 1);
-    const char *copywalk;
+    std::string position{};
+    //position.reserve(std::distance(error_line, input.end()));
+    std::string::const_iterator copywalk;
     for (copywalk = error_line;
          *copywalk != '\n' && *copywalk != '\r' && *copywalk != '\0';
          copywalk++) {
-        position[(copywalk - error_line)] = (copywalk >= *walk ? '^' : (*copywalk == '\t' ? '\t' : ' '));
+        position.push_back((copywalk >= walk ? '^' : (*copywalk == '\t' ? '\t' : ' ')));
     }
-    position[(copywalk - error_line)] = '\0';
 
     ELOG(fmt::sprintf("CONFIG: Expected one of these tokens: %s\n", possible_tokens));
     ELOG(fmt::sprintf("CONFIG: (in file %s)\n", filename));
-    char *error_copy = single_line(error_line);
+    auto input_end = input.end();
+    std::string_view error_copy = single_line(error_line, input_end);
 
     /* Print context lines *before* the error, if any. */
     if (linecnt > 1) {
-        const char *context_p1_start = start_of_line(error_line - 2, input);
-        char *context_p1_line = single_line(context_p1_start);
+        auto context_p1_start = start_of_line(error_line - 2, input);
+        std::string_view context_p1_line = single_line(context_p1_start, input_end);
         if (linecnt > 2) {
-            const char *context_p2_start = start_of_line(context_p1_start - 2, input);
-            char *context_p2_line = single_line(context_p2_start);
+            auto context_p2_start = start_of_line(context_p1_start - 2, input);
+            std::string_view context_p2_line = single_line(context_p2_start, input_end);
             ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 2, context_p2_line));
-            free(context_p2_line);
         }
         ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 1, context_p1_line));
-        free(context_p1_line);
     }
     ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt, error_copy));
     ELOG(fmt::sprintf("CONFIG:           %s\n",  position));
-    free(error_copy);
     /* Print context lines *after* the error, if any. */
     for (int i = 0; i < 2; i++) {
-        char *error_line_end = (char*)strchr(error_line, '\n');
-        if (error_line_end != nullptr && *(error_line_end + 1) != '\0') {
+        auto error_line_end = std::find(error_line, input_end, '\n');
+        if (error_line_end != input_end && *(error_line_end + 1) != '\0') {
             error_line = error_line_end + 1;
-            error_copy = single_line(error_line);
+            error_copy = single_line(error_line, input_end);
             ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt + i + 1, error_copy));
-            free(error_copy);
         }
     }
 
     has_errors = true;
 
     /* Skip the rest of this line, but continue parsing. */
-    while ((size_t)(*walk - input.c_str()) <= len && **walk != '\n') {
-        (*walk)++;
+    while (walk != input_end && *walk != '\n') {
+        walk++;
     }
 
-    free(position);
     clear_stack(ctx.stack);
 
     /* To figure out in which state to go (e.g. MODE or INITIAL),
@@ -267,12 +262,12 @@ static void log_config(const std::string &input) {
     }
 }
 
-static bool handle_literal(const char **walk, const cmdp_token *token, parser_ctx &ctx) {
-    if (strncasecmp(*walk, token->name + 1, strlen(token->name) - 1) == 0) {
+static bool handle_literal(std::string::const_iterator &walk, const cmdp_token *token, parser_ctx &ctx) {
+    if (strncasecmp(&*walk, token->name + 1, strlen(token->name) - 1) == 0) {
         if (token->identifier != nullptr) {
             push_string_append(ctx.stack, token->identifier, token->name + 1);
         }
-        *walk += strlen(token->name) - 1;
+        walk += strlen(token->name) - 1;
         next_state(token, ctx);
         return true;
     }
@@ -280,17 +275,17 @@ static bool handle_literal(const char **walk, const cmdp_token *token, parser_ct
     return false;
 }
 
-static bool handle_number(const char **walk, const cmdp_token *token, parser_ctx &ctx) {
+static bool handle_number(std::string::const_iterator &walk, const cmdp_token *token, parser_ctx &ctx) {
     char *end = nullptr;
     errno = 0;
-    long int num = strtol(*walk, &end, 10);
+    long int num = std::strtol(&*walk, &end, 10);
     if ((errno == ERANGE && (num == LONG_MIN || num == LONG_MAX)) ||
         (errno != 0 && num == 0)) {
         return false;
     }
 
     /* No valid numbers found */
-    if (end == *walk) {
+    if (num == 0) {
         return false;
     }
 
@@ -299,43 +294,44 @@ static bool handle_number(const char **walk, const cmdp_token *token, parser_ctx
     }
 
     /* Set walk to the first non-number character */
-    *walk = end;
+    std::advance(walk, num);
     next_state(token, ctx);
     return true;
 }
 
-static bool handle_word(const char **walk, const cmdp_token *token, parser_ctx &ctx) {
-    const char *beginning = *walk;
+static bool handle_word(std::string::const_iterator &walk, const cmdp_token *token, parser_ctx &ctx) {
+    std::string::const_iterator beginning = walk;
     /* Handle quoted strings (or words). */
-    if (**walk == '"') {
+    if (*walk == '"') {
         beginning++;
-        (*walk)++;
-        while (**walk != '\0' && (**walk != '"' || *(*walk - 1) == '\\')) {
-            (*walk)++;
+        walk++;
+        while (*walk != '\0' && (*walk != '"' || *(walk - 1) == '\\')) {
+            walk++;
         }
     } else {
         if (token->name[0] == 's') {
-            while (**walk != '\0' && **walk != '\r' && **walk != '\n') {
-                (*walk)++;
+            while (*walk != '\0' && *walk != '\r' && *walk != '\n') {
+                walk++;
             }
         } else {
             /* For a word, the delimiters are white space (' ' or
                          * '\t'), closing square bracket (]), comma (,) and
                          * semicolon (;). */
-            while (**walk != ' ' && **walk != '\t' &&
-                   **walk != ']' && **walk != ',' &&
-                   **walk != ';' && **walk != '\r' &&
-                   **walk != '\n' && **walk != '\0') {
-                (*walk)++;
+            while (*walk != ' ' && *walk != '\t' &&
+                   *walk != ']' && *walk != ',' &&
+                   *walk != ';' && *walk != '\r' &&
+                   *walk != '\n' && *walk != '\0') {
+                walk++;
             }
         }
     }
-    if (*walk != beginning) {
-        char *str = (char*)scalloc(*walk - beginning + 1, 1);
+    if (walk != beginning) {
+        std::string str{};
+        str.reserve(std::distance(beginning, walk)  + 1);
         /* We copy manually to handle escaping of characters. */
         int inpos, outpos;
         for (inpos = 0, outpos = 0;
-             inpos < (*walk - beginning);
+             inpos < std::distance(beginning, walk);
              inpos++, outpos++) {
             /* We only handle escaped double quotes to not break
                          * backwards compatibility with people using \w in
@@ -346,13 +342,12 @@ static bool handle_word(const char **walk, const cmdp_token *token, parser_ctx &
             str[outpos] = beginning[inpos];
         }
         if (token->identifier) {
-            push_string_append(ctx.stack, token->identifier, str);
+            push_string_append(ctx.stack, token->identifier, str.c_str());
         }
-        free(str);
         /* If we are at the end of a quoted string, skip the ending
                      * double quote. */
-        if (**walk == '"') {
-            (*walk)++;
+        if (*walk == '"') {
+            walk++;
         }
         next_state(token, ctx);
         return true;
@@ -361,17 +356,17 @@ static bool handle_word(const char **walk, const cmdp_token *token, parser_ctx &
     return false;
 }
 
-static bool handle_line(const char **walk, const cmdp_token *token, parser_ctx &ctx) {
-    while (**walk != '\0' && **walk != '\n' && **walk != '\r') {
-        (*walk)++;
+static bool handle_line(std::string::const_iterator &walk, const cmdp_token *token, parser_ctx &ctx) {
+    while (*walk != '\0' && *walk != '\n' && *walk != '\r') {
+        walk++;
     }
     next_state(token, ctx);
-    (*walk)++;
+    walk++;
     return true;
 }
 
-static bool handle_end(const char **walk, const cmdp_token *token, parser_ctx &ctx, ConfigResultIR &subcommand_output, int *linecnt) {
-    if (**walk == '\0' || **walk == '\n' || **walk == '\r') {
+static bool handle_end(std::string::const_iterator &walk, const cmdp_token *token, parser_ctx &ctx, ConfigResultIR &subcommand_output, int *linecnt) {
+    if (*walk == '\0' || *walk == '\n' || *walk == '\r') {
         next_state(token, ctx);
         /* To make sure we start with an appropriate matching
                      * datastructure for commands which do *not* specify any
@@ -379,7 +374,7 @@ static bool handle_end(const char **walk, const cmdp_token *token, parser_ctx &c
                      * every command. */
         cfg::criteria_init(ctx.criteria_state, subcommand_output, INITIAL);
         (*linecnt)++;
-        (*walk)++;
+        walk++;
 
         return true;
     }
@@ -408,8 +403,7 @@ Variable::~Variable() {
 
 bool parse_config(parser_ctx &ctx, const std::string &input, const char *filename) {
     bool has_errors = false;
-    const char *walk = input.c_str();
-    const size_t len = input.size();
+    std::string::const_iterator walk = input.begin();
     int linecnt = 1;
 
     log_config(input);
@@ -424,10 +418,10 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
 
     /* The "<=" operator is intentional: We also handle the terminating 0-byte
      * explicitly by looking for an 'end' token. */
-    while (static_cast<size_t>(walk - input.c_str()) <= len) {
+    while (walk <= input.end()) {
         /* Skip whitespace before every token, newlines are relevant since they
          * separate configuration directives. */
-        while ((*walk == ' ' || *walk == '\t') && *walk != '\0') {
+        while (walk != input.end() && (*walk == ' ' || *walk == '\t')) {
             walk++;
         }
 
@@ -438,22 +432,22 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
 
             /* A literal. */
             if (token->name[0] == '\'') {
-                token_handled = handle_literal(&walk, token, ctx);
+                token_handled = handle_literal(walk, token, ctx);
             } else if (strcmp(token->name, "number") == 0) {
                 /* Handle numbers. We only accept decimal numbers for now. */
-                token_handled = handle_number(&walk, token, ctx);
+                token_handled = handle_number(walk, token, ctx);
             } else if (strcmp(token->name, "string") == 0 || strcmp(token->name, "word") == 0) {
-                token_handled = handle_word(&walk, token, ctx);
+                token_handled = handle_word(walk, token, ctx);
             } else if (strcmp(token->name, "line") == 0) {
-                token_handled = handle_line(&walk, token, ctx);
+                token_handled = handle_line(walk, token, ctx);
                 linecnt++;
             } else if (strcmp(token->name, "end") == 0) {
-               token_handled = handle_end(&walk, token, ctx, subcommand_output, &linecnt);
+               token_handled = handle_end(walk, token, ctx, subcommand_output, &linecnt);
             }
         }
 
         if (!token_handled) {
-            unhandled_token(input, filename, linecnt, len, ptr, ctx, has_errors, &walk);
+            unhandled_token(input, filename, linecnt, ptr, ctx, has_errors, walk);
         }
     }
 
