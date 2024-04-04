@@ -35,6 +35,7 @@ struct criteria_state;
 #include <iterator>
 #include <algorithm>
 #include <utility>
+#include <optional>
 
 #include <cstdint>
 #include <cstdio>
@@ -69,8 +70,8 @@ import i3_config_base;
 #include "GENERATED_config_enums.h"
 
 struct cmdp_token {
-    const char *name;
-    const char *identifier;
+    std::string name;
+    std::optional<std::string> identifier;
     /* This might be __CALL */
     cmdp_state next_state;
     uint16_t call_identifier;
@@ -150,11 +151,11 @@ static std::string get_possible_tokens(const std::vector<cmdp_token> &ptr) {
         if (token.name[0] == '\'') {
             /* A literal is copied to the error message enclosed with
              * single quotes. */
-            possible_tokens.append(fmt::format("'{}'", token.name + 1));
+            possible_tokens.append(fmt::format("'{}'", token.name.substr(1)));
         } else {
             /* Skip error tokens in error messages, they are used
              * internally only and might confuse users. */
-            if (strcmp(token.name, "error") == 0) {
+            if (token.name == "error") {
                 continue;
             }
             /* Any other token is copied to the error message enclosed
@@ -233,9 +234,9 @@ static void unhandled_token(const std::string &input, const char *filename, int 
      * and follow that one. */
     bool error_token_found = false;
     for (int i = ctx.statelist_idx - 1; (i >= 0) && !error_token_found; i--) {
-        std::vector<cmdp_token> errptr = tokens[ctx.statelist[i]];
+        std::vector<cmdp_token> errptr = tokens.at(static_cast<cmdp_state>(ctx.statelist[i]));
         for (int j = 0; j < errptr.size(); j++) {
-            if (strcmp(errptr.at(j).name, "error") != 0) {
+            if (errptr.at(j).name != "error") {
                 continue;
             }
             next_state(errptr.at(j), ctx);
@@ -259,11 +260,11 @@ static void log_config(const std::string &input) {
 }
 
 static bool handle_literal(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx) {
-    if (strncasecmp(std::to_address(walk), token.name + 1, strlen(token.name) - 1) == 0) {
-        if (token.identifier != nullptr) {
-            push_string_append(ctx.stack, token.identifier, token.name + 1);
+    if (strncasecmp(std::to_address(walk), token.name.substr(1).c_str(), token.name.size() - 1) == 0) {
+        if (token.identifier) {
+            push_string_append(ctx.stack, token.identifier->c_str(), token.name.c_str() + 1);
         }
-        walk += strlen(token.name) - 1;
+        walk += token.name.length() - 1;
         next_state(token, ctx);
         return true;
     }
@@ -285,8 +286,8 @@ static bool handle_number(std::string::const_iterator &walk, const cmdp_token &t
         return false;
     }
 
-    if (token.identifier != nullptr) {
-        push_long(ctx.stack, token.identifier, num);
+    if (token.identifier) {
+        push_long(ctx.stack, token.identifier->c_str(), num);
     }
 
     /* Set walk to the first non-number character */
@@ -338,7 +339,7 @@ static bool handle_word(std::string::const_iterator &walk, const cmdp_token &tok
             str[outpos] = beginning[inpos];
         }
         if (token.identifier) {
-            push_string_append(ctx.stack, token.identifier, str.c_str());
+            push_string_append(ctx.stack, token.identifier->c_str(), str.c_str());
         }
         /* If we are at the end of a quoted string, skip the ending
                      * double quote. */
@@ -410,7 +411,7 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
             walk++;
         }
 
-        auto &ptr = tokens[ctx.state];
+        auto &ptr = tokens.at(static_cast<cmdp_state>(ctx.state));
         bool token_handled = false;
         for (int c = 0; c < ptr.size() && !token_handled; c++) {
             auto &token = ptr.at(c);
@@ -418,15 +419,15 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
             /* A literal. */
             if (token.name[0] == '\'') {
                 token_handled = handle_literal(walk, token, ctx);
-            } else if (strcmp(token.name, "number") == 0) {
+            } else if (token.name == "number") {
                 /* Handle numbers. We only accept decimal numbers for now. */
                 token_handled = handle_number(walk, token, ctx);
-            } else if (strcmp(token.name, "string") == 0 || strcmp(token.name, "word") == 0) {
+            } else if (token.name == "string" || token.name == "word") {
                 token_handled = handle_word(walk, token, ctx);
-            } else if (strcmp(token.name, "line") == 0) {
+            } else if (token.name == "line") {
                 token_handled = handle_line(walk, token, ctx);
                 linecnt++;
-            } else if (strcmp(token.name, "end") == 0) {
+            } else if (token.name == "end") {
                token_handled = handle_end(walk, token, ctx, subcommand_output, &linecnt);
             }
         }

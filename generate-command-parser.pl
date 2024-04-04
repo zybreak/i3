@@ -212,10 +212,14 @@ close($callfh);
 open(my $tokfh, '>', "GENERATED_${prefix}_tokens.h");
 say $tokfh '#pragma once';
 say $tokfh '#include <vector>';
+say $tokfh '#include <map>';
+say $tokfh 'using namespace std::literals;';
+
+say $tokfh 'static std::map<cmdp_state, std::vector<cmdp_token>> tokens{';
 
 for my $state (@keys) {
     my $tokens = $states{$state};
-    say $tokfh 'static std::vector<cmdp_token> tokens_' . $state . ' = {';
+    say $tokfh '{cmdp_state::' . $state . ', {';
     for my $token (@$tokens) {
         my $call_identifier = 0;
         my $token_name = $token->{token};
@@ -234,21 +238,16 @@ for my $state (@keys) {
         my $identifier;
         # Set $identifier to NULL if there is no identifier
         if ($token->{identifier} eq ""){
-            $identifier = "nullptr"
+            $identifier = "std::nullopt"
         }
         else{
-            $identifier = qq|"$token->{identifier}"|;
+            $identifier = qq|"$token->{identifier}"s|;
         }
-        say $tokfh qq|    { "$token_name", $identifier, cmdp_state::$next_state, $call_identifier },|;
+        say $tokfh qq|    { "$token_name"s, $identifier, cmdp_state::$next_state, $call_identifier },|;
     }
-    say $tokfh '};';
+    say $tokfh '}},';
 }
 
-say $tokfh 'static std::vector<std::vector<cmdp_token>> tokens = {';
-for my $state (@keys) {
-    my $tokens = $states{$state};
-    say $tokfh '    tokens_' . $state . ', ';
-}
 say $tokfh '};';
 
 close($tokfh);

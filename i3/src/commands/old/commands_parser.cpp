@@ -29,6 +29,7 @@ struct criteria_state;
 #include <cerrno>
 #include <climits>
 #include <utility>
+#include <optional>
 
 #include <err.h>
 #include <cstdlib>
@@ -55,8 +56,8 @@ import utils;
 #include "GENERATED_command_enums.h"
 
 struct cmdp_token {
-    const char *name;
-    const char *identifier;
+    std::string name;
+    std::optional<std::string> identifier;
     /* This might be __CALL */
     cmdp_state next_state;
     uint16_t call_identifier;
@@ -116,11 +117,11 @@ static cmdp_state next_state(const cmdp_token &token, stack &stack, criteria_sta
 
 bool handle_literal(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
 
-    if (strncasecmp(*walk, token.name + 1, strlen(token.name) - 1) == 0) {
-        if (token.identifier != nullptr) {
-            push_string(stack, token.identifier, sstrdup(token.name + 1));
+    if (strncasecmp(*walk, token.name.c_str() + 1, token.name.length() - 1) == 0) {
+        if (token.identifier) {
+            push_string(stack, token.identifier->c_str(), sstrdup(token.name.c_str() + 1));
         }
-        *walk += strlen(token.name) - 1;
+        *walk += token.name.length() - 1;
         *state = next_state(token, stack, criteria_state);
         return true;
     }
@@ -143,8 +144,8 @@ bool handle_number(const char **walk, const cmdp_token &token, cmdp_state *state
         return false;
     }
 
-    if (token.identifier != nullptr) {
-        push_long(stack, token.identifier, num);
+    if (token.identifier) {
+        push_long(stack, token.identifier->c_str(), num);
     }
 
     /* Set walk to the first non-number character */
@@ -157,7 +158,7 @@ bool handle_word(const char **walk, const cmdp_token &token, cmdp_state *state, 
     char *str = utils::parse_string(walk, (token.name[0] != 's'));
     if (str != nullptr) {
         if (token.identifier) {
-            push_string(stack, token.identifier, str);
+            push_string(stack, token.identifier->c_str(), str);
         }
         /* If we are at the end of a quoted string, skip the ending
                      * double quote. */
@@ -191,8 +192,8 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
     /* Figure out how much memory we will need to fill in the names of
              * all tokens afterwards. */
     size_t tokenlen = 0;
-    for (int c = 0; c < ptr.size(); c++) {
-        tokenlen += strlen(ptr.at(c).name) + strlen("'', ");
+    for (auto& token : ptr) {
+        tokenlen += token.name.length() + strlen("'', ");
     }
 
     /* Build up a decent error message. We include the problem, the
@@ -206,7 +207,7 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
             /* A literal is copied to the error message enclosed with
                      * single quotes. */
             possible_tokens += '\'';
-            possible_tokens += (token.name + 1);
+            possible_tokens += token.name.substr(1);
             possible_tokens += '\'';
         } else {
             /* Any other token is copied to the error message enclosed
@@ -288,7 +289,7 @@ CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, i
             walk++;
         }
 
-        std::vector<cmdp_token> &ptr = tokens.at(std::to_underlying(state));
+        std::vector<cmdp_token> &ptr = tokens.at(state);
         bool token_handled = false;
         for (c = 0; c < ptr.size() && !token_handled; c++) {
             const cmdp_token &token = ptr.at(c);
@@ -296,11 +297,11 @@ CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, i
             /* A literal. */
             if (token.name[0] == '\'') {
                 token_handled = handle_literal(&walk, token, &state, stack, criteria_state);
-            } else if (strcmp(token.name, "number") == 0) {
+            } else if (token.name == "number") {
                 token_handled = handle_number(&walk, token, &state, stack, criteria_state);
-            } else if (strcmp(token.name, "string") == 0 || strcmp(token.name, "word") == 0) {
+            } else if (token.name == "string" || token.name == "word") {
                 token_handled = handle_word(&walk, token, &state, stack, criteria_state);
-            } else if (strcmp(token.name, "end") == 0) {
+            } else if (token.name == "end") {
                 token_handled = handle_end(&walk, token, &state, stack, criteria_state);
             }
         }
