@@ -1,6 +1,6 @@
 #pragma once
 
-#import <xcb/xproto.h>
+#include <xcb/xproto.h>
 
 #define I3_NET_SUPPORTED_ATOMS_XMACRO \
 xmacro(_NET_SUPPORTED) \
