@@ -201,6 +201,7 @@ void handle_extra_args(int argc, char *argv[]) {
     if (reply_type != std::to_underlying(i3ipc::REPLY_TYPE::COMMAND)) {
         errx(EXIT_FAILURE, "IPC: received reply of type %d but expected %d (COMMAND)", reply_type, std::to_underlying(i3ipc::REPLY_TYPE::COMMAND));
     }
+
     printf("%.*s\n", reply_length, reply);
     if (reply != nullptr) {
         free(reply);
