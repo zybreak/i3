@@ -1088,7 +1088,7 @@ static void handle_get_binding_state(ipc_client *client, uint8_t *message, int s
 
 /* The index of each callback function corresponds to the numeric
  * value of the message type (see include/i3/ipc.h) */
-handler_t handlers[13] = {
+static std::array<handler_t, 13> handlers = {
     handle_run_command,
     handle_get_workspaces,
     handle_subscribe,
@@ -1137,11 +1137,11 @@ static void ipc_receive_message(EV_P_ ev_io *w, int revents) {
         return;
     }
 
-    if (message_type >= (sizeof(handlers) / sizeof(handler_t))) {
-        DLOG(fmt::sprintf("Unhandled message type: %d\n",  message_type));
-    } else {
-        handler_t h = handlers[message_type];
+    try {
+        handler_t h = handlers.at(message_type);
         h(client, message, 0, message_length, message_type);
+    } catch (std::out_of_range const& e) {
+        DLOG(fmt::sprintf("Unhandled message type: %d\n",  message_type));
     }
 
     free(message);
