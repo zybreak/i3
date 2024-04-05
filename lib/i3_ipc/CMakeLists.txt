@@ -9,9 +9,5 @@ target_sources(libi3ipc PUBLIC
         FILES src/i3-ipc.ixx)
 target_compile_options(libi3ipc PUBLIC "-pthread" "-fsized-deallocation")
 
-target_include_directories(libi3ipc PUBLIC
-        "${PROJECT_BINARY_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}")
-
 find_package(libev)
 target_link_libraries(libi3ipc PUBLIC libev::libev)

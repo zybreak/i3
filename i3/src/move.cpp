@@ -12,10 +12,10 @@ module;
 #include <deque>
 #include <ranges>
 #include <fmt/printf.h>
-#include "i3_ipc/i3-ipc.h"
 module i3;
 
 import log;
+import i3ipc;
 /*
  * Returns the lowest container in the tree that has both a and b as descendants.
  *

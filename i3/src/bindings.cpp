@@ -17,7 +17,6 @@ struct criteria_state;
 
 #include <xcb/xcb.h>
 
-#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 
 #include <cmath>
@@ -32,6 +31,7 @@ module i3;
 import utils;
 import log;
 import i3_commands_base;
+import i3ipc;
 
 static xkb_context *context;
 static xkb_keymap *keymap;
@@ -701,7 +701,7 @@ void switch_mode(const std::string_view &new_mode) {
 
         std::string event_msg = fmt::sprintf(R"({"change":"%s", "pango_markup":%s})", mode->name, (mode->pango_markup ? "true" : "false"));
 
-        ipc_send_event("mode", I3_IPC_EVENT_MODE, event_msg);
+        ipc_send_event("mode", i3ipc::EVENT_MODE, event_msg);
 
         return;
     }

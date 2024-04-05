@@ -16,7 +16,6 @@ module;
 
 #include <ranges>
 
-#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 #include "atoms.h"
 module i3;

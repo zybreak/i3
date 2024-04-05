@@ -21,7 +21,6 @@ module;
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
 
-#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 #include "atoms.h"
 
@@ -43,6 +42,7 @@ import log;
 import rect;
 import :output;
 import utils;
+import i3ipc;
 
 static const uint32_t _NET_WM_STATE_REMOVE = 0;
 static const uint32_t _NET_WM_STATE_ADD = 1;
@@ -457,7 +457,7 @@ void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
 
     global.randr->randr_query_outputs();
 
-    ipc_send_event("output", I3_IPC_EVENT_OUTPUT, R"({"change":"unspecified"})");
+    ipc_send_event("output", i3ipc::EVENT_OUTPUT, R"({"change":"unspecified"})");
 }
 
 /*
@@ -1012,7 +1012,7 @@ void PropertyHandlers::handle_configure_notify(xcb_configure_notify_event_t *eve
 
     global.randr->randr_query_outputs();
 
-    ipc_send_event("output", I3_IPC_EVENT_OUTPUT, "{\"change\":\"unspecified\"}");
+    ipc_send_event("output", i3ipc::EVENT_OUTPUT, "{\"change\":\"unspecified\"}");
 }
 
 /*

@@ -16,8 +16,6 @@ module;
 #include <cstring>
 #include <queue>
 
-#include "i3_ipc/i3-ipc.h"
-
 #include <fcntl.h>
 #include <unistd.h>
 #include <string>
@@ -35,6 +33,7 @@ import log;
 import rect;
 import i3_config_base;
 import i3_commands_base;
+import i3ipc;
 
 static void ysuccess(nlohmann::json *json_gen, bool success) {
     if (json_gen != nullptr) {

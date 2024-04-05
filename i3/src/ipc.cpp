@@ -19,7 +19,6 @@ module;
 
 #include <xcb/xcb.h>
 
-#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 
 #include <fcntl.h>
@@ -121,7 +120,9 @@ static void ipc_send_client_message(ipc_client *client, const uint32_t message_t
     const i3ipc::i3_ipc_header_t header = {
         .magic = {'i', '3', '-', 'i', 'p', 'c'},
         .size = static_cast<uint32_t>(size),
-        .type = message_type};
+        .type = message_type
+    };
+
     const size_t header_size = sizeof(i3ipc::i3_ipc_header_t);
     const size_t message_size = header_size + size;
 
@@ -134,6 +135,10 @@ static void ipc_send_client_message(ipc_client *client, const uint32_t message_t
     if (push_now) {
         ipc_push_pending(client);
     }
+}
+
+static void ipc_send_client_message(ipc_client *client, const i3ipc::REPLY_TYPE message_type, const std::string &payload) {
+    ipc_send_client_message(client, static_cast<const uint32_t>(message_type), payload);
 }
 
 static void free_ipc_client(ipc_client *client, int exempt_fd) {
@@ -177,7 +182,7 @@ static void ipc_send_shutdown_event(shutdown_reason_t reason) {
 
     auto payload = j.dump();
 
-    ipc_send_event("shutdown", I3_IPC_EVENT_SHUTDOWN, payload);
+    ipc_send_event("shutdown", i3ipc::EVENT_SHUTDOWN, payload);
 }
 
 /*
@@ -217,7 +222,7 @@ static void handle_run_command(ipc_client *client, uint8_t *message, int size, u
         tree_render();
     }
 
-    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_COMMAND, gen.dump());
+    ipc_send_client_message(client, i3ipc::REPLY_TYPE::COMMAND, gen.dump());
 }
 
 static nlohmann::json dump_rect(Rect &r) {
@@ -788,7 +793,7 @@ static void handle_tree(ipc_client *client, uint8_t *message, int size, uint32_t
 
     auto payload = j.dump();
 
-    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_TREE, payload);
+    ipc_send_client_message(client, i3ipc::REPLY_TYPE::TREE, payload);
 }
 
 /*
@@ -819,7 +824,7 @@ static void handle_get_workspaces(ipc_client *client, uint8_t *message, int size
     }
 
     auto payload = a.dump();
-    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_WORKSPACES, payload);
+    ipc_send_client_message(client, i3ipc::REPLY_TYPE::WORKSPACES, payload);
 }
 
 /*
@@ -848,7 +853,7 @@ static void handle_get_outputs(ipc_client *client, uint8_t *message, int size, u
     }
 
     auto payload = a.dump();
-    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_OUTPUTS, payload);
+    ipc_send_client_message(client, i3ipc::REPLY_TYPE::OUTPUTS, payload);
 }
 
 /*
@@ -872,7 +877,7 @@ static void handle_get_version(ipc_client *client, uint8_t *message, int size, u
 
     auto payload = j.dump();
 
-    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_VERSION, payload);
+    ipc_send_client_message(client, i3ipc::REPLY_TYPE::VERSION, payload);
 }
 
 /*
@@ -887,7 +892,7 @@ static void handle_get_bar_config(ipc_client *client, uint8_t *message, int size
         std::ranges::transform(barconfigs, std::back_inserter(a), [](auto &current) { return current->id; });
         auto payload = a.dump();
 
-        ipc_send_client_message(client, I3_IPC_REPLY_TYPE_BAR_CONFIG, payload);
+        ipc_send_client_message(client, i3ipc::REPLY_TYPE::BAR_CONFIG, payload);
         return;
     }
 
@@ -913,7 +918,7 @@ static void handle_get_bar_config(ipc_client *client, uint8_t *message, int size
 
     auto payload = j.dump();
 
-    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_BAR_CONFIG, payload);
+    ipc_send_client_message(client, i3ipc::REPLY_TYPE::BAR_CONFIG, payload);
 }
 
 /*
@@ -926,7 +931,7 @@ static void handle_get_binding_modes(ipc_client *client, uint8_t *message, int s
 
     auto payload = a.dump();
 
-    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_BINDING_MODES, payload);
+    ipc_send_client_message(client, i3ipc::REPLY_TYPE::BINDING_MODES, payload);
 }
 
 /*
@@ -967,12 +972,12 @@ static void handle_subscribe(ipc_client *client, uint8_t *message, int size, uin
         ELOG(fmt::sprintf("Parse error: %s\n",  err));
 
         std::string reply = R"({"success":false})";
-        ipc_send_client_message(client, I3_IPC_REPLY_TYPE_SUBSCRIBE, reply);
+        ipc_send_client_message(client, i3ipc::REPLY_TYPE::SUBSCRIBE, reply);
         return;
     }
 
     std::string reply = R"({"success":true})";
-    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_SUBSCRIBE, reply);
+    ipc_send_client_message(client, i3ipc::REPLY_TYPE::SUBSCRIBE, reply);
 
     if (client->first_tick_sent) {
         return;
@@ -986,7 +991,7 @@ static void handle_subscribe(ipc_client *client, uint8_t *message, int size, uin
 
     client->first_tick_sent = true;
     std::string payload = R"({"first":true,"payload":""})";
-    ipc_send_client_message(client, I3_IPC_EVENT_TICK, payload);
+    ipc_send_client_message(client, i3ipc::EVENT_TICK, payload);
 }
 
 /*
@@ -1006,7 +1011,7 @@ static void handle_get_config(ipc_client *client, uint8_t *message, int size, ui
 
     auto payload = j.dump();
 
-    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_CONFIG, payload);
+    ipc_send_client_message(client, i3ipc::REPLY_TYPE::CONFIG, payload);
 }
 
 /*
@@ -1022,10 +1027,10 @@ static void handle_send_tick(ipc_client *client, uint8_t *message, int size, uin
 
     auto payload = j.dump();
 
-    ipc_send_event("tick", I3_IPC_EVENT_TICK, payload);
+    ipc_send_event("tick", i3ipc::EVENT_TICK, payload);
 
     std::string reply = R"({"success":true})";
-    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_TICK, reply);
+    ipc_send_client_message(client, i3ipc::REPLY_TYPE::TICK, reply);
     DLOG("Sent tick event\n");
 }
 
@@ -1066,14 +1071,14 @@ static void handle_sync(ipc_client *client, uint8_t *message, int size, uint32_t
         ELOG(fmt::sprintf("Parse error: %s\n",  e.what()));
 
         std::string reply = "{\"success\":false}";
-        ipc_send_client_message(client, I3_IPC_REPLY_TYPE_SYNC, reply);
+        ipc_send_client_message(client, i3ipc::REPLY_TYPE::SYNC, reply);
         return;
     }
 
     DLOG(fmt::sprintf("received IPC sync request (rnd = %d, window = 0x%08x)\n",  state.rnd, state.window));
     sync_respond(global.x,state.window, state.rnd);
     std::string reply = "{\"success\":true}";
-    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_SYNC, reply);
+    ipc_send_client_message(client, i3ipc::REPLY_TYPE::SYNC, reply);
 }
 
 static void handle_get_binding_state(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
@@ -1083,7 +1088,7 @@ static void handle_get_binding_state(ipc_client *client, uint8_t *message, int s
 
     auto payload = j.dump();
 
-    ipc_send_client_message(client, I3_IPC_REPLY_TYPE_GET_BINDING_STATE, payload);
+    ipc_send_client_message(client, i3ipc::REPLY_TYPE::GET_BINDING_STATE, payload);
 }
 
 /* The index of each callback function corresponds to the numeric
@@ -1284,7 +1289,7 @@ void ipc_send_workspace_event(const char *change, Con *current, Con *old) {
 
     auto payload = gen.dump();
 
-    ipc_send_event("workspace", I3_IPC_EVENT_WORKSPACE, payload);
+    ipc_send_event("workspace", i3ipc::EVENT_WORKSPACE, payload);
 }
 
 /*
@@ -1303,7 +1308,7 @@ void ipc_send_window_event(const char *property, Con *con) {
 
     auto payload = j.dump();
 
-    ipc_send_event("window", I3_IPC_EVENT_WINDOW, payload);
+    ipc_send_event("window", i3ipc::EVENT_WINDOW, payload);
     setlocale(LC_NUMERIC, "");
 }
 
@@ -1318,7 +1323,7 @@ void ipc_send_barconfig_update_event(Barconfig *barconfig) {
 
     auto payload = j.dump();
 
-    ipc_send_event("barconfig_update", I3_IPC_EVENT_BARCONFIG_UPDATE, payload);
+    ipc_send_event("barconfig_update", i3ipc::EVENT_BARCONFIG_UPDATE, payload);
     setlocale(LC_NUMERIC, "");
 }
 
@@ -1344,7 +1349,7 @@ void ipc_send_binding_event(const char *event_type, Binding *bind, const char *m
 
     auto payload = j.dump();
 
-    ipc_send_event("binding", I3_IPC_EVENT_BINDING, payload);
+    ipc_send_event("binding", i3ipc::EVENT_BINDING, payload);
     setlocale(LC_NUMERIC, "");
 }
 
@@ -1355,7 +1360,7 @@ void ipc_confirm_restart(ipc_client *client) {
     DLOG(fmt::sprintf("ipc_confirm_restart(fd %d)\n",  client->fd));
     std::string reply = "[{\"success\":true}]";
     ipc_send_client_message(
-        client, I3_IPC_REPLY_TYPE_COMMAND,
+        client, i3ipc::REPLY_TYPE::COMMAND,
         reply);
     ipc_push_pending(client);
 }

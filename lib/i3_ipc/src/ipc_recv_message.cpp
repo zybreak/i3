@@ -6,8 +6,6 @@
  *
  */
 module;
-#include "../i3_ipc/i3-ipc.h"
-
 #include <cstdlib>
 #include <cstdint>
 #include <sys/un.h>
@@ -15,7 +13,6 @@ module;
 
 #include <cerrno>
 #include <unistd.h>
-
 module i3ipc;
 
 namespace i3ipc {
@@ -34,7 +31,7 @@ namespace i3ipc {
     int ipc_recv_message(int sockfd, uint32_t *message_type,
                          uint32_t *reply_length, uint8_t **reply) {
         /* Read the message header first */
-        const uint32_t to_read = strlen(I3_IPC_MAGIC) + sizeof(uint32_t) + sizeof(uint32_t);
+        const uint32_t to_read = MAGIC.length() + sizeof(uint32_t) + sizeof(uint32_t);
         char msg[to_read];
         char *walk = msg;
 
@@ -56,12 +53,12 @@ namespace i3ipc {
             read_bytes += n;
         }
 
-        if (memcmp(walk, I3_IPC_MAGIC, strlen(I3_IPC_MAGIC)) != 0) {
+        if (memcmp(walk, MAGIC.c_str(), MAGIC.length()) != 0) {
             //ELOG("IPC: invalid magic in header, got \"%.*s\", want \"%s\"\n", (int)strlen(I3_IPC_MAGIC), walk, I3_IPC_MAGIC);
             return -3;
         }
 
-        walk += strlen(I3_IPC_MAGIC);
+        walk += MAGIC.length();
         memcpy(reply_length, walk, sizeof(uint32_t));
         walk += sizeof(uint32_t);
         if (message_type != nullptr) {

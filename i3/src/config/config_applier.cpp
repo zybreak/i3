@@ -22,7 +22,6 @@ struct criteria_state;
 
 #include <fmt/printf.h>
 
-#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 
 #include <wordexp.h>

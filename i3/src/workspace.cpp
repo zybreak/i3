@@ -16,13 +16,12 @@ module;
 #include <algorithm>
 #include <ranges>
 
-#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 module i3;
 
 import :output;
 import log;
-
+import i3ipc;
 import utils;
 
 /* NULL-terminated list of workspace names (in order) extracted from
@@ -527,7 +526,7 @@ void workspace_show(Con *workspace) {
             tree_close_internal(old, DONT_KILL_WINDOW, false);
 
             auto payload = gen.dump();
-            ipc_send_event("workspace", I3_IPC_EVENT_WORKSPACE, payload);
+            ipc_send_event("workspace", i3ipc::EVENT_WORKSPACE, payload);
 
             /* Avoid calling output_push_sticky_windows later with a freed container. */
             if (old == old_focus) {

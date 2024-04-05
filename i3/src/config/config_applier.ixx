@@ -17,7 +17,6 @@ module;
 
 #include <xcb/xcb.h>
 
-#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 
 #include <wordexp.h>

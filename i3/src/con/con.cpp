@@ -20,7 +20,6 @@ module;
 #include <xcb/xcb.h>
 #include <vector>
 
-#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 #include "atoms.h"
 #include <fmt/printf.h>
@@ -31,6 +30,7 @@ import :format_placeholders;
 import utils;
 import log;
 import rect;
+import i3ipc;
 
 /*
  * Returns the content container below the given output container.
@@ -1897,7 +1897,7 @@ void Con::on_remove_child() {
             tree_close_internal(this, DONT_KILL_WINDOW, false);
 
             auto payload = gen.dump();
-            ipc_send_event("workspace", I3_IPC_EVENT_WORKSPACE, payload);
+            ipc_send_event("workspace", i3ipc::EVENT_WORKSPACE, payload);
         }
         return;
     }

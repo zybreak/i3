@@ -22,7 +22,6 @@ struct criteria_state;
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_keysyms.h>
 
-#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 
 #include <fcntl.h>
@@ -56,6 +55,7 @@ import utils;
 import log;
 import program_arguments;
 import i3_config_base;
+import i3ipc;
 
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;
@@ -183,7 +183,7 @@ void handle_extra_args(int argc, char *argv[]) {
         err(EXIT_FAILURE, "Could not connect to i3");
     }
 
-    if (i3ipc::ipc_send_message(sockfd, strlen(payload.c_str()), I3_IPC_MESSAGE_TYPE_RUN_COMMAND,
+    if (i3ipc::ipc_send_message(sockfd, strlen(payload.c_str()), i3ipc::MESSAGE_TYPE::RUN_COMMAND,
                                 (uint8_t *)payload.c_str()) == -1) {
         err(EXIT_FAILURE, "IPC: write()");
     }
@@ -198,8 +198,8 @@ void handle_extra_args(int argc, char *argv[]) {
         }
         exit(1);
     }
-    if (reply_type != I3_IPC_REPLY_TYPE_COMMAND) {
-        errx(EXIT_FAILURE, "IPC: received reply of type %d but expected %d (COMMAND)", reply_type, I3_IPC_REPLY_TYPE_COMMAND);
+    if (reply_type != std::to_underlying(i3ipc::REPLY_TYPE::COMMAND)) {
+        errx(EXIT_FAILURE, "IPC: received reply of type %d but expected %d (COMMAND)", reply_type, std::to_underlying(i3ipc::REPLY_TYPE::COMMAND));
     }
     printf("%.*s\n", reply_length, reply);
     if (reply != nullptr) {

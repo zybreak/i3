@@ -9,6 +9,7 @@ module;
 #include <cstdlib>
 #include <cstdint>
 #include <string_view>
+#include <utility>
 
 #include <cerrno>
 #include <unistd.h>
@@ -42,12 +43,12 @@ namespace i3ipc {
      *
      */
     int ipc_send_message(int sockfd, const uint32_t message_size,
-                         const uint32_t message_type, const uint8_t *payload) {
+                         const MESSAGE_TYPE message_type, const uint8_t *payload) {
         const i3_ipc_header_t header = {
             /* We don’t use I3_IPC_MAGIC because it’s a 0-terminated C string. */
             .magic = {'i', '3', '-', 'i', 'p', 'c'},
             .size = message_size,
-            .type = message_type};
+            .type = std::to_underlying(message_type)};
 
         if (writeall(sockfd, ((void *)&header), sizeof(i3_ipc_header_t)) == -1) {
             return -1;

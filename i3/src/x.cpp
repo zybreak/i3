@@ -26,7 +26,6 @@ module;
 #include <xpp/connection.hpp>
 #include <xpp/proto/x.hpp>
 
-#include "i3_ipc/i3-ipc.h"
 #include "i3.h"
 
 #include <unistd.h>
