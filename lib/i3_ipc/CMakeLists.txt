@@ -1,8 +1,6 @@
 add_library(libi3ipc STATIC)
 target_sources(libi3ipc PUBLIC
         src/ipc_connect.cpp src/ipc_recv_message.cpp src/ipc_send_message.cpp src/i3-ipc.cpp
-        INTERFACE
-        i3_ipc/i3-ipc.h
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}"
