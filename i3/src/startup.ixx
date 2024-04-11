@@ -17,6 +17,7 @@ module;
 #include <memory>
 #include <vector>
 #include <optional>
+#include <chrono>
 
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-monitor.h>

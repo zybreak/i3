@@ -15,6 +15,7 @@ module;
 
 #include <cstdlib>
 #include <cstring>
+#include <chrono>
 
 #include <xcb/xcb.h>
 

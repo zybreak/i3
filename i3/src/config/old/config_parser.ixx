@@ -9,10 +9,10 @@
  */
 module;
 struct criteria_state;
-#include <config.h>
-
 #include <string>
 #include <vector>
+#include <cstdio>
+#include <memory>
 export module i3_config_old:config_parser;
 
 import i3_config_base;
@@ -33,8 +33,7 @@ export {
        private:
         const char *filename;
         char *old_dir;
-        int fd;
-        FILE *fstr;
+        std::FILE *fstr;
 
        public:
         config_load_t load_type;

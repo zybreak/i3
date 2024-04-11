@@ -36,6 +36,9 @@ struct criteria_state;
 #include <algorithm>
 #include <utility>
 #include <optional>
+#include <filesystem>
+#include <iostream>
+#include <fstream>
 
 #include <cstdint>
 #include <cstdio>
@@ -617,21 +620,16 @@ OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabas
 OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), load_type(load_type), ctx(this) {
     this->old_dir = getcwd(nullptr, 0);
     char *dir = nullptr;
-    /* dirname(3) might modify the buffer, so make a copy: */
-    char *dirbuf = sstrdup(filename);
-    if ((dir = dirname(dirbuf)) != nullptr) {
-        LOG(fmt::sprintf("Changing working directory to config file directory %s\n",  dir));
-        if (chdir(dir) == -1) {
-            throw std::runtime_error(fmt::sprintf("chdir(%s) failed: %s\n", dir, strerror(errno)));
-        }
-    }
-    free(dirbuf);
 
-    if ((fd = open(filename, O_RDONLY)) == -1) {
-        throw std::runtime_error(fmt::sprintf("cant open file: %s\n", filename));
+    std::filesystem::path f(filename);
+    f.remove_filename();
+
+    LOG(fmt::sprintf("Changing working directory to config file directory %s\n", f.c_str()));
+    if (chdir(f.c_str()) == -1) {
+        throw std::runtime_error(fmt::sprintf("chdir(%s) failed: %s\n", f.c_str(), strerror(errno)));
     }
 
-    if ((fstr = fdopen(fd, "r")) == nullptr) {
+    if ((fstr = std::fopen(filename, "r")) == nullptr) {
         throw std::runtime_error(fmt::sprintf("cant open file: %s\n", filename));
     }
 }
@@ -648,19 +646,14 @@ OldParser::~OldParser() {
  *
  */
 void OldParser::parse_file() {
-    struct stat stbuf{};
-
-    if (fstat(fd, &stbuf) == -1) {
-        throw std::runtime_error("");
-    }
-
     auto included_file = std::make_unique<IncludedFile>(filename);
 
-    included_file->raw_contents = (char*)scalloc(stbuf.st_size + 1, 1);
-    if ((ssize_t)fread(included_file->raw_contents, 1, stbuf.st_size, fstr) != stbuf.st_size) {
-        throw std::domain_error("");
+    for (std::ifstream file(filename); !file.eof(); ) {
+        std::string line;
+        std::getline(file, line);
+        included_file->raw_contents.append(line);
+        included_file->raw_contents.append("\n");
     }
-    rewind(fstr);
 
     std::string buf = read_file(fstr, resourceDatabase, ctx);
 

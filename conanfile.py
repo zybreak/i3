@@ -1,16 +1,18 @@
 from conan import ConanFile;
 import os
-from conan.tools.cmake import cmake_layout, CMake, CMakeToolchain;
+from conan.tools.cmake import cmake_layout, CMake, CMakeToolchain, CMakeDeps;
 
 class i3(ConanFile):
     name = "i3"
     version = "1.0"
     settings = "os", "compiler", "build_type", "arch"
-    generators = "CMakeDeps"
     package_type = "application"
 
 
     def generate(self):
+        deps = CMakeDeps(self)
+        deps.generate()
+
         tc = CMakeToolchain(self)
         tc.generator = "Ninja Multi-Config"
         tc.generate()

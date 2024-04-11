@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "i3_regex.h"
+import regex;
 
 TEST(RegexTest, New){
 

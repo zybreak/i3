@@ -21,16 +21,10 @@ export {
     class IncludedFile {
        public:
         std::string path{};
-        char *raw_contents = nullptr;
+        std::string raw_contents{};
         std::string variable_replaced_contents{};
 
-        IncludedFile(const std::string path) {
-            this->path = path;
-        }
-
-        ~IncludedFile() {
-            free(raw_contents);
-        }
+        IncludedFile(const std::string path) : path(path) {}
     };
 
     class BaseParser {

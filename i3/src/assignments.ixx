@@ -3,6 +3,7 @@ module;
 #include <optional>
 #include <ranges>
 #include <deque>
+#include <memory>
 export module i3:assignments;
 
 import :match;

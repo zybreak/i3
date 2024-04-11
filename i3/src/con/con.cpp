@@ -16,6 +16,7 @@ module;
 #include <cstring>
 #include <algorithm>
 #include <ranges>
+#include <chrono>
 
 #include <xcb/xcb.h>
 #include <vector>

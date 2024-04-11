@@ -15,6 +15,8 @@ if(CCACHE_PROGRAM)
     set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
 endif()
 
+set(CMAKE_LINKER_TYPE LLD)
+
 configure_file(config.h.in config.h)
 
 include(CTest)

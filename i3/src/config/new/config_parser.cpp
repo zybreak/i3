@@ -89,7 +89,7 @@ private:
     }
 
     std::string replace_var(std::string &&input) {
-        std::string replaced = input;
+        std::string replaced = std::move(input);
         for (auto &v : variables) {
             for (auto i = replaced.find(v.first); i != string::npos; i = replaced.find(v.first)) {
                 replaced.replace(i, v.first.size(), v.second);
