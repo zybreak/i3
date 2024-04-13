@@ -1,5 +1,6 @@
 #include <iostream>
-#include "commands.h"
+
+import i3;
 
 namespace cmd {
 

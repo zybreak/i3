@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
-#include "match.h"
+
+import i3;
 
 TEST(MatchTest, IsNotInitialized){
     Match m{};
@@ -24,9 +25,9 @@ TEST(MatchTest, MatchesWindowClass){
     EXPECT_FALSE(m.match_is_empty());
 
     i3Window w{};
-    w.class_class = sstrdup("foo");
+    w.class_class = "foo";
 
-    ASSERT_TRUE(match_matches_window(m, &w));
+    ASSERT_TRUE(m.match_matches_window(&w));
 }
 
 TEST(MatchTest, MatchesUrgentLatest){
@@ -37,21 +38,15 @@ TEST(MatchTest, MatchesUrgentLatest){
     EXPECT_FALSE(m.match_is_empty());
 
     i3Window w{};
-    w.class_class = sstrdup("foo");
-    w.urgent = {
-        .tv_sec = 1,
-        .tv_usec = 7500000
-    };
+    w.class_class = "foo";
+    w.urgent = std::chrono::system_clock::now();
 
     i3Window w2{};
-    w2.urgent = {
-        .tv_sec = 2,
-        .tv_usec = 7500000
-    };
+    w2.urgent = std::chrono::system_clock::now();
 
     auto c = new ConCon(nullptr, &w2, true);
 
-    ASSERT_FALSE(match_matches_window(m, &w));
+    ASSERT_FALSE(m.match_matches_window(&w));
 }
 
 TEST(MatchTest, MatchesUrgentOldest){
@@ -62,19 +57,13 @@ TEST(MatchTest, MatchesUrgentOldest){
     EXPECT_FALSE(m.match_is_empty());
 
     i3Window w{};
-    w.class_class = sstrdup("foo");
-    w.urgent = {
-        .tv_sec = 1,
-        .tv_usec = 7500000
-    };
+    w.class_class = "foo";
+    w.urgent = std::chrono::system_clock::now();
 
     i3Window w2{};
-    w2.urgent = {
-        .tv_sec = 2,
-        .tv_usec = 7500000
-    };
+    w2.urgent = std::chrono::system_clock::now();
 
     auto c = new ConCon(nullptr, &w2, true);
 
-    ASSERT_TRUE(match_matches_window(m, &w));
+    ASSERT_TRUE(m.match_matches_window(&w));
 }

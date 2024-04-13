@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include "con.h"
-#include "global.h"
+
+import i3;
 
 class MockX : public X {
    public:

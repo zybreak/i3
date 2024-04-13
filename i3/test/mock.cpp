@@ -12,8 +12,6 @@
  *
  */
 
-#include "config_parser.h"
-
 import utils;
 import i3;
 import log;

@@ -1,6 +1,6 @@
-#include "commands_parser.h"
-#include "parser_stack.h"
 #include <cstdio>
+
+import i3_commands_old;
 
 CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, ipc_client *client);
 
