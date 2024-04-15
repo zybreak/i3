@@ -18,8 +18,11 @@ target_sources(ConTest PUBLIC con_test.cpp)
 target_link_libraries(ConTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
 gtest_discover_tests(ConTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/con_test.profraw")
 
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS RegexTest MatchTest ConTest)
+
 add_custom_target(coverage COMMAND
         llvm-profdata merge -sparse ${CMAKE_BINARY_DIR}/coverage/*.profraw -o ${CMAKE_BINARY_DIR}/coverage/coverage.profdata &&
-        llvm-cov show --show-branches=count --instr-profile ${CMAKE_BINARY_DIR}/coverage/coverage.profdata -object $<TARGET_FILE:RegexTest> -object $<TARGET_FILE:MatchTest> $<TARGET_FILE:ConTest> > ${CMAKE_BINARY_DIR}/coverage/coverage.txt)
+        llvm-cov show --show-branches=count --instr-profile ${CMAKE_BINARY_DIR}/coverage/coverage.profdata -object $<TARGET_FILE:RegexTest> -object $<TARGET_FILE:MatchTest> $<TARGET_FILE:ConTest> > ${CMAKE_BINARY_DIR}/coverage/coverage.txt
+        DEPENDS check)
 
 # End unit tests
