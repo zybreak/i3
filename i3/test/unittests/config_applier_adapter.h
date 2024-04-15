@@ -1,4 +1,5 @@
 #pragma once
+#include <fmt/core.h>
 
 import i3;
 import i3_config_base;
@@ -22,18 +23,25 @@ class ConfigApplierAdapter : public BaseConfigApplier {
     }
 
     criteria_state* criteria_create(int _state) override {
-        return nullptr;
+        criteria_state *cs = new criteria_state(_state);
+
+        cs->current_match = Match();
+
+        return cs;
     }
 
-    void criteria_init(criteria_state *criteria_state, int _state) override {
+    void criteria_init(criteria_state *cs, int _state) override {
+        cs->criteria_next_state = _state;
+
+        cs->current_match = Match();
     }
 
-    int criteria_pop_state(criteria_state *criteria_state) override {
-        return 0;
+    int criteria_pop_state(criteria_state *cs) override {
+        return cs->criteria_next_state;
     }
 
-    void criteria_add(criteria_state *criteria_state, const char *ctype, const char *cvalue) override {
-
+    void criteria_add(criteria_state *cs, const char *ctype, const char *cvalue) override {
+        cs->current_match.parse_property(ctype, cvalue);
     }
 
     void font(const std::string &font) override {
@@ -182,18 +190,15 @@ class ConfigApplierAdapter : public BaseConfigApplier {
     }
 
     void mode_binding(const std::string &bindtype, const std::string &modifiers, const std::string &key, bool release, bool border, bool whole_window, bool exclude_titlebar, const std::string &command) override {
-        out
-            << "cfg::mode_binding("
-            << bindtype << ", "
-            << empty2null(modifiers) << ", "
-            << key << ", "
-            << bool2str(release, "--release") << ", "
-            << bool2str(border, "--border") << ", "
-            << bool2str(whole_window, "--whole-window") << ", "
-            << bool2str(exclude_titlebar, "--exclude-titlebar") << ", "
-            << command
-            << ")"
-            << std::endl;
+        out << fmt::format("cfg::mode_binding({}, {}, {}, {}, {}, {}, {}, {})",
+            bindtype,
+            empty2null(modifiers),
+            key,
+            bool2str(release, "--release"),
+            bool2str(border, "--border"),
+            bool2str(whole_window, "--whole-window"),
+            bool2str(exclude_titlebar, "--exclude-titlebar"),
+            command) << std::endl;
     }
 
     void bar_height(const long height) override {

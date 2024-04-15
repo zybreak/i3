@@ -501,6 +501,7 @@ static std::string read_file(std::istream &fstr, BaseResourceDatabase &resourceD
         }
 
         buf.append(buffer);
+        buf.append("\n");
 
         /* Skip comments and empty lines. */
         if (skip_line || comment) {

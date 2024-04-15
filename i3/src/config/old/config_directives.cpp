@@ -117,14 +117,14 @@ namespace cfg {
     void binding(criteria_state *criteria_state, ConfigResultIR &result, const char *bindtype, const char *modifiers,
                      const char *key, const char *release, const char *border, const char *whole_window,
                      const char *exclude_titlebar, const char *command) {
-        result.ctx.parser->applier.binding(bindtype, null_to_empty_str(modifiers), key, str_to_bool(release, "release"), str_to_bool(border, "border"), str_to_bool(whole_window, "whole_window"), str_to_bool(exclude_titlebar, "exclude_titlebar"), command);
+        result.ctx.parser->applier.binding(bindtype, null_to_empty_str(modifiers), key, str_to_bool(release, "--release"), str_to_bool(border, "--border"), str_to_bool(whole_window, "--whole-window"), str_to_bool(exclude_titlebar, "--exclude-titlebar"), command);
     }
 
 
     void mode_binding(criteria_state *criteria_state, ConfigResultIR &result, const char *bindtype, const char *modifiers,
                           const char *key, const char *release, const char *border, const char *whole_window,
                           const char *exclude_titlebar, const char *command) {
-        result.ctx.parser->applier.mode_binding(bindtype, null_to_empty_str(modifiers), key, str_to_bool(release, "release"), str_to_bool(border, "border"), str_to_bool(whole_window, "whole_window"), str_to_bool(exclude_titlebar, "exclude_titlebar"), command);
+        result.ctx.parser->applier.mode_binding(bindtype, null_to_empty_str(modifiers), key, str_to_bool(release, "--release"), str_to_bool(border, "--border"), str_to_bool(whole_window, "--whole-window"), str_to_bool(exclude_titlebar, "--exclude-titlebar"), command);
     }
 
     void enter_mode(criteria_state *criteria_state, ConfigResultIR &result, const char *pango_markup, const char *modename) {
