@@ -294,30 +294,17 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     ResourceDatabase resourceDatabase{*global.x->conn};
     try {
         ConfigApplier configListener{};
+        std::ifstream stream{resolved_path};
 
         if (global.new_parser) {
-            std::string filename = resolved_path;
-            std::istream *stream;
-            std::ifstream if_stream{};
-
-            if (filename == "<stdin>"s) {
-                stream = &std::cin;
-            } else {
-                if_stream.open(filename);
-                stream = &if_stream;
-            }
-
-            NewParser np{ resourceDatabase, stream, load_type, configListener };
+            NewParser np{ stream, resourceDatabase, load_type, configListener };
             np.parse_file();
-            //included_files = np.included_files;
         } else {
-            OldParser op{ resolved_path, resourceDatabase, load_type, configListener };
+            OldParser op{ resolved_path, stream, resourceDatabase, load_type, configListener };
             op.parse_file();
             for (auto &included_file : op.included_files) {
                 included_files.push_back(std::move(included_file));
             }
-            op.included_files.size();
-            //included_files = op.included_files;
         }
         if (has_duplicate_bindings()) {
             errx(EXIT_FAILURE, "Duplicate bindings in configuration file: %s\n", strerror((*__errno_location())));

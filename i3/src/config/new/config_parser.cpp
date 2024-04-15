@@ -13,6 +13,7 @@ struct criteria_state;
 #include <regex>
 #include "fmt/core.h"
 #include "fmt/printf.h"
+#include <memory>
 module i3_config_new;
 
 import log;
@@ -335,7 +336,7 @@ public:
 
 };
 
-NewParser::NewParser(BaseResourceDatabase &rd, std::istream *stream, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, rd), stream(stream), load_type(load_type)  {
+NewParser::NewParser(std::istream &stream, BaseResourceDatabase &rd, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, rd), stream(stream), load_type(load_type)  {
 }
 
 class ErrorListener : public BaseErrorListener {
@@ -348,19 +349,20 @@ class ErrorListener : public BaseErrorListener {
 
 void NewParser::parse_file() {
 
-    ANTLRInputStream input{*stream};
+    ANTLRInputStream input{stream};
     configLexer lexer{&input};
+    std::shared_ptr<BailErrorStrategy> handler = std::make_shared<BailErrorStrategy>();
 
-    lexer.removeErrorListeners();
-    ErrorListener pListener{};
-    lexer.addErrorListener(&pListener);
+    //lexer.removeErrorListeners();
+    //ErrorListener pListener{};
+    //lexer.addErrorListener(&pListener);
 
     CommonTokenStream tokens{&lexer};
     configGrammar parser{&tokens};
 
-    //parser.setErrorHandler(new BailErrorStrategy());
-    parser.removeErrorListeners();
-    parser.addErrorListener(&pListener);
+    parser.setErrorHandler(handler);
+    //parser.removeErrorListeners();
+    //parser.addErrorListener(&pListener);
 
     auto tree = parser.config();
 

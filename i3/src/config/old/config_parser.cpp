@@ -479,37 +479,25 @@ static void upsert_variable(std::vector<std::shared_ptr<Variable>> &variables, c
     }
 }
 
-static std::string read_file(FILE *fstr, BaseResourceDatabase &resourceDatabase, parser_ctx &ctx) {
-    char buffer[4096], key[512], value[4096], *continuation = nullptr;
+static std::string read_file(std::istream &fstr, BaseResourceDatabase &resourceDatabase, parser_ctx &ctx) {
+    char key[512], value[4096];
     std::string buf{};
 
-    while (!feof(fstr)) {
-        if (!continuation) {
-            continuation = buffer;
-        }
-        if (fgets(continuation, sizeof(buffer) - (continuation - buffer), fstr) == nullptr) {
-            if (feof(fstr)) {
-                break;
-            }
-            throw std::domain_error("Unexpected EOF");
-        }
-        if (buffer[strlen(buffer) - 1] != '\n' && !feof(fstr)) {
-            throw std::domain_error(fmt::sprintf("Your line continuation is too long, it exceeds %zd bytes\n",  sizeof(buffer)));
-        }
+    for (std::string buffer; std::getline(fstr, buffer);) {
 
         /* sscanf implicitly strips whitespace. */
         value[0] = '\0';
-        const bool skip_line = (sscanf(buffer, "%511s %4095[^\n]", key, value) < 1 || strlen(key) < 3);
+        const bool skip_line = (sscanf(buffer.c_str(), "%511s %4095[^\n]", key, value) < 1 || strlen(key) < 3);
         const bool comment = (key[0] == '#');
         value[4095] = '\n';
 
-        continuation = strstr(buffer, "\\\n");
+        bool continuation = strstr(buffer.c_str(), "\\\n");
         if (continuation) {
             if (!comment) {
                 continue;
             }
-            DLOG(fmt::sprintf("line continuation in comment is ignored: \"%.*s\"\n", static_cast<int>(strlen(buffer)) - 1, buffer));
-            continuation = nullptr;
+            DLOG(fmt::sprintf("line continuation in comment is ignored: \"%s\"\n", buffer));
+            continuation = false;
         }
 
         buf.append(buffer);
@@ -612,12 +600,12 @@ static std::string replace_variables(std::string &buf, parser_ctx &ctx) {
     return destwalk;
 }
 
-OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, resourceDatabase, parent_ctx.parser->load_type, applier) {
+OldParser::OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, stream, resourceDatabase, parent_ctx.parser->load_type, applier) {
     this->parent_ctx = &parent_ctx;
     this->ctx.variables = parent_ctx.variables;
 }
 
-OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), load_type(load_type), ctx(this) {
+OldParser::OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), stream(stream), load_type(load_type), ctx(this) {
     this->old_dir = getcwd(nullptr, 0);
     char *dir = nullptr;
 
@@ -629,15 +617,10 @@ OldParser::OldParser(const char *filename, BaseResourceDatabase &resourceDatabas
         throw std::runtime_error(fmt::sprintf("chdir(%s) failed: %s\n", f.c_str(), strerror(errno)));
     }
 
-    if ((fstr = std::fopen(filename, "r")) == nullptr) {
-        throw std::runtime_error(fmt::sprintf("cant open file: %s\n", filename));
-    }
 }
 
 OldParser::~OldParser() {
-    chdir(this->old_dir);
-    free(this->old_dir);
-    fclose(fstr);
+    chdir(this->old_dir.c_str());
 }
 
 /*
@@ -648,14 +631,17 @@ OldParser::~OldParser() {
 void OldParser::parse_file() {
     auto included_file = std::make_unique<IncludedFile>(filename);
 
-    for (std::ifstream file(filename); !file.eof(); ) {
+    while (!stream.eof()) {
         std::string line;
-        std::getline(file, line);
+        std::getline(stream, line);
         included_file->raw_contents.append(line);
         included_file->raw_contents.append("\n");
     }
 
-    std::string buf = read_file(fstr, resourceDatabase, ctx);
+    stream.clear();
+    stream.seekg(0);
+
+    std::string buf = read_file(stream, resourceDatabase, ctx);
 
     /* Then, allocate a new buffer and copy the file over to the new one,
      * but replace occurrences of our variables */

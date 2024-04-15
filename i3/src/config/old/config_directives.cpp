@@ -13,6 +13,8 @@ struct criteria_state;
 #include <cassert>
 #include <cerrno>
 #include <climits>
+#include <iostream>
+#include <fstream>
 
 #include <cstdlib>
 #include <cstring>
@@ -75,7 +77,8 @@ namespace cfg {
 
             LOG(fmt::sprintf("Including config file %s\n",  resolved_path));
 
-            OldParser parser{resolved_path, result.ctx.parser->resourceDatabase, result.ctx, result.ctx.parser->applier};
+            std::ifstream input{resolved_path};
+            OldParser parser{resolved_path, input, result.ctx.parser->resourceDatabase, result.ctx, result.ctx.parser->applier};
             try {
                 parser.parse_file();
             } catch (std::exception &e) {

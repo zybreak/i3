@@ -32,16 +32,16 @@ export {
     class OldParser : public BaseParser {
        private:
         const char *filename;
-        char *old_dir;
-        std::FILE *fstr;
+        std::string old_dir{};
+        std::istream &stream;
 
        public:
         config_load_t load_type;
         parser_ctx *parent_ctx = nullptr;
         parser_ctx ctx;
         std::vector<std::unique_ptr<IncludedFile>> included_files{};
-        OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier);
-        OldParser(const char *filename, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier);
+        OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier);
+        OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier);
         ~OldParser() override;
         void parse_file() override;
     };
