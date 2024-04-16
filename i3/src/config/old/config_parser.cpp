@@ -175,7 +175,7 @@ static std::string get_possible_tokens(const std::vector<cmdp_token> &ptr) {
 
 /* Figure out how much memory we will need to fill in the names of
  * all tokens afterwards. */
-static void unhandled_token(const std::string &input, const char *filename, int linecnt, const std::vector<cmdp_token> &ptr, parser_ctx &ctx, bool &has_errors, std::string::const_iterator &walk) {
+static void unhandled_token(const std::string &input, const char *filename, int linecnt, const std::vector<cmdp_token> &ptr, parser_ctx &ctx, bool &has_errors, std::string::const_iterator &walk, std::ostream &err_output) {
     /* Build up a decent error message. We include the problem, the
      * full input, and underline the position where the parser
      * currently is. */
@@ -196,8 +196,8 @@ static void unhandled_token(const std::string &input, const char *filename, int 
         position.push_back((copywalk >= walk ? '^' : (*copywalk == '\t' ? '\t' : ' ')));
     }
 
-    ELOG(fmt::sprintf("CONFIG: Expected one of these tokens: %s\n", possible_tokens));
-    ELOG(fmt::sprintf("CONFIG: (in file %s)\n", filename));
+    err_output << fmt::sprintf("CONFIG: Expected one of these tokens: %s\n", possible_tokens);
+    err_output << fmt::sprintf("CONFIG: (in file %s)\n", filename);
     std::string_view error_copy = single_line(error_line, input_end);
 
     /* Print context lines *before* the error, if any. */
@@ -207,19 +207,19 @@ static void unhandled_token(const std::string &input, const char *filename, int 
         if (linecnt > 2) {
             auto context_p2_start = start_of_line(context_p1_start - 2, beginning);
             std::string_view context_p2_line = single_line(context_p2_start, input_end);
-            ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 2, context_p2_line));
+            err_output << fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 2, context_p2_line);
         }
-        ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 1, context_p1_line));
+        err_output << fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 1, context_p1_line);
     }
-    ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt, error_copy));
-    ELOG(fmt::sprintf("CONFIG:           %s\n",  position));
+    err_output << fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt, error_copy);
+    err_output << fmt::sprintf("CONFIG:           %s\n",  position);
     /* Print context lines *after* the error, if any. */
     for (int i = 0; i < 2; i++) {
         auto error_line_end = std::find(error_line, input_end, '\n');
         if (error_line_end != input_end && *(error_line_end + 1) != '\0') {
             error_line = error_line_end + 1;
             error_copy = single_line(error_line, input_end);
-            ELOG(fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt + i + 1, error_copy));
+            err_output << fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt + i + 1, error_copy);
         }
     }
 
@@ -390,7 +390,7 @@ static void reset_statelist(parser_ctx &ctx) {
     ctx.statelist_idx = 1;
 }
 
-bool parse_config(parser_ctx &ctx, const std::string &input, const char *filename) {
+bool parse_config(parser_ctx &ctx, const std::string &input, const char *filename, std::ostream &err_output) {
     bool has_errors = false;
     std::string::const_iterator walk = input.begin();
     int linecnt = 1;
@@ -436,7 +436,7 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
         }
 
         if (!token_handled) {
-            unhandled_token(input, filename, linecnt, ptr, ctx, has_errors, walk);
+            unhandled_token(input, filename, linecnt, ptr, ctx, has_errors, walk, err_output);
         }
     }
 
@@ -542,12 +542,10 @@ static std::string read_file(std::istream &fstr, BaseResourceDatabase &resourceD
             if (v_key[0] != '$') {
                 throw std::domain_error("Malformed variable assignment, name has to start with $\n");
             }
-#ifndef TEST_PARSER
             char *res_value = resourceDatabase.get_resource(res_name, fallback);
 
             upsert_variable(ctx.variables, v_key, res_value);
             free(res_value);
-#endif
             continue;
         }
     }
@@ -652,12 +650,15 @@ void OldParser::parse_file() {
 
     included_files.push_back(std::move(included_file));
 
-    bool has_errors = parse_config(ctx, n, filename);
+    std::stringbuf err_output_buf;
+    std::ostream err_output{&err_output_buf};
+
+    bool has_errors = parse_config(ctx, n, filename, err_output);
     if (ctx.has_errors) {
         has_errors = true;
     }
 
     if (has_errors) {
-        throw std::domain_error("");
+        throw std::domain_error(err_output_buf.str());
     }
 }

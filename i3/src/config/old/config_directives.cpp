@@ -215,7 +215,7 @@ namespace cfg {
     }
 
     void workspace(criteria_state *criteria_state, ConfigResultIR &result, const char *workspace, const char *output) {
-        result.ctx.parser->applier.workspace(workspace, output);
+        result.ctx.parser->applier.workspace(null_to_empty_str(workspace), output);
     }
 
     void ipc_socket(criteria_state *criteria_state, ConfigResultIR &result, const char *path) {
@@ -236,7 +236,7 @@ namespace cfg {
 
     void color(criteria_state *criteria_state, ConfigResultIR &result, const char *colorclass, const char *border,
                    const char *background, const char *text, const char *indicator, const char *child_border) {
-        result.ctx.parser->applier.color(colorclass, border, background, text, indicator, child_border);
+        result.ctx.parser->applier.color(colorclass, border, background, text, indicator, null_to_empty_str(child_border));
     }
 
     void assign_output(criteria_state *criteria_state, ConfigResultIR &result, const char *output) {

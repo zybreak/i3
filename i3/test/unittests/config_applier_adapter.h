@@ -42,6 +42,7 @@ class ConfigApplierAdapter : public BaseConfigApplier {
 
     void criteria_add(criteria_state *cs, const char *ctype, const char *cvalue) override {
         cs->current_match.parse_property(ctype, cvalue);
+        out << "cfg::criteria_add(" << ctype << ", " << cvalue << ")" << std::endl;
     }
 
     void font(const std::string &font) override {
@@ -151,7 +152,7 @@ class ConfigApplierAdapter : public BaseConfigApplier {
     }
 
     void color(const std::string &colorclass, const std::string &border, const std::string &background, const std::string &text, const std::string &indicator, const std::string &child_border) override {
-        out << "color " << std::endl;
+        out << "cfg::color(" << colorclass << ", " << border << ", " << background << ", " << text << ", " << indicator << ", " << empty2null(child_border) << ")" << std::endl;
     }
 
     void color_single(const std::string &colorclass, const std::string &color) override {
@@ -167,7 +168,7 @@ class ConfigApplierAdapter : public BaseConfigApplier {
     }
 
     void workspace(const std::string &workspace, const std::string &output) override {
-        out << "cfg::workspace(" << workspace << ", " << output << ")" << std::endl;
+        out << "cfg::workspace(" << empty2null(workspace) << ", " << output << ")" << std::endl;
     }
 
     void binding(const std::string &bindtype, const std::string &modifiers, const std::string &key, bool release, bool border, bool whole_window, bool exclude_titlebar, const std::string &command) override {

@@ -316,6 +316,8 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
             ELOG(fmt::sprintf("FYI: You are using i3 version %s\n", I3_VERSION));
 
             start_config_error_nagbar(true);
+        } else {
+            errx(EXIT_FAILURE, e.what());
         }
     } catch (const std::exception &e) {
         errx(EXIT_FAILURE, "Error parsing configuration file: %s\n", e.what());

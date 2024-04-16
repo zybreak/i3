@@ -174,7 +174,6 @@ for my $state (@keys) {
 
         say $callfh "         case $call_id:";
         say $callfh "             result.next_state = std::to_underlying(cmdp_state::$next_state);";
-        say $callfh '#ifndef TEST_PARSER';
         my $real_cmd = $cmd;
         if ($real_cmd =~ /\(\)/) {
             $real_cmd =~ s/\(/(criteria_state, result/;
@@ -182,19 +181,6 @@ for my $state (@keys) {
             $real_cmd =~ s/\(/(criteria_state, result, /;
         }
         say $callfh "             $real_cmd;";
-        say $callfh '#else';
-        # debug
-        $cmd =~ s/[^(]+\(//;
-        $cmd =~ s/\)$//;
-        $cmd = ", $cmd" if length($cmd) > 0;
-        $cmd =~ s/, nullptr//g;
-        say $callfh qq|           fprintf(stderr, "$fmt\\n"$cmd);|;
-        # The cfg_criteria functions have side-effects which are important for
-        # testing. They are implemented as stubs in the test parser code.
-        if ($real_cmd =~ /^cfg::criteria/) {
-            say $callfh qq|       $real_cmd;|;
-        }
-        say $callfh '#endif';
         say $callfh "             break;";
         $token->{next_state} = "call $call_id";
         $call_id++;
