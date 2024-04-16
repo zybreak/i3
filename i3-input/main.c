@@ -407,7 +407,7 @@ int main(int argc, char *argv[]) {
                 socket_path = sstrdup(optarg);
                 break;
             case 'v':
-                printf("i3-input " I3_VERSION);
+                printf("i3-input " I3_VERSION "\n");
                 return EXIT_OK;
             case 'p':
                 /* This option is deprecated, but will still work in i3 v4.1, 4.2 and 4.3 */
