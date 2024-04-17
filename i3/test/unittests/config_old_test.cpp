@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <strstream>
+#include <sstream>
+#include <tuple>
 
 #include "config_applier_adapter.h"
 
@@ -19,7 +21,7 @@ TEST(ConfigOldTest, test_mode_bindings_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 mode "meh" {
     bindsym Mod1 + Shift +   x resize grow
     bindcode Mod1+44 resize shrink
@@ -61,7 +63,7 @@ TEST(ConfigOldTest, test_exec_okay) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 exec geeqie
 exec --no-startup-id /tmp/foo.sh
 exec_always firefox
@@ -90,7 +92,7 @@ TEST(ConfigOldTest, test_for_window_okay) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 for_window [] nop empty
 for_window [class="^Chrome"] floating enable
 for_window [class=^Chrome] floating enable
@@ -127,7 +129,7 @@ TEST(ConfigOldTest, test_for_window_errors_okay) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(for_window [tiling_from=typo] nop typo
+    std::istringstream in{R""""(for_window [tiling_from=typo] nop typo
 for_window [tiling_from="typo"] nop typo
 )""""};
 
@@ -158,7 +160,7 @@ TEST(ConfigOldTest, test_for_window_okay2) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 assign [class="^Chrome"] 4
 assign [class="^Chrome"] workspace number 3
 assign [class="^Chrome"] named workspace
@@ -194,7 +196,7 @@ TEST(ConfigOldTest, test_floating_minimum_size_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 floating_minimum_size 80x55
 floating_minimum_size 80    x  55
 floating_maximum_size 73 x 10
@@ -221,7 +223,7 @@ TEST(ConfigOldTest, test_popup_during_fullscreen_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 popup_during_fullscreen ignore
 popup_during_fullscreen leave_fullscreen
 popup_during_fullscreen SMArt
@@ -248,7 +250,7 @@ TEST(ConfigOldTest, test_floating_modifier_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 floating_modifier Mod1
 floating_modifier mOd1
 )""""};
@@ -273,7 +275,7 @@ TEST(ConfigOldTest, test_default_orientation_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 default_orientation horizontal
 default_orientation vertical
 default_orientation auto
@@ -300,7 +302,7 @@ TEST(ConfigOldTest, test_workspace_layout_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 workspace_layout default
 workspace_layout stacked
 workspace_layout stacking
@@ -329,7 +331,7 @@ TEST(ConfigOldTest, test_workspace_assignment_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 workspace "3" output DP-1
 workspace "3" output     	VGA-1
 )""""};
@@ -354,7 +356,7 @@ TEST(ConfigOldTest, test_new_window_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 new_window 1pixel
 new_window normal
 new_window none
@@ -399,7 +401,7 @@ TEST(ConfigOldTest, test_hide_edge_borders_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 hide_edge_borders none
 hide_edge_borders vertical
 hide_edge_borders horizontal
@@ -430,7 +432,7 @@ TEST(ConfigOldTest, test_focus_follows_mouse_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 focus_follows_mouse yes
 focus_follows_mouse no
 )""""};
@@ -455,7 +457,7 @@ TEST(ConfigOldTest, test_mouse_warping_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 mouse_warping output
 mouse_warping none
 )""""};
@@ -475,43 +477,68 @@ cfg::mouse_warping(none)
     ASSERT_EQ(output.str(), expected);
 }
 
-#if 0
-##############################################################################
-# force_display_urgency_hint
-    ################################################################################
-    def test_force_display_urgency_hint_300(parser_calls):
-      assert_is(parser_calls('force_display_urgency_hint 300'), "cfg::force_display_urgency_hint(300)\n",
-                'force_display_urgency_hint ok')
+static std::string parser_calls(std::string str) {
+    std::stringbuf output;
+    std::ostream out{&output};
+    ConfigApplierAdapter applier{out};
+    MockedResourceDatabase resourceDatabase{};
+    std::istringstream in{str};
+    
+    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    
+    try {
+        p.parse_file();
+    } catch (std::exception &e) {
+        return e.what();
+    }
 
-      assert_is(parser_calls('force_display_urgency_hint 500 ms'), "cfg::force_display_urgency_hint(500)\n",
-                'force_display_urgency_hint ok')
+    return output.str();
+}
 
-          assert_is(parser_calls('force_display_urgency_hint 700ms'), "cfg::force_display_urgency_hint(700)\n",
-                    'force_display_urgency_hint ok')
+TEST(ConfigOldTest, test_force_display_urgency_hint_300) {
+    using namespace std::literals;
+    
+    std::stringbuf output;
+    std::ostream out{&output};
+    ConfigApplierAdapter applier{out};
+    MockedResourceDatabase resourceDatabase{};
+    
+    ASSERT_EQ(parser_calls("force_display_urgency_hint 300"s), "cfg::force_display_urgency_hint(300)\n"s);
 
-              config = """
-      force_display_urgency_hint 300
-      force_display_urgency_hint 500 ms
-      force_display_urgency_hint 700ms
-      force_display_urgency_hint 700
-      """
+    ASSERT_EQ(parser_calls("force_display_urgency_hint 500 ms"s), "cfg::force_display_urgency_hint(500)\n"s);
 
-      expected = """
-      cfg::force_display_urgency_hint(300)
-          cfg::force_display_urgency_hint(500)
-              cfg::force_display_urgency_hint(700)
-                  cfg::force_display_urgency_hint(700)
-                      """
+    ASSERT_EQ(parser_calls("force_display_urgency_hint 700ms"s), "cfg::force_display_urgency_hint(700)\n"s);
 
-      assert_is(parser_calls(config), expected, 'force_display_urgency_hint ok')
-#endif
+    std::istringstream in{R""""(
+force_display_urgency_hint 300
+force_display_urgency_hint 500 ms
+force_display_urgency_hint 700ms
+force_display_urgency_hint 700
+)""""};
+
+    std::string expected{R"""(cfg::force_display_urgency_hint(300)
+cfg::force_display_urgency_hint(500)
+cfg::force_display_urgency_hint(700)
+cfg::force_display_urgency_hint(700)
+)"""};
+
+    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    
+    try {
+        p.parse_file();
+    } catch (std::exception &e) {
+        FAIL() << "Error parsing configuration file" << e.what();
+    }
+
+    ASSERT_EQ(output.str(), expected);
+}
 
 TEST(ConfigOldTest, test_workspace_ok) {
     std::stringbuf output;
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 workspace 3 output VGA-1
 workspace "4: output" output VGA-2
 workspace bleh output LVDS1/I_1
@@ -544,7 +571,7 @@ TEST(ConfigOldTest, test_ipc_socket_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 ipc-socket /tmp/i3.sock
 ipc_socket ~/.i3/i3.sock
 )""""};
@@ -569,7 +596,7 @@ TEST(ConfigOldTest, test_colors_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 client.focused          #4c7899 #285577 #ffffff #2e9ef4 #b34d4c
 client.focused_inactive #333333 #5f676a #ffffff #484e50
 client.unfocused        #333333 #222222 #888888 #292d2e
@@ -600,7 +627,7 @@ TEST(ConfigOldTest, test_errors_dont_harm_subsequent_statements) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(hide_edge_border both
+    std::istringstream in{R""""(hide_edge_border both
 client.focused          #4c7899 #285577 #ffffff #2e9ef4
 )""""};
 
@@ -628,7 +655,7 @@ TEST(ConfigOldTest, test_errors_dont_harm_subsequent_statements2) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(hide_edge_borders FOOBAR
+    std::istringstream in{R""""(hide_edge_borders FOOBAR
 client.focused          #4c7899 #285577 #ffffff #2e9ef4
 )""""};
 
@@ -655,7 +682,7 @@ TEST(ConfigOldTest, test_semicolon_does_not_end_a_comment_line) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(
+    std::istringstream in{R""""(
 # "foo" client.focused          #4c7899 #285577 #ffffff #2e9ef4
 )""""};
 
@@ -677,7 +704,7 @@ TEST(ConfigOldTest, test_error_message_2_2_context_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(# i3 config file (v4)
+    std::istringstream in{R""""(# i3 config file (v4)
 
 font foobar
 
@@ -713,7 +740,7 @@ TEST(ConfigOldTest, test_error_message_0_0_context_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(unknown qux
+    std::istringstream in{R""""(unknown qux
 )""""};
 
     std::string expected{R""""(CONFIG: Expected one of these tokens: <end>, '#', 'set ', 'set	', 'set_from_resource', 'include', 'bindsym', 'bindcode', 'bind', 'bar', 'font', 'mode', 'gaps', 'smart_borders', 'smart_gaps', 'floating_minimum_size', 'floating_maximum_size', 'floating_modifier', 'default_orientation', 'workspace_layout', 'default_border', 'new_window', 'default_floating_border', 'new_float', 'hide_edge_borders', 'for_window', 'assign', 'no_focus', 'focus_follows_mouse', 'mouse_warping', 'focus_wrapping', 'force_focus_wrapping', 'workspace_auto_back_and_forth', 'force_display_urgency_hint', 'focus_on_window_activation', 'title_align', 'workspace', 'ipc_socket', 'ipc-socket', 'ipc_kill_timeout', 'restart_state', 'popup_during_fullscreen', 'tiling_drag', 'exec_always', 'exec', 'client.background', 'client.focused_inactive', 'client.focused_tab_title', 'client.focused', 'client.unfocused', 'client.urgent', 'client.placeholder'
@@ -738,7 +765,7 @@ TEST(ConfigOldTest, test_error_message_1_0_context_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(# context before
+    std::istringstream in{R""""(# context before
 unknown qux
 )""""};
 
@@ -765,7 +792,7 @@ TEST(ConfigOldTest, test_error_message_0_1_context_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(unknown qux
+    std::istringstream in{R""""(unknown qux
 # context after
 )""""};
 
@@ -792,7 +819,7 @@ TEST(ConfigOldTest, test_error_message_0_2_context_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(unknown qux
+    std::istringstream in{R""""(unknown qux
 # context after
 # context 2 after
 )""""};
@@ -821,7 +848,7 @@ TEST(ConfigOldTest, test_error_message_mode_block_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(mode "yo" {
+    std::istringstream in{R""""(mode "yo" {
     bindsym x resize shrink left
     unknown qux
 }
@@ -853,7 +880,7 @@ TEST(ConfigOldTest, test_error_message_bar_block_ok) {
     std::ostream out{&output};
     ConfigApplierAdapter applier{out};
     MockedResourceDatabase resourceDatabase{};
-    std::istrstream in{R""""(bar {
+    std::istringstream in{R""""(bar {
     output LVDS-1
     unknown qux
 }
