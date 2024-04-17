@@ -294,7 +294,8 @@ static bool handle_number(std::string::const_iterator &walk, const cmdp_token &t
     }
 
     /* Set walk to the first non-number character */
-    std::advance(walk, num);
+    int dist = end - std::to_address(walk);
+    std::advance(walk, dist);
     next_state(token, ctx);
     return true;
 }
@@ -329,17 +330,17 @@ static bool handle_word(std::string::const_iterator &walk, const cmdp_token &tok
         std::string str{};
         str.reserve(std::distance(beginning, walk)  + 1);
         /* We copy manually to handle escaping of characters. */
-        int inpos, outpos;
-        for (inpos = 0, outpos = 0;
+        int inpos;
+        for (inpos = 0;
              inpos < std::distance(beginning, walk);
-             inpos++, outpos++) {
+             inpos++) {
             /* We only handle escaped double quotes to not break
                          * backwards compatibility with people using \w in
                          * regular expressions etc. */
             if (beginning[inpos] == '\\' && beginning[inpos + 1] == '"') {
                 inpos++;
             }
-            str[outpos] = beginning[inpos];
+            str += beginning[inpos];
         }
         if (token.identifier) {
             push_string_append(ctx.stack, token.identifier->c_str(), str.c_str());
@@ -410,7 +411,7 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
     while (walk <= input.cend()) {
         /* Skip whitespace before every token, newlines are relevant since they
          * separate configuration directives. */
-        while (walk != input.cend() && (*walk == ' ' || *walk == '\t')) {
+        while (walk < input.cend() && (*walk == ' ' || *walk == '\t')) {
             walk++;
         }
 

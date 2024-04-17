@@ -77,7 +77,9 @@ class ConfigApplierAdapter : public BaseConfigApplier {
         out << "cfg::floating_maximum_size(" << width << ", " << height << ")" << std::endl;
     }
 
-    void default_orientation(const std::string &orientation) override {}
+    void default_orientation(const std::string &orientation) override {
+        out << "cfg::default_orientation(" << orientation << ")" << std::endl;
+    }
 
     void workspace_layout(const std::string &layout) override {
         out << "cfg::workspace_layout(" << layout << ")" << std::endl;
