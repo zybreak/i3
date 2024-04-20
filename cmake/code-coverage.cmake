@@ -549,22 +549,12 @@ function(add_code_coverage_all_targets)
        OR CMAKE_CXX_COMPILER_ID MATCHES "(Apple)?[Cc]lang")
 
       # Merge the profile data for all of the run executables
-      if(WIN32)
-        add_custom_target(
-          ccov-all-processing
-          COMMAND
-            powershell -Command $$FILELIST = Get-Content
-            ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/profraw.list\; llvm-profdata.exe
-            merge -o ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
-            -sparse $$FILELIST)
-      else()
-        add_custom_target(
-          ccov-all-processing
-          COMMAND
-            ${LLVM_PROFDATA_PATH} merge -o
-            ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata -sparse `cat
-            ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/profraw.list`)
-      endif()
+      add_custom_target(
+        ccov-all-processing
+        COMMAND
+          ${LLVM_PROFDATA_PATH} merge -o
+          ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata -sparse `cat
+          ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/profraw.list`)
 
       # Regex exclude only available for LLVM >= 7
       if(LLVM_COV_VERSION VERSION_GREATER_EQUAL "7.0.0")
@@ -575,80 +565,41 @@ function(add_code_coverage_all_targets)
       endif()
 
       # Print summary of the code coverage information to the command line
-      if(WIN32)
-        add_custom_target(
-          ccov-all-report
-          COMMAND
-            powershell -Command $$FILELIST = Get-Content
-            ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list\; llvm-cov.exe
-            report $$FILELIST
-            -instr-profile=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
-            ${EXCLUDE_REGEX}
-          DEPENDS ccov-all-processing)
-      else()
-        add_custom_target(
-          ccov-all-report
-          COMMAND
-            ${LLVM_COV_PATH} report `cat
-            ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list`
-            -instr-profile=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
-            ${EXCLUDE_REGEX}
-          DEPENDS ccov-all-processing)
-      endif()
+      add_custom_target(
+        ccov-all-report
+        COMMAND
+          ${LLVM_COV_PATH} report `cat
+          ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list`
+          -instr-profile=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
+          ${EXCLUDE_REGEX}
+        DEPENDS ccov-all-processing)
 
       # Export coverage information so continuous integration tools (e.g.
       # Jenkins) can consume it
-      if(WIN32)
-        add_custom_target(
-          ccov-all-export
-          COMMAND
-            powershell -Command $$FILELIST = Get-Content
-            ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list\; llvm-cov.exe
-            export $$FILELIST
-            -instr-profile=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
-            -format="text" ${EXCLUDE_REGEX} >
-            ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/coverage.json
-          DEPENDS ccov-all-processing)
-      else()
-        add_custom_target(
-          ccov-all-export
-          COMMAND
-            ${LLVM_COV_PATH} export `cat
-            ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list`
-            -instr-profile=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
-            -format="text" ${EXCLUDE_REGEX} >
-            ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/coverage.json
-          DEPENDS ccov-all-processing)
-      endif()
+      add_custom_target(
+        ccov-all-export
+        COMMAND
+          ${LLVM_COV_PATH} export `cat
+          ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list`
+          -instr-profile=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
+          -format="text" ${EXCLUDE_REGEX} >
+          ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/coverage.json
+        DEPENDS ccov-all-processing)
 
       # Generate HTML output of all added targets for perusal
-      if(WIN32)
-        add_custom_target(
-          ccov-all
-          COMMAND
-            powershell -Command $$FILELIST = Get-Content
-            ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list\; llvm-cov.exe show
-            $$FILELIST
-            -instr-profile=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
-            -show-line-counts-or-regions
-            -output-dir=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged
-            -format="html" ${EXCLUDE_REGEX}
-          DEPENDS ccov-all-processing)
-      else()
-        add_custom_target(
-          ccov-all
-          COMMAND
-            ${LLVM_COV_PATH} show `cat
-            ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list`
-            -instr-profile=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
-                --show-branches=count
-            #-show-line-counts-or-regions
-            #-output-dir=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged
-            #-format="html" ${EXCLUDE_REGEX}
-                -format="text" ${EXCLUDE_REGEX}
-                > ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/coverage.txt
-          DEPENDS ccov-all-processing)
-      endif()
+      add_custom_target(
+        ccov-all
+        COMMAND
+          ${LLVM_COV_PATH} show `cat
+          ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list`
+          -instr-profile=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
+              --show-branches=count
+          #-show-line-counts-or-regions
+          #-output-dir=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged
+          #-format="html" ${EXCLUDE_REGEX}
+              -format="text" ${EXCLUDE_REGEX}
+              > ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/coverage.txt
+        DEPENDS ccov-all-processing)
 
     elseif(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES
                                                 "GNU")
