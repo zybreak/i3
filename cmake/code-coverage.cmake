@@ -641,9 +641,12 @@ function(add_code_coverage_all_targets)
             ${LLVM_COV_PATH} show `cat
             ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list`
             -instr-profile=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
-            -show-line-counts-or-regions
-            -output-dir=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged
-            -format="html" ${EXCLUDE_REGEX}
+                --show-branches=count
+            #-show-line-counts-or-regions
+            #-output-dir=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged
+            #-format="html" ${EXCLUDE_REGEX}
+                -format="text" ${EXCLUDE_REGEX}
+                > ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/coverage.txt
           DEPENDS ccov-all-processing)
       endif()
 
