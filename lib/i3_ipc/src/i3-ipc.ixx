@@ -44,7 +44,7 @@ export class ipc_client {
 export namespace i3ipc {
 
     /** Never change this, only on major IPC breakage (don’t do that) */
-    const std::string MAGIC = "i3-ipc";
+    constexpr std::string MAGIC = "i3-ipc";
 
     /**
      * Messages from clients to i3

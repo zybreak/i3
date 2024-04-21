@@ -13,6 +13,7 @@ module;
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <utility>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -153,7 +154,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
         workspace_update_urgent_flag(con->con_get_workspace());
     }
 
-    DLOG(fmt::sprintf("closing %p, kill_window = %d\n", fmt::ptr(con), kill_window));
+    DLOG(fmt::sprintf("closing %p, kill_window = %d\n", fmt::ptr(con), std::to_underlying(kill_window)));
     bool abort_kill = false;
     /* We cannot use TAILQ_FOREACH because the children get deleted
      * in their parent’s nodes */
@@ -317,7 +318,7 @@ void tree_split(Con *con, orientation_t orientation) {
         return;
     }
 
-    DLOG(fmt::sprintf("Splitting in orientation %d\n",  orientation));
+    DLOG(fmt::sprintf("Splitting in orientation %d\n", std::to_underlying(orientation)));
 
     /* 2: replace it with a new Con */
     Con *new_con = new ConCon();

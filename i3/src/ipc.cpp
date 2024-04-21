@@ -16,6 +16,7 @@ module;
 #include <cstdint>
 #include <cstdio>
 #include <vector>
+#include <utility>
 
 #include <xcb/xcb.h>
 
@@ -407,7 +408,7 @@ static std::string workspace_layout(WorkspaceCon *con) {
         case L_TABBED:
             return "tabbed";
         default:
-            DLOG(fmt::sprintf("About to dump workspace_layout=%d (none of default/stacked/tabbed), this is a bug.\n",  con->workspace_layout));
+            DLOG(fmt::sprintf("About to dump workspace_layout=%d (none of default/stacked/tabbed), this is a bug.\n",  std::to_underlying(con->workspace_layout)));
             assert(false);
             break;
     }

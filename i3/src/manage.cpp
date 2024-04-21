@@ -14,6 +14,7 @@ module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
 #include <chrono>
+#include <utility>
 
 #include "i3.h"
 #include "atoms.h"
@@ -547,7 +548,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     }
 
     if (has_mwm_hints) {
-        DLOG(fmt::sprintf("MOTIF_WM_HINTS specifies decorations (border_style = %d)\n", motif_border_style));
+        DLOG(fmt::sprintf("MOTIF_WM_HINTS specifies decorations (border_style = %d)\n", std::to_underlying(motif_border_style)));
         if (want_floating) {
             con_set_border_style(nc, motif_border_style, config.default_floating_border_width);
         } else {

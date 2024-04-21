@@ -17,6 +17,7 @@ module;
 #include <cstring>
 #include <algorithm>
 #include <sys/types.h>
+#include <utility>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -640,14 +641,14 @@ void x_draw_decoration(Con *con) {
     int icon_offset_x;
     int title_offset_x;
     switch (config.title_align) {
-        case Config::ALIGN_LEFT:
+        case title_align_t::ALIGN_LEFT:
             /* (pad)[(pad)(icon)(pad)][text    ](pad)[mark + its pad)
              *             ^           ^--- title_offset_x
              *             ^--- icon_offset_x */
             icon_offset_x = icon_padding;
             title_offset_x = title_padding + total_icon_space;
             break;
-        case Config::ALIGN_CENTER:
+        case title_align_t::ALIGN_CENTER:
             /* (pad)[  ][(pad)(icon)(pad)][text  ](pad)[mark + its pad)
              *                 ^           ^--- title_offset_x
              *                 ^--- icon_offset_x
@@ -659,7 +660,7 @@ void x_draw_decoration(Con *con) {
             icon_offset_x = std::max(icon_padding, (deco_width - icon_padding - icon_size - predict_text_width(config.font, **global.x, global.x->root_screen, title) - title_padding - mark_width) / 2);
             title_offset_x = std::max(title_padding, icon_offset_x + icon_padding + icon_size);
             break;
-        case Config::ALIGN_RIGHT:
+        case title_align_t::ALIGN_RIGHT:
             /* [mark + its pad](pad)[    text][(pad)(icon)(pad)](pad)
              *                           ^           ^--- icon_offset_x
              *                           ^--- title_offset_x */
@@ -668,7 +669,7 @@ void x_draw_decoration(Con *con) {
             icon_offset_x = std::min(deco_width - icon_size - icon_padding - title_padding, title_offset_x + predict_text_width(config.font, **global.x, global.x->root_screen, title) + icon_padding);
             break;
         default:
-            ELOG(fmt::sprintf("BUG: invalid config.title_align value %d\n", config.title_align));
+            ELOG(fmt::sprintf("BUG: invalid config.title_align value %d\n", std::to_underlying(config.title_align)));
             return;
     }
 
@@ -947,7 +948,7 @@ void x_push_node(Con *con) {
                              con->layout == L_STACKED ||
                              con->layout == L_TABBED);
     DLOG(fmt::sprintf("Con %p (layout %d), is_pixmap_needed = %s, rect.height = %d\n",
-         fmt::ptr(con), con->layout, is_pixmap_needed ? "yes" : "no", con->rect.height));
+         fmt::ptr(con), std::to_underlying(con->layout), is_pixmap_needed ? "yes" : "no", con->rect.height));
 
     /* The root con and output cons will never require a pixmap. In particular for the
      * __i3 output, this will likely not work anyway because it might be ridiculously

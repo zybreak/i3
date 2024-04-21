@@ -37,6 +37,7 @@ module;
 #include <fmt/printf.h>
 #include <mutex>
 #include <map>
+#include <utility>
 module i3;
 
 import log;
@@ -275,7 +276,7 @@ static bool handle_motif_hints_change(Con *con, xcb_get_property_reply_t *prop) 
     bool has_mwm_hints = con->window->window_update_motif_hints(prop, &motif_border_style);
 
     if (has_mwm_hints && motif_border_style != con->border_style) {
-        DLOG(fmt::sprintf("Update border style of con %p to %d\n", fmt::ptr(con), motif_border_style));
+        DLOG(fmt::sprintf("Update border style of con %p to %d\n", fmt::ptr(con), std::to_underlying(motif_border_style)));
         con_set_border_style(con, motif_border_style, con->current_border_width);
 
         x_push_changes(global.croot);

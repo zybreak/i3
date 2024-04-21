@@ -94,6 +94,8 @@ static void next_state(const cmdp_token &token, parser_ctx &ctx) {
     if (token.next_state == cmdp_state::__CALL) {
         ConfigResultIR subcommand_output = {
             .ctx = ctx,
+            .next_state = 0,
+            .has_errors = false
         };
         GENERATED_call(ctx.criteria_state, ctx.stack, token.call_identifier, subcommand_output);
         if (subcommand_output.has_errors) {
@@ -149,7 +151,7 @@ static std::string_view single_line(std::string::const_iterator &start, std::str
 
 static std::string get_possible_tokens(const std::vector<cmdp_token> &ptr) {
     std::string possible_tokens{};
-    for (int c = 0; c < ptr.size(); c++) {
+    for (unsigned long c = 0; c < ptr.size(); c++) {
         auto &token = ptr.at(c);
         if (token.name[0] == '\'') {
             /* A literal is copied to the error message enclosed with
@@ -238,7 +240,7 @@ static void unhandled_token(const std::string &input, const char *filename, int 
     bool error_token_found = false;
     for (int i = ctx.statelist_idx - 1; (i >= 0) && !error_token_found; i--) {
         std::vector<cmdp_token> errptr = tokens.at(static_cast<cmdp_state>(ctx.statelist[i]));
-        for (int j = 0; j < errptr.size(); j++) {
+        for (unsigned long j = 0; j < errptr.size(); j++) {
             if (errptr.at(j).name != "error") {
                 continue;
             }
@@ -402,6 +404,8 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
 
     ConfigResultIR subcommand_output = {
         .ctx = ctx,
+        .next_state = 0,
+        .has_errors = false
     };
 
     cfg::criteria_init(ctx.criteria_state, subcommand_output, std::to_underlying(cmdp_state::INITIAL));
@@ -417,7 +421,7 @@ bool parse_config(parser_ctx &ctx, const std::string &input, const char *filenam
 
         auto &ptr = tokens.at(static_cast<cmdp_state>(ctx.state));
         bool token_handled = false;
-        for (int c = 0; c < ptr.size() && !token_handled; c++) {
+        for (unsigned long c = 0; c < ptr.size() && !token_handled; c++) {
             auto &token = ptr.at(c);
 
             /* A literal. */
@@ -607,7 +611,6 @@ OldParser::OldParser(const char *filename, std::istream &stream, BaseResourceDat
 
 OldParser::OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), stream(stream), load_type(load_type), ctx(this) {
     this->old_dir = getcwd(nullptr, 0);
-    char *dir = nullptr;
 
     std::filesystem::path f(filename);
     f.remove_filename();

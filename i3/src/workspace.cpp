@@ -15,6 +15,7 @@ module;
 #include <fmt/printf.h>
 #include <algorithm>
 #include <ranges>
+#include <utility>
 
 #include "i3.h"
 module i3;
@@ -76,7 +77,7 @@ static void _workspace_apply_default_orientation(Con *ws) {
         ws->layout = (output->rect.height > output->rect.width) ? L_SPLITV : L_SPLITH;
         ws->rect = output->rect;
         DLOG(fmt::sprintf("Auto orientation. Workspace size set to (%d,%d), setting layout to %d.\n",
-             output->rect.width, output->rect.height, ws->layout));
+             output->rect.width, output->rect.height, std::to_underlying(ws->layout)));
     } else {
         ws->layout = (config.default_orientation == HORIZ) ? L_SPLITH : L_SPLITV;
     }
@@ -185,7 +186,6 @@ WorkspaceCon *workspace_get(const std::string &num) {
  *
  */
 void extract_workspace_names_from_bindings() {
-    int n = 0;
     binding_workspace_names.clear();
     for (auto &bind : current_mode->bindings) {
         DLOG(fmt::sprintf("binding with command %s\n",  bind->command));
@@ -937,7 +937,7 @@ void ws_force_orientation(Con *ws, orientation_t orientation) {
 
     /* 4: switch workspace layout */
     ws->layout = (orientation == HORIZ) ? L_SPLITH : L_SPLITV;
-    DLOG(fmt::sprintf("split->layout = %d, ws->layout = %d\n",  split->layout, ws->layout));
+    DLOG(fmt::sprintf("split->layout = %d, ws->layout = %d\n",  std::to_underlying(split->layout), std::to_underlying(ws->layout)));
 
     /* 5: attach the new split container to the workspace */
     DLOG(fmt::sprintf("Attaching new split (%p) to ws (%p)\n", fmt::ptr(split), fmt::ptr(ws)));

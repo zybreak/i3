@@ -13,28 +13,6 @@ export struct placeholder_t {
     const std::string value;
 };
 
-
-static bool CS_STARTS_WITH(const char *string, const char *needle) {
-    return strncmp(string, needle, strlen(needle)) == 0;
-}
-
-static unsigned long get_buffer_len(const std::string &format, std::vector<placeholder_t> &placeholders) {
-    unsigned long buffer_len = format.length() + 1;
-    for (const char *walk = format.c_str(); *walk != '\0'; walk++) {
-        for (auto &placeholder : placeholders) {
-            if (!CS_STARTS_WITH(walk, placeholder.name.c_str())) {
-                continue;
-            }
-
-            buffer_len = buffer_len - placeholder.name.size() + placeholder.value.size();
-            walk += placeholder.name.size() - 1;
-            break;
-        }
-    }
-
-    return buffer_len;
-}
-
 /*
  * Replaces occurrences of the defined placeholders in the format string.
  *
@@ -44,36 +22,33 @@ export std::string format_placeholders(const std::string &format, std::vector<pl
         return "";
     }
 
-    /* We have to first iterate over the string to see how much buffer space
-     * we need to allocate. */
-    auto buffer_len = get_buffer_len(format, placeholders);
-
     /* Now we can parse the format string. */
-    char buffer[buffer_len];
-    char *outwalk = buffer;
-    for (const char *walk = format.c_str(); *walk != '\0'; walk++) {
+    std::string buffer{};
+    buffer.reserve(format.length());
+    
+    for (auto walk = format.begin(); walk < format.end(); walk++) {
         if (*walk != '%') {
-            *(outwalk++) = *walk;
+            buffer += *walk;
             continue;
         }
 
         bool matched = false;
         for (auto &placeholder : placeholders) {
-            if (!CS_STARTS_WITH(walk, placeholder.name.c_str())) {
+            auto it = std::search(walk, format.end(), placeholder.name.begin(), placeholder.name.end());
+            if (it == format.end()) {
                 continue;
             }
 
             matched = true;
-            outwalk += sprintf(outwalk, "%s", placeholder.value.c_str());
-            walk += placeholder.name.size() - 1;
+            buffer += placeholder.value;
+            std::advance(walk, placeholder.name.size() - 1);
             break;
         }
 
         if (!matched) {
-            *(outwalk++) = *walk;
+            buffer += *walk;
         }
     }
 
-    *outwalk = '\0';
     return buffer;
 }

@@ -13,6 +13,7 @@ module;
 #include <cstdint>
 
 #include <xcb/xcb.h>
+#include <utility>
 
 #include <fmt/printf.h>
 
@@ -80,7 +81,7 @@ static void resize_callback(Con *con, const Rect&, uint32_t new_x, uint32_t new_
 }
 
 bool resize_find_tiling_participants(Con **current, Con **other, direction_t direction, bool both_sides) {
-    DLOG(fmt::sprintf("Find two participants for resizing container=%p in direction=%i\n", fmt::ptr(other), direction));
+    DLOG(fmt::sprintf("Find two participants for resizing container=%p in direction=%i\n", fmt::ptr(other), std::to_underlying(direction)));
     Con *first = *current;
     Con *second = nullptr;
     if (first == nullptr) {

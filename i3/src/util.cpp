@@ -20,6 +20,7 @@ module;
 #include <cstring>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <filesystem>
 #include "i3.h"
 
 #include <cctype>
@@ -194,7 +195,9 @@ static std::string store_restart_layout() {
      * may not exist at all in case it was user-specified. */
     char *filenamecopy = sstrdup(filename.c_str());
     char *base = dirname(filenamecopy);
-     DLOG(fmt::sprintf("Creating \"%s\" for storing the restart layout\n", base));
+    DLOG(fmt::sprintf("Creating \"%s\" for storing the restart layout\n", base));
+    using std::filesystem::perms;
+    const perms DEFAULT_DIR_MODE = perms::owner_all | perms::group_read | perms::group_exec | perms::others_read | perms::others_exec;
     if (mkdirp(base, DEFAULT_DIR_MODE) != 0) {
         ELOG(fmt::sprintf("Could not create \"%s\" for storing the restart layout, layout will be lost.\n", base));
     }

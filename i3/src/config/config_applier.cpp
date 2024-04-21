@@ -359,16 +359,16 @@ void ConfigApplier::focus_on_window_activation(const std::string &mode) {
         return;
     }
 
-    DLOG(fmt::sprintf("Set new focus_on_window_activation mode = %i.\n",  config.focus_on_window_activation));
+    DLOG(fmt::sprintf("Set new focus_on_window_activation mode = %d.\n",  std::to_underlying(config.focus_on_window_activation)));
 }
 
 void ConfigApplier::title_align(const std::string &alignment) {
     if (alignment == "left"s) {
-        config.title_align = Config::ALIGN_LEFT;
+        config.title_align = title_align_t::ALIGN_LEFT;
     } else if (alignment == "center"s) {
-        config.title_align = Config::ALIGN_CENTER;
+        config.title_align = title_align_t::ALIGN_CENTER;
     } else if (alignment == "right"s) {
-        config.title_align = Config::ALIGN_RIGHT;
+        config.title_align = title_align_t::ALIGN_RIGHT;
     } else {
         assert(false);
     }

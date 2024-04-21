@@ -16,6 +16,7 @@ module;
 #include <fmt/printf.h>
 #include <cairo.h>
 #include <cairo-xcb.h>
+#include <utility>
 module i3;
 
 import utils;
@@ -52,7 +53,7 @@ static xcb_gcontext_t get_gc(xcb_connection_t *conn, uint8_t depth, xcb_drawable
         uint8_t depth;
         xcb_gcontext_t gc;
     } gc_cache[2] = {
-        0,
+        {0, 0},
     };
 
     size_t index = 0;
@@ -142,7 +143,7 @@ void draw_util_surface_free(xcb_connection_t *conn, surface_t *surface) {
     }
     if (status != CAIRO_STATUS_SUCCESS) {
         LOG(fmt::sprintf("Found cairo context in an error status while freeing, error %d is %s",
-            status, cairo_status_to_string(status)));
+                         std::to_underlying(status), cairo_status_to_string(status)));
     }
 
     if (surface->owns_gc) {

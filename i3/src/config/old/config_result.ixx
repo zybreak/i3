@@ -10,8 +10,7 @@ export {
      * implement a config parsing IPC command.
      *
      */
-    class ConfigResultIR {
-       public:
+    struct ConfigResultIR {
         parser_ctx ctx;
 
         /* The next state to transition to. Passed to the function so that we can

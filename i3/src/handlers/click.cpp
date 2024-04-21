@@ -17,6 +17,7 @@ module;
 
 #include "i3.h"
 #include <fmt/printf.h>
+#include <utility>
 module i3;
 
 import :output;
@@ -36,7 +37,7 @@ enum click_destination_t {
  *
  */
 static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press_event_t *event, bool use_threshold) {
-    DLOG(fmt::sprintf("border = %d, con = %p\n", border, fmt::ptr(con)));
+    DLOG(fmt::sprintf("border = %d, con = %p\n", std::to_underlying(border), fmt::ptr(con)));
     Con *second = nullptr;
     Con *first = con;
     direction_t search_direction;
@@ -54,7 +55,7 @@ static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press
             search_direction = D_DOWN;
             break;
         default:
-            ELOG(fmt::sprintf("BUG: invalid border value %d\n", border));
+            ELOG(fmt::sprintf("BUG: invalid border value %d\n", std::to_underlying(border)));
             return false;
     }
 
@@ -64,7 +65,7 @@ static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press
         return false;
     }
     if (first->fullscreen_mode != second->fullscreen_mode) {
-        DLOG(fmt::sprintf("Avoiding resize between containers with different fullscreen modes, %d != %d\n", first->fullscreen_mode, second->fullscreen_mode));
+        DLOG(fmt::sprintf("Avoiding resize between containers with different fullscreen modes, %d != %d\n", std::to_underlying(first->fullscreen_mode), std::to_underlying(second->fullscreen_mode)));
         return false;
     }
 
@@ -173,9 +174,9 @@ static void allow_replay_pointer(xcb_timestamp_t time) {
  *
  */
 static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *event, const bool mod_pressed, const click_destination_t dest) {
-    DLOG(fmt::sprintf("--> click properties: mod = %d, destination = %d\n", mod_pressed, dest));
+    DLOG(fmt::sprintf("--> click properties: mod = %d, destination = %d\n", mod_pressed ? 1 : 0, std::to_underlying(dest)));
     DLOG(fmt::sprintf("--> OUTCOME = %p\n", fmt::ptr(con)));
-    DLOG(fmt::sprintf("type = %d, name = %s\n", con->type, con->name));
+    DLOG(fmt::sprintf("type = %d, name = %s\n", std::to_underlying(con->type), con->name));
 
     /* don’t handle dockarea cons, they must not be focused */
     if (con->parent->type == CT_DOCKAREA) {

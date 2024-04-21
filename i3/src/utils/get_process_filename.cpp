@@ -11,6 +11,7 @@ module;
 #include <cstdlib>
 #include <unistd.h>
 #include <cstdio>
+#include <filesystem>
 
 module utils;
 
@@ -30,7 +31,8 @@ char *get_process_filename(const char *prefix) {
             dir = tmp;
             /* mkdirp() should prevent race between multiple i3 instances started
              * in parallel from causing problem */
-            if (mkdirp(dir, 0700) == -1) {
+            using std::filesystem::perms;
+            if (mkdirp(dir, perms::owner_all) == -1) {
                 warn("Could not mkdirp(%s)", dir);
                 errx(EXIT_FAILURE, "Check permissions of $XDG_RUNTIME_DIR = '%s'",
                      getenv("XDG_RUNTIME_DIR"));

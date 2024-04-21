@@ -12,6 +12,7 @@ module;
 #include <deque>
 #include <ranges>
 #include <fmt/printf.h>
+#include <utility>
 module i3;
 
 import log;
@@ -270,7 +271,7 @@ void tree_move(Con *con, direction_t direction) {
     position_t position;
     Con *target;
 
-    DLOG(fmt::sprintf("Moving in direction %d\n", direction));
+    DLOG(fmt::sprintf("Moving in direction %d\n", std::to_underlying(direction)));
 
     /* 1: get the first parent with the same orientation */
 

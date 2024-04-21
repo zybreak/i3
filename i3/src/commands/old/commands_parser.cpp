@@ -201,7 +201,7 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
              * currently is. */
     std::string possible_tokens{};
     possible_tokens.reserve(tokenlen + 1);
-    for (int c = 0; c < ptr.size(); c++) {
+    for (unsigned long c = 0; c < ptr.size(); c++) {
         auto &token = ptr.at(c);
         if (token.name[0] == '\'') {
             /* A literal is copied to the error message enclosed with
@@ -277,7 +277,6 @@ CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, i
 
     const char *walk = input.c_str();
     const size_t len = input.length();
-    int c;
 
     /* The "<=" operator is intentional: We also handle the terminating 0-byte
      * explicitly by looking for an 'end' token. */
@@ -291,7 +290,7 @@ CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, i
 
         std::vector<cmdp_token> &ptr = tokens.at(state);
         bool token_handled = false;
-        for (c = 0; c < ptr.size() && !token_handled; c++) {
+        for (unsigned long c = 0; c < ptr.size() && !token_handled; c++) {
             const cmdp_token &token = ptr.at(c);
 
             /* A literal. */

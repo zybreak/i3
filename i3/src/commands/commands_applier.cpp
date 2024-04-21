@@ -15,6 +15,7 @@ module;
 #include <cstdlib>
 #include <cstring>
 #include <queue>
+#include <utility>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -1501,7 +1502,7 @@ void CommandsApplier::layout(struct criteria_state *criteria_state, CommandResul
         throw std::runtime_error(fmt::sprintf("Unknown layout \"%s\", this is a mismatch between code and parser spec.", layout_str));
     }
 
-    DLOG(fmt::sprintf("changing layout to %s (%d)\n",  layout_str, layout));
+    DLOG(fmt::sprintf("changing layout to %s (%d)\n",  layout_str, std::to_underlying(layout)));
 
     for (auto current: criteria_state->owindows) {
         if (current->con_is_docked()) {
@@ -1991,7 +1992,7 @@ void CommandsApplier::bar_mode(struct criteria_state *criteria_state, CommandRes
         }
 
         DLOG(fmt::sprintf("Changing bar mode of bar_id '%s' from '%d' to '%s (%d)'\n",
-             current->id, current->mode, bar_mode, mode));
+             current->id, std::to_underlying(current->mode), bar_mode, mode));
         if ((int) current->mode != mode) {
             current->mode = static_cast<config_mode_t>(mode);
             ipc_send_barconfig_update_event(current.get());
@@ -2046,7 +2047,7 @@ void CommandsApplier::bar_hidden_state(struct criteria_state *criteria_state, Co
         }
 
         DLOG(fmt::sprintf("Changing bar hidden_state of bar_id '%s' from '%d' to '%s (%d)'\n",
-             current->id, current->hidden_state, bar_hidden_state, hidden_state));
+             current->id, std::to_underlying(current->hidden_state), bar_hidden_state, std::to_underlying(hidden_state)));
         if ((int) current->hidden_state != hidden_state) {
             current->hidden_state = hidden_state;
             ipc_send_barconfig_update_event(current.get());

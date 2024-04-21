@@ -125,6 +125,12 @@ export {
         HEBM_SMART = (1 << 5),
         HEBM_SMART_NO_GAPS = (1 << 6)
     };
+    
+    enum title_align_t {
+        ALIGN_LEFT,
+        ALIGN_CENTER,
+        ALIGN_RIGHT
+    };
 
     /**
      * Holds part of the configuration
@@ -210,11 +216,7 @@ export {
         enum conf_fowa_t focus_on_window_activation;
 
         /** Title alignment options. */
-        enum {
-            ALIGN_LEFT,
-            ALIGN_CENTER,
-            ALIGN_RIGHT
-        } title_align;
+        title_align_t title_align;
 
         /** The default border style for new windows. */
         border_style_t default_border;

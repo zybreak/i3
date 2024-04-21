@@ -1,5 +1,6 @@
 module;
 #include <string>
+#include <filesystem>
 #include <string_view>
 #include <xcb/xcb.h>
 export module utils;
@@ -80,7 +81,7 @@ export char *get_process_filename(const char *prefix);
  * Emulates mkdir -p (creates any missing folders)
  *
  */
-export int mkdirp(const char *path, mode_t mode);
+export int mkdirp(const char *path, std::filesystem::perms mode);
 
 /**
  * Puts the given socket file descriptor into non-blocking mode or dies if

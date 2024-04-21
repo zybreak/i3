@@ -17,6 +17,7 @@ module;
 #include <algorithm>
 #include <ranges>
 #include <chrono>
+#include <utility>
 
 #include <xcb/xcb.h>
 #include <vector>
@@ -459,7 +460,7 @@ void Con::con_close(kill_window_t kill_window) {
 
     /* We never close output or root containers. */
     if (this->type == CT_OUTPUT || this->type == CT_ROOT) {
-        DLOG(fmt::sprintf("con = %p is of type %d, not closing anything.\n", fmt::ptr(this), this->type));
+        DLOG(fmt::sprintf("con = %p is of type %d, not closing anything.\n", fmt::ptr(this), std::to_underlying(this->type)));
         return;
     }
 
@@ -626,7 +627,7 @@ WorkspaceCon* Con::con_get_workspace() {
  *
  */
 Con* Con::con_parent_with_orientation(orientation_t orientation) {
-    DLOG(fmt::sprintf("Searching for parent of Con %p with orientation %d\n", fmt::ptr(this), orientation));
+    DLOG(fmt::sprintf("Searching for parent of Con %p with orientation %d\n", fmt::ptr(this), std::to_underlying(orientation)));
     Con *parent = this->parent;
     if (parent->type == CT_FLOATING_CON) {
         return nullptr;
@@ -1048,7 +1049,7 @@ void con_toggle_fullscreen(Con *con, int fullscreen_mode) {
 static void con_set_fullscreen_mode(xcb_connection_t *conn, Con *con, fullscreen_mode_t fullscreen_mode) {
     con->fullscreen_mode = fullscreen_mode;
 
-    DLOG(fmt::sprintf("mode now: %d\n",  con->fullscreen_mode));
+    DLOG(fmt::sprintf("mode now: %d\n",  std::to_underlying(con->fullscreen_mode)));
 
     /* Send an ipc window "fullscreen_mode" event */
     ipc_send_window_event("fullscreen_mode", con);
@@ -1206,7 +1207,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
 
     /* 2: we go up one level, but only when target is a normal container */
     if (target->type != CT_WORKSPACE) {
-        DLOG(fmt::sprintf("target originally = %p / %s / type %d\n", fmt::ptr(target), target->name, target->type));
+        DLOG(fmt::sprintf("target originally = %p / %s / type %d\n", fmt::ptr(target), target->name, std::to_underlying(target->type)));
         target = target->parent;
     }
 
@@ -1432,7 +1433,7 @@ orientation_t con_orientation(Con *con) {
 
         case L_DOCKAREA:
         case L_OUTPUT:
-            ELOG(fmt::sprintf("con_orientation() called on dockarea/output (%d) container %p\n", con->layout, fmt::ptr(con)));
+            ELOG(fmt::sprintf("con_orientation() called on dockarea/output (%d) container %p\n", std::to_underlying(con->layout), fmt::ptr(con)));
             assert(false);
     }
     /* should not be reached */
@@ -1533,7 +1534,7 @@ Con *con_descend_tiling_focused(Con *con) {
 Con *con_descend_direction(Con *con, direction_t direction) {
     Con *most = nullptr;
     int orientation = con_orientation(con);
-    DLOG(fmt::sprintf("con_descend_direction(%p, orientation %d, direction %d)\n", fmt::ptr(con), orientation, direction));
+    DLOG(fmt::sprintf("con_descend_direction(%p, orientation %d, direction %d)\n", fmt::ptr(con), orientation, std::to_underlying(direction)));
     if (direction == D_LEFT || direction == D_RIGHT) {
         if (orientation == HORIZ) {
             /* If the direction is horizontal, we can use either the first
@@ -1792,7 +1793,7 @@ void con_set_border_style(Con *con, border_style_t border_style, int border_widt
  */
 void con_set_layout(Con *con, layout_t layout) {
     DLOG(fmt::sprintf("con_set_layout(%p, %d), con->type = %d\n",
-         fmt::ptr(con), layout, con->type));
+         fmt::ptr(con), std::to_underlying(layout), std::to_underlying(con->type)));
 
     /* Users can focus workspaces, but not any higher in the hierarchy.
      * Focus on the workspace is a special case, since in every other case, the
@@ -1816,9 +1817,9 @@ void con_set_layout(Con *con, layout_t layout) {
         auto workspaceCon = dynamic_cast<WorkspaceCon*>(con);
         if (con->con_num_children() == 0) {
             layout_t ws_layout = (layout == L_STACKED || layout == L_TABBED) ? layout : L_DEFAULT;
-            DLOG(fmt::sprintf("Setting workspace_layout to %d\n",  ws_layout));
+            DLOG(fmt::sprintf("Setting workspace_layout to %d\n", std::to_underlying(ws_layout)));
             workspaceCon->workspace_layout = ws_layout;
-            DLOG(fmt::sprintf("Setting layout to %d\n",  layout));
+            DLOG(fmt::sprintf("Setting layout to %d\n",  std::to_underlying(layout)));
             con->layout = layout;
         } else if (layout == L_STACKED || layout == L_TABBED || layout == L_SPLITV || layout == L_SPLITH) {
             DLOG("Creating new split container\n");
@@ -1886,7 +1887,7 @@ void Con::on_remove_child() {
         this->type == CT_ROOT ||
         this->type == CT_DOCKAREA ||
         (this->parent != nullptr && this->parent->type == CT_OUTPUT)) {
-        DLOG(fmt::sprintf("not handling, type = %d, name = %s\n",  this->type, this->name));
+        DLOG(fmt::sprintf("not handling, type = %d, name = %s\n",  std::to_underlying(this->type), this->name));
         return;
     }
 

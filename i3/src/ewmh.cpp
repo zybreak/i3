@@ -10,6 +10,8 @@
 module;
 #include <fmt/printf.h>
 #include <xcb/xcb.h>
+#include <array>
+#include <algorithm>
 
 #include "i3.h"
 
@@ -48,9 +50,7 @@ static void ewmh_update_number_of_desktops() {
     uint32_t idx = 0;
 
     for (auto &output : global.croot->nodes) {
-        for (auto &ws : output->output_get_content()->nodes) {
-            idx++;
-        }
+        idx += output->output_get_content()->nodes.size();
     }
 
     if (idx == old_idx) {
@@ -76,7 +76,8 @@ static void ewmh_update_desktop_names() {
         }
     }
 
-    char desktop_names[msg_length];
+    std::vector<char> desktop_names{};
+    desktop_names.reserve(msg_length);
     int current_position = 0;
 
     /* fill the buffer with the names of the i3 workspaces */
@@ -89,7 +90,7 @@ static void ewmh_update_desktop_names() {
     }
 
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root,
-                        A__NET_DESKTOP_NAMES, A_UTF8_STRING, 8, msg_length, desktop_names);
+                        A__NET_DESKTOP_NAMES, A_UTF8_STRING, 8, msg_length, desktop_names.data());
 }
 
 /*
@@ -100,24 +101,23 @@ static void ewmh_update_desktop_viewport() {
     int num_desktops = 0;
     /* count number of desktops */
     for (auto &output : global.croot->nodes) {
-        for (auto &ws : output->output_get_content()->nodes) {
-            num_desktops++;
-        }
+        num_desktops += output->output_get_content()->nodes.size();
     }
 
-    uint32_t viewports[num_desktops * 2];
+    std::vector<uint32_t> viewports{};
+    viewports.reserve(num_desktops * 2);
 
     int current_position = 0;
     /* fill the viewport buffer */
     for (auto &output : global.croot->nodes) {
-        for (auto &ws : output->output_get_content()->nodes) {
+        std::ranges::for_each(output->output_get_content()->nodes, [&](const auto) {
             viewports[current_position++] = output->rect.x;
             viewports[current_position++] = output->rect.y;
-        }
+        });
     }
 
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root,
-                        A__NET_DESKTOP_VIEWPORT, XCB_ATOM_CARDINAL, 32, current_position, &viewports);
+        A__NET_DESKTOP_VIEWPORT, XCB_ATOM_CARDINAL, 32, current_position, viewports.data());
 }
 
 /*

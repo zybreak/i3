@@ -18,6 +18,7 @@ module;
 #include <cmath>
 #include <ranges>
 #include <vector>
+#include <utility>
 
 #include <fmt/printf.h>
 
@@ -83,7 +84,7 @@ void render_con(Con *con) {
         .children = con->con_num_children()};
 
     DLOG(fmt::sprintf("Rendering node %p / %s / layout %d / children %d\n", fmt::ptr(con), con->name,
-                      con->layout, params.children));
+                     std::to_underlying(con->layout), params.children));
 
     if (con->type == CT_WORKSPACE) {
         gaps_t gaps = calculate_effective_gaps(con);
@@ -357,7 +358,7 @@ static void render_output(Con *con) {
             }
             content = child;
         } else if (child->type != CT_DOCKAREA) {
-            DLOG(fmt::sprintf("Child %p of type %d is inside the OUTPUT con\n", fmt::ptr(child), child->type));
+            DLOG(fmt::sprintf("Child %p of type %d is inside the OUTPUT con\n", fmt::ptr(child), std::to_underlying(child->type)));
             assert(false);
         }
     }

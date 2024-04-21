@@ -31,7 +31,7 @@ namespace i3ipc {
     int ipc_recv_message(int sockfd, uint32_t *message_type,
                          uint32_t *reply_length, uint8_t **reply) {
         /* Read the message header first */
-        const uint32_t to_read = MAGIC.length() + sizeof(uint32_t) + sizeof(uint32_t);
+        constexpr uint32_t to_read = MAGIC.length() + sizeof(uint32_t) + sizeof(uint32_t);
         char msg[to_read];
         char *walk = msg;
 

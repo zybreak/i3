@@ -110,8 +110,8 @@ export {
         int height_increment;
 
         /* Minimum size specified for the window. */
-        int min_width;
-        int min_height;
+        uint32_t min_width;
+        uint32_t min_height;
 
         /* Maximum size specified for the window. */
         uint32_t max_width;

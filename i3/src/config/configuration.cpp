@@ -317,7 +317,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
 
             start_config_error_nagbar(true);
         } else {
-            errx(EXIT_FAILURE, e.what());
+            errx(EXIT_FAILURE, "%s\n", e.what());
         }
     } catch (const std::exception &e) {
         errx(EXIT_FAILURE, "Error parsing configuration file: %s\n", e.what());

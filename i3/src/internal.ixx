@@ -129,7 +129,7 @@ export {
     };
 
     /** Fullscreen modes. Used by Con.fullscreen_mode. */
-    enum fullscreen_mode_t {
+    enum fullscreen_mode_t : int {
         CF_NONE = 0,
         CF_OUTPUT = 1,
         CF_GLOBAL = 2

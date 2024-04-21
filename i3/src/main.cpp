@@ -277,7 +277,7 @@ static void force_disable_output(const program_arguments &args) {
 }
 
 static Output *get_focused_output() {
-    Output *output;
+    Output *output{nullptr};
 
     auto pointerreply = xpp::x::query_pointer(**global.x, global.x->root);
     if (pointerreply.get() == nullptr) {
