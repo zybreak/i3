@@ -122,7 +122,7 @@ void configure_binding(const std::string_view bindtype, const std::string_view m
                            bool release, bool border, bool whole_window,
                            bool exclude_titlebar, const std::string_view command, const std::string_view modename,
                            bool pango_markup) {
-    DLOG(fmt::sprintf("Binding bindtype %s, modifiers %s, input code %s, release %s\n", bindtype, modifiers, input_code, release));
+    DLOG(fmt::sprintf("Binding bindtype %s, modifiers %s, input code %s, release %s\n", bindtype, modifiers, input_code, release ? "true" : "false"));
 
     auto new_binding = std::make_unique<Binding>();
     new_binding->release = (release ? B_UPON_KEYRELEASE : B_UPON_KEYPRESS);
