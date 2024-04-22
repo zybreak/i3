@@ -10,6 +10,7 @@ module;
 #include <cairo.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
+#include <vector>
 export module i3:is_background_set;
 
 import :x;
@@ -38,18 +39,20 @@ static cairo_region_t *unobscured_region(x_connection *conn, xcb_window_t window
     const uint16_t n_children = tree->children_len;
     xcb_window_t *children = xcb_query_tree_children(tree);
 
-    xcb_get_geometry_cookie_t geometries[n_children];
-    xcb_get_window_attributes_cookie_t attributes[n_children];
+    std::vector<xcb_get_geometry_cookie_t> geometries{};
+    geometries.reserve(n_children);
+    std::vector<xcb_get_window_attributes_cookie_t> attributes{};
+    attributes.reserve(n_children);
 
     for (int i = 0; i < n_children; i++) {
-        geometries[i] = xcb_get_geometry_unchecked(*conn, children[i]);
-        attributes[i] = xcb_get_window_attributes_unchecked(*conn, children[i]);
+        geometries.push_back(xcb_get_geometry_unchecked(*conn, children[i]));
+        attributes.push_back(xcb_get_window_attributes_unchecked(*conn, children[i]));
     }
 
     /* Remove every visible child from the region */
     for (int i = 0; i < n_children; i++) {
-        xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(*conn, geometries[i], nullptr);
-        xcb_get_window_attributes_reply_t *attr = xcb_get_window_attributes_reply(*conn, attributes[i], nullptr);
+        xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(*conn, geometries.at(i), nullptr);
+        xcb_get_window_attributes_reply_t *attr = xcb_get_window_attributes_reply(*conn, attributes.at(i), nullptr);
 
         if (geom && attr && attr->map_state == XCB_MAP_STATE_VIEWABLE) {
             rectangle.x = geom->x;

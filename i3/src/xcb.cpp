@@ -15,6 +15,7 @@ module;
 #include <fmt/printf.h>
 #include "atoms.h"
 #include <set>
+#include <vector>
 module i3;
 
 import utils;
@@ -272,16 +273,16 @@ void xcb_remove_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_a
     }
 
     {
-        int num = 0;
         const int current_size = xcb_get_property_value_length(reply) / (reply->format / 8);
-        xcb_atom_t values[current_size];
+        std::vector<xcb_atom_t> values{};
+        values.reserve(current_size);
         for (int i = 0; i < current_size; i++) {
             if (atoms[i] != atom) {
-                values[num++] = atoms[i];
+                values.push_back(atoms[i]);
             }
         }
 
-        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, window, property, XCB_ATOM_ATOM, 32, num, values);
+        xcb_change_property(conn, XCB_PROP_MODE_REPLACE, window, property, XCB_ATOM_ATOM, 32, values.size(), values.data());
     }
 
 release_grab:

@@ -1,9 +1,7 @@
 module;
 #include <string>
-#include <deque>
 #include <vector>
-#include <cstring>
-export module i3:format_placeholders;
+export module format_placeholders;
 
 /** Helper structure for usage in format_placeholders(). */
 export struct placeholder_t {

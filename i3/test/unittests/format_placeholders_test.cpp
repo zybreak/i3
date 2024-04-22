@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-import i3;
+import format_placeholders;
 
 TEST(FormatPlaceholdersTest, foo) {
     std::vector<placeholder_t> placeholders{{.name = "%title", .value = "foo"}};

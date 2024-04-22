@@ -28,7 +28,7 @@ module;
 module i3;
 
 import :output;
-import :format_placeholders;
+import format_placeholders;
 import utils;
 import log;
 import rect;

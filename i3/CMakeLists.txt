@@ -154,7 +154,6 @@ target_sources(i3_lib PUBLIC
         src/render.ixx
         src/randr.ixx
         src/font.ixx
-        src/format_placeholders.ixx
         src/xcb.ixx
         src/drag.ixx
         src/dpi.ixx

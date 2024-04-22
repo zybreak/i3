@@ -32,7 +32,6 @@ export import :output;
 export import :render;
 export import :randr;
 export import :font;
-export import :format_placeholders;
 export import :xcb;
 export import :drag;
 export import :dpi;
