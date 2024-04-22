@@ -659,7 +659,7 @@ Con* Con::con_get_fullscreen_con(fullscreen_mode_t fullscreen_mode) {
     bfs.push_back(this);
 
     while (!bfs.empty()) {
-        auto &current = bfs.front();
+        Con *current = bfs.front();
         if (current != this && current->fullscreen_mode == fullscreen_mode) {
             /* empty the queue */
             bfs.clear();
@@ -668,12 +668,12 @@ Con* Con::con_get_fullscreen_con(fullscreen_mode_t fullscreen_mode) {
 
         bfs.pop_front();
 
-        for (auto &child : current->nodes) {
+        for (auto child : current->nodes) {
             bfs.push_back(child);
         }
 
         if (dynamic_cast<WorkspaceCon*>(current) != nullptr) {
-            for (auto &child : dynamic_cast<WorkspaceCon*>(current)->floating_windows) {
+            for (auto child : dynamic_cast<WorkspaceCon*>(current)->floating_windows) {
                 bfs.push_back(child);
             }
         }

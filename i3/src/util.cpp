@@ -116,11 +116,10 @@ bool update_if_necessary(uint32_t *destination, const uint32_t new_value) {
  * Goes through the list of arguments (for exec()) and add/replace the given option,
  * including the option name, its argument, and the option character.
  */
-static char **add_argument(char **original, const char *opt_char, const char *opt_arg, const char *opt_name) {
-    int num_args;
-    for (num_args = 0; original[num_args] != nullptr; num_args++) {
-    }
-    char **result = (char**)scalloc(num_args + 3, sizeof(char *));
+static std::vector<char *> add_argument(std::vector<char*> &original, const char *opt_char, const char *opt_arg, const char *opt_name) {
+    int num_args = original.size();
+    std::vector<char*> result{};
+    result.reserve(num_args + 3);
 
     /* copy the arguments, but skip the ones we'll replace */
     int write_index = 0;
@@ -257,7 +256,7 @@ void i3_restart(bool forget_layout) {
         }
     }
 
-    execvp(global.start_argv[0], global.start_argv);
+    execvp(global.start_argv[0], global.start_argv.data());
 
     /* not reached */
 }

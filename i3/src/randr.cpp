@@ -417,7 +417,7 @@ void output_init_con(Output *output) {
  */
 void init_ws_for_output(Output *output) {
     Con *content = output->con->output_get_content();
-    Con *previous_focus = global.focused->con_get_workspace();
+    Con *previous_focus = global.focused != nullptr ? global.focused->con_get_workspace() : nullptr;
 
     /* Iterate over all workspaces and check if any of them should be assigned
      * to this output.

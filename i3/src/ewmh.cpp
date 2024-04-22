@@ -78,19 +78,18 @@ static void ewmh_update_desktop_names() {
 
     std::vector<char> desktop_names{};
     desktop_names.reserve(msg_length);
-    int current_position = 0;
 
     /* fill the buffer with the names of the i3 workspaces */
     for (auto &output : global.croot->nodes) {
         for (auto &ws : output->output_get_content()->nodes) {
             for (size_t i = 0; i < ws->name.length() + 1; i++) {
-                desktop_names[current_position++] = ws->name[i];
+                desktop_names.push_back(ws->name[i]);
             }
         }
     }
 
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root,
-                        A__NET_DESKTOP_NAMES, A_UTF8_STRING, 8, msg_length, desktop_names.data());
+                        A__NET_DESKTOP_NAMES, A_UTF8_STRING, 8, desktop_names.size(), desktop_names.data());
 }
 
 /*
@@ -107,17 +106,21 @@ static void ewmh_update_desktop_viewport() {
     std::vector<uint32_t> viewports{};
     viewports.reserve(num_desktops * 2);
 
-    int current_position = 0;
     /* fill the viewport buffer */
-    for (auto &output : global.croot->nodes) {
-        std::ranges::for_each(output->output_get_content()->nodes, [&](const auto) {
-            viewports[current_position++] = output->rect.x;
-            viewports[current_position++] = output->rect.y;
+    for (auto output : global.croot->nodes) {
+        auto content = output->output_get_content();
+        if (content == nullptr) {
+            continue;
+        }
+        std::ranges::for_each(
+            content->nodes, [&](const auto) {
+            viewports.push_back(output->rect.x);
+            viewports.push_back(output->rect.y);
         });
     }
 
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root,
-        A__NET_DESKTOP_VIEWPORT, XCB_ATOM_CARDINAL, 32, current_position, viewports.data());
+        A__NET_DESKTOP_VIEWPORT, XCB_ATOM_CARDINAL, 32, viewports.size(), viewports.data());
 }
 
 /*

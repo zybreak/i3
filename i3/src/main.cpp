@@ -397,7 +397,9 @@ int main(int argc, char *argv[]) {
 
     auto args = parse_args(argc, argv);
 
-    global.start_argv = argv;
+    for (int i = 0; i < argc; i++) {
+        global.start_argv.push_back(argv[i]);
+    }
     global.new_parser = args.new_parser;
 
     if (args.only_check_config) {

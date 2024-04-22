@@ -2,6 +2,7 @@ module;
 #include <xcb/xproto.h>
 #include <string>
 #include <deque>
+#include <vector>
 #include <sys/resource.h>
 #include <memory>
 export module i3;
@@ -75,7 +76,7 @@ export class Global {
 
     std::deque<Con *> all_cons{};
 
-    char **start_argv;
+    std::vector<char*> start_argv{};
 
     int xkb_current_group;
 
