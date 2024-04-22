@@ -50,6 +50,6 @@ export {
 
         explicit parser_ctx(OldParser *parser);
 
-        ~parser_ctx() = default;
+        ~parser_ctx();
     };
 }

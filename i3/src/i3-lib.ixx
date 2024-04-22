@@ -62,10 +62,9 @@ export namespace i3 {
 }
 
 export class Global {
-   private:
-    Global() = default;
 
    public:
+    Global() = default;
     Global(Global const &) = delete;
     Global &operator=(Global const &) = delete;
 
@@ -117,4 +116,4 @@ export class Global {
     }
 };
 
-export Global &global = Global::instance();
+export Global global{};

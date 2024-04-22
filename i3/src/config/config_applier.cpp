@@ -51,7 +51,9 @@ void ConfigApplier::criteria_init(criteria_state *st, int _state) {
 }
 
 int ConfigApplier::criteria_pop_state(criteria_state *cs) {
-    return cs->criteria_next_state;
+    int next_state = cs->criteria_next_state;
+    
+    return next_state;
 }
 
 void ConfigApplier::criteria_add(criteria_state *cs, const char *ctype, const char *cvalue) {
