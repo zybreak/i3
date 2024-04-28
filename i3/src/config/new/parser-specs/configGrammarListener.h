@@ -1,5 +1,5 @@
 
-// Generated from configGrammar.g4 by ANTLR 4.12.0
+// Generated from configGrammar.g4 by ANTLR 4.13.1
 
 #pragma once
 
@@ -103,6 +103,9 @@ public:
 
   virtual void enterExec(configGrammar::ExecContext *ctx) = 0;
   virtual void exitExec(configGrammar::ExecContext *ctx) = 0;
+
+  virtual void enterExec_always(configGrammar::Exec_alwaysContext *ctx) = 0;
+  virtual void exitExec_always(configGrammar::Exec_alwaysContext *ctx) = 0;
 
   virtual void enterDimension(configGrammar::DimensionContext *ctx) = 0;
   virtual void exitDimension(configGrammar::DimensionContext *ctx) = 0;

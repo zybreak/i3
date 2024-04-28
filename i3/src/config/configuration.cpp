@@ -297,7 +297,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
         std::ifstream stream{resolved_path};
 
         if (global.new_parser) {
-            NewParser np{ stream, resourceDatabase, load_type, configListener };
+            NewParser np{ resolved_path, stream, resourceDatabase, load_type, configListener };
             np.parse_file();
         } else {
             OldParser op{ resolved_path, stream, resourceDatabase, load_type, configListener };
@@ -306,6 +306,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
                 included_files.push_back(std::move(included_file));
             }
         }
+        
         if (has_duplicate_bindings()) {
             errx(EXIT_FAILURE, "Duplicate bindings in configuration file: %s\n", strerror((*__errno_location())));
         }

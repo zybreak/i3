@@ -1,5 +1,5 @@
 
-// Generated from commandsLexer.g4 by ANTLR 4.12.0
+// Generated from commandsLexer.g4 by ANTLR 4.13.1
 
 
 #include "commandsLexer.h"
@@ -42,10 +42,19 @@ struct CommandsLexerStaticData final {
 };
 
 ::antlr4::internal::OnceFlag commandslexerLexerOnceFlag;
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+static thread_local
+#endif
 CommandsLexerStaticData *commandslexerLexerStaticData = nullptr;
 
 void commandslexerLexerInitialize() {
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+  if (commandslexerLexerStaticData != nullptr) {
+    return;
+  }
+#else
   assert(commandslexerLexerStaticData == nullptr);
+#endif
   auto staticData = std::make_unique<CommandsLexerStaticData>(
     std::vector<std::string>{
       "OPEN_COMMAND", "CLOSE_COMMAND", "COMMAND_SEP", "COMMAND_MOVE", "COMMAND_EXEC", 
@@ -229,5 +238,9 @@ const atn::ATN& commandsLexer::getATN() const {
 
 
 void commandsLexer::initialize() {
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+  commandslexerLexerInitialize();
+#else
   ::antlr4::internal::call_once(commandslexerLexerOnceFlag, commandslexerLexerInitialize);
+#endif
 }

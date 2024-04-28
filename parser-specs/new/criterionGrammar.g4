@@ -4,7 +4,7 @@ options {
     tokenVocab=criterionLexer;
 }
 
-criteria: BEGIN_CRITERION ((criterion CRITERION_SEP)* criterion) END_CRITERION;
+criteria: BEGIN_CRITERION ((criterion CRITERION_SEP)* criterion)? END_CRITERION;
 criterion
     : value_criterion
     | TILING

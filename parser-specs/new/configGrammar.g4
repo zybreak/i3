@@ -35,6 +35,7 @@ stmt
     | restart_state
     | popup_during_fullscreen
     | exec
+    | exec_always
     ;
 
 commands: OPEN_COMMAND (command COMMAND_SEP)* command COMMAND_SEP? CLOSE_COMMAND;
@@ -47,10 +48,10 @@ floating_maximum_size: FLOATING_MAXIMUM_SIZE dimension;
 floating_modifier: FLOATING_MODIFIER STRING;
 default_orientation: DEFAULT_ORIENTATION STRING;
 workspace_layout: WORKSPACE_LAYOUT STRING;
-default_border: DEFAULT_BORDER STRING;
+default_border: (DEFAULT_BORDER | NEW_WINDOW | DEFAULT_FLOATING_BORDER | NEW_FLOAT) STRING;
 hide_edge_borders: HIDE_EDGE_BORDERS STRING;
 for_window: FOR_WINDOW criteria commands;
-assign: ASSIGN criteria STRING;
+assign: ASSIGN criteria (STRING | NUMBER);
 no_focus: NO_FOCUS criteria;
 focus_follows_mouse: FOCUS_FOLLOWS_MOUSE STRING;
 mouse_warping: MOUSE_WARPING STRING;
@@ -60,11 +61,11 @@ workspace_auto_back_and_forth: WORKSPACE_AUTO_BACK_AND_FORTH STRING;
 force_display_urgency_hint: FORCE_DISPLAY_URGENCY_HINT NUMBER;
 focus_on_window_activation: FOCUS_ON_WINDOW_ACTIVATION STRING;
 title_align: TITLE_ALIGN STRING;
-workspace: WORKSPACE STRING (EQ STRING)?;
+workspace: WORKSPACE (STRING | NUMBER) (EQ STRING)?;
 ipc_socket: IPC_SOCKET STRING;
 ipc_kill_timeout: IPC_KILL_TIMEOUT NUMBER;
 restart_state: RESTART_STATE STRING;
 popup_during_fullscreen: POPUP_DURING_FULLSCREEN STRING;
 exec: EXEC OPTION* STRING;
-
+exec_always: EXEC_ALWAYS OPTION* STRING;
 dimension: NUMBER DIMENSION_SEP NUMBER;

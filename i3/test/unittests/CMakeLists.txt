@@ -1,9 +1,9 @@
 find_package(GTest CONFIG)
 
 include(GoogleTest)
-include(code-coverage)
 
 set(CODE_COVERAGE ON)
+include(code-coverage)
 
 add_code_coverage_all_targets()
 

@@ -1,5 +1,5 @@
 
-// Generated from commandsGrammar.g4 by ANTLR 4.12.0
+// Generated from commandsGrammar.g4 by ANTLR 4.13.1
 
 
 #include "commandsGrammarListener.h"
@@ -37,10 +37,19 @@ struct CommandsGrammarStaticData final {
 };
 
 ::antlr4::internal::OnceFlag commandsgrammarParserOnceFlag;
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+static thread_local
+#endif
 CommandsGrammarStaticData *commandsgrammarParserStaticData = nullptr;
 
 void commandsgrammarParserInitialize() {
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+  if (commandsgrammarParserStaticData != nullptr) {
+    return;
+  }
+#else
   assert(commandsgrammarParserStaticData == nullptr);
+#endif
   auto staticData = std::make_unique<CommandsGrammarStaticData>(
     std::vector<std::string>{
       "commands", "command", "command_move", "command_exec", "command_exit", 
@@ -2003,5 +2012,9 @@ commandsGrammar::Command_title_window_iconContext* commandsGrammar::command_titl
 }
 
 void commandsGrammar::initialize() {
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+  commandsgrammarParserInitialize();
+#else
   ::antlr4::internal::call_once(commandsgrammarParserOnceFlag, commandsgrammarParserInitialize);
+#endif
 }

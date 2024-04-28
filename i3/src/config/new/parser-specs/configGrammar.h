@@ -1,5 +1,5 @@
 
-// Generated from configGrammar.g4 by ANTLR 4.12.0
+// Generated from configGrammar.g4 by ANTLR 4.13.1
 
 #pragma once
 
@@ -13,27 +13,27 @@ class  configGrammar : public antlr4::Parser {
 public:
   enum {
     COMMENT = 1, STRING = 2, NUMBER = 3, DIMENSION_SEP = 4, OPTION = 5, 
-    VAR = 6, WS = 7, EOL = 8, SET = 9, EQ = 10, EXEC = 11, BINDSYM = 12, 
-    FONT = 13, POPUP_DURING_FULLSCREEN = 14, FLOATING_MINIMUM_SIZE = 15, 
-    FLOATING_MAXIMUM_SIZE = 16, FLOATING_MODIFIER = 17, DEFAULT_ORIENTATION = 18, 
-    WORKSPACE_LAYOUT = 19, DEFAULT_BORDER = 20, HIDE_EDGE_BORDERS = 21, 
-    FOR_WINDOW = 22, ASSIGN = 23, NO_FOCUS = 24, FOCUS_FOLLOWS_MOUSE = 25, 
-    MOUSE_WARPING = 26, FOCUS_WRAPPING = 27, FORCE_FOCUS_WRAPPING = 28, 
-    WORKSPACE_AUTO_BACK_AND_FORTH = 29, FORCE_DISPLAY_URGENCY_HINT = 30, 
-    FOCUS_ON_WINDOW_ACTIVATION = 31, TITLE_ALIGN = 32, WORKSPACE = 33, IPC_SOCKET = 34, 
-    IPC_KILL_TIMEOUT = 35, RESTART_STATE = 36, OPEN_COMMAND = 37, BEGIN_CRITERION = 38, 
-    CLOSE_COMMAND = 39, COMMAND_SEP = 40, COMMAND_MOVE = 41, COMMAND_EXEC = 42, 
-    COMMAND_EXIT = 43, COMMAND_DEBUGLOG = 44, COMMAND_BORDER = 45, COMMAND_LAYOUT = 46, 
-    COMMAND_APPEND_LAYOUT = 47, COMMAND_WORKSPACE = 48, COMMAND_FOCUS = 49, 
-    COMMAND_KILL = 50, COMMAND_RELOAD = 51, COMMAND_RESTART = 52, COMMAND_OPEN = 53, 
-    COMMAND_FULLSCREEN = 54, COMMAND_STICKY = 55, COMMAND_SPLIT = 56, COMMAND_FLOATING = 57, 
-    COMMAND_RESIZE = 58, COMMAND_RENAME = 59, COMMAND_NOP = 60, COMMAND_TITLE_FORMAT = 61, 
-    COMMAND_TITLE_WINDOW_ICON = 62, COMMAND_MODE = 63, COMMAND_WS = 64, 
-    COMMAND_OPTION = 65, COMMAND_NUMBER = 66, COMMAND_STRING = 67, END_CRITERION = 68, 
-    CRITERION_STRING = 69, TILING = 70, FLOATING = 71, ALL = 72, CLASS = 73, 
-    INSTANCE = 74, WINDOW_ROLE = 75, CON_ID = 76, ID = 77, WINDOW_TYPE = 78, 
-    TITLE = 79, URGENT = 80, MACHINE = 81, FLOATING_FROM = 82, TILING_FROM = 83, 
-    CRITERION_EQ = 84, CRITERION_SEP = 85
+    VAR = 6, WS = 7, EOL = 8, SET = 9, EQ = 10, EXEC = 11, EXEC_ALWAYS = 12, 
+    BINDSYM = 13, FONT = 14, POPUP_DURING_FULLSCREEN = 15, FLOATING_MINIMUM_SIZE = 16, 
+    FLOATING_MAXIMUM_SIZE = 17, FLOATING_MODIFIER = 18, DEFAULT_ORIENTATION = 19, 
+    WORKSPACE_LAYOUT = 20, DEFAULT_BORDER = 21, NEW_WINDOW = 22, DEFAULT_FLOATING_BORDER = 23, 
+    NEW_FLOAT = 24, HIDE_EDGE_BORDERS = 25, FOR_WINDOW = 26, ASSIGN = 27, 
+    NO_FOCUS = 28, FOCUS_FOLLOWS_MOUSE = 29, MOUSE_WARPING = 30, FOCUS_WRAPPING = 31, 
+    FORCE_FOCUS_WRAPPING = 32, WORKSPACE_AUTO_BACK_AND_FORTH = 33, FORCE_DISPLAY_URGENCY_HINT = 34, 
+    FOCUS_ON_WINDOW_ACTIVATION = 35, TITLE_ALIGN = 36, WORKSPACE = 37, IPC_SOCKET = 38, 
+    IPC_KILL_TIMEOUT = 39, RESTART_STATE = 40, OPEN_COMMAND = 41, BEGIN_CRITERION = 42, 
+    CLOSE_COMMAND = 43, COMMAND_SEP = 44, COMMAND_MOVE = 45, COMMAND_EXEC = 46, 
+    COMMAND_EXIT = 47, COMMAND_DEBUGLOG = 48, COMMAND_BORDER = 49, COMMAND_LAYOUT = 50, 
+    COMMAND_APPEND_LAYOUT = 51, COMMAND_WORKSPACE = 52, COMMAND_FOCUS = 53, 
+    COMMAND_KILL = 54, COMMAND_RELOAD = 55, COMMAND_RESTART = 56, COMMAND_OPEN = 57, 
+    COMMAND_FULLSCREEN = 58, COMMAND_STICKY = 59, COMMAND_SPLIT = 60, COMMAND_FLOATING = 61, 
+    COMMAND_RESIZE = 62, COMMAND_RENAME = 63, COMMAND_NOP = 64, COMMAND_TITLE_FORMAT = 65, 
+    COMMAND_TITLE_WINDOW_ICON = 66, COMMAND_MODE = 67, COMMAND_WS = 68, 
+    COMMAND_OPTION = 69, COMMAND_NUMBER = 70, COMMAND_STRING = 71, END_CRITERION = 72, 
+    CRITERION_STRING = 73, TILING = 74, FLOATING = 75, ALL = 76, CLASS = 77, 
+    INSTANCE = 78, WINDOW_ROLE = 79, CON_ID = 80, ID = 81, WINDOW_TYPE = 82, 
+    TITLE = 83, URGENT = 84, MACHINE = 85, FLOATING_FROM = 86, TILING_FROM = 87, 
+    CRITERION_EQ = 88, CRITERION_SEP = 89
   };
 
   enum {
@@ -46,15 +46,16 @@ public:
     RuleForce_display_urgency_hint = 21, RuleFocus_on_window_activation = 22, 
     RuleTitle_align = 23, RuleWorkspace = 24, RuleIpc_socket = 25, RuleIpc_kill_timeout = 26, 
     RuleRestart_state = 27, RulePopup_during_fullscreen = 28, RuleExec = 29, 
-    RuleDimension = 30, RuleCommand = 31, RuleCommand_move = 32, RuleCommand_exec = 33, 
-    RuleCommand_exit = 34, RuleCommand_kill = 35, RuleCommand_fullscreen = 36, 
-    RuleCommand_sticky = 37, RuleCommand_debuglog = 38, RuleCommand_border = 39, 
-    RuleCommand_layout = 40, RuleCommand_append_layout = 41, RuleCommand_workspace = 42, 
-    RuleCommand_focus = 43, RuleCommand_split = 44, RuleCommand_floating = 45, 
-    RuleCommand_resize = 46, RuleCommand_rename = 47, RuleCommand_nop = 48, 
-    RuleCommand_reload = 49, RuleCommand_restart = 50, RuleCommand_mode = 51, 
-    RuleCommand_open = 52, RuleCommand_title_format = 53, RuleCommand_title_window_icon = 54, 
-    RuleCriteria = 55, RuleCriterion = 56, RuleValue_criterion = 57
+    RuleExec_always = 30, RuleDimension = 31, RuleCommand = 32, RuleCommand_move = 33, 
+    RuleCommand_exec = 34, RuleCommand_exit = 35, RuleCommand_kill = 36, 
+    RuleCommand_fullscreen = 37, RuleCommand_sticky = 38, RuleCommand_debuglog = 39, 
+    RuleCommand_border = 40, RuleCommand_layout = 41, RuleCommand_append_layout = 42, 
+    RuleCommand_workspace = 43, RuleCommand_focus = 44, RuleCommand_split = 45, 
+    RuleCommand_floating = 46, RuleCommand_resize = 47, RuleCommand_rename = 48, 
+    RuleCommand_nop = 49, RuleCommand_reload = 50, RuleCommand_restart = 51, 
+    RuleCommand_mode = 52, RuleCommand_open = 53, RuleCommand_title_format = 54, 
+    RuleCommand_title_window_icon = 55, RuleCriteria = 56, RuleCriterion = 57, 
+    RuleValue_criterion = 58
   };
 
   explicit configGrammar(antlr4::TokenStream *input);
@@ -104,6 +105,7 @@ public:
   class Restart_stateContext;
   class Popup_during_fullscreenContext;
   class ExecContext;
+  class Exec_alwaysContext;
   class DimensionContext;
   class CommandContext;
   class Command_moveContext;
@@ -181,6 +183,7 @@ public:
     Restart_stateContext *restart_state();
     Popup_during_fullscreenContext *popup_during_fullscreen();
     ExecContext *exec();
+    Exec_alwaysContext *exec_always();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -328,8 +331,11 @@ public:
   public:
     Default_borderContext(antlr4::ParserRuleContext *parent, size_t invokingState);
     virtual size_t getRuleIndex() const override;
-    antlr4::tree::TerminalNode *DEFAULT_BORDER();
     antlr4::tree::TerminalNode *STRING();
+    antlr4::tree::TerminalNode *DEFAULT_BORDER();
+    antlr4::tree::TerminalNode *NEW_WINDOW();
+    antlr4::tree::TerminalNode *DEFAULT_FLOATING_BORDER();
+    antlr4::tree::TerminalNode *NEW_FLOAT();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -374,6 +380,7 @@ public:
     antlr4::tree::TerminalNode *ASSIGN();
     CriteriaContext *criteria();
     antlr4::tree::TerminalNode *STRING();
+    antlr4::tree::TerminalNode *NUMBER();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
     virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -515,6 +522,7 @@ public:
     antlr4::tree::TerminalNode *WORKSPACE();
     std::vector<antlr4::tree::TerminalNode *> STRING();
     antlr4::tree::TerminalNode* STRING(size_t i);
+    antlr4::tree::TerminalNode *NUMBER();
     antlr4::tree::TerminalNode *EQ();
 
     virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
@@ -595,6 +603,22 @@ public:
   };
 
   ExecContext* exec();
+
+  class  Exec_alwaysContext : public antlr4::ParserRuleContext {
+  public:
+    Exec_alwaysContext(antlr4::ParserRuleContext *parent, size_t invokingState);
+    virtual size_t getRuleIndex() const override;
+    antlr4::tree::TerminalNode *EXEC_ALWAYS();
+    antlr4::tree::TerminalNode *STRING();
+    std::vector<antlr4::tree::TerminalNode *> OPTION();
+    antlr4::tree::TerminalNode* OPTION(size_t i);
+
+    virtual void enterRule(antlr4::tree::ParseTreeListener *listener) override;
+    virtual void exitRule(antlr4::tree::ParseTreeListener *listener) override;
+   
+  };
+
+  Exec_alwaysContext* exec_always();
 
   class  DimensionContext : public antlr4::ParserRuleContext {
   public:

@@ -1,5 +1,5 @@
 
-// Generated from configGrammar.g4 by ANTLR 4.12.0
+// Generated from configGrammar.g4 by ANTLR 4.13.1
 
 
 #include "configGrammarListener.h"
@@ -37,10 +37,19 @@ struct ConfigGrammarStaticData final {
 };
 
 ::antlr4::internal::OnceFlag configgrammarParserOnceFlag;
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+static thread_local
+#endif
 ConfigGrammarStaticData *configgrammarParserStaticData = nullptr;
 
 void configgrammarParserInitialize() {
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+  if (configgrammarParserStaticData != nullptr) {
+    return;
+  }
+#else
   assert(configgrammarParserStaticData == nullptr);
+#endif
   auto staticData = std::make_unique<ConfigGrammarStaticData>(
     std::vector<std::string>{
       "config", "stmt", "commands", "set", "binding", "font", "floating_minimum_size", 
@@ -50,37 +59,38 @@ void configgrammarParserInitialize() {
       "force_focus_wrapping", "workspace_auto_back_and_forth", "force_display_urgency_hint", 
       "focus_on_window_activation", "title_align", "workspace", "ipc_socket", 
       "ipc_kill_timeout", "restart_state", "popup_during_fullscreen", "exec", 
-      "dimension", "command", "command_move", "command_exec", "command_exit", 
-      "command_kill", "command_fullscreen", "command_sticky", "command_debuglog", 
-      "command_border", "command_layout", "command_append_layout", "command_workspace", 
-      "command_focus", "command_split", "command_floating", "command_resize", 
-      "command_rename", "command_nop", "command_reload", "command_restart", 
-      "command_mode", "command_open", "command_title_format", "command_title_window_icon", 
-      "criteria", "criterion", "value_criterion"
+      "exec_always", "dimension", "command", "command_move", "command_exec", 
+      "command_exit", "command_kill", "command_fullscreen", "command_sticky", 
+      "command_debuglog", "command_border", "command_layout", "command_append_layout", 
+      "command_workspace", "command_focus", "command_split", "command_floating", 
+      "command_resize", "command_rename", "command_nop", "command_reload", 
+      "command_restart", "command_mode", "command_open", "command_title_format", 
+      "command_title_window_icon", "criteria", "criterion", "value_criterion"
     },
     std::vector<std::string>{
-      "", "", "", "", "'x'", "", "", "", "", "'set'", "", "", "'bindsym'", 
-      "'font'", "'popup_during_fullscreen'", "'floating_minimum_size'", 
+      "", "", "", "", "'x'", "", "", "", "", "'set'", "", "", "'exec_always'", 
+      "'bindsym'", "'font'", "'popup_during_fullscreen'", "'floating_minimum_size'", 
       "'floating_maximum_size'", "'floating_modifier'", "'default_orientation'", 
-      "'workspace_layout'", "'default_border'", "'hide_edge_borders'", "'for_window'", 
-      "'assign'", "'no_focus'", "'focus_follows_mouse'", "'mouse_warping'", 
-      "'focus_wrapping'", "'force_focus_wrapping'", "'workspace_auto_back_and_forth'", 
-      "'force_display_urgency_hint'", "'focus_on_window_activation'", "'title_align'", 
-      "", "'ipc_socket'", "'ipc_kill_timeout'", "'restart_state'", "'$('", 
-      "'['", "')'", "';'", "'move'", "", "'exit'", "'debuglog'", "'border'", 
-      "'layout'", "'append_layout'", "", "'focus'", "'kill'", "'reload'", 
-      "'restart'", "'open'", "'fullscreen'", "'sticky'", "'split'", "", 
-      "'resize'", "'rename'", "'nop'", "'title_format'", "'title_window_icon'", 
-      "'mode'", "", "", "", "", "']'", "", "'tiling'", "", "'all'", "'class'", 
-      "'instance'", "'window_role'", "'con_id'", "'id'", "'window_type'", 
-      "'title'", "'urgent'", "'machine'", "'floating_from'", "'tiling_from'", 
-      "", "','"
+      "'workspace_layout'", "'default_border'", "'new_window'", "'default_floating_border'", 
+      "'new_float'", "'hide_edge_borders'", "'for_window'", "'assign'", 
+      "'no_focus'", "'focus_follows_mouse'", "'mouse_warping'", "'focus_wrapping'", 
+      "'force_focus_wrapping'", "'workspace_auto_back_and_forth'", "'force_display_urgency_hint'", 
+      "'focus_on_window_activation'", "'title_align'", "", "'ipc_socket'", 
+      "'ipc_kill_timeout'", "'restart_state'", "'$('", "'['", "')'", "';'", 
+      "'move'", "", "'exit'", "'debuglog'", "'border'", "'layout'", "'append_layout'", 
+      "", "'focus'", "'kill'", "'reload'", "'restart'", "'open'", "'fullscreen'", 
+      "'sticky'", "'split'", "", "'resize'", "'rename'", "'nop'", "'title_format'", 
+      "'title_window_icon'", "'mode'", "", "", "", "", "']'", "", "'tiling'", 
+      "", "'all'", "'class'", "'instance'", "'window_role'", "'con_id'", 
+      "'id'", "'window_type'", "'title'", "'urgent'", "'machine'", "'floating_from'", 
+      "'tiling_from'", "", "','"
     },
     std::vector<std::string>{
       "", "COMMENT", "STRING", "NUMBER", "DIMENSION_SEP", "OPTION", "VAR", 
-      "WS", "EOL", "SET", "EQ", "EXEC", "BINDSYM", "FONT", "POPUP_DURING_FULLSCREEN", 
-      "FLOATING_MINIMUM_SIZE", "FLOATING_MAXIMUM_SIZE", "FLOATING_MODIFIER", 
-      "DEFAULT_ORIENTATION", "WORKSPACE_LAYOUT", "DEFAULT_BORDER", "HIDE_EDGE_BORDERS", 
+      "WS", "EOL", "SET", "EQ", "EXEC", "EXEC_ALWAYS", "BINDSYM", "FONT", 
+      "POPUP_DURING_FULLSCREEN", "FLOATING_MINIMUM_SIZE", "FLOATING_MAXIMUM_SIZE", 
+      "FLOATING_MODIFIER", "DEFAULT_ORIENTATION", "WORKSPACE_LAYOUT", "DEFAULT_BORDER", 
+      "NEW_WINDOW", "DEFAULT_FLOATING_BORDER", "NEW_FLOAT", "HIDE_EDGE_BORDERS", 
       "FOR_WINDOW", "ASSIGN", "NO_FOCUS", "FOCUS_FOLLOWS_MOUSE", "MOUSE_WARPING", 
       "FOCUS_WRAPPING", "FORCE_FOCUS_WRAPPING", "WORKSPACE_AUTO_BACK_AND_FORTH", 
       "FORCE_DISPLAY_URGENCY_HINT", "FOCUS_ON_WINDOW_ACTIVATION", "TITLE_ALIGN", 
@@ -99,7 +109,7 @@ void configgrammarParserInitialize() {
     }
   );
   static const int32_t serializedATNSegment[] = {
-  	4,1,85,425,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
+  	4,1,89,438,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,6,2,
   	7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,2,14,7,
   	14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,7,20,2,21,7,
   	21,2,22,7,22,2,23,7,23,2,24,7,24,2,25,7,25,2,26,7,26,2,27,7,27,2,28,7,
@@ -107,134 +117,139 @@ void configgrammarParserInitialize() {
   	35,2,36,7,36,2,37,7,37,2,38,7,38,2,39,7,39,2,40,7,40,2,41,7,41,2,42,7,
   	42,2,43,7,43,2,44,7,44,2,45,7,45,2,46,7,46,2,47,7,47,2,48,7,48,2,49,7,
   	49,2,50,7,50,2,51,7,51,2,52,7,52,2,53,7,53,2,54,7,54,2,55,7,55,2,56,7,
-  	56,2,57,7,57,1,0,5,0,118,8,0,10,0,12,0,121,9,0,1,0,1,0,4,0,125,8,0,11,
-  	0,12,0,126,5,0,129,8,0,10,0,12,0,132,9,0,1,0,1,0,5,0,136,8,0,10,0,12,
-  	0,139,9,0,3,0,141,8,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,
-  	1,172,8,1,1,2,1,2,1,2,1,2,5,2,178,8,2,10,2,12,2,181,9,2,1,2,1,2,3,2,185,
-  	8,2,1,2,1,2,1,3,1,3,1,3,1,3,1,3,1,4,1,4,5,4,196,8,4,10,4,12,4,199,9,4,
-  	1,4,1,4,1,4,1,5,1,5,1,5,1,6,1,6,1,6,1,7,1,7,1,7,1,8,1,8,1,8,1,9,1,9,1,
-  	9,1,10,1,10,1,10,1,11,1,11,1,11,1,12,1,12,1,12,1,13,1,13,1,13,1,13,1,
-  	14,1,14,1,14,1,14,1,15,1,15,1,15,1,16,1,16,1,16,1,17,1,17,1,17,1,18,1,
-  	18,1,18,1,19,1,19,1,19,1,20,1,20,1,20,1,21,1,21,1,21,1,22,1,22,1,22,1,
-  	23,1,23,1,23,1,24,1,24,1,24,1,24,3,24,267,8,24,1,25,1,25,1,25,1,26,1,
-  	26,1,26,1,27,1,27,1,27,1,28,1,28,1,28,1,29,1,29,5,29,283,8,29,10,29,12,
-  	29,286,9,29,1,29,1,29,1,30,1,30,1,30,1,30,1,31,1,31,1,31,1,31,1,31,1,
-  	31,1,31,1,31,1,31,1,31,1,31,1,31,1,31,1,31,1,31,1,31,1,31,1,31,1,31,1,
-  	31,1,31,1,31,1,31,3,31,317,8,31,1,32,1,32,1,32,1,33,1,33,5,33,324,8,33,
-  	10,33,12,33,327,9,33,1,33,1,33,1,34,1,34,1,35,1,35,1,35,1,36,1,36,1,36,
-  	3,36,339,8,36,1,37,1,37,1,37,1,38,1,38,1,38,1,39,1,39,1,39,3,39,350,8,
-  	39,1,40,1,40,1,40,3,40,355,8,40,1,41,1,41,1,41,1,42,1,42,5,42,362,8,42,
-  	10,42,12,42,365,9,42,1,42,1,42,1,43,1,43,1,43,3,43,372,8,43,1,44,1,44,
-  	1,44,1,45,1,45,1,45,1,46,1,46,1,47,1,47,1,48,1,48,3,48,386,8,48,1,49,
-  	1,49,1,50,1,50,1,51,1,51,1,51,1,52,1,52,1,53,1,53,1,53,1,54,1,54,1,55,
-  	1,55,1,55,1,55,5,55,406,8,55,10,55,12,55,409,9,55,1,55,1,55,1,55,1,55,
-  	1,56,1,56,1,56,1,56,3,56,419,8,56,1,57,1,57,1,57,1,57,1,57,0,0,58,0,2,
-  	4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,46,48,50,
-  	52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84,86,88,90,92,94,96,
-  	98,100,102,104,106,108,110,112,114,0,2,1,0,66,67,2,0,33,33,73,83,435,
-  	0,119,1,0,0,0,2,171,1,0,0,0,4,173,1,0,0,0,6,188,1,0,0,0,8,193,1,0,0,0,
-  	10,203,1,0,0,0,12,206,1,0,0,0,14,209,1,0,0,0,16,212,1,0,0,0,18,215,1,
-  	0,0,0,20,218,1,0,0,0,22,221,1,0,0,0,24,224,1,0,0,0,26,227,1,0,0,0,28,
-  	231,1,0,0,0,30,235,1,0,0,0,32,238,1,0,0,0,34,241,1,0,0,0,36,244,1,0,0,
-  	0,38,247,1,0,0,0,40,250,1,0,0,0,42,253,1,0,0,0,44,256,1,0,0,0,46,259,
-  	1,0,0,0,48,262,1,0,0,0,50,268,1,0,0,0,52,271,1,0,0,0,54,274,1,0,0,0,56,
-  	277,1,0,0,0,58,280,1,0,0,0,60,289,1,0,0,0,62,316,1,0,0,0,64,318,1,0,0,
-  	0,66,321,1,0,0,0,68,330,1,0,0,0,70,332,1,0,0,0,72,335,1,0,0,0,74,340,
-  	1,0,0,0,76,343,1,0,0,0,78,346,1,0,0,0,80,351,1,0,0,0,82,356,1,0,0,0,84,
-  	359,1,0,0,0,86,368,1,0,0,0,88,373,1,0,0,0,90,376,1,0,0,0,92,379,1,0,0,
-  	0,94,381,1,0,0,0,96,383,1,0,0,0,98,387,1,0,0,0,100,389,1,0,0,0,102,391,
-  	1,0,0,0,104,394,1,0,0,0,106,396,1,0,0,0,108,399,1,0,0,0,110,401,1,0,0,
-  	0,112,418,1,0,0,0,114,420,1,0,0,0,116,118,5,8,0,0,117,116,1,0,0,0,118,
-  	121,1,0,0,0,119,117,1,0,0,0,119,120,1,0,0,0,120,140,1,0,0,0,121,119,1,
-  	0,0,0,122,124,3,2,1,0,123,125,5,8,0,0,124,123,1,0,0,0,125,126,1,0,0,0,
-  	126,124,1,0,0,0,126,127,1,0,0,0,127,129,1,0,0,0,128,122,1,0,0,0,129,132,
-  	1,0,0,0,130,128,1,0,0,0,130,131,1,0,0,0,131,133,1,0,0,0,132,130,1,0,0,
-  	0,133,137,3,2,1,0,134,136,5,8,0,0,135,134,1,0,0,0,136,139,1,0,0,0,137,
-  	135,1,0,0,0,137,138,1,0,0,0,138,141,1,0,0,0,139,137,1,0,0,0,140,130,1,
-  	0,0,0,140,141,1,0,0,0,141,142,1,0,0,0,142,143,5,0,0,1,143,1,1,0,0,0,144,
-  	172,3,6,3,0,145,172,3,8,4,0,146,172,3,10,5,0,147,172,3,12,6,0,148,172,
-  	3,14,7,0,149,172,3,16,8,0,150,172,3,18,9,0,151,172,3,20,10,0,152,172,
-  	3,22,11,0,153,172,3,24,12,0,154,172,3,26,13,0,155,172,3,28,14,0,156,172,
-  	3,30,15,0,157,172,3,32,16,0,158,172,3,34,17,0,159,172,3,36,18,0,160,172,
-  	3,38,19,0,161,172,3,40,20,0,162,172,3,42,21,0,163,172,3,44,22,0,164,172,
-  	3,46,23,0,165,172,3,48,24,0,166,172,3,50,25,0,167,172,3,52,26,0,168,172,
-  	3,54,27,0,169,172,3,56,28,0,170,172,3,58,29,0,171,144,1,0,0,0,171,145,
-  	1,0,0,0,171,146,1,0,0,0,171,147,1,0,0,0,171,148,1,0,0,0,171,149,1,0,0,
-  	0,171,150,1,0,0,0,171,151,1,0,0,0,171,152,1,0,0,0,171,153,1,0,0,0,171,
-  	154,1,0,0,0,171,155,1,0,0,0,171,156,1,0,0,0,171,157,1,0,0,0,171,158,1,
-  	0,0,0,171,159,1,0,0,0,171,160,1,0,0,0,171,161,1,0,0,0,171,162,1,0,0,0,
-  	171,163,1,0,0,0,171,164,1,0,0,0,171,165,1,0,0,0,171,166,1,0,0,0,171,167,
-  	1,0,0,0,171,168,1,0,0,0,171,169,1,0,0,0,171,170,1,0,0,0,172,3,1,0,0,0,
-  	173,179,5,37,0,0,174,175,3,62,31,0,175,176,5,40,0,0,176,178,1,0,0,0,177,
-  	174,1,0,0,0,178,181,1,0,0,0,179,177,1,0,0,0,179,180,1,0,0,0,180,182,1,
-  	0,0,0,181,179,1,0,0,0,182,184,3,62,31,0,183,185,5,40,0,0,184,183,1,0,
-  	0,0,184,185,1,0,0,0,185,186,1,0,0,0,186,187,5,39,0,0,187,5,1,0,0,0,188,
-  	189,5,9,0,0,189,190,5,6,0,0,190,191,5,10,0,0,191,192,5,2,0,0,192,7,1,
-  	0,0,0,193,197,5,12,0,0,194,196,5,5,0,0,195,194,1,0,0,0,196,199,1,0,0,
-  	0,197,195,1,0,0,0,197,198,1,0,0,0,198,200,1,0,0,0,199,197,1,0,0,0,200,
-  	201,5,2,0,0,201,202,3,4,2,0,202,9,1,0,0,0,203,204,5,13,0,0,204,205,5,
-  	2,0,0,205,11,1,0,0,0,206,207,5,15,0,0,207,208,3,60,30,0,208,13,1,0,0,
-  	0,209,210,5,16,0,0,210,211,3,60,30,0,211,15,1,0,0,0,212,213,5,17,0,0,
-  	213,214,5,2,0,0,214,17,1,0,0,0,215,216,5,18,0,0,216,217,5,2,0,0,217,19,
-  	1,0,0,0,218,219,5,19,0,0,219,220,5,2,0,0,220,21,1,0,0,0,221,222,5,20,
-  	0,0,222,223,5,2,0,0,223,23,1,0,0,0,224,225,5,21,0,0,225,226,5,2,0,0,226,
-  	25,1,0,0,0,227,228,5,22,0,0,228,229,3,110,55,0,229,230,3,4,2,0,230,27,
-  	1,0,0,0,231,232,5,23,0,0,232,233,3,110,55,0,233,234,5,2,0,0,234,29,1,
-  	0,0,0,235,236,5,24,0,0,236,237,3,110,55,0,237,31,1,0,0,0,238,239,5,25,
-  	0,0,239,240,5,2,0,0,240,33,1,0,0,0,241,242,5,26,0,0,242,243,5,2,0,0,243,
-  	35,1,0,0,0,244,245,5,27,0,0,245,246,5,2,0,0,246,37,1,0,0,0,247,248,5,
-  	28,0,0,248,249,5,2,0,0,249,39,1,0,0,0,250,251,5,29,0,0,251,252,5,2,0,
-  	0,252,41,1,0,0,0,253,254,5,30,0,0,254,255,5,3,0,0,255,43,1,0,0,0,256,
-  	257,5,31,0,0,257,258,5,2,0,0,258,45,1,0,0,0,259,260,5,32,0,0,260,261,
-  	5,2,0,0,261,47,1,0,0,0,262,263,5,33,0,0,263,266,5,2,0,0,264,265,5,10,
-  	0,0,265,267,5,2,0,0,266,264,1,0,0,0,266,267,1,0,0,0,267,49,1,0,0,0,268,
-  	269,5,34,0,0,269,270,5,2,0,0,270,51,1,0,0,0,271,272,5,35,0,0,272,273,
-  	5,3,0,0,273,53,1,0,0,0,274,275,5,36,0,0,275,276,5,2,0,0,276,55,1,0,0,
-  	0,277,278,5,14,0,0,278,279,5,2,0,0,279,57,1,0,0,0,280,284,5,11,0,0,281,
-  	283,5,5,0,0,282,281,1,0,0,0,283,286,1,0,0,0,284,282,1,0,0,0,284,285,1,
-  	0,0,0,285,287,1,0,0,0,286,284,1,0,0,0,287,288,5,2,0,0,288,59,1,0,0,0,
-  	289,290,5,3,0,0,290,291,5,4,0,0,291,292,5,3,0,0,292,61,1,0,0,0,293,317,
-  	3,64,32,0,294,317,3,66,33,0,295,317,3,68,34,0,296,317,3,76,38,0,297,317,
-  	3,78,39,0,298,317,3,80,40,0,299,317,3,82,41,0,300,317,3,84,42,0,301,317,
-  	3,86,43,0,302,317,3,70,35,0,303,317,3,102,51,0,304,317,3,104,52,0,305,
-  	317,3,72,36,0,306,317,3,74,37,0,307,317,3,88,44,0,308,317,3,90,45,0,309,
-  	317,3,92,46,0,310,317,3,94,47,0,311,317,3,96,48,0,312,317,3,98,49,0,313,
-  	317,3,100,50,0,314,317,3,106,53,0,315,317,3,108,54,0,316,293,1,0,0,0,
-  	316,294,1,0,0,0,316,295,1,0,0,0,316,296,1,0,0,0,316,297,1,0,0,0,316,298,
-  	1,0,0,0,316,299,1,0,0,0,316,300,1,0,0,0,316,301,1,0,0,0,316,302,1,0,0,
-  	0,316,303,1,0,0,0,316,304,1,0,0,0,316,305,1,0,0,0,316,306,1,0,0,0,316,
-  	307,1,0,0,0,316,308,1,0,0,0,316,309,1,0,0,0,316,310,1,0,0,0,316,311,1,
-  	0,0,0,316,312,1,0,0,0,316,313,1,0,0,0,316,314,1,0,0,0,316,315,1,0,0,0,
-  	317,63,1,0,0,0,318,319,5,41,0,0,319,320,7,0,0,0,320,65,1,0,0,0,321,325,
-  	5,42,0,0,322,324,5,65,0,0,323,322,1,0,0,0,324,327,1,0,0,0,325,323,1,0,
-  	0,0,325,326,1,0,0,0,326,328,1,0,0,0,327,325,1,0,0,0,328,329,5,67,0,0,
-  	329,67,1,0,0,0,330,331,5,43,0,0,331,69,1,0,0,0,332,333,5,50,0,0,333,334,
-  	5,67,0,0,334,71,1,0,0,0,335,336,5,54,0,0,336,338,5,67,0,0,337,339,5,67,
-  	0,0,338,337,1,0,0,0,338,339,1,0,0,0,339,73,1,0,0,0,340,341,5,55,0,0,341,
-  	342,5,67,0,0,342,75,1,0,0,0,343,344,5,44,0,0,344,345,5,67,0,0,345,77,
-  	1,0,0,0,346,347,5,45,0,0,347,349,5,67,0,0,348,350,5,66,0,0,349,348,1,
-  	0,0,0,349,350,1,0,0,0,350,79,1,0,0,0,351,352,5,46,0,0,352,354,5,67,0,
-  	0,353,355,5,67,0,0,354,353,1,0,0,0,354,355,1,0,0,0,355,81,1,0,0,0,356,
-  	357,5,47,0,0,357,358,5,67,0,0,358,83,1,0,0,0,359,363,5,48,0,0,360,362,
-  	5,65,0,0,361,360,1,0,0,0,362,365,1,0,0,0,363,361,1,0,0,0,363,364,1,0,
-  	0,0,364,366,1,0,0,0,365,363,1,0,0,0,366,367,5,67,0,0,367,85,1,0,0,0,368,
-  	369,5,49,0,0,369,371,5,67,0,0,370,372,5,67,0,0,371,370,1,0,0,0,371,372,
-  	1,0,0,0,372,87,1,0,0,0,373,374,5,56,0,0,374,375,5,67,0,0,375,89,1,0,0,
-  	0,376,377,5,57,0,0,377,378,5,67,0,0,378,91,1,0,0,0,379,380,5,58,0,0,380,
-  	93,1,0,0,0,381,382,5,59,0,0,382,95,1,0,0,0,383,385,5,60,0,0,384,386,5,
-  	67,0,0,385,384,1,0,0,0,385,386,1,0,0,0,386,97,1,0,0,0,387,388,5,51,0,
-  	0,388,99,1,0,0,0,389,390,5,52,0,0,390,101,1,0,0,0,391,392,5,63,0,0,392,
-  	393,5,67,0,0,393,103,1,0,0,0,394,395,5,53,0,0,395,105,1,0,0,0,396,397,
-  	5,61,0,0,397,398,5,67,0,0,398,107,1,0,0,0,399,400,5,62,0,0,400,109,1,
-  	0,0,0,401,407,5,38,0,0,402,403,3,112,56,0,403,404,5,85,0,0,404,406,1,
-  	0,0,0,405,402,1,0,0,0,406,409,1,0,0,0,407,405,1,0,0,0,407,408,1,0,0,0,
-  	408,410,1,0,0,0,409,407,1,0,0,0,410,411,3,112,56,0,411,412,1,0,0,0,412,
-  	413,5,68,0,0,413,111,1,0,0,0,414,419,3,114,57,0,415,419,5,70,0,0,416,
-  	419,5,71,0,0,417,419,5,72,0,0,418,414,1,0,0,0,418,415,1,0,0,0,418,416,
-  	1,0,0,0,418,417,1,0,0,0,419,113,1,0,0,0,420,421,7,1,0,0,421,422,5,84,
-  	0,0,422,423,5,69,0,0,423,115,1,0,0,0,21,119,126,130,137,140,171,179,184,
-  	197,266,284,316,325,338,349,354,363,371,385,407,418
+  	56,2,57,7,57,2,58,7,58,1,0,5,0,120,8,0,10,0,12,0,123,9,0,1,0,1,0,4,0,
+  	127,8,0,11,0,12,0,128,5,0,131,8,0,10,0,12,0,134,9,0,1,0,1,0,5,0,138,8,
+  	0,10,0,12,0,141,9,0,3,0,143,8,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
+  	1,1,1,1,1,1,3,1,175,8,1,1,2,1,2,1,2,1,2,5,2,181,8,2,10,2,12,2,184,9,2,
+  	1,2,1,2,3,2,188,8,2,1,2,1,2,1,3,1,3,1,3,1,3,1,3,1,4,1,4,5,4,199,8,4,10,
+  	4,12,4,202,9,4,1,4,1,4,1,4,1,5,1,5,1,5,1,6,1,6,1,6,1,7,1,7,1,7,1,8,1,
+  	8,1,8,1,9,1,9,1,9,1,10,1,10,1,10,1,11,1,11,1,11,1,12,1,12,1,12,1,13,1,
+  	13,1,13,1,13,1,14,1,14,1,14,1,14,1,15,1,15,1,15,1,16,1,16,1,16,1,17,1,
+  	17,1,17,1,18,1,18,1,18,1,19,1,19,1,19,1,20,1,20,1,20,1,21,1,21,1,21,1,
+  	22,1,22,1,22,1,23,1,23,1,23,1,24,1,24,1,24,1,24,3,24,270,8,24,1,25,1,
+  	25,1,25,1,26,1,26,1,26,1,27,1,27,1,27,1,28,1,28,1,28,1,29,1,29,5,29,286,
+  	8,29,10,29,12,29,289,9,29,1,29,1,29,1,30,1,30,5,30,295,8,30,10,30,12,
+  	30,298,9,30,1,30,1,30,1,31,1,31,1,31,1,31,1,32,1,32,1,32,1,32,1,32,1,
+  	32,1,32,1,32,1,32,1,32,1,32,1,32,1,32,1,32,1,32,1,32,1,32,1,32,1,32,1,
+  	32,1,32,1,32,1,32,3,32,329,8,32,1,33,1,33,1,33,1,34,1,34,5,34,336,8,34,
+  	10,34,12,34,339,9,34,1,34,1,34,1,35,1,35,1,36,1,36,1,36,1,37,1,37,1,37,
+  	3,37,351,8,37,1,38,1,38,1,38,1,39,1,39,1,39,1,40,1,40,1,40,3,40,362,8,
+  	40,1,41,1,41,1,41,3,41,367,8,41,1,42,1,42,1,42,1,43,1,43,5,43,374,8,43,
+  	10,43,12,43,377,9,43,1,43,1,43,1,44,1,44,1,44,3,44,384,8,44,1,45,1,45,
+  	1,45,1,46,1,46,1,46,1,47,1,47,1,48,1,48,1,49,1,49,3,49,398,8,49,1,50,
+  	1,50,1,51,1,51,1,52,1,52,1,52,1,53,1,53,1,54,1,54,1,54,1,55,1,55,1,56,
+  	1,56,1,56,1,56,5,56,418,8,56,10,56,12,56,421,9,56,1,56,3,56,424,8,56,
+  	1,56,1,56,1,57,1,57,1,57,1,57,3,57,432,8,57,1,58,1,58,1,58,1,58,1,58,
+  	0,0,59,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,44,
+  	46,48,50,52,54,56,58,60,62,64,66,68,70,72,74,76,78,80,82,84,86,88,90,
+  	92,94,96,98,100,102,104,106,108,110,112,114,116,0,4,1,0,21,24,1,0,2,3,
+  	1,0,70,71,2,0,37,37,77,87,450,0,121,1,0,0,0,2,174,1,0,0,0,4,176,1,0,0,
+  	0,6,191,1,0,0,0,8,196,1,0,0,0,10,206,1,0,0,0,12,209,1,0,0,0,14,212,1,
+  	0,0,0,16,215,1,0,0,0,18,218,1,0,0,0,20,221,1,0,0,0,22,224,1,0,0,0,24,
+  	227,1,0,0,0,26,230,1,0,0,0,28,234,1,0,0,0,30,238,1,0,0,0,32,241,1,0,0,
+  	0,34,244,1,0,0,0,36,247,1,0,0,0,38,250,1,0,0,0,40,253,1,0,0,0,42,256,
+  	1,0,0,0,44,259,1,0,0,0,46,262,1,0,0,0,48,265,1,0,0,0,50,271,1,0,0,0,52,
+  	274,1,0,0,0,54,277,1,0,0,0,56,280,1,0,0,0,58,283,1,0,0,0,60,292,1,0,0,
+  	0,62,301,1,0,0,0,64,328,1,0,0,0,66,330,1,0,0,0,68,333,1,0,0,0,70,342,
+  	1,0,0,0,72,344,1,0,0,0,74,347,1,0,0,0,76,352,1,0,0,0,78,355,1,0,0,0,80,
+  	358,1,0,0,0,82,363,1,0,0,0,84,368,1,0,0,0,86,371,1,0,0,0,88,380,1,0,0,
+  	0,90,385,1,0,0,0,92,388,1,0,0,0,94,391,1,0,0,0,96,393,1,0,0,0,98,395,
+  	1,0,0,0,100,399,1,0,0,0,102,401,1,0,0,0,104,403,1,0,0,0,106,406,1,0,0,
+  	0,108,408,1,0,0,0,110,411,1,0,0,0,112,413,1,0,0,0,114,431,1,0,0,0,116,
+  	433,1,0,0,0,118,120,5,8,0,0,119,118,1,0,0,0,120,123,1,0,0,0,121,119,1,
+  	0,0,0,121,122,1,0,0,0,122,142,1,0,0,0,123,121,1,0,0,0,124,126,3,2,1,0,
+  	125,127,5,8,0,0,126,125,1,0,0,0,127,128,1,0,0,0,128,126,1,0,0,0,128,129,
+  	1,0,0,0,129,131,1,0,0,0,130,124,1,0,0,0,131,134,1,0,0,0,132,130,1,0,0,
+  	0,132,133,1,0,0,0,133,135,1,0,0,0,134,132,1,0,0,0,135,139,3,2,1,0,136,
+  	138,5,8,0,0,137,136,1,0,0,0,138,141,1,0,0,0,139,137,1,0,0,0,139,140,1,
+  	0,0,0,140,143,1,0,0,0,141,139,1,0,0,0,142,132,1,0,0,0,142,143,1,0,0,0,
+  	143,144,1,0,0,0,144,145,5,0,0,1,145,1,1,0,0,0,146,175,3,6,3,0,147,175,
+  	3,8,4,0,148,175,3,10,5,0,149,175,3,12,6,0,150,175,3,14,7,0,151,175,3,
+  	16,8,0,152,175,3,18,9,0,153,175,3,20,10,0,154,175,3,22,11,0,155,175,3,
+  	24,12,0,156,175,3,26,13,0,157,175,3,28,14,0,158,175,3,30,15,0,159,175,
+  	3,32,16,0,160,175,3,34,17,0,161,175,3,36,18,0,162,175,3,38,19,0,163,175,
+  	3,40,20,0,164,175,3,42,21,0,165,175,3,44,22,0,166,175,3,46,23,0,167,175,
+  	3,48,24,0,168,175,3,50,25,0,169,175,3,52,26,0,170,175,3,54,27,0,171,175,
+  	3,56,28,0,172,175,3,58,29,0,173,175,3,60,30,0,174,146,1,0,0,0,174,147,
+  	1,0,0,0,174,148,1,0,0,0,174,149,1,0,0,0,174,150,1,0,0,0,174,151,1,0,0,
+  	0,174,152,1,0,0,0,174,153,1,0,0,0,174,154,1,0,0,0,174,155,1,0,0,0,174,
+  	156,1,0,0,0,174,157,1,0,0,0,174,158,1,0,0,0,174,159,1,0,0,0,174,160,1,
+  	0,0,0,174,161,1,0,0,0,174,162,1,0,0,0,174,163,1,0,0,0,174,164,1,0,0,0,
+  	174,165,1,0,0,0,174,166,1,0,0,0,174,167,1,0,0,0,174,168,1,0,0,0,174,169,
+  	1,0,0,0,174,170,1,0,0,0,174,171,1,0,0,0,174,172,1,0,0,0,174,173,1,0,0,
+  	0,175,3,1,0,0,0,176,182,5,41,0,0,177,178,3,64,32,0,178,179,5,44,0,0,179,
+  	181,1,0,0,0,180,177,1,0,0,0,181,184,1,0,0,0,182,180,1,0,0,0,182,183,1,
+  	0,0,0,183,185,1,0,0,0,184,182,1,0,0,0,185,187,3,64,32,0,186,188,5,44,
+  	0,0,187,186,1,0,0,0,187,188,1,0,0,0,188,189,1,0,0,0,189,190,5,43,0,0,
+  	190,5,1,0,0,0,191,192,5,9,0,0,192,193,5,6,0,0,193,194,5,10,0,0,194,195,
+  	5,2,0,0,195,7,1,0,0,0,196,200,5,13,0,0,197,199,5,5,0,0,198,197,1,0,0,
+  	0,199,202,1,0,0,0,200,198,1,0,0,0,200,201,1,0,0,0,201,203,1,0,0,0,202,
+  	200,1,0,0,0,203,204,5,2,0,0,204,205,3,4,2,0,205,9,1,0,0,0,206,207,5,14,
+  	0,0,207,208,5,2,0,0,208,11,1,0,0,0,209,210,5,16,0,0,210,211,3,62,31,0,
+  	211,13,1,0,0,0,212,213,5,17,0,0,213,214,3,62,31,0,214,15,1,0,0,0,215,
+  	216,5,18,0,0,216,217,5,2,0,0,217,17,1,0,0,0,218,219,5,19,0,0,219,220,
+  	5,2,0,0,220,19,1,0,0,0,221,222,5,20,0,0,222,223,5,2,0,0,223,21,1,0,0,
+  	0,224,225,7,0,0,0,225,226,5,2,0,0,226,23,1,0,0,0,227,228,5,25,0,0,228,
+  	229,5,2,0,0,229,25,1,0,0,0,230,231,5,26,0,0,231,232,3,112,56,0,232,233,
+  	3,4,2,0,233,27,1,0,0,0,234,235,5,27,0,0,235,236,3,112,56,0,236,237,7,
+  	1,0,0,237,29,1,0,0,0,238,239,5,28,0,0,239,240,3,112,56,0,240,31,1,0,0,
+  	0,241,242,5,29,0,0,242,243,5,2,0,0,243,33,1,0,0,0,244,245,5,30,0,0,245,
+  	246,5,2,0,0,246,35,1,0,0,0,247,248,5,31,0,0,248,249,5,2,0,0,249,37,1,
+  	0,0,0,250,251,5,32,0,0,251,252,5,2,0,0,252,39,1,0,0,0,253,254,5,33,0,
+  	0,254,255,5,2,0,0,255,41,1,0,0,0,256,257,5,34,0,0,257,258,5,3,0,0,258,
+  	43,1,0,0,0,259,260,5,35,0,0,260,261,5,2,0,0,261,45,1,0,0,0,262,263,5,
+  	36,0,0,263,264,5,2,0,0,264,47,1,0,0,0,265,266,5,37,0,0,266,269,7,1,0,
+  	0,267,268,5,10,0,0,268,270,5,2,0,0,269,267,1,0,0,0,269,270,1,0,0,0,270,
+  	49,1,0,0,0,271,272,5,38,0,0,272,273,5,2,0,0,273,51,1,0,0,0,274,275,5,
+  	39,0,0,275,276,5,3,0,0,276,53,1,0,0,0,277,278,5,40,0,0,278,279,5,2,0,
+  	0,279,55,1,0,0,0,280,281,5,15,0,0,281,282,5,2,0,0,282,57,1,0,0,0,283,
+  	287,5,11,0,0,284,286,5,5,0,0,285,284,1,0,0,0,286,289,1,0,0,0,287,285,
+  	1,0,0,0,287,288,1,0,0,0,288,290,1,0,0,0,289,287,1,0,0,0,290,291,5,2,0,
+  	0,291,59,1,0,0,0,292,296,5,12,0,0,293,295,5,5,0,0,294,293,1,0,0,0,295,
+  	298,1,0,0,0,296,294,1,0,0,0,296,297,1,0,0,0,297,299,1,0,0,0,298,296,1,
+  	0,0,0,299,300,5,2,0,0,300,61,1,0,0,0,301,302,5,3,0,0,302,303,5,4,0,0,
+  	303,304,5,3,0,0,304,63,1,0,0,0,305,329,3,66,33,0,306,329,3,68,34,0,307,
+  	329,3,70,35,0,308,329,3,78,39,0,309,329,3,80,40,0,310,329,3,82,41,0,311,
+  	329,3,84,42,0,312,329,3,86,43,0,313,329,3,88,44,0,314,329,3,72,36,0,315,
+  	329,3,104,52,0,316,329,3,106,53,0,317,329,3,74,37,0,318,329,3,76,38,0,
+  	319,329,3,90,45,0,320,329,3,92,46,0,321,329,3,94,47,0,322,329,3,96,48,
+  	0,323,329,3,98,49,0,324,329,3,100,50,0,325,329,3,102,51,0,326,329,3,108,
+  	54,0,327,329,3,110,55,0,328,305,1,0,0,0,328,306,1,0,0,0,328,307,1,0,0,
+  	0,328,308,1,0,0,0,328,309,1,0,0,0,328,310,1,0,0,0,328,311,1,0,0,0,328,
+  	312,1,0,0,0,328,313,1,0,0,0,328,314,1,0,0,0,328,315,1,0,0,0,328,316,1,
+  	0,0,0,328,317,1,0,0,0,328,318,1,0,0,0,328,319,1,0,0,0,328,320,1,0,0,0,
+  	328,321,1,0,0,0,328,322,1,0,0,0,328,323,1,0,0,0,328,324,1,0,0,0,328,325,
+  	1,0,0,0,328,326,1,0,0,0,328,327,1,0,0,0,329,65,1,0,0,0,330,331,5,45,0,
+  	0,331,332,7,2,0,0,332,67,1,0,0,0,333,337,5,46,0,0,334,336,5,69,0,0,335,
+  	334,1,0,0,0,336,339,1,0,0,0,337,335,1,0,0,0,337,338,1,0,0,0,338,340,1,
+  	0,0,0,339,337,1,0,0,0,340,341,5,71,0,0,341,69,1,0,0,0,342,343,5,47,0,
+  	0,343,71,1,0,0,0,344,345,5,54,0,0,345,346,5,71,0,0,346,73,1,0,0,0,347,
+  	348,5,58,0,0,348,350,5,71,0,0,349,351,5,71,0,0,350,349,1,0,0,0,350,351,
+  	1,0,0,0,351,75,1,0,0,0,352,353,5,59,0,0,353,354,5,71,0,0,354,77,1,0,0,
+  	0,355,356,5,48,0,0,356,357,5,71,0,0,357,79,1,0,0,0,358,359,5,49,0,0,359,
+  	361,5,71,0,0,360,362,5,70,0,0,361,360,1,0,0,0,361,362,1,0,0,0,362,81,
+  	1,0,0,0,363,364,5,50,0,0,364,366,5,71,0,0,365,367,5,71,0,0,366,365,1,
+  	0,0,0,366,367,1,0,0,0,367,83,1,0,0,0,368,369,5,51,0,0,369,370,5,71,0,
+  	0,370,85,1,0,0,0,371,375,5,52,0,0,372,374,5,69,0,0,373,372,1,0,0,0,374,
+  	377,1,0,0,0,375,373,1,0,0,0,375,376,1,0,0,0,376,378,1,0,0,0,377,375,1,
+  	0,0,0,378,379,5,71,0,0,379,87,1,0,0,0,380,381,5,53,0,0,381,383,5,71,0,
+  	0,382,384,5,71,0,0,383,382,1,0,0,0,383,384,1,0,0,0,384,89,1,0,0,0,385,
+  	386,5,60,0,0,386,387,5,71,0,0,387,91,1,0,0,0,388,389,5,61,0,0,389,390,
+  	5,71,0,0,390,93,1,0,0,0,391,392,5,62,0,0,392,95,1,0,0,0,393,394,5,63,
+  	0,0,394,97,1,0,0,0,395,397,5,64,0,0,396,398,5,71,0,0,397,396,1,0,0,0,
+  	397,398,1,0,0,0,398,99,1,0,0,0,399,400,5,55,0,0,400,101,1,0,0,0,401,402,
+  	5,56,0,0,402,103,1,0,0,0,403,404,5,67,0,0,404,405,5,71,0,0,405,105,1,
+  	0,0,0,406,407,5,57,0,0,407,107,1,0,0,0,408,409,5,65,0,0,409,410,5,71,
+  	0,0,410,109,1,0,0,0,411,412,5,66,0,0,412,111,1,0,0,0,413,423,5,42,0,0,
+  	414,415,3,114,57,0,415,416,5,89,0,0,416,418,1,0,0,0,417,414,1,0,0,0,418,
+  	421,1,0,0,0,419,417,1,0,0,0,419,420,1,0,0,0,420,422,1,0,0,0,421,419,1,
+  	0,0,0,422,424,3,114,57,0,423,419,1,0,0,0,423,424,1,0,0,0,424,425,1,0,
+  	0,0,425,426,5,72,0,0,426,113,1,0,0,0,427,432,3,116,58,0,428,432,5,74,
+  	0,0,429,432,5,75,0,0,430,432,5,76,0,0,431,427,1,0,0,0,431,428,1,0,0,0,
+  	431,429,1,0,0,0,431,430,1,0,0,0,432,115,1,0,0,0,433,434,7,3,0,0,434,435,
+  	5,88,0,0,435,436,5,73,0,0,436,117,1,0,0,0,23,121,128,132,139,142,174,
+  	182,187,200,269,287,296,328,337,350,361,366,375,383,397,419,423,431
   };
   staticData->serializedATN = antlr4::atn::SerializedATNView(serializedATNSegment, sizeof(serializedATNSegment) / sizeof(serializedATNSegment[0]));
 
@@ -341,58 +356,58 @@ configGrammar::ConfigContext* configGrammar::config() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(119);
+    setState(121);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == configGrammar::EOL) {
-      setState(116);
+      setState(118);
       match(configGrammar::EOL);
-      setState(121);
+      setState(123);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(140);
+    setState(142);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if ((((_la & ~ 0x3fULL) == 0) &&
-      ((1ULL << _la) & 137438951936) != 0)) {
-      setState(130);
+      ((1ULL << _la) & 2199023254016) != 0)) {
+      setState(132);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 2, _ctx);
       while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
         if (alt == 1) {
-          setState(122);
+          setState(124);
           stmt();
-          setState(124); 
+          setState(126); 
           _errHandler->sync(this);
           _la = _input->LA(1);
           do {
-            setState(123);
+            setState(125);
             match(configGrammar::EOL);
-            setState(126); 
+            setState(128); 
             _errHandler->sync(this);
             _la = _input->LA(1);
           } while (_la == configGrammar::EOL); 
         }
-        setState(132);
+        setState(134);
         _errHandler->sync(this);
         alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 2, _ctx);
       }
-      setState(133);
+      setState(135);
       stmt();
-      setState(137);
+      setState(139);
       _errHandler->sync(this);
       _la = _input->LA(1);
       while (_la == configGrammar::EOL) {
-        setState(134);
+        setState(136);
         match(configGrammar::EOL);
-        setState(139);
+        setState(141);
         _errHandler->sync(this);
         _la = _input->LA(1);
       }
     }
-    setState(142);
+    setState(144);
     match(configGrammar::EOF);
    
   }
@@ -519,6 +534,10 @@ configGrammar::ExecContext* configGrammar::StmtContext::exec() {
   return getRuleContext<configGrammar::ExecContext>(0);
 }
 
+configGrammar::Exec_alwaysContext* configGrammar::StmtContext::exec_always() {
+  return getRuleContext<configGrammar::Exec_alwaysContext>(0);
+}
+
 
 size_t configGrammar::StmtContext::getRuleIndex() const {
   return configGrammar::RuleStmt;
@@ -548,195 +567,205 @@ configGrammar::StmtContext* configGrammar::stmt() {
     exitRule();
   });
   try {
-    setState(171);
+    setState(174);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case configGrammar::SET: {
         enterOuterAlt(_localctx, 1);
-        setState(144);
+        setState(146);
         set();
         break;
       }
 
       case configGrammar::BINDSYM: {
         enterOuterAlt(_localctx, 2);
-        setState(145);
+        setState(147);
         binding();
         break;
       }
 
       case configGrammar::FONT: {
         enterOuterAlt(_localctx, 3);
-        setState(146);
+        setState(148);
         font();
         break;
       }
 
       case configGrammar::FLOATING_MINIMUM_SIZE: {
         enterOuterAlt(_localctx, 4);
-        setState(147);
+        setState(149);
         floating_minimum_size();
         break;
       }
 
       case configGrammar::FLOATING_MAXIMUM_SIZE: {
         enterOuterAlt(_localctx, 5);
-        setState(148);
+        setState(150);
         floating_maximum_size();
         break;
       }
 
       case configGrammar::FLOATING_MODIFIER: {
         enterOuterAlt(_localctx, 6);
-        setState(149);
+        setState(151);
         floating_modifier();
         break;
       }
 
       case configGrammar::DEFAULT_ORIENTATION: {
         enterOuterAlt(_localctx, 7);
-        setState(150);
+        setState(152);
         default_orientation();
         break;
       }
 
       case configGrammar::WORKSPACE_LAYOUT: {
         enterOuterAlt(_localctx, 8);
-        setState(151);
+        setState(153);
         workspace_layout();
         break;
       }
 
-      case configGrammar::DEFAULT_BORDER: {
+      case configGrammar::DEFAULT_BORDER:
+      case configGrammar::NEW_WINDOW:
+      case configGrammar::DEFAULT_FLOATING_BORDER:
+      case configGrammar::NEW_FLOAT: {
         enterOuterAlt(_localctx, 9);
-        setState(152);
+        setState(154);
         default_border();
         break;
       }
 
       case configGrammar::HIDE_EDGE_BORDERS: {
         enterOuterAlt(_localctx, 10);
-        setState(153);
+        setState(155);
         hide_edge_borders();
         break;
       }
 
       case configGrammar::FOR_WINDOW: {
         enterOuterAlt(_localctx, 11);
-        setState(154);
+        setState(156);
         for_window();
         break;
       }
 
       case configGrammar::ASSIGN: {
         enterOuterAlt(_localctx, 12);
-        setState(155);
+        setState(157);
         assign();
         break;
       }
 
       case configGrammar::NO_FOCUS: {
         enterOuterAlt(_localctx, 13);
-        setState(156);
+        setState(158);
         no_focus();
         break;
       }
 
       case configGrammar::FOCUS_FOLLOWS_MOUSE: {
         enterOuterAlt(_localctx, 14);
-        setState(157);
+        setState(159);
         focus_follows_mouse();
         break;
       }
 
       case configGrammar::MOUSE_WARPING: {
         enterOuterAlt(_localctx, 15);
-        setState(158);
+        setState(160);
         mouse_warping();
         break;
       }
 
       case configGrammar::FOCUS_WRAPPING: {
         enterOuterAlt(_localctx, 16);
-        setState(159);
+        setState(161);
         focus_wrapping();
         break;
       }
 
       case configGrammar::FORCE_FOCUS_WRAPPING: {
         enterOuterAlt(_localctx, 17);
-        setState(160);
+        setState(162);
         force_focus_wrapping();
         break;
       }
 
       case configGrammar::WORKSPACE_AUTO_BACK_AND_FORTH: {
         enterOuterAlt(_localctx, 18);
-        setState(161);
+        setState(163);
         workspace_auto_back_and_forth();
         break;
       }
 
       case configGrammar::FORCE_DISPLAY_URGENCY_HINT: {
         enterOuterAlt(_localctx, 19);
-        setState(162);
+        setState(164);
         force_display_urgency_hint();
         break;
       }
 
       case configGrammar::FOCUS_ON_WINDOW_ACTIVATION: {
         enterOuterAlt(_localctx, 20);
-        setState(163);
+        setState(165);
         focus_on_window_activation();
         break;
       }
 
       case configGrammar::TITLE_ALIGN: {
         enterOuterAlt(_localctx, 21);
-        setState(164);
+        setState(166);
         title_align();
         break;
       }
 
       case configGrammar::WORKSPACE: {
         enterOuterAlt(_localctx, 22);
-        setState(165);
+        setState(167);
         workspace();
         break;
       }
 
       case configGrammar::IPC_SOCKET: {
         enterOuterAlt(_localctx, 23);
-        setState(166);
+        setState(168);
         ipc_socket();
         break;
       }
 
       case configGrammar::IPC_KILL_TIMEOUT: {
         enterOuterAlt(_localctx, 24);
-        setState(167);
+        setState(169);
         ipc_kill_timeout();
         break;
       }
 
       case configGrammar::RESTART_STATE: {
         enterOuterAlt(_localctx, 25);
-        setState(168);
+        setState(170);
         restart_state();
         break;
       }
 
       case configGrammar::POPUP_DURING_FULLSCREEN: {
         enterOuterAlt(_localctx, 26);
-        setState(169);
+        setState(171);
         popup_during_fullscreen();
         break;
       }
 
       case configGrammar::EXEC: {
         enterOuterAlt(_localctx, 27);
-        setState(170);
+        setState(172);
         exec();
+        break;
+      }
+
+      case configGrammar::EXEC_ALWAYS: {
+        enterOuterAlt(_localctx, 28);
+        setState(173);
+        exec_always();
         break;
       }
 
@@ -816,33 +845,33 @@ configGrammar::CommandsContext* configGrammar::commands() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(173);
+    setState(176);
     match(configGrammar::OPEN_COMMAND);
-    setState(179);
+    setState(182);
     _errHandler->sync(this);
     alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 6, _ctx);
     while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
       if (alt == 1) {
-        setState(174);
+        setState(177);
         command();
-        setState(175);
+        setState(178);
         match(configGrammar::COMMAND_SEP); 
       }
-      setState(181);
+      setState(184);
       _errHandler->sync(this);
       alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 6, _ctx);
     }
-    setState(182);
+    setState(185);
     command();
-    setState(184);
+    setState(187);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == configGrammar::COMMAND_SEP) {
-      setState(183);
+      setState(186);
       match(configGrammar::COMMAND_SEP);
     }
-    setState(186);
+    setState(189);
     match(configGrammar::CLOSE_COMMAND);
    
   }
@@ -907,13 +936,13 @@ configGrammar::SetContext* configGrammar::set() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(188);
-    match(configGrammar::SET);
-    setState(189);
-    match(configGrammar::VAR);
-    setState(190);
-    match(configGrammar::EQ);
     setState(191);
+    match(configGrammar::SET);
+    setState(192);
+    match(configGrammar::VAR);
+    setState(193);
+    match(configGrammar::EQ);
+    setState(194);
     match(configGrammar::STRING);
    
   }
@@ -983,21 +1012,21 @@ configGrammar::BindingContext* configGrammar::binding() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(193);
+    setState(196);
     match(configGrammar::BINDSYM);
-    setState(197);
+    setState(200);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == configGrammar::OPTION) {
-      setState(194);
+      setState(197);
       match(configGrammar::OPTION);
-      setState(199);
+      setState(202);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(200);
+    setState(203);
     match(configGrammar::STRING);
-    setState(201);
+    setState(204);
     commands();
    
   }
@@ -1054,9 +1083,9 @@ configGrammar::FontContext* configGrammar::font() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(203);
+    setState(206);
     match(configGrammar::FONT);
-    setState(204);
+    setState(207);
     match(configGrammar::STRING);
    
   }
@@ -1113,9 +1142,9 @@ configGrammar::Floating_minimum_sizeContext* configGrammar::floating_minimum_siz
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(206);
+    setState(209);
     match(configGrammar::FLOATING_MINIMUM_SIZE);
-    setState(207);
+    setState(210);
     dimension();
    
   }
@@ -1172,9 +1201,9 @@ configGrammar::Floating_maximum_sizeContext* configGrammar::floating_maximum_siz
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(209);
+    setState(212);
     match(configGrammar::FLOATING_MAXIMUM_SIZE);
-    setState(210);
+    setState(213);
     dimension();
    
   }
@@ -1231,9 +1260,9 @@ configGrammar::Floating_modifierContext* configGrammar::floating_modifier() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(212);
+    setState(215);
     match(configGrammar::FLOATING_MODIFIER);
-    setState(213);
+    setState(216);
     match(configGrammar::STRING);
    
   }
@@ -1290,9 +1319,9 @@ configGrammar::Default_orientationContext* configGrammar::default_orientation() 
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(215);
+    setState(218);
     match(configGrammar::DEFAULT_ORIENTATION);
-    setState(216);
+    setState(219);
     match(configGrammar::STRING);
    
   }
@@ -1349,9 +1378,9 @@ configGrammar::Workspace_layoutContext* configGrammar::workspace_layout() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(218);
+    setState(221);
     match(configGrammar::WORKSPACE_LAYOUT);
-    setState(219);
+    setState(222);
     match(configGrammar::STRING);
    
   }
@@ -1370,12 +1399,24 @@ configGrammar::Default_borderContext::Default_borderContext(ParserRuleContext *p
   : ParserRuleContext(parent, invokingState) {
 }
 
+tree::TerminalNode* configGrammar::Default_borderContext::STRING() {
+  return getToken(configGrammar::STRING, 0);
+}
+
 tree::TerminalNode* configGrammar::Default_borderContext::DEFAULT_BORDER() {
   return getToken(configGrammar::DEFAULT_BORDER, 0);
 }
 
-tree::TerminalNode* configGrammar::Default_borderContext::STRING() {
-  return getToken(configGrammar::STRING, 0);
+tree::TerminalNode* configGrammar::Default_borderContext::NEW_WINDOW() {
+  return getToken(configGrammar::NEW_WINDOW, 0);
+}
+
+tree::TerminalNode* configGrammar::Default_borderContext::DEFAULT_FLOATING_BORDER() {
+  return getToken(configGrammar::DEFAULT_FLOATING_BORDER, 0);
+}
+
+tree::TerminalNode* configGrammar::Default_borderContext::NEW_FLOAT() {
+  return getToken(configGrammar::NEW_FLOAT, 0);
 }
 
 
@@ -1398,6 +1439,7 @@ void configGrammar::Default_borderContext::exitRule(tree::ParseTreeListener *lis
 configGrammar::Default_borderContext* configGrammar::default_border() {
   Default_borderContext *_localctx = _tracker.createInstance<Default_borderContext>(_ctx, getState());
   enterRule(_localctx, 22, configGrammar::RuleDefault_border);
+  size_t _la = 0;
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -1408,9 +1450,17 @@ configGrammar::Default_borderContext* configGrammar::default_border() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(221);
-    match(configGrammar::DEFAULT_BORDER);
-    setState(222);
+    setState(224);
+    _la = _input->LA(1);
+    if (!((((_la & ~ 0x3fULL) == 0) &&
+      ((1ULL << _la) & 31457280) != 0))) {
+    _errHandler->recoverInline(this);
+    }
+    else {
+      _errHandler->reportMatch(this);
+      consume();
+    }
+    setState(225);
     match(configGrammar::STRING);
    
   }
@@ -1467,9 +1517,9 @@ configGrammar::Hide_edge_bordersContext* configGrammar::hide_edge_borders() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(224);
+    setState(227);
     match(configGrammar::HIDE_EDGE_BORDERS);
-    setState(225);
+    setState(228);
     match(configGrammar::STRING);
    
   }
@@ -1530,11 +1580,11 @@ configGrammar::For_windowContext* configGrammar::for_window() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(227);
+    setState(230);
     match(configGrammar::FOR_WINDOW);
-    setState(228);
+    setState(231);
     criteria();
-    setState(229);
+    setState(232);
     commands();
    
   }
@@ -1565,6 +1615,10 @@ tree::TerminalNode* configGrammar::AssignContext::STRING() {
   return getToken(configGrammar::STRING, 0);
 }
 
+tree::TerminalNode* configGrammar::AssignContext::NUMBER() {
+  return getToken(configGrammar::NUMBER, 0);
+}
+
 
 size_t configGrammar::AssignContext::getRuleIndex() const {
   return configGrammar::RuleAssign;
@@ -1585,6 +1639,7 @@ void configGrammar::AssignContext::exitRule(tree::ParseTreeListener *listener) {
 configGrammar::AssignContext* configGrammar::assign() {
   AssignContext *_localctx = _tracker.createInstance<AssignContext>(_ctx, getState());
   enterRule(_localctx, 28, configGrammar::RuleAssign);
+  size_t _la = 0;
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -1595,12 +1650,21 @@ configGrammar::AssignContext* configGrammar::assign() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(231);
+    setState(234);
     match(configGrammar::ASSIGN);
-    setState(232);
+    setState(235);
     criteria();
-    setState(233);
-    match(configGrammar::STRING);
+    setState(236);
+    _la = _input->LA(1);
+    if (!(_la == configGrammar::STRING
+
+    || _la == configGrammar::NUMBER)) {
+    _errHandler->recoverInline(this);
+    }
+    else {
+      _errHandler->reportMatch(this);
+      consume();
+    }
    
   }
   catch (RecognitionException &e) {
@@ -1656,9 +1720,9 @@ configGrammar::No_focusContext* configGrammar::no_focus() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(235);
+    setState(238);
     match(configGrammar::NO_FOCUS);
-    setState(236);
+    setState(239);
     criteria();
    
   }
@@ -1715,9 +1779,9 @@ configGrammar::Focus_follows_mouseContext* configGrammar::focus_follows_mouse() 
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(238);
+    setState(241);
     match(configGrammar::FOCUS_FOLLOWS_MOUSE);
-    setState(239);
+    setState(242);
     match(configGrammar::STRING);
    
   }
@@ -1774,9 +1838,9 @@ configGrammar::Mouse_warpingContext* configGrammar::mouse_warping() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(241);
+    setState(244);
     match(configGrammar::MOUSE_WARPING);
-    setState(242);
+    setState(245);
     match(configGrammar::STRING);
    
   }
@@ -1833,9 +1897,9 @@ configGrammar::Focus_wrappingContext* configGrammar::focus_wrapping() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(244);
+    setState(247);
     match(configGrammar::FOCUS_WRAPPING);
-    setState(245);
+    setState(248);
     match(configGrammar::STRING);
    
   }
@@ -1892,9 +1956,9 @@ configGrammar::Force_focus_wrappingContext* configGrammar::force_focus_wrapping(
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(247);
+    setState(250);
     match(configGrammar::FORCE_FOCUS_WRAPPING);
-    setState(248);
+    setState(251);
     match(configGrammar::STRING);
    
   }
@@ -1951,9 +2015,9 @@ configGrammar::Workspace_auto_back_and_forthContext* configGrammar::workspace_au
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(250);
+    setState(253);
     match(configGrammar::WORKSPACE_AUTO_BACK_AND_FORTH);
-    setState(251);
+    setState(254);
     match(configGrammar::STRING);
    
   }
@@ -2010,9 +2074,9 @@ configGrammar::Force_display_urgency_hintContext* configGrammar::force_display_u
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(253);
+    setState(256);
     match(configGrammar::FORCE_DISPLAY_URGENCY_HINT);
-    setState(254);
+    setState(257);
     match(configGrammar::NUMBER);
    
   }
@@ -2069,9 +2133,9 @@ configGrammar::Focus_on_window_activationContext* configGrammar::focus_on_window
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(256);
+    setState(259);
     match(configGrammar::FOCUS_ON_WINDOW_ACTIVATION);
-    setState(257);
+    setState(260);
     match(configGrammar::STRING);
    
   }
@@ -2128,9 +2192,9 @@ configGrammar::Title_alignContext* configGrammar::title_align() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(259);
+    setState(262);
     match(configGrammar::TITLE_ALIGN);
-    setState(260);
+    setState(263);
     match(configGrammar::STRING);
    
   }
@@ -2159,6 +2223,10 @@ std::vector<tree::TerminalNode *> configGrammar::WorkspaceContext::STRING() {
 
 tree::TerminalNode* configGrammar::WorkspaceContext::STRING(size_t i) {
   return getToken(configGrammar::STRING, i);
+}
+
+tree::TerminalNode* configGrammar::WorkspaceContext::NUMBER() {
+  return getToken(configGrammar::NUMBER, 0);
 }
 
 tree::TerminalNode* configGrammar::WorkspaceContext::EQ() {
@@ -2196,18 +2264,27 @@ configGrammar::WorkspaceContext* configGrammar::workspace() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(262);
+    setState(265);
     match(configGrammar::WORKSPACE);
-    setState(263);
-    match(configGrammar::STRING);
     setState(266);
+    _la = _input->LA(1);
+    if (!(_la == configGrammar::STRING
+
+    || _la == configGrammar::NUMBER)) {
+    _errHandler->recoverInline(this);
+    }
+    else {
+      _errHandler->reportMatch(this);
+      consume();
+    }
+    setState(269);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == configGrammar::EQ) {
-      setState(264);
+      setState(267);
       match(configGrammar::EQ);
-      setState(265);
+      setState(268);
       match(configGrammar::STRING);
     }
    
@@ -2265,9 +2342,9 @@ configGrammar::Ipc_socketContext* configGrammar::ipc_socket() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(268);
+    setState(271);
     match(configGrammar::IPC_SOCKET);
-    setState(269);
+    setState(272);
     match(configGrammar::STRING);
    
   }
@@ -2324,9 +2401,9 @@ configGrammar::Ipc_kill_timeoutContext* configGrammar::ipc_kill_timeout() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(271);
+    setState(274);
     match(configGrammar::IPC_KILL_TIMEOUT);
-    setState(272);
+    setState(275);
     match(configGrammar::NUMBER);
    
   }
@@ -2383,9 +2460,9 @@ configGrammar::Restart_stateContext* configGrammar::restart_state() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(274);
+    setState(277);
     match(configGrammar::RESTART_STATE);
-    setState(275);
+    setState(278);
     match(configGrammar::STRING);
    
   }
@@ -2442,9 +2519,9 @@ configGrammar::Popup_during_fullscreenContext* configGrammar::popup_during_fulls
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(277);
+    setState(280);
     match(configGrammar::POPUP_DURING_FULLSCREEN);
-    setState(278);
+    setState(281);
     match(configGrammar::STRING);
    
   }
@@ -2510,19 +2587,97 @@ configGrammar::ExecContext* configGrammar::exec() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(280);
+    setState(283);
     match(configGrammar::EXEC);
-    setState(284);
+    setState(287);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == configGrammar::OPTION) {
-      setState(281);
+      setState(284);
       match(configGrammar::OPTION);
-      setState(286);
+      setState(289);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(287);
+    setState(290);
+    match(configGrammar::STRING);
+   
+  }
+  catch (RecognitionException &e) {
+    _errHandler->reportError(this, e);
+    _localctx->exception = std::current_exception();
+    _errHandler->recover(this, _localctx->exception);
+  }
+
+  return _localctx;
+}
+
+//----------------- Exec_alwaysContext ------------------------------------------------------------------
+
+configGrammar::Exec_alwaysContext::Exec_alwaysContext(ParserRuleContext *parent, size_t invokingState)
+  : ParserRuleContext(parent, invokingState) {
+}
+
+tree::TerminalNode* configGrammar::Exec_alwaysContext::EXEC_ALWAYS() {
+  return getToken(configGrammar::EXEC_ALWAYS, 0);
+}
+
+tree::TerminalNode* configGrammar::Exec_alwaysContext::STRING() {
+  return getToken(configGrammar::STRING, 0);
+}
+
+std::vector<tree::TerminalNode *> configGrammar::Exec_alwaysContext::OPTION() {
+  return getTokens(configGrammar::OPTION);
+}
+
+tree::TerminalNode* configGrammar::Exec_alwaysContext::OPTION(size_t i) {
+  return getToken(configGrammar::OPTION, i);
+}
+
+
+size_t configGrammar::Exec_alwaysContext::getRuleIndex() const {
+  return configGrammar::RuleExec_always;
+}
+
+void configGrammar::Exec_alwaysContext::enterRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<configGrammarListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->enterExec_always(this);
+}
+
+void configGrammar::Exec_alwaysContext::exitRule(tree::ParseTreeListener *listener) {
+  auto parserListener = dynamic_cast<configGrammarListener *>(listener);
+  if (parserListener != nullptr)
+    parserListener->exitExec_always(this);
+}
+
+configGrammar::Exec_alwaysContext* configGrammar::exec_always() {
+  Exec_alwaysContext *_localctx = _tracker.createInstance<Exec_alwaysContext>(_ctx, getState());
+  enterRule(_localctx, 60, configGrammar::RuleExec_always);
+  size_t _la = 0;
+
+#if __cplusplus > 201703L
+  auto onExit = finally([=, this] {
+#else
+  auto onExit = finally([=] {
+#endif
+    exitRule();
+  });
+  try {
+    enterOuterAlt(_localctx, 1);
+    setState(292);
+    match(configGrammar::EXEC_ALWAYS);
+    setState(296);
+    _errHandler->sync(this);
+    _la = _input->LA(1);
+    while (_la == configGrammar::OPTION) {
+      setState(293);
+      match(configGrammar::OPTION);
+      setState(298);
+      _errHandler->sync(this);
+      _la = _input->LA(1);
+    }
+    setState(299);
     match(configGrammar::STRING);
    
   }
@@ -2572,7 +2727,7 @@ void configGrammar::DimensionContext::exitRule(tree::ParseTreeListener *listener
 
 configGrammar::DimensionContext* configGrammar::dimension() {
   DimensionContext *_localctx = _tracker.createInstance<DimensionContext>(_ctx, getState());
-  enterRule(_localctx, 60, configGrammar::RuleDimension);
+  enterRule(_localctx, 62, configGrammar::RuleDimension);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -2583,11 +2738,11 @@ configGrammar::DimensionContext* configGrammar::dimension() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(289);
+    setState(301);
     match(configGrammar::NUMBER);
-    setState(290);
+    setState(302);
     match(configGrammar::DIMENSION_SEP);
-    setState(291);
+    setState(303);
     match(configGrammar::NUMBER);
    
   }
@@ -2717,7 +2872,7 @@ void configGrammar::CommandContext::exitRule(tree::ParseTreeListener *listener) 
 
 configGrammar::CommandContext* configGrammar::command() {
   CommandContext *_localctx = _tracker.createInstance<CommandContext>(_ctx, getState());
-  enterRule(_localctx, 62, configGrammar::RuleCommand);
+  enterRule(_localctx, 64, configGrammar::RuleCommand);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -2727,166 +2882,166 @@ configGrammar::CommandContext* configGrammar::command() {
     exitRule();
   });
   try {
-    setState(316);
+    setState(328);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case configGrammar::COMMAND_MOVE: {
         enterOuterAlt(_localctx, 1);
-        setState(293);
+        setState(305);
         command_move();
         break;
       }
 
       case configGrammar::COMMAND_EXEC: {
         enterOuterAlt(_localctx, 2);
-        setState(294);
+        setState(306);
         command_exec();
         break;
       }
 
       case configGrammar::COMMAND_EXIT: {
         enterOuterAlt(_localctx, 3);
-        setState(295);
+        setState(307);
         command_exit();
         break;
       }
 
       case configGrammar::COMMAND_DEBUGLOG: {
         enterOuterAlt(_localctx, 4);
-        setState(296);
+        setState(308);
         command_debuglog();
         break;
       }
 
       case configGrammar::COMMAND_BORDER: {
         enterOuterAlt(_localctx, 5);
-        setState(297);
+        setState(309);
         command_border();
         break;
       }
 
       case configGrammar::COMMAND_LAYOUT: {
         enterOuterAlt(_localctx, 6);
-        setState(298);
+        setState(310);
         command_layout();
         break;
       }
 
       case configGrammar::COMMAND_APPEND_LAYOUT: {
         enterOuterAlt(_localctx, 7);
-        setState(299);
+        setState(311);
         command_append_layout();
         break;
       }
 
       case configGrammar::COMMAND_WORKSPACE: {
         enterOuterAlt(_localctx, 8);
-        setState(300);
+        setState(312);
         command_workspace();
         break;
       }
 
       case configGrammar::COMMAND_FOCUS: {
         enterOuterAlt(_localctx, 9);
-        setState(301);
+        setState(313);
         command_focus();
         break;
       }
 
       case configGrammar::COMMAND_KILL: {
         enterOuterAlt(_localctx, 10);
-        setState(302);
+        setState(314);
         command_kill();
         break;
       }
 
       case configGrammar::COMMAND_MODE: {
         enterOuterAlt(_localctx, 11);
-        setState(303);
+        setState(315);
         command_mode();
         break;
       }
 
       case configGrammar::COMMAND_OPEN: {
         enterOuterAlt(_localctx, 12);
-        setState(304);
+        setState(316);
         command_open();
         break;
       }
 
       case configGrammar::COMMAND_FULLSCREEN: {
         enterOuterAlt(_localctx, 13);
-        setState(305);
+        setState(317);
         command_fullscreen();
         break;
       }
 
       case configGrammar::COMMAND_STICKY: {
         enterOuterAlt(_localctx, 14);
-        setState(306);
+        setState(318);
         command_sticky();
         break;
       }
 
       case configGrammar::COMMAND_SPLIT: {
         enterOuterAlt(_localctx, 15);
-        setState(307);
+        setState(319);
         command_split();
         break;
       }
 
       case configGrammar::COMMAND_FLOATING: {
         enterOuterAlt(_localctx, 16);
-        setState(308);
+        setState(320);
         command_floating();
         break;
       }
 
       case configGrammar::COMMAND_RESIZE: {
         enterOuterAlt(_localctx, 17);
-        setState(309);
+        setState(321);
         command_resize();
         break;
       }
 
       case configGrammar::COMMAND_RENAME: {
         enterOuterAlt(_localctx, 18);
-        setState(310);
+        setState(322);
         command_rename();
         break;
       }
 
       case configGrammar::COMMAND_NOP: {
         enterOuterAlt(_localctx, 19);
-        setState(311);
+        setState(323);
         command_nop();
         break;
       }
 
       case configGrammar::COMMAND_RELOAD: {
         enterOuterAlt(_localctx, 20);
-        setState(312);
+        setState(324);
         command_reload();
         break;
       }
 
       case configGrammar::COMMAND_RESTART: {
         enterOuterAlt(_localctx, 21);
-        setState(313);
+        setState(325);
         command_restart();
         break;
       }
 
       case configGrammar::COMMAND_TITLE_FORMAT: {
         enterOuterAlt(_localctx, 22);
-        setState(314);
+        setState(326);
         command_title_format();
         break;
       }
 
       case configGrammar::COMMAND_TITLE_WINDOW_ICON: {
         enterOuterAlt(_localctx, 23);
-        setState(315);
+        setState(327);
         command_title_window_icon();
         break;
       }
@@ -2942,7 +3097,7 @@ void configGrammar::Command_moveContext::exitRule(tree::ParseTreeListener *liste
 
 configGrammar::Command_moveContext* configGrammar::command_move() {
   Command_moveContext *_localctx = _tracker.createInstance<Command_moveContext>(_ctx, getState());
-  enterRule(_localctx, 64, configGrammar::RuleCommand_move);
+  enterRule(_localctx, 66, configGrammar::RuleCommand_move);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -2954,9 +3109,9 @@ configGrammar::Command_moveContext* configGrammar::command_move() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(318);
+    setState(330);
     match(configGrammar::COMMAND_MOVE);
-    setState(319);
+    setState(331);
     _la = _input->LA(1);
     if (!(_la == configGrammar::COMMAND_NUMBER
 
@@ -3019,7 +3174,7 @@ void configGrammar::Command_execContext::exitRule(tree::ParseTreeListener *liste
 
 configGrammar::Command_execContext* configGrammar::command_exec() {
   Command_execContext *_localctx = _tracker.createInstance<Command_execContext>(_ctx, getState());
-  enterRule(_localctx, 66, configGrammar::RuleCommand_exec);
+  enterRule(_localctx, 68, configGrammar::RuleCommand_exec);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -3031,19 +3186,19 @@ configGrammar::Command_execContext* configGrammar::command_exec() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(321);
+    setState(333);
     match(configGrammar::COMMAND_EXEC);
-    setState(325);
+    setState(337);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == configGrammar::COMMAND_OPTION) {
-      setState(322);
+      setState(334);
       match(configGrammar::COMMAND_OPTION);
-      setState(327);
+      setState(339);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(328);
+    setState(340);
     match(configGrammar::COMMAND_STRING);
    
   }
@@ -3085,7 +3240,7 @@ void configGrammar::Command_exitContext::exitRule(tree::ParseTreeListener *liste
 
 configGrammar::Command_exitContext* configGrammar::command_exit() {
   Command_exitContext *_localctx = _tracker.createInstance<Command_exitContext>(_ctx, getState());
-  enterRule(_localctx, 68, configGrammar::RuleCommand_exit);
+  enterRule(_localctx, 70, configGrammar::RuleCommand_exit);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -3096,7 +3251,7 @@ configGrammar::Command_exitContext* configGrammar::command_exit() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(330);
+    setState(342);
     match(configGrammar::COMMAND_EXIT);
    
   }
@@ -3142,7 +3297,7 @@ void configGrammar::Command_killContext::exitRule(tree::ParseTreeListener *liste
 
 configGrammar::Command_killContext* configGrammar::command_kill() {
   Command_killContext *_localctx = _tracker.createInstance<Command_killContext>(_ctx, getState());
-  enterRule(_localctx, 70, configGrammar::RuleCommand_kill);
+  enterRule(_localctx, 72, configGrammar::RuleCommand_kill);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -3153,9 +3308,9 @@ configGrammar::Command_killContext* configGrammar::command_kill() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(332);
+    setState(344);
     match(configGrammar::COMMAND_KILL);
-    setState(333);
+    setState(345);
     match(configGrammar::COMMAND_STRING);
    
   }
@@ -3205,7 +3360,7 @@ void configGrammar::Command_fullscreenContext::exitRule(tree::ParseTreeListener 
 
 configGrammar::Command_fullscreenContext* configGrammar::command_fullscreen() {
   Command_fullscreenContext *_localctx = _tracker.createInstance<Command_fullscreenContext>(_ctx, getState());
-  enterRule(_localctx, 72, configGrammar::RuleCommand_fullscreen);
+  enterRule(_localctx, 74, configGrammar::RuleCommand_fullscreen);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -3217,16 +3372,16 @@ configGrammar::Command_fullscreenContext* configGrammar::command_fullscreen() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(335);
+    setState(347);
     match(configGrammar::COMMAND_FULLSCREEN);
-    setState(336);
+    setState(348);
     match(configGrammar::COMMAND_STRING);
-    setState(338);
+    setState(350);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == configGrammar::COMMAND_STRING) {
-      setState(337);
+      setState(349);
       match(configGrammar::COMMAND_STRING);
     }
    
@@ -3273,7 +3428,7 @@ void configGrammar::Command_stickyContext::exitRule(tree::ParseTreeListener *lis
 
 configGrammar::Command_stickyContext* configGrammar::command_sticky() {
   Command_stickyContext *_localctx = _tracker.createInstance<Command_stickyContext>(_ctx, getState());
-  enterRule(_localctx, 74, configGrammar::RuleCommand_sticky);
+  enterRule(_localctx, 76, configGrammar::RuleCommand_sticky);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -3284,9 +3439,9 @@ configGrammar::Command_stickyContext* configGrammar::command_sticky() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(340);
+    setState(352);
     match(configGrammar::COMMAND_STICKY);
-    setState(341);
+    setState(353);
     match(configGrammar::COMMAND_STRING);
    
   }
@@ -3332,7 +3487,7 @@ void configGrammar::Command_debuglogContext::exitRule(tree::ParseTreeListener *l
 
 configGrammar::Command_debuglogContext* configGrammar::command_debuglog() {
   Command_debuglogContext *_localctx = _tracker.createInstance<Command_debuglogContext>(_ctx, getState());
-  enterRule(_localctx, 76, configGrammar::RuleCommand_debuglog);
+  enterRule(_localctx, 78, configGrammar::RuleCommand_debuglog);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -3343,9 +3498,9 @@ configGrammar::Command_debuglogContext* configGrammar::command_debuglog() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(343);
+    setState(355);
     match(configGrammar::COMMAND_DEBUGLOG);
-    setState(344);
+    setState(356);
     match(configGrammar::COMMAND_STRING);
    
   }
@@ -3395,7 +3550,7 @@ void configGrammar::Command_borderContext::exitRule(tree::ParseTreeListener *lis
 
 configGrammar::Command_borderContext* configGrammar::command_border() {
   Command_borderContext *_localctx = _tracker.createInstance<Command_borderContext>(_ctx, getState());
-  enterRule(_localctx, 78, configGrammar::RuleCommand_border);
+  enterRule(_localctx, 80, configGrammar::RuleCommand_border);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -3407,16 +3562,16 @@ configGrammar::Command_borderContext* configGrammar::command_border() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(346);
+    setState(358);
     match(configGrammar::COMMAND_BORDER);
-    setState(347);
+    setState(359);
     match(configGrammar::COMMAND_STRING);
-    setState(349);
+    setState(361);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == configGrammar::COMMAND_NUMBER) {
-      setState(348);
+      setState(360);
       match(configGrammar::COMMAND_NUMBER);
     }
    
@@ -3467,7 +3622,7 @@ void configGrammar::Command_layoutContext::exitRule(tree::ParseTreeListener *lis
 
 configGrammar::Command_layoutContext* configGrammar::command_layout() {
   Command_layoutContext *_localctx = _tracker.createInstance<Command_layoutContext>(_ctx, getState());
-  enterRule(_localctx, 80, configGrammar::RuleCommand_layout);
+  enterRule(_localctx, 82, configGrammar::RuleCommand_layout);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -3479,16 +3634,16 @@ configGrammar::Command_layoutContext* configGrammar::command_layout() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(351);
+    setState(363);
     match(configGrammar::COMMAND_LAYOUT);
-    setState(352);
+    setState(364);
     match(configGrammar::COMMAND_STRING);
-    setState(354);
+    setState(366);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == configGrammar::COMMAND_STRING) {
-      setState(353);
+      setState(365);
       match(configGrammar::COMMAND_STRING);
     }
    
@@ -3535,7 +3690,7 @@ void configGrammar::Command_append_layoutContext::exitRule(tree::ParseTreeListen
 
 configGrammar::Command_append_layoutContext* configGrammar::command_append_layout() {
   Command_append_layoutContext *_localctx = _tracker.createInstance<Command_append_layoutContext>(_ctx, getState());
-  enterRule(_localctx, 82, configGrammar::RuleCommand_append_layout);
+  enterRule(_localctx, 84, configGrammar::RuleCommand_append_layout);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -3546,9 +3701,9 @@ configGrammar::Command_append_layoutContext* configGrammar::command_append_layou
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(356);
+    setState(368);
     match(configGrammar::COMMAND_APPEND_LAYOUT);
-    setState(357);
+    setState(369);
     match(configGrammar::COMMAND_STRING);
    
   }
@@ -3602,7 +3757,7 @@ void configGrammar::Command_workspaceContext::exitRule(tree::ParseTreeListener *
 
 configGrammar::Command_workspaceContext* configGrammar::command_workspace() {
   Command_workspaceContext *_localctx = _tracker.createInstance<Command_workspaceContext>(_ctx, getState());
-  enterRule(_localctx, 84, configGrammar::RuleCommand_workspace);
+  enterRule(_localctx, 86, configGrammar::RuleCommand_workspace);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -3614,19 +3769,19 @@ configGrammar::Command_workspaceContext* configGrammar::command_workspace() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(359);
+    setState(371);
     match(configGrammar::COMMAND_WORKSPACE);
-    setState(363);
+    setState(375);
     _errHandler->sync(this);
     _la = _input->LA(1);
     while (_la == configGrammar::COMMAND_OPTION) {
-      setState(360);
+      setState(372);
       match(configGrammar::COMMAND_OPTION);
-      setState(365);
+      setState(377);
       _errHandler->sync(this);
       _la = _input->LA(1);
     }
-    setState(366);
+    setState(378);
     match(configGrammar::COMMAND_STRING);
    
   }
@@ -3676,7 +3831,7 @@ void configGrammar::Command_focusContext::exitRule(tree::ParseTreeListener *list
 
 configGrammar::Command_focusContext* configGrammar::command_focus() {
   Command_focusContext *_localctx = _tracker.createInstance<Command_focusContext>(_ctx, getState());
-  enterRule(_localctx, 86, configGrammar::RuleCommand_focus);
+  enterRule(_localctx, 88, configGrammar::RuleCommand_focus);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -3688,16 +3843,16 @@ configGrammar::Command_focusContext* configGrammar::command_focus() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(368);
+    setState(380);
     match(configGrammar::COMMAND_FOCUS);
-    setState(369);
+    setState(381);
     match(configGrammar::COMMAND_STRING);
-    setState(371);
+    setState(383);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == configGrammar::COMMAND_STRING) {
-      setState(370);
+      setState(382);
       match(configGrammar::COMMAND_STRING);
     }
    
@@ -3744,7 +3899,7 @@ void configGrammar::Command_splitContext::exitRule(tree::ParseTreeListener *list
 
 configGrammar::Command_splitContext* configGrammar::command_split() {
   Command_splitContext *_localctx = _tracker.createInstance<Command_splitContext>(_ctx, getState());
-  enterRule(_localctx, 88, configGrammar::RuleCommand_split);
+  enterRule(_localctx, 90, configGrammar::RuleCommand_split);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -3755,9 +3910,9 @@ configGrammar::Command_splitContext* configGrammar::command_split() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(373);
+    setState(385);
     match(configGrammar::COMMAND_SPLIT);
-    setState(374);
+    setState(386);
     match(configGrammar::COMMAND_STRING);
    
   }
@@ -3803,7 +3958,7 @@ void configGrammar::Command_floatingContext::exitRule(tree::ParseTreeListener *l
 
 configGrammar::Command_floatingContext* configGrammar::command_floating() {
   Command_floatingContext *_localctx = _tracker.createInstance<Command_floatingContext>(_ctx, getState());
-  enterRule(_localctx, 90, configGrammar::RuleCommand_floating);
+  enterRule(_localctx, 92, configGrammar::RuleCommand_floating);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -3814,9 +3969,9 @@ configGrammar::Command_floatingContext* configGrammar::command_floating() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(376);
+    setState(388);
     match(configGrammar::COMMAND_FLOATING);
-    setState(377);
+    setState(389);
     match(configGrammar::COMMAND_STRING);
    
   }
@@ -3858,7 +4013,7 @@ void configGrammar::Command_resizeContext::exitRule(tree::ParseTreeListener *lis
 
 configGrammar::Command_resizeContext* configGrammar::command_resize() {
   Command_resizeContext *_localctx = _tracker.createInstance<Command_resizeContext>(_ctx, getState());
-  enterRule(_localctx, 92, configGrammar::RuleCommand_resize);
+  enterRule(_localctx, 94, configGrammar::RuleCommand_resize);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -3869,7 +4024,7 @@ configGrammar::Command_resizeContext* configGrammar::command_resize() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(379);
+    setState(391);
     match(configGrammar::COMMAND_RESIZE);
    
   }
@@ -3911,7 +4066,7 @@ void configGrammar::Command_renameContext::exitRule(tree::ParseTreeListener *lis
 
 configGrammar::Command_renameContext* configGrammar::command_rename() {
   Command_renameContext *_localctx = _tracker.createInstance<Command_renameContext>(_ctx, getState());
-  enterRule(_localctx, 94, configGrammar::RuleCommand_rename);
+  enterRule(_localctx, 96, configGrammar::RuleCommand_rename);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -3922,7 +4077,7 @@ configGrammar::Command_renameContext* configGrammar::command_rename() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(381);
+    setState(393);
     match(configGrammar::COMMAND_RENAME);
    
   }
@@ -3968,7 +4123,7 @@ void configGrammar::Command_nopContext::exitRule(tree::ParseTreeListener *listen
 
 configGrammar::Command_nopContext* configGrammar::command_nop() {
   Command_nopContext *_localctx = _tracker.createInstance<Command_nopContext>(_ctx, getState());
-  enterRule(_localctx, 96, configGrammar::RuleCommand_nop);
+  enterRule(_localctx, 98, configGrammar::RuleCommand_nop);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -3980,14 +4135,14 @@ configGrammar::Command_nopContext* configGrammar::command_nop() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(383);
+    setState(395);
     match(configGrammar::COMMAND_NOP);
-    setState(385);
+    setState(397);
     _errHandler->sync(this);
 
     _la = _input->LA(1);
     if (_la == configGrammar::COMMAND_STRING) {
-      setState(384);
+      setState(396);
       match(configGrammar::COMMAND_STRING);
     }
    
@@ -4030,7 +4185,7 @@ void configGrammar::Command_reloadContext::exitRule(tree::ParseTreeListener *lis
 
 configGrammar::Command_reloadContext* configGrammar::command_reload() {
   Command_reloadContext *_localctx = _tracker.createInstance<Command_reloadContext>(_ctx, getState());
-  enterRule(_localctx, 98, configGrammar::RuleCommand_reload);
+  enterRule(_localctx, 100, configGrammar::RuleCommand_reload);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4041,7 +4196,7 @@ configGrammar::Command_reloadContext* configGrammar::command_reload() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(387);
+    setState(399);
     match(configGrammar::COMMAND_RELOAD);
    
   }
@@ -4083,7 +4238,7 @@ void configGrammar::Command_restartContext::exitRule(tree::ParseTreeListener *li
 
 configGrammar::Command_restartContext* configGrammar::command_restart() {
   Command_restartContext *_localctx = _tracker.createInstance<Command_restartContext>(_ctx, getState());
-  enterRule(_localctx, 100, configGrammar::RuleCommand_restart);
+  enterRule(_localctx, 102, configGrammar::RuleCommand_restart);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4094,7 +4249,7 @@ configGrammar::Command_restartContext* configGrammar::command_restart() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(389);
+    setState(401);
     match(configGrammar::COMMAND_RESTART);
    
   }
@@ -4140,7 +4295,7 @@ void configGrammar::Command_modeContext::exitRule(tree::ParseTreeListener *liste
 
 configGrammar::Command_modeContext* configGrammar::command_mode() {
   Command_modeContext *_localctx = _tracker.createInstance<Command_modeContext>(_ctx, getState());
-  enterRule(_localctx, 102, configGrammar::RuleCommand_mode);
+  enterRule(_localctx, 104, configGrammar::RuleCommand_mode);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4151,9 +4306,9 @@ configGrammar::Command_modeContext* configGrammar::command_mode() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(391);
+    setState(403);
     match(configGrammar::COMMAND_MODE);
-    setState(392);
+    setState(404);
     match(configGrammar::COMMAND_STRING);
    
   }
@@ -4195,7 +4350,7 @@ void configGrammar::Command_openContext::exitRule(tree::ParseTreeListener *liste
 
 configGrammar::Command_openContext* configGrammar::command_open() {
   Command_openContext *_localctx = _tracker.createInstance<Command_openContext>(_ctx, getState());
-  enterRule(_localctx, 104, configGrammar::RuleCommand_open);
+  enterRule(_localctx, 106, configGrammar::RuleCommand_open);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4206,7 +4361,7 @@ configGrammar::Command_openContext* configGrammar::command_open() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(394);
+    setState(406);
     match(configGrammar::COMMAND_OPEN);
    
   }
@@ -4252,7 +4407,7 @@ void configGrammar::Command_title_formatContext::exitRule(tree::ParseTreeListene
 
 configGrammar::Command_title_formatContext* configGrammar::command_title_format() {
   Command_title_formatContext *_localctx = _tracker.createInstance<Command_title_formatContext>(_ctx, getState());
-  enterRule(_localctx, 106, configGrammar::RuleCommand_title_format);
+  enterRule(_localctx, 108, configGrammar::RuleCommand_title_format);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4263,9 +4418,9 @@ configGrammar::Command_title_formatContext* configGrammar::command_title_format(
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(396);
+    setState(408);
     match(configGrammar::COMMAND_TITLE_FORMAT);
-    setState(397);
+    setState(409);
     match(configGrammar::COMMAND_STRING);
    
   }
@@ -4307,7 +4462,7 @@ void configGrammar::Command_title_window_iconContext::exitRule(tree::ParseTreeLi
 
 configGrammar::Command_title_window_iconContext* configGrammar::command_title_window_icon() {
   Command_title_window_iconContext *_localctx = _tracker.createInstance<Command_title_window_iconContext>(_ctx, getState());
-  enterRule(_localctx, 108, configGrammar::RuleCommand_title_window_icon);
+  enterRule(_localctx, 110, configGrammar::RuleCommand_title_window_icon);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4318,7 +4473,7 @@ configGrammar::Command_title_window_iconContext* configGrammar::command_title_wi
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(399);
+    setState(411);
     match(configGrammar::COMMAND_TITLE_WINDOW_ICON);
    
   }
@@ -4380,7 +4535,8 @@ void configGrammar::CriteriaContext::exitRule(tree::ParseTreeListener *listener)
 
 configGrammar::CriteriaContext* configGrammar::criteria() {
   CriteriaContext *_localctx = _tracker.createInstance<CriteriaContext>(_ctx, getState());
-  enterRule(_localctx, 110, configGrammar::RuleCriteria);
+  enterRule(_localctx, 112, configGrammar::RuleCriteria);
+  size_t _la = 0;
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4392,26 +4548,32 @@ configGrammar::CriteriaContext* configGrammar::criteria() {
   try {
     size_t alt;
     enterOuterAlt(_localctx, 1);
-    setState(401);
+    setState(413);
     match(configGrammar::BEGIN_CRITERION);
-
-    setState(407);
+    setState(423);
     _errHandler->sync(this);
-    alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 19, _ctx);
-    while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
-      if (alt == 1) {
-        setState(402);
-        criterion();
-        setState(403);
-        match(configGrammar::CRITERION_SEP); 
-      }
-      setState(409);
+
+    _la = _input->LA(1);
+    if (((((_la - 37) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 37)) & 2251662374731777) != 0)) {
+      setState(419);
       _errHandler->sync(this);
-      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 19, _ctx);
+      alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 20, _ctx);
+      while (alt != 2 && alt != atn::ATN::INVALID_ALT_NUMBER) {
+        if (alt == 1) {
+          setState(414);
+          criterion();
+          setState(415);
+          match(configGrammar::CRITERION_SEP); 
+        }
+        setState(421);
+        _errHandler->sync(this);
+        alt = getInterpreter<atn::ParserATNSimulator>()->adaptivePredict(_input, 20, _ctx);
+      }
+      setState(422);
+      criterion();
     }
-    setState(410);
-    criterion();
-    setState(412);
+    setState(425);
     match(configGrammar::END_CRITERION);
    
   }
@@ -4465,7 +4627,7 @@ void configGrammar::CriterionContext::exitRule(tree::ParseTreeListener *listener
 
 configGrammar::CriterionContext* configGrammar::criterion() {
   CriterionContext *_localctx = _tracker.createInstance<CriterionContext>(_ctx, getState());
-  enterRule(_localctx, 112, configGrammar::RuleCriterion);
+  enterRule(_localctx, 114, configGrammar::RuleCriterion);
 
 #if __cplusplus > 201703L
   auto onExit = finally([=, this] {
@@ -4475,7 +4637,7 @@ configGrammar::CriterionContext* configGrammar::criterion() {
     exitRule();
   });
   try {
-    setState(418);
+    setState(431);
     _errHandler->sync(this);
     switch (_input->LA(1)) {
       case configGrammar::WORKSPACE:
@@ -4491,28 +4653,28 @@ configGrammar::CriterionContext* configGrammar::criterion() {
       case configGrammar::FLOATING_FROM:
       case configGrammar::TILING_FROM: {
         enterOuterAlt(_localctx, 1);
-        setState(414);
+        setState(427);
         value_criterion();
         break;
       }
 
       case configGrammar::TILING: {
         enterOuterAlt(_localctx, 2);
-        setState(415);
+        setState(428);
         match(configGrammar::TILING);
         break;
       }
 
       case configGrammar::FLOATING: {
         enterOuterAlt(_localctx, 3);
-        setState(416);
+        setState(429);
         match(configGrammar::FLOATING);
         break;
       }
 
       case configGrammar::ALL: {
         enterOuterAlt(_localctx, 4);
-        setState(417);
+        setState(430);
         match(configGrammar::ALL);
         break;
       }
@@ -4612,7 +4774,7 @@ void configGrammar::Value_criterionContext::exitRule(tree::ParseTreeListener *li
 
 configGrammar::Value_criterionContext* configGrammar::value_criterion() {
   Value_criterionContext *_localctx = _tracker.createInstance<Value_criterionContext>(_ctx, getState());
-  enterRule(_localctx, 114, configGrammar::RuleValue_criterion);
+  enterRule(_localctx, 116, configGrammar::RuleValue_criterion);
   size_t _la = 0;
 
 #if __cplusplus > 201703L
@@ -4624,19 +4786,19 @@ configGrammar::Value_criterionContext* configGrammar::value_criterion() {
   });
   try {
     enterOuterAlt(_localctx, 1);
-    setState(420);
+    setState(433);
     _la = _input->LA(1);
-    if (!(((((_la - 33) & ~ 0x3fULL) == 0) &&
-      ((1ULL << (_la - 33)) & 2250700302057473) != 0))) {
+    if (!(((((_la - 37) & ~ 0x3fULL) == 0) &&
+      ((1ULL << (_la - 37)) & 2250700302057473) != 0))) {
     _errHandler->recoverInline(this);
     }
     else {
       _errHandler->reportMatch(this);
       consume();
     }
-    setState(421);
+    setState(434);
     match(configGrammar::CRITERION_EQ);
-    setState(422);
+    setState(435);
     match(configGrammar::CRITERION_STRING);
    
   }
@@ -4650,5 +4812,9 @@ configGrammar::Value_criterionContext* configGrammar::value_criterion() {
 }
 
 void configGrammar::initialize() {
+#if ANTLR4_USE_THREAD_LOCAL_CACHE
+  configgrammarParserInitialize();
+#else
   ::antlr4::internal::call_once(configgrammarParserOnceFlag, configgrammarParserInitialize);
+#endif
 }

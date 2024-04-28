@@ -106,8 +106,8 @@ private:
         for (auto &c : pContext->criterion()) {
             if (c->value_criterion() != nullptr) {
                 applier.criteria_add(st,
-                        c->value_criterion()->children[0]->getText().c_str(),
-                        c->value_criterion()->children[1]->getText().c_str());
+                    c->value_criterion()->children[0]->getText().c_str(),
+                    unquote(c->value_criterion()->children[2]->getText()).c_str());
             } else {
                 applier.criteria_add(st, c->children[0]->getText().c_str(), nullptr);
             }
@@ -129,6 +129,17 @@ public:
         auto no_startup_id = options
                        % fn::exists_where([](auto *x) { return x->getText() == "--no-startup-id"; });
 
+        auto arguments = replace_var(unquote(ctx->STRING()->getText()));
+
+        applier.exec(text, no_startup_id, arguments);
+    }
+    
+    void enterExec_always(configGrammar::Exec_alwaysContext *ctx) override {
+        const string text = replace_var(ctx->children[0]->getText());
+        auto options = ctx->OPTION();
+        auto no_startup_id = options
+                             % fn::exists_where([](auto *x) { return x->getText() == "--no-startup-id"; });
+        
         auto arguments = replace_var(unquote(ctx->STRING()->getText()));
 
         applier.exec(text, no_startup_id, arguments);
@@ -155,9 +166,15 @@ public:
     }
 
     void enterWorkspace(configGrammar::WorkspaceContext *ctx) override {
-        auto workspace = replace_var(unquote(ctx->STRING(0)->getText()));
-        auto output = replace_var(unquote(ctx->STRING(1)->getText())); // TODO out of bounds
-        applier.workspace(workspace, output);
+        if (ctx->STRING().size() == 2) {
+            auto workspace = replace_var(unquote(ctx->STRING(0)->getText()));
+            auto output = replace_var(unquote(ctx->STRING(1)->getText()));
+            applier.workspace(workspace, output);
+        } else {
+            auto workspace = replace_var(unquote(ctx->NUMBER()->getText()));
+            auto output = replace_var(unquote(ctx->STRING(0)->getText()));
+            applier.workspace(workspace, output);
+        }
     }
 
     void enterTitle_align(configGrammar::Title_alignContext *ctx) override {
@@ -206,19 +223,14 @@ public:
     }
 
     void enterAssign(configGrammar::AssignContext *ctx) override {
-        /*
-        Match match = handle_criteria(ctx->criteria());
-        if (ctx->assign_target()->assign_target_output() != nullptr) {
-            string value = replace_var(ctx->assign_target()->assign_target_output()->children[1]->getText());
-            applier.assign_output(match, value);
-        } else if (ctx->assign_target()->assign_target_workspace() != nullptr) {
-            string value = replace_var(ctx->assign_target()->assign_target_workspace()->children[1]->getText());
-            applier.assign(match, value, false);
-        } else if (ctx->assign_target()->assign_target_number() != nullptr) {
-            string value = replace_var(ctx->assign_target()->assign_target_number()->children[1]->getText());
+        auto match = handle_criteria(ctx->criteria());
+        if (ctx->NUMBER() != nullptr) {
+            string value = ctx->NUMBER()->getText();
             applier.assign(match, value, true);
+        } else if (ctx->STRING() != nullptr) {
+            string value = replace_var(unquote(ctx->STRING()->getText()));
+            applier.assign(match, value, false);
         }
-         */
     }
 
     void enterFor_window(configGrammar::For_windowContext *ctx) override {
@@ -336,13 +348,14 @@ public:
 
 };
 
-NewParser::NewParser(std::istream &stream, BaseResourceDatabase &rd, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, rd), stream(stream), load_type(load_type)  {
+NewParser::NewParser(std::string, std::istream &stream, BaseResourceDatabase &rd, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, rd), stream(stream), load_type(load_type)  {
 }
 
 class ErrorListener : public BaseErrorListener {
     void syntaxError(Recognizer *recognizer, Token * offendingSymbol, size_t line, size_t charPositionInLine,
                              const std::string &msg, std::exception_ptr e) override {
-        ELOG(fmt::sprintf("(%d:%d): %s", line, charPositionInLine, msg));
+        std::string errormsg = fmt::sprintf("(%d:%d): %s", line, charPositionInLine, msg);
+        throw std::runtime_error(errormsg);
     }
 
 };
@@ -358,6 +371,11 @@ void NewParser::parse_file() {
     //lexer.addErrorListener(&pListener);
 
     CommonTokenStream tokens{&lexer};
+    
+    if (lexer.getNumberOfSyntaxErrors() > 0) {
+        throw std::runtime_error("we got a problem, sir");
+    }
+    
     configGrammar parser{&tokens};
 
     parser.setErrorHandler(handler);

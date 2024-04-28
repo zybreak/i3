@@ -1,6 +1,7 @@
 module;
 #include <string>
 #include <vector>
+#include <algorithm>
 export module format_placeholders;
 
 /** Helper structure for usage in format_placeholders(). */

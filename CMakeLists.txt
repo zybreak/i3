@@ -13,12 +13,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fprofile-instr-generate -fcoverage-mapping")
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
 
-#set(USE_SANITIZER Address Undefined Leak)
+# Sanitizers makes the unit test fail
+#set(USE_SANITIZER Address Undefined)
 #include(sanitizers)
+#add_compile_definitions(I3_ASAN_ENABLED=1)
+##add_compile_options(-fsanitize-ignorelist=${PROJECT_SOURCE_DIR}/asan-ignorelist.txt)
+#SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize-ignorelist=${PROJECT_SOURCE_DIR}/asan-ignorelist.txt")
 
-#set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
-set(CMAKE_CXX_FLAGS_RELEASE "-03")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
