@@ -23,4 +23,6 @@ TEST(ConTest, Floating) {
     auto *floating = x.con_inside_floating();
 
     ASSERT_EQ(floating, &f);
+    
+    delete global.x;
 }

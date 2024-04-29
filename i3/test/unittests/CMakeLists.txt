@@ -44,6 +44,12 @@ target_link_libraries(FormatPlaceholdersTest PUBLIC i3_lib GTest::gtest_main GTe
 gtest_discover_tests(FormatPlaceholdersTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/format_placeholders_test.profraw")
 target_code_coverage(FormatPlaceholdersTest ALL)
 
+add_executable(RectTest)
+target_sources(RectTest PUBLIC rect_test.cpp)
+target_link_libraries(RectTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+gtest_discover_tests(RectTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/rect_test.profraw")
+target_code_coverage(RectTest ALL)
+
 #add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS RegexTest MatchTest ConTest ConfigNewTest ConfigOldTest)
 
 #add_custom_target(coverage COMMAND
