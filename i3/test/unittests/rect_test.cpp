@@ -1,21 +1,24 @@
 #include <gtest/gtest.h>
 import rect;
 
+TEST(RectTest, Empty){
+    
+    Rect r{};
+
+    ASSERT_EQ(r.x, 0);
+    ASSERT_EQ(r.y, 0);
+    ASSERT_EQ(r.width, 0);
+    ASSERT_EQ(r.height, 0);
+}
+
 TEST(RectTest, New){
 
-  auto *r = new Rect{0, 1, 10, 11};
+  Rect r{0, 1, 10, 11};
 
-  ASSERT_NE(
-      r,
-      nullptr
-  );
-
-  ASSERT_EQ(r->x, 0);
-  ASSERT_EQ(r->y, 1);
-  ASSERT_EQ(r->width, 10);
-  ASSERT_EQ(r->height, 11);
-  
-  delete r;
+  ASSERT_EQ(r.x, 0);
+  ASSERT_EQ(r.y, 1);
+  ASSERT_EQ(r.width, 10);
+  ASSERT_EQ(r.height, 11);
 }
 
 TEST(RectTest, Add){
