@@ -33,19 +33,11 @@ module;
 #include "parser-specs/commandsGrammar.h"
 #include "parser-specs/commandsGrammarBaseListener.h"
 #include "fn.hpp"
-module i3_commands_new;
+export module i3_commands_new;
 
 import i3ipc;
 import i3_commands_base;
-
-using namespace antlr4;
-
-class ErrorListener : public BaseErrorListener {
-    void syntaxError(Recognizer *recognizer, Token * offendingSymbol, size_t line, size_t charPositionInLine,
-                     const std::string &msg, std::exception_ptr e) override {
-        std::cout << "ERROR " << fmt::sprintf("(%d:%d): ", line, charPositionInLine) << msg << std::endl;
-    }
-};
+import :commands_listener;
 
 /*
  * Parses and executes the given command. If a caller-allocated yajl_gen is
@@ -54,34 +46,4 @@ class ErrorListener : public BaseErrorListener {
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult parse_command_new(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier &applier) {
-    std::string padded_input = fmt::sprintf("$(%s)", input);
-    ANTLRInputStream stream{padded_input};
-    commandsLexer lexer{&stream};
-
-    lexer.removeErrorListeners();
-    ErrorListener pListener{};
-    lexer.addErrorListener(&pListener);
-
-    CommonTokenStream tokens{&lexer};
-    commandsGrammar parser{&tokens};
-
-    //parser.setErrorHandler(new BailErrorStrategy());
-    parser.removeErrorListeners();
-    parser.addErrorListener(&pListener);
-
-    auto tree = parser.commands();
-
-    if (parser.getNumberOfSyntaxErrors() > 0) {
-        throw std::runtime_error("we got a problem, sir");
-    }
-
-    //cout << tree->toStringTree(&parser, true) << endl << endl;
-
-    CommandsListener listener{applier, gen, client};
-    tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
-
-    CommandResult result{};
-
-    return result;
-}
+export CommandResult parse_command_new(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier &applier);

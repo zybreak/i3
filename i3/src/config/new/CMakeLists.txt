@@ -13,7 +13,7 @@ target_sources(i3_config_new PUBLIC
         FILES
         i3_config_new.ixx
         )
-target_link_libraries(i3_config_new PUBLIC antlr4_static ${libraries} i3_config_base i3_log)
+target_link_libraries(i3_config_new PUBLIC antlr4_static ${libraries} i3_config_base i3_log fn)
 target_include_directories(i3_config_new PUBLIC ${include_dirs} ${antlr4-runtime_INCLUDE_DIR}
         #"${CMAKE_CURRENT_SOURCE_DIR}/src/config/new"
         )

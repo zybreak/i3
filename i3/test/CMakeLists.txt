@@ -1,52 +1,72 @@
-# Begin command and config test
+find_package(GTest CONFIG)
 
-#add_executable(test.config_parser_new
-#    config_parser_new.cpp
-#    mock_new.cpp
-#    ../src/global.cpp
-#    ../src/log.cpp
-#)
-#target_link_libraries(test.config_parser_new PUBLIC ${libraries} i3_config_new)
-#target_include_directories(test.config_parser_new PUBLIC ${include_dirs} "../src/config/new")
-#target_compile_options(test.config_parser_new PUBLIC ${compile_options} -DTEST_PARSER)
+include(GoogleTest)
 
-#add_executable(test.commands_parser
-#    commands_parser_old.cpp
-#    mock.cpp
-#)
-#target_link_libraries(test.commands_parser PUBLIC ${libraries} i3_commands_old)
-#target_include_directories(test.commands_parser PUBLIC ${include_dirs} "../src/config/old")
-#target_compile_options(test.commands_parser PUBLIC ${compile_options} -DTEST_PARSER)
+set(CODE_COVERAGE ON)
+include(code-coverage)
 
-#add_executable(test.commands_parser_new
-#        commands_parser_new.cpp
-#        mock_new.cpp
-#        commands_mock.cpp
-#        ../src/log.cpp
-#        )
-#target_link_libraries(test.commands_parser_new PUBLIC ${libraries} i3_commands_new)
-#target_include_directories(test.commands_parser_new PUBLIC ${include_dirs} "../src/commands/old" "../src/config/new")
+add_code_coverage_all_targets()
 
-#add_executable(test.config_parser test_config_parser.cpp)
-#target_link_libraries(test.config_parser PUBLIC ${libraries} i3_config_old i3_lib)
-#target_include_directories(test.config_parser PUBLIC ${include_dirs} "../src/config/old")
-#target_compile_options(test.config_parser PUBLIC ${compile_options} -DTEST_PARSER)
+# Unit tests
+add_executable(RegexTest)
+target_sources(RegexTest PUBLIC regex_test.cpp)
+target_link_libraries(RegexTest PUBLIC i3_lib GTest::gtest_main)
+gtest_discover_tests(RegexTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/regex_test.profraw")
+target_code_coverage(RegexTest ALL)
 
-# End command and config test
+add_executable(MatchTest)
+target_sources(MatchTest PUBLIC match_test.cpp)
+target_link_libraries(MatchTest PUBLIC i3_lib GTest::gtest_main)
+gtest_discover_tests(MatchTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/match_test.profraw")
+target_code_coverage(MatchTest ALL)
 
-#find_package(Python REQUIRED)
+add_executable(ConTest)
+target_sources(ConTest PUBLIC con_test.cpp)
+target_link_libraries(ConTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+gtest_discover_tests(ConTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/con_test.profraw")
+target_code_coverage(ConTest ALL)
 
-#include(Pytest.cmake)
+add_executable(ConfigNewTest)
+target_sources(ConfigNewTest PUBLIC config_new_test.cpp)
+target_link_libraries(ConfigNewTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+gtest_discover_tests(ConfigNewTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/config_new_test.profraw")
+target_code_coverage(ConfigNewTest ALL)
 
-#pytest_discover_tests(
-#        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-#        COLLECTION_ARGS "-m not slow"
-#        EXECUTION_ARGS "--cmd=$<TARGET_FILE_DIR:test.config_parser>"
-#        #TEST_PREFIX "PYTEST_"
-#        #TEST_SUFFIX "_${CMAKE_SYSTEM_PROCESSOR}"
-#        XML_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/report
-#)
+add_executable(ConfigOldTest)
+target_sources(ConfigOldTest PUBLIC config_old_test.cpp)
+target_link_libraries(ConfigOldTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+gtest_discover_tests(ConfigOldTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/config_old_test.profraw")
+target_code_coverage(ConfigOldTest ALL)
 
-# End command and config test
+add_executable(FormatPlaceholdersTest)
+target_sources(FormatPlaceholdersTest PUBLIC format_placeholders_test.cpp)
+target_link_libraries(FormatPlaceholdersTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+gtest_discover_tests(FormatPlaceholdersTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/format_placeholders_test.profraw")
+target_code_coverage(FormatPlaceholdersTest ALL)
 
-add_subdirectory(unittests)
+add_executable(RectTest)
+target_sources(RectTest PUBLIC rect_test.cpp)
+target_link_libraries(RectTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+gtest_discover_tests(RectTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/rect_test.profraw")
+target_code_coverage(RectTest ALL)
+
+add_executable(CommandsNewTest)
+target_sources(CommandsNewTest PUBLIC commands_new_test.cpp)
+target_link_libraries(CommandsNewTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+gtest_discover_tests(CommandsNewTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/commands_new_test.profraw")
+target_code_coverage(CommandsNewTest ALL)
+
+add_executable(CommandsOldTest)
+target_sources(CommandsOldTest PUBLIC commands_old_test.cpp)
+target_link_libraries(CommandsOldTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+gtest_discover_tests(CommandsOldTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/commands_old_test.profraw")
+target_code_coverage(CommandsOldTest ALL)
+
+#add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS RegexTest MatchTest ConTest ConfigNewTest ConfigOldTest)
+
+#add_custom_target(coverage COMMAND
+#        llvm-profdata merge -sparse ${CMAKE_BINARY_DIR}/coverage/*.profraw -o ${CMAKE_BINARY_DIR}/coverage/coverage.profdata &&
+#        llvm-cov show --show-branches=count --instr-profile ${CMAKE_BINARY_DIR}/coverage/coverage.profdata -object $<TARGET_FILE:RegexTest> -object $<TARGET_FILE:MatchTest> -object $<TARGET_FILE:ConTest> -object $<TARGET_FILE:ConfigNewTest> -object $<TARGET_FILE:ConfigOldTest> > ${CMAKE_BINARY_DIR}/coverage/coverage.txt
+#        DEPENDS check)
+
+# End unit tests

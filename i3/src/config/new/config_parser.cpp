@@ -5,7 +5,7 @@ struct criteria_state;
 #include "parser-specs/configLexer.h"
 #include "parser-specs/configGrammar.h"
 #include "parser-specs/configGrammarBaseListener.h"
-#include "lib/fn.hpp"
+#include "fn.hpp"
 #include <ranges>
 #include <utility>
 #include <algorithm>
