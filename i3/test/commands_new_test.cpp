@@ -9,7 +9,9 @@ import i3_commands_base;
 import i3_commands_new;
 import i3ipc;
 
+using namespace i3_commands_new;
+
 TEST(CommandsNewTest, Nop) {
     CommandsApplierTest commandsApplier{};
-    parse_command_new("nop", nullptr, nullptr, commandsApplier);
+    parse_command("nop", nullptr, nullptr, commandsApplier);
 }

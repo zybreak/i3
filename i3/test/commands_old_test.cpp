@@ -11,5 +11,5 @@ import i3ipc;
 
 TEST(CommandsOldTest, Nop) {
     CommandsApplierTest commandsApplier{};
-    parse_command_old("nop", nullptr, nullptr, &commandsApplier);
+    i3_commands_old::parse_command("nop", nullptr, nullptr, &commandsApplier);
 }

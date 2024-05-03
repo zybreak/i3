@@ -46,4 +46,6 @@ import :commands_listener;
  *
  * Free the returned CommandResult with command_result_free().
  */
-export CommandResult parse_command_new(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier &applier);
+export namespace i3_commands_new {
+    CommandResult parse_command(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier &applier);
+}

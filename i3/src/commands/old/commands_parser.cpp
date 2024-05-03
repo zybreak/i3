@@ -260,7 +260,7 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult parse_command_old(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier *applier) {
+CommandResult i3_commands_old::parse_command(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier *applier) {
     //DLOG(fmt::sprintf("COMMAND: *%.4000s*\n",  input));
     cmdp_state state = cmdp_state::INITIAL;
     stack stack{};

@@ -54,7 +54,7 @@ class ErrorListener : public BaseErrorListener {
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult parse_command_new(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier &applier) {
+CommandResult i3_commands_new::parse_command(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier &applier) {
     std::string padded_input = fmt::sprintf("$(%s)", input);
     ANTLRInputStream stream{padded_input};
     commandsLexer lexer{&stream};
