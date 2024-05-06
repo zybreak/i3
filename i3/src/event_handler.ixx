@@ -14,7 +14,7 @@ export {
     class EventHandler {
        private:
         PropertyHandlers &handlers;
-        X *x;
+        X &x;
         /* We keep the xcb_prepare watcher around to be able to enable and disable it
          * temporarily for drag_pointer(). */
         ev_prepare *xcb_prepare;
@@ -24,7 +24,8 @@ export {
         ev_loop *main_loop;
 
         EventHandler() = delete;
-        EventHandler(X *x, PropertyHandlers &handlers);
+        EventHandler(const EventHandler &) = delete;
+        EventHandler(X &x, PropertyHandlers &handlers);
         ~EventHandler();
 
         void loop();
@@ -73,7 +74,7 @@ void EventHandler::xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
        sleeps. */
     xcb_generic_event_t *event;
 
-    while ((event = xcb_poll_for_event(**x)) != nullptr) {
+    while ((event = xcb_poll_for_event(*x)) != nullptr) {
         if (event->response_type == 0) {
             if (handlers.event_is_ignored(event->sequence, 0)) {
                 DLOG(fmt::sprintf("Expected X11 Error received for sequence %x\n", event->sequence));
@@ -95,7 +96,7 @@ void EventHandler::xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
     }
 
     /* Flush all queued events to X11. */
-    xcb_flush(**x);
+    xcb_flush(*x);
 }
 
 /**
@@ -156,7 +157,7 @@ void EventHandler::setup_term_handlers() {
     }
 }
 
-EventHandler::EventHandler(X *x, PropertyHandlers &handlers) : handlers(handlers), x(x) {
+EventHandler::EventHandler(X &x, PropertyHandlers &handlers) : handlers(handlers), x(x) {
     /* Initialize the libev event loop. This needs to be done before loading
      * the config file because the parser will install an ev_child watcher
      * for the nagbar when config errors are found. */
@@ -169,7 +170,7 @@ EventHandler::EventHandler(X *x, PropertyHandlers &handlers) : handlers(handlers
     xcb_prepare = new ev_prepare();
     xcb_prepare->data = this;
 
-    ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(**x), EV_READ);
+    ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(*x), EV_READ);
     ev_io_start(main_loop, xcb_watcher);
 
     ev_prepare_init(xcb_prepare, [](EV_P_ ev_prepare *w, int revents) { ((EventHandler *)w->data)->xcb_prepare_cb(EV_A_ w, revents); });

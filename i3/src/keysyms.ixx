@@ -8,12 +8,13 @@ import :x;
 
 export class Keysyms {
    private:
-    X *x;
+    X &x;
 
    public:
     xcb_key_symbols_t *keysyms;
 
-    explicit Keysyms(X *x);
+    Keysyms() = delete;
+    explicit Keysyms(X &x);
     ~Keysyms();
 
     unsigned int get_numlock_mask() const;
@@ -22,9 +23,9 @@ export class Keysyms {
     void key_symbols_alloc();
 };
 
-Keysyms::Keysyms(X *x)
+Keysyms::Keysyms(X &x)
     : x(x) {
-    keysyms = xcb_key_symbols_alloc(**x);
+    keysyms = xcb_key_symbols_alloc(*x);
 }
 
 Keysyms::~Keysyms() {
@@ -44,5 +45,5 @@ void Keysyms::refresh_keyboard_mapping(xcb_mapping_notify_event_t *event) const 
 }
 void Keysyms::key_symbols_alloc() {
     xcb_key_symbols_free(keysyms);
-    keysyms = xcb_key_symbols_alloc(**x);
+    keysyms = xcb_key_symbols_alloc(*x);
 }

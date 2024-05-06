@@ -15,8 +15,9 @@ export class Xkb {
     bool xkb_supported{true};
     int xkb_base{-1};
 
-    explicit Xkb(X *x) {
-        x_connection *conn = *x;
+    Xkb() = delete;
+    explicit Xkb(X &x) {
+        x_connection *conn = &*x;
         auto xkb_ext = conn->extension<xpp::xkb::extension>();
         xkb_supported = xkb_ext->present;
         if (!xkb_supported) {

@@ -32,7 +32,7 @@ export {
     // TODO: zybreak Rename to EventHandlers
     class PropertyHandlers {
        private:
-        X *x;
+        X &x;
 
         /* After mapping/unmapping windows, a notify event is generated. However, we don’t want it,
            since it’d trigger an infinite loop of switching between the different windows when
@@ -137,13 +137,14 @@ export {
 
        public:
         PropertyHandlers() = delete;
+        PropertyHandlers(const PropertyHandlers &) = delete;
 
         /**
          * Sets the appropriate atoms for the property handlers after the atoms were
          * received from X11
          *
          */
-        explicit PropertyHandlers(X *x);
+        explicit PropertyHandlers(X &x);
 
         /**
          * Configure requests are received when the application wants to resize windows

@@ -147,13 +147,15 @@ export {
          *
          */
         void randr_query_outputs();
+        
+        RandR() = delete;
 
         /*
          * We have just established a connection to the X server and need the initial
          * XRandR information to setup workspaces for each screen.
          *
          */
-        explicit RandR(const X *x);
+        explicit RandR(X &x);
     };
 
     /**

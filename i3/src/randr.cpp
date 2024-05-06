@@ -309,14 +309,14 @@ Output* RandR::get_output_next(direction_t direction, Output *current, output_cl
  * Creates an output covering the root window.
  *
  */
-Output *create_root_output(xcb_connection_t *conn) {
+Output *create_root_output(X &x) {
     auto *s = new Output();
 
     s->active = false;
     s->rect.x = 0;
     s->rect.y = 0;
-    s->rect.width = global.x->root_screen->width_in_pixels;
-    s->rect.height = global.x->root_screen->height_in_pixels;
+    s->rect.width = x.root_screen->width_in_pixels;
+    s->rect.height = x.root_screen->height_in_pixels;
 
     s->names.emplace_back("xroot-0");
 
@@ -1025,15 +1025,15 @@ void RandR::fallback_to_root_output() {
  * XRandR information to setup workspaces for each screen.
  *
  */
-RandR::RandR(const X *x) {
+RandR::RandR(X &x) {
     DLOG("Checking for XRandR...\n");
 
     const xcb_query_extension_reply_t *extreply;
 
-    root_output = create_root_output(*x->conn);
+    root_output = create_root_output(x);
     outputs.push_back(root_output);
 
-    extreply = xcb_get_extension_data(*x->conn, &xcb_randr_id);
+    extreply = xcb_get_extension_data(*x, &xcb_randr_id);
     if (!extreply->present) {
         DLOG("RandR is not present, activating root output.\n");
         fallback_to_root_output();
@@ -1043,7 +1043,7 @@ RandR::RandR(const X *x) {
     xcb_generic_error_t *err;
     xcb_randr_query_version_reply_t *randr_version =
         xcb_randr_query_version_reply(
-            *x->conn, xcb_randr_query_version(*x->conn, XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION), &err);
+            *x, xcb_randr_query_version(*x, XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION), &err);
     if (err != nullptr) {
         ELOG(fmt::sprintf("Could not query RandR version: X11 error code %d\n",  err->error_code));
         free(err);
@@ -1060,11 +1060,11 @@ RandR::RandR(const X *x) {
 
     randr_base = extreply->first_event;
 
-    xcb_randr_select_input(*x->conn, x->root,
+    xcb_randr_select_input(*x, x.root,
                            XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE |
                                XCB_RANDR_NOTIFY_MASK_OUTPUT_CHANGE |
                                XCB_RANDR_NOTIFY_MASK_CRTC_CHANGE |
                                XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY);
 
-    xcb_flush(*x->conn);
+    xcb_flush(*x);
 }

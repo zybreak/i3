@@ -10,12 +10,13 @@ export class Shape {
     int shape_base{-1};
     bool shape_supported{true};
 
-    explicit Shape(X *x) {
-        x_connection *conn = *x;
+    Shape() = delete;
+    explicit Shape(X &x) {
+        x_connection *conn = &*x;
         auto shape_ext = conn->extension<xpp::shape::extension>();
         if (shape_ext->present) {
             shape_base = shape_ext->first_event;
-            auto version = x->conn->shape().query_version();
+            auto version = x.conn->shape().query_version();
             shape_supported = version && version->minor_version >= 1;
         } else {
             shape_supported = false;

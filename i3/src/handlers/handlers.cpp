@@ -186,10 +186,11 @@ void PropertyHandlers::handle_enter_notify(xcb_enter_notify_event_t *event) {
      * involves changing workspaces. If so, we need to call workspace_show() to
      * correctly update state and send the IPC event. */
     Con *ws = con->con_get_workspace();
-    if (ws != global.focused->con_get_workspace())
+    if (ws != global.focused->con_get_workspace()) {
         workspace_show(ws);
+    }
 
-    global.x->focused_id = XCB_NONE;
+    x.focused_id = XCB_NONE;
     con_descend_focused(con)->con_focus();
     tree_render();
 }
@@ -255,17 +256,18 @@ void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
  */
 void PropertyHandlers::handle_mapping_notify(xcb_mapping_notify_event_t *event) {
     if (event->request != XCB_MAPPING_KEYBOARD &&
-        event->request != XCB_MAPPING_MODIFIER)
+        event->request != XCB_MAPPING_MODIFIER) {
         return;
+    }
 
     DLOG("Received mapping_notify for keyboard or modifier mapping, re-grabbing keys\n");
     global.keysyms->refresh_keyboard_mapping(event);
 
-    global.x->xcb_numlock_mask = global.keysyms->get_numlock_mask();
+    x.xcb_numlock_mask = global.keysyms->get_numlock_mask();
 
-    ungrab_all_keys(*x);
+    ungrab_all_keys(&*x);
     translate_keysyms();
-    grab_all_keys(*x);
+    grab_all_keys(&*x);
 }
 
 /*
@@ -273,7 +275,7 @@ void PropertyHandlers::handle_mapping_notify(xcb_mapping_notify_event_t *event) 
  *
  */
 void PropertyHandlers::handle_map_request(xcb_map_request_event_t *event) {
-    auto attr = global.x->conn->get_window_attributes_unchecked(event->window);
+    auto attr = x.conn->get_window_attributes_unchecked(event->window);
 
     DLOG(fmt::sprintf("window = 0x%08x, serial is %d.\n", event->window, event->sequence));
     add_ignore_event(event->sequence, -1);
@@ -319,8 +321,8 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
         COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_SIBLING, sibling);
         COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_STACK_MODE, stack_mode);
 
-        xcb_configure_window(**x, event->window, mask, values);
-        xcb_flush(**x);
+        xcb_configure_window(*x, event->window, mask, values);
+        xcb_flush(*x);
 
         return;
     }
@@ -444,8 +446,8 @@ void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
 
     /* The geometry of the root window is used for “fullscreen global” and
      * changes when new outputs are added. */
-    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(**global.x, global.x->root);
-    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(**global.x, cookie, nullptr);
+    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(*x, x.root);
+    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(*x, cookie, nullptr);
     if (reply == nullptr) {
         ELOG("Could not get geometry of the root window, exiting\n");
         exit(EXIT_FAILURE);
@@ -481,7 +483,7 @@ void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event
         if (con->ignore_unmap > 0)
             con->ignore_unmap--;
         /* See the end of this function. */
-        cookie = xcb_get_input_focus(**x);
+        cookie = xcb_get_input_focus(*x);
         DLOG(fmt::sprintf("ignore_unmap = %d for frame of container %p\n", con->ignore_unmap, fmt::ptr(con)));
         goto ignore_end;
     }
@@ -599,10 +601,10 @@ static const uint32_t _NET_MOVERESIZE_WINDOW_HEIGHT = (1 << 11);
 void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
     DLOG(fmt::sprintf("focus change in, for window 0x%08x\n", event->event));
 
-    if (event->event == x->root) {
+    if (event->event == x.root) {
         DLOG("Received focus in for root window, refocusing the focused window.\n");
         global.focused->con_focus();
-        global.x->focused_id = XCB_NONE;
+        x.focused_id = XCB_NONE;
         x_push_changes(global.croot);
     }
 
@@ -624,7 +626,7 @@ void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
 
     /* Floating windows should be refocused to ensure that they are on top of
      * other windows. */
-    if (x->focused_id == event->event && !con->con_inside_floating()) {
+    if (x.focused_id == event->event && !con->con_inside_floating()) {
         DLOG("focus matches the currently focused window, not doing anything\n");
         return;
     }
@@ -640,7 +642,7 @@ void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
     con->con_activate_unblock();
 
     /* We update focused_id because we don’t need to set focus again */
-    global.x->focused_id = event->event;
+    x.focused_id = event->event;
     tree_render();
 }
 
@@ -657,7 +659,7 @@ void PropertyHandlers::handle_focus_out(xcb_focus_in_event_t *event) {
         if (window_name == nullptr) {
             window_name = "<unnamed con>";
         }
-    } else if (event->event == global.x->root) {
+    } else if (event->event == x.root) {
         window_name = "<the root window>";
     } else {
         window_name = "<unknown window>";
@@ -720,7 +722,7 @@ void PropertyHandlers::handle_focus_out(xcb_focus_in_event_t *event) {
  *
  */
 void PropertyHandlers::handle_configure_notify(xcb_configure_notify_event_t *event) {
-    if (event->event != x->root) {
+    if (event->event != x.root) {
         DLOG(fmt::sprintf("ConfigureNotify for non-root window 0x%08x, ignoring\n", event->event));
         return;
     }
@@ -751,8 +753,8 @@ static void handle_selection_clear(xcb_selection_clear_event_t *event) {
  * received from X11
  *
  */
-PropertyHandlers::PropertyHandlers(X *x) : x{x} {
-    sn_monitor_context_new(sndisplay, x->conn->default_screen(), startup_monitor_event, nullptr, nullptr);
+PropertyHandlers::PropertyHandlers(X &x) : x{x} {
+    sn_monitor_context_new(sndisplay, x.conn->default_screen(), startup_monitor_event, nullptr, nullptr);
 
 
 }
@@ -785,7 +787,7 @@ void PropertyHandlers::handle_key_press(xcb_key_press_event_t *event) {
  *
  */
 void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
-    x_connection *conn = *x;
+    x_connection *conn = &*x;
     if (type != XCB_MOTION_NOTIFY)
         DLOG(fmt::sprintf("event type %d, xkb_base %d\n", type, global.xkb->xkb_base));
 

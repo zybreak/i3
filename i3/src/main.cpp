@@ -422,28 +422,28 @@ int main(int argc, char *argv[]) {
     LOG(fmt::sprintf("i3 %s starting\n", I3_VERSION));
 
     /* Prefetch X11 extensions that we are interested in. */
-    X *x = new X();
-    global.x = x;
-    if (x->conn->connection_has_error()) {
+    X x{};
+    global.x = &x;
+    if (x.conn->connection_has_error()) {
         errx(EXIT_FAILURE, "Cannot open display");
     }
 
-    sndisplay = sn_xcb_display_new(**x, nullptr, nullptr);
+    sndisplay = sn_xcb_display_new(*x, nullptr, nullptr);
 
     /* Prepare for us to get a current timestamp as recommended by ICCCM */
-    xcb_change_window_attributes(*x->conn, x->root, XCB_CW_EVENT_MASK, (uint32_t[]){XCB_EVENT_MASK_PROPERTY_CHANGE});
-    xcb_change_property(*x->conn, XCB_PROP_MODE_APPEND, x->root, XCB_ATOM_SUPERSCRIPT_X, XCB_ATOM_CARDINAL, 32, 0, "");
+    xcb_change_window_attributes(*x, x.root, XCB_CW_EVENT_MASK, (uint32_t[]){XCB_EVENT_MASK_PROPERTY_CHANGE});
+    xcb_change_property(*x, XCB_PROP_MODE_APPEND, x.root, XCB_ATOM_SUPERSCRIPT_X, XCB_ATOM_CARDINAL, 32, 0, "");
 
     /* Place requests for the atoms we need as soon as possible */
     setup_atoms();
     xcb_timestamp_t last_timestamp = XCB_CURRENT_TIME;
 
     /* Get the PropertyNotify event we caused above */
-    xcb_flush(*x->conn);
+    xcb_flush(*x);
     {
         xcb_generic_event_t *event;
         DLOG("waiting for PropertyNotify event\n");
-        while ((event = xcb_wait_for_event(*x->conn)) != nullptr) {
+        while ((event = xcb_wait_for_event(*x)) != nullptr) {
             if (event->response_type == XCB_PROPERTY_NOTIFY) {
                 last_timestamp = ((xcb_property_notify_event_t *)event)->time;
                 free(event);
@@ -454,9 +454,9 @@ int main(int argc, char *argv[]) {
         DLOG(fmt::sprintf("got timestamp %d\n", last_timestamp));
     }
 
-    x->conn->prefetch_maximum_request_length();
+    x.conn->prefetch_maximum_request_length();
 
-    init_dpi(**x, x->root_screen);
+    init_dpi(*x, x.root_screen);
 
     load_configuration(&args.override_configpath, config_load_t::C_LOAD);
 
@@ -478,17 +478,17 @@ int main(int argc, char *argv[]) {
     /* Acquire the WM_Sn selection. */
     {
         /* Get the WM_Sn atom */
-        char *atom_name = xcb_atom_name_by_screen("WM", x->conn_screen);
-        x->wm_sn_selection_owner = xcb_generate_id(*x->conn);
+        char *atom_name = xcb_atom_name_by_screen("WM", x.conn_screen);
+        x.wm_sn_selection_owner = xcb_generate_id(*x);
 
         if (atom_name == nullptr) {
-            ELOG(fmt::sprintf("xcb_atom_name_by_screen(\"WM\", %d) failed, exiting\n", x->conn_screen));
+            ELOG(fmt::sprintf("xcb_atom_name_by_screen(\"WM\", %d) failed, exiting\n", x.conn_screen));
             return 1;
         }
 
         xcb_intern_atom_reply_t *atom_reply;
-        atom_reply = xcb_intern_atom_reply(*x->conn,
-                                           xcb_intern_atom_unchecked(*x->conn,
+        atom_reply = xcb_intern_atom_reply(*x,
+                                           xcb_intern_atom_unchecked(*x,
                                                                      0,
                                                                      strlen(atom_name),
                                                                      atom_name),
@@ -498,13 +498,13 @@ int main(int argc, char *argv[]) {
             ELOG("Failed to intern the WM_Sn atom, exiting\n");
             return 1;
         }
-        x->wm_sn = atom_reply->atom;
+        x.wm_sn = atom_reply->atom;
         free(atom_reply);
 
         /* Check if the selection is already owned */
         xcb_get_selection_owner_reply_t *selection_reply =
-            xcb_get_selection_owner_reply(*x->conn,
-                                          xcb_get_selection_owner(*x->conn, x->wm_sn),
+            xcb_get_selection_owner_reply(*x,
+                                          xcb_get_selection_owner(*x, x.wm_sn),
                                           nullptr);
         if (selection_reply && selection_reply->owner != XCB_NONE && !args.replace_wm) {
             ELOG("Another window manager is already running (WM_Sn is owned)");
@@ -512,25 +512,25 @@ int main(int argc, char *argv[]) {
         }
 
         /* Become the selection owner */
-        xcb_create_window(*x->conn,
-                          x->root_screen->root_depth,
-                          x->wm_sn_selection_owner, /* window id */
-                          x->root_screen->root,     /* parent */
+        xcb_create_window(*x,
+                          x.root_screen->root_depth,
+                          x.wm_sn_selection_owner, /* window id */
+                          x.root_screen->root,     /* parent */
                           -1, -1, 1, 1,          /* geometry */
                           0,                     /* border width */
                           XCB_WINDOW_CLASS_INPUT_OUTPUT,
-                          x->root_screen->root_visual,
+                          x.root_screen->root_visual,
                           0, nullptr);
-        xcb_change_property(*x->conn,
+        xcb_change_property(*x,
                             XCB_PROP_MODE_REPLACE,
-                            x->wm_sn_selection_owner,
+                            x.wm_sn_selection_owner,
                             XCB_ATOM_WM_CLASS,
                             XCB_ATOM_STRING,
                             8,
                             (strlen("i3-WM_Sn") + 1) * 2,
                             "i3-WM_Sn\0i3-WM_Sn\0");
 
-        xcb_set_selection_owner(*x->conn, x->wm_sn_selection_owner, x->wm_sn, last_timestamp);
+        xcb_set_selection_owner(*x, x.wm_sn_selection_owner, x.wm_sn, last_timestamp);
 
         if (selection_reply && selection_reply->owner != XCB_NONE) {
             unsigned int usleep_time = 100000; /* 0.1 seconds */
@@ -545,8 +545,8 @@ int main(int argc, char *argv[]) {
                     ELOG("The old window manager is not exiting");
                     return 1;
                 }
-                geom_reply = xcb_get_geometry_reply(*x->conn,
-                                                    xcb_get_geometry(*x->conn, selection_reply->owner),
+                geom_reply = xcb_get_geometry_reply(*x,
+                                                    xcb_get_geometry(*x, selection_reply->owner),
                                                     nullptr);
             } while (geom_reply != nullptr);
         }
@@ -562,36 +562,36 @@ int main(int argc, char *argv[]) {
         } event;
         memset(&event, 0, sizeof(event));
         event.message.response_type = XCB_CLIENT_MESSAGE;
-        event.message.window = x->root_screen->root;
+        event.message.window = x.root_screen->root;
         event.message.format = 32;
         event.message.type = A_MANAGER;
         event.message.data.data32[0] = last_timestamp;
-        event.message.data.data32[1] = x->wm_sn;
-        event.message.data.data32[2] = x->wm_sn_selection_owner;
+        event.message.data.data32[1] = x.wm_sn;
+        event.message.data.data32[2] = x.wm_sn_selection_owner;
 
-        xcb_send_event(*x->conn, 0, x->root_screen->root, XCB_EVENT_MASK_STRUCTURE_NOTIFY, event.storage);
+        xcb_send_event(*x, 0, x.root_screen->root, XCB_EVENT_MASK_STRUCTURE_NOTIFY, event.storage);
     }
 
     try {
         uint32_t valueList[]{ROOT_EVENT_MASK};
-        x->conn->change_window_attributes_checked(x->root, XCB_CW_EVENT_MASK, valueList);
+        x.conn->change_window_attributes_checked(x.root, XCB_CW_EVENT_MASK, valueList);
     } catch (std::exception &e) {
         ELOG(fmt::sprintf("Another window manager seems to be running (X error %s)\n", e.what()));
         exit(EXIT_FAILURE);
     }
 
-    auto greply = x->conn->get_geometry(x->root).get();
+    auto greply = x.conn->get_geometry(x.root).get();
     if (greply == nullptr) {
         ELOG("Could not get geometry of the root window, exiting\n");
         return 1;
     }
     DLOG(fmt::sprintf("root geometry reply: (%d, %d) %d x %d\n", greply->x, greply->y, greply->width, greply->height));
 
-    x->xcursor_load_cursors();
+    x.xcursor_load_cursors();
 
     /* Set a cursor for the root window (otherwise the root window will show no
        cursor until the first client is launched). */
-    x->xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
+    x.xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
 
     global.xkb = new Xkb(x);
 
@@ -599,7 +599,7 @@ int main(int argc, char *argv[]) {
      * introduced in 1.1. */
     global.shape = new Shape(x);
 
-    PropertyHandlers propertyHandlers {x};
+    PropertyHandlers propertyHandlers{x};
 
     EventHandler eventHandler{x, propertyHandlers};
     global.eventHandler = &eventHandler;
@@ -612,14 +612,14 @@ int main(int argc, char *argv[]) {
 
     global.keysyms = new Keysyms(x);
 
-    x->xcb_numlock_mask = global.keysyms->get_numlock_mask();
+    x.xcb_numlock_mask = global.keysyms->get_numlock_mask();
 
     if (!load_keymap()) {
         errx(EXIT_FAILURE, "Could not load keymap\n");
     }
 
     translate_keysyms();
-    grab_all_keys(*x);
+    grab_all_keys(&*x);
 
     do_tree_init(args, greply.get());
 
@@ -650,12 +650,12 @@ int main(int argc, char *argv[]) {
     /* Set the ewmh desktop properties. */
     ewmh_update_desktop_properties();
 
-    x->conn->flush();
+    x.conn->flush();
 
-    ignore_restart_events(*x);
+    ignore_restart_events(&*x);
 
     if (args.autostart) {
-        fix_empty_background(*x);
+        fix_empty_background(&*x);
     }
 
 #if defined(__OpenBSD__)
