@@ -2472,7 +2472,7 @@ bindsym $mod+u focus parent
 bindsym $mod+g focus mode_toggle
 
 # Focus the next output (effectively toggles when you only have two outputs)
-bindsym $mod+x move workspace to output next
+bindsym $mod+x focus output next
 
 # Focus the output right to the current one
 bindsym $mod+x focus output right
