@@ -1,9 +1,9 @@
 module;
 #include <stdlib.h>
 #include <cstring>
-#include <string>
 export module i3_config_base:base_parser;
 
+import std;
 import :base_resource_database;
 import :base_config_applier;
 

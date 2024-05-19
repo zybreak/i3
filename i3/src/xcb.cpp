@@ -14,10 +14,9 @@ module;
 #include "i3.h"
 #include <fmt/printf.h>
 #include "atoms.h"
-#include <set>
-#include <vector>
 module i3;
 
+import std;
 import utils;
 import log;
 import rect;

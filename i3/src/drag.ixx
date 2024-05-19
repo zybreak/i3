@@ -8,10 +8,7 @@
  *
  */
 module;
-
-#include <config.h>
 #include <xcb/xcb.h>
-
 export module i3:drag;
 
 import rect;

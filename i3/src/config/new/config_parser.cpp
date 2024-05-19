@@ -1,21 +1,16 @@
 module;
 struct criteria_state;
-#include <iostream>
 #include <antlr4-runtime.h>
 #include "parser-specs/configLexer.h"
 #include "parser-specs/configGrammar.h"
 #include "parser-specs/configGrammarBaseListener.h"
 #include "fn.hpp"
-#include <ranges>
-#include <utility>
-#include <algorithm>
 #include <xcb/xcb_xrm.h>
-#include <regex>
 #include "fmt/core.h"
 #include "fmt/printf.h"
-#include <memory>
 module i3_config_new;
 
+import std;
 import log;
 import i3_config_base;
 

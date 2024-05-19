@@ -11,11 +11,10 @@
 module;
 #include <cassert>
 #include <climits>
-
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <vector>
+#include <ctime>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -24,19 +23,14 @@ module;
 #include "i3.h"
 #include "atoms.h"
 
-#include <ctime>
-
 #include <xcb/randr.h>
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-monitor.h>
-#include <memory>
-#include <algorithm>
-#include <ranges>
-#include <span>
 #include <config.h>
 #include <fmt/printf.h>
 module i3;
 
+import std;
 import log;
 import rect;
 

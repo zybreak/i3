@@ -9,15 +9,14 @@
  */
 module;
 #include <cassert>
-
 #include <cstdint>
 
 #include <xcb/xcb.h>
-#include <utility>
 
 #include <fmt/printf.h>
-
 module i3;
+
+import std;
 import log;
 import rect;
 

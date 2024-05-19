@@ -6,13 +6,13 @@
  *
  */
 module;
-#include <algorithm>
+#include <stdlib.h>
 #include <cairo.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
-#include <vector>
 export module i3:is_background_set;
 
+import std;
 import :x;
 
 /**

@@ -1,10 +1,8 @@
 module;
-#include <string>
-#include <memory>
-#include <vector>
 #include <fmt/printf.h>
 export module i3:autostarts;
 
+import std;
 import log;
 import :startup;
 

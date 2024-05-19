@@ -1,7 +1,5 @@
 module;
-
 #include <xcb/xcb.h>
-
 export module i3:dpi;
 
 export {

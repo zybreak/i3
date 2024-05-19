@@ -11,7 +11,6 @@
 module;
 #include <config.h>
 
-#include <string>
 #include <cstring>
 
 #include <err.h>
@@ -19,6 +18,7 @@ module;
 
 export module i3:util;
 
+import std;
 import :internal;
 
 export {

@@ -9,15 +9,10 @@
  *
  */
 module;
-#include <config.h>
-
-#include <vector>
-#include <memory>
-#include <mutex>
-#include <chrono>
-
 #include <xcb/randr.h>
 export module i3:handlers;
+
+import std;
 
 class Con;
 class X;

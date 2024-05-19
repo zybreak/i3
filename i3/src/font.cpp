@@ -7,10 +7,10 @@
  */
 module;
 #include <fmt/printf.h>
-#include <cassert>
 #include <cairo/cairo-xcb.h>
 #include <err.h>
 #include <pango/pangocairo.h>
+#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>

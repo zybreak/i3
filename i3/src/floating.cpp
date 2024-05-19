@@ -14,12 +14,11 @@ module;
 
 #include <xcb/xcb.h>
 
-#include <ranges>
-
 #include "i3.h"
 #include "atoms.h"
 module i3;
 
+import std;
 import utils;
 import log;
 import rect;

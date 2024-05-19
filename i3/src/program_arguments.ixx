@@ -2,10 +2,9 @@ module;
 #include "i3.h"
 
 #include <getopt.h>
-#include <optional>
-#include <string>
 export module program_arguments;
 
+import std;
 import log;
 import i3;
 

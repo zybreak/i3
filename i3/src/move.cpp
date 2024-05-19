@@ -9,12 +9,10 @@
  */
 module;
 #include <cassert>
-#include <deque>
-#include <ranges>
 #include <fmt/printf.h>
-#include <utility>
 module i3;
 
+import std;
 import log;
 import i3ipc;
 /*

@@ -13,12 +13,9 @@ module;
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <utility>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
-#include <algorithm>
-#include <filesystem>
 
 #include "i3.h"
 #include <fmt/printf.h>
@@ -26,6 +23,7 @@ module;
 #include "atoms.h"
 module i3;
 
+import std;
 import :output;
 import log;
 import utils;

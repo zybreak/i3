@@ -1,13 +1,10 @@
 module;
-
-#include <utility>
-#include <vector>
 #include <unistd.h>
 #include <sys/types.h>
 #include <cstdint>
-#include <string>
-
 export module i3:nagbar;
+
+import std;
 
 export {
     enum class bar_type_t {

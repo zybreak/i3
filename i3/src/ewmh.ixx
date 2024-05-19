@@ -8,10 +8,8 @@
  *
  */
 module;
-
 #include <config.h>
 #include <xcb/xproto.h>
-
 export module i3:ewmh;
 
 class Con;

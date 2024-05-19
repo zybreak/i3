@@ -1,8 +1,8 @@
 module;
-#include <string>
 #include <nlohmann/json.hpp>
 export module i3:commands;
 
+import std;
 import i3ipc;
 import :ipc;
 import i3_commands_base;

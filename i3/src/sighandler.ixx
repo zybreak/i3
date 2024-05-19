@@ -5,10 +5,6 @@
  * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
  *
  */
-module;
-
-#include <config.h>
-
 export module i3:sighandler;
 
 export {

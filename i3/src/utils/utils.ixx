@@ -1,9 +1,8 @@
 module;
-#include <string>
-#include <filesystem>
-#include <string_view>
 #include <xcb/xcb.h>
 export module utils;
+
+import std;
 
 export namespace utils {
     /**

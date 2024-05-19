@@ -9,12 +9,10 @@
  */
 module;
 struct criteria_state;
-#include <string>
-#include <vector>
 #include <cstdio>
-#include <memory>
 export module i3_config_old:config_parser;
 
+import std;
 import i3_config_base;
 import :parser_stack;
 import :parser_ctx;

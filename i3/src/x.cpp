@@ -10,14 +10,13 @@
  */
 module;
 #include <err.h>
-#include <cassert>
 
+#include <cassert>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <algorithm>
+
 #include <sys/types.h>
-#include <utility>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -30,13 +29,13 @@ module;
 #include "i3.h"
 
 #include <unistd.h>
-#include <ranges>
 
 #include <fmt/printf.h>
 
 #include "atoms.h"
 module i3;
 
+import std;
 import utils;
 import log;
 import rect;

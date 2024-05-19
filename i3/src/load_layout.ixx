@@ -8,12 +8,9 @@
  *                restart.
  *
  */
-module;
-
-#include <config.h>
-#include <fstream>
-
 export module i3:load_layout;
+
+import std;
 
 class Con;
 

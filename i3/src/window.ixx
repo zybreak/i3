@@ -11,12 +11,10 @@ module;
 
 #include <cairo.h>
 #include <config.h>
-#include <deque>
 #include <xcb/xcb.h>
-#include <string>
-#include <chrono>
-#include <optional>
 export module i3:window;
+
+import std;
 
 class Assignment;
 

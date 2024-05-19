@@ -1,11 +1,6 @@
-module;
-#include <string>
-#include <optional>
-#include <ranges>
-#include <deque>
-#include <memory>
 export module i3:assignments;
 
+import std;
 import :match;
 import log;
 

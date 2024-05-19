@@ -32,10 +32,10 @@
  * input parser-specs/commands.spec.
  ******************************************************************************/
 module;
-#include <string>
 #include <nlohmann/json.hpp>
 module i3;
 
+import std;
 import i3ipc;
 import i3_commands_old;
 import i3_commands_base;

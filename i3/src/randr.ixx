@@ -10,15 +10,10 @@
  *
  */
 module;
-
-#include <config.h>
-
-#include <deque>
-
 #include <xcb/randr.h>
-#include <string>
 export module i3:randr;
 
+import std;
 import :internal;
 import rect;
 

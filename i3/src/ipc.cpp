@@ -12,29 +12,26 @@ module;
 
 #include <cassert>
 #include <cerrno>
-
 #include <cstdint>
 #include <cstdio>
-#include <vector>
-#include <utility>
+#include <clocale>
 
 #include <xcb/xcb.h>
 
 #include "i3.h"
 
 #include <fcntl.h>
-#include <clocale>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
 
 #include <nlohmann/json.hpp>
-#include <ranges>
 #include "atoms.h"
 
 #include <fmt/printf.h>
 module i3;
 
+import std;
 import log;
 import i3ipc;
 import utils;

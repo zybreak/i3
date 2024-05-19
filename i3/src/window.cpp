@@ -12,11 +12,10 @@ module;
 #include <cstdlib>
 #include <cstring>
 #include <cassert>
+#include <cmath>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
-
-#include <cmath>
 
 #include <cairo.h>
 
@@ -26,7 +25,6 @@ module;
 module i3;
 
 import log;
-
 import utils;
 
 /*

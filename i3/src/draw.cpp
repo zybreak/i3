@@ -11,14 +11,13 @@ module;
 #include <cstring>
 
 #include <xcb/xcb.h>
-#include <deque>
 
 #include <fmt/printf.h>
 #include <cairo.h>
 #include <cairo-xcb.h>
-#include <utility>
 module i3;
 
+import std;
 import utils;
 import log;
 

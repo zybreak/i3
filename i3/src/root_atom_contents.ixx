@@ -1,12 +1,11 @@
 module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
-#include <string>
-#include <optional>
 #include <cmath>
 #include <cstring>
 export module i3:root_atom_contents;
 
+import std;
 import utils;
 
 /**

@@ -12,15 +12,12 @@ module;
 #include <err.h>
 #include <cerrno>
 #include <climits>
-#include <fstream>
-
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <filesystem>
 #include "i3.h"
 
 #include <cctype>
@@ -40,6 +37,7 @@ module;
 #endif
 module i3;
 
+import std;
 import utils;
 import log;
 

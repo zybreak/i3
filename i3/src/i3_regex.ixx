@@ -8,15 +8,14 @@
  *
  */
 module;
-
 #define PCRE2_CODE_UNIT_WIDTH 8
 
 #include <config.h>
 #include <pcre2.h>
-#include <string_view>
 #include <fmt/printf.h>
 export module regex;
 
+import std;
 import utils;
 import log;
 

@@ -1,8 +1,8 @@
 module;
 struct criteria_state;
-#include <string>
-#include <iostream>
 export module i3_config_base:base_config_applier;
+
+import std;
 
 export class BaseConfigApplier {
 public:

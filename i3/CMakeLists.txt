@@ -112,7 +112,8 @@ target_sources(i3_log PUBLIC
         src/log/log.ixx
 )
 target_link_libraries(i3_log PUBLIC spdlog::spdlog)
-target_compile_options(i3_log PUBLIC "-pthread" "-fsized-deallocation")
+#target_compile_options(i3_log PUBLIC "-pthread" "-fsized-deallocation")
+#target_compile_options(i3_log PUBLIC "-Xclang" "-fno-validate-pch")
 
 add_library(i3_lib STATIC)
 target_sources(i3_lib PUBLIC
@@ -183,6 +184,7 @@ add_executable(i3
 #target_link_libraries(i3 PUBLIC i3_lib libi3ipc i3_config_new i3_config_old)
 target_link_libraries(i3 PUBLIC i3_lib libi3ipc)
 target_include_directories(i3 PUBLIC ${include_dirs} "${CMAKE_CURRENT_SOURCE_DIR}/src/config/old")
+target_compile_options(i3 PUBLIC "-Xclang" "-fno-validate-pch")
 
 add_subdirectory(test)
 

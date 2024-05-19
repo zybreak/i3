@@ -11,12 +11,6 @@ struct criteria_state;
 #include <spdlog/spdlog.h>
 #include <config.h>
 
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <clocale>
-#include <csignal>
-
 #include <err.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
@@ -30,16 +24,13 @@ struct criteria_state;
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <string>
 #include <fmt/core.h>
 #include <fmt/printf.h>
-#include <filesystem>
 #include <xpp/xpp.hpp>
 #include <xpp/proto/randr.hpp>
 #include <xpp/proto/xkb.hpp>
 #include <xpp/proto/shape.hpp>
 #include <xpp/proto/bigreq.hpp>
-#include <config.h>
 #include <xcb/xproto.h>
 #include <xcb/xcb_atom.h>
 
@@ -48,6 +39,8 @@ struct criteria_state;
 #endif
 
 #include "atoms.h"
+
+import std;
 
 import i3ipc;
 import i3;

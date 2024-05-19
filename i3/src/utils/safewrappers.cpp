@@ -6,15 +6,12 @@
  *
  */
 module;
-
-
 #include <err.h>
 #include <cstdlib>
 #include <cstring>
 #include <unistd.h>
 #include <cstdarg>
 #include <cstdio>
-
 module utils;
 
 /*

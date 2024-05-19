@@ -1,9 +1,9 @@
 module;
 #include <cstdlib>
-#include <iostream>
 #include <cstring>
 export module i3_commands_old:parser_stack;
 
+import std;
 import utils;
 
 export {

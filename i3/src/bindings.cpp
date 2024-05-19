@@ -9,25 +9,24 @@
 module;
 struct criteria_state;
 #include <cassert>
-
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <cmath>
+
 #include <sys/types.h>
 
 #include <xcb/xcb.h>
 
 #include "i3.h"
 
-#include <cmath>
-
 #include <xkbcommon/xkbcommon-x11.h>
 #include <xkbcommon/xkbcommon.h>
 #include <fmt/core.h>
 #include <fmt/printf.h>
-#include <set>
 module i3;
 
+import std;
 import utils;
 import log;
 import i3_commands_base;

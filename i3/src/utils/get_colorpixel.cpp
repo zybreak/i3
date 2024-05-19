@@ -10,9 +10,10 @@ module;
 #include <stdlib.h>
 #include <string.h>
 #include <vector>
-#include <memory>
 #include <xcb/xcb.h>
 module utils;
+
+import std;
 
 struct Colorpixel {
     char hex[8];

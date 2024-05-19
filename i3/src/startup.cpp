@@ -12,10 +12,8 @@
  */
 module;
 #include <cassert>
-
 #include <cstdlib>
 #include <cstring>
-#include <chrono>
 
 #include <xcb/xcb.h>
 
@@ -35,6 +33,7 @@ module;
 #include <fmt/printf.h>
 module i3;
 
+import std;
 import utils;
 import log;
 

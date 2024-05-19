@@ -13,13 +13,12 @@ module;
 #include <xcb/xcb_icccm.h>
 #include <fmt/core.h>
 #include <fmt/printf.h>
-#include <chrono>
-#include <utility>
 
 #include "i3.h"
 #include "atoms.h"
 module i3;
 
+import std;
 import utils;
 import log;
 import rect;

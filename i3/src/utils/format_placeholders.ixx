@@ -1,8 +1,6 @@
-module;
-#include <string>
-#include <vector>
-#include <algorithm>
 export module format_placeholders;
+
+import std;
 
 /** Helper structure for usage in format_placeholders(). */
 export struct placeholder_t {

@@ -1,7 +1,8 @@
 module;
 #include <cstdint>
-#include <compare>
 export module rect;
+
+import std;
 
 export {
     /**

@@ -1,14 +1,12 @@
 module;
 
-#include <iostream>
-#include <string>
 #include <fmt/core.h>
 #include <fmt/printf.h>
 #include <spdlog/spdlog.h>
-#include <source_location>
-#include <string_view>
 
 export module log;
+
+import std;
 
 static bool debug_logging = false;
 static bool verbose = false;

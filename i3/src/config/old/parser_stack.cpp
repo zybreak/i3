@@ -1,9 +1,9 @@
 module;
 #include <cstdlib>
-#include <iostream>
 #include <cstring>
 module i3_config_old;
 
+import std;
 import utils;
 
 void clear_stack(stack &ctx) {

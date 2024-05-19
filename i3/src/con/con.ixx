@@ -10,13 +10,10 @@
  *
  */
 module;
-#include <string>
-#include <deque>
 #include <xcb/xproto.h>
-#include <memory>
-#include <vector>
 export module i3:con;
 
+import std;
 import rect;
 import :draw;
 import :internal;

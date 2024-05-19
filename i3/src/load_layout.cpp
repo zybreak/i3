@@ -10,15 +10,14 @@
  */
 module;
 #include <cstring>
-
 #include <clocale>
 
 #include <fmt/core.h>
 #include <fmt/printf.h>
 #include <nlohmann/json.hpp>
-#include <deque>
 module i3;
 
+import std;
 import utils;
 import log;
 import regex;

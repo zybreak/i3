@@ -20,9 +20,9 @@ module;
 #include "i3.h"
 
 #include <wordexp.h>
-#include <string>
 export module i3:config_applier;
 
+import std;
 import utils;
 import i3_config_base;
 import :criteria_state;

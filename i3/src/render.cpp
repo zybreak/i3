@@ -10,20 +10,15 @@
  */
 module;
 #include <cassert>
-
 #include <cstdlib>
+#include <cmath>
 
 #include <xcb/xcb.h>
 
-#include <cmath>
-#include <ranges>
-#include <vector>
-#include <utility>
-
 #include <fmt/printf.h>
-
 module i3;
 
+import std;
 import :con;
 import log;
 import rect;

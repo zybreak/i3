@@ -11,22 +11,19 @@
 module;
 #include <config.h>
 
-#include <vector>
-#include <fstream>
 #include <cassert>
-#include <err.h>
 #include <cerrno>
 #include <climits>
-
 #include <cstdlib>
 #include <cstring>
 
+#include <err.h>
+
 #include <xcb/xcb.h>
-#include <filesystem>
 #include <fmt/printf.h>
-#include <iostream>
 module i3;
 
+import std;
 import utils;
 import i3_config_base;
 import i3_config_new;

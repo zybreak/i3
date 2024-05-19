@@ -13,11 +13,8 @@
  */
 module;
 #include <cassert>
-
 #include <cstdint>
 #include <cstring>
-#include <ranges>
-#include <chrono>
 
 #include <xcb/xcb.h>
 
@@ -26,6 +23,7 @@ module;
 #include "atoms.h"
 module i3;
 
+import std;
 import utils;
 import regex;
 import :match;

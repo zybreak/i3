@@ -14,10 +14,6 @@ module;
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <algorithm>
-#include <ranges>
-#include <chrono>
-#include <utility>
 
 #include <xcb/xcb.h>
 #include <vector>
@@ -27,6 +23,7 @@ module;
 #include <fmt/printf.h>
 module i3;
 
+import std;
 import :output;
 import format_placeholders;
 import utils;

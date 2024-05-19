@@ -13,8 +13,6 @@ struct criteria_state;
 #include <cassert>
 #include <cerrno>
 #include <climits>
-#include <utility>
-
 #include <cstdlib>
 #include <cstring>
 
@@ -27,6 +25,7 @@ struct criteria_state;
 #include <wordexp.h>
 module i3;
 
+import std;
 import utils;
 import log;
 import i3_config_base;

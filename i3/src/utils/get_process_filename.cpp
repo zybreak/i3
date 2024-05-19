@@ -11,9 +11,9 @@ module;
 #include <cstdlib>
 #include <unistd.h>
 #include <cstdio>
-#include <filesystem>
-
 module utils;
+
+import std;
 
 /*
  * Returns the name of a temporary file with the specified prefix.

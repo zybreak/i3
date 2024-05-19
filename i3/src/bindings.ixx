@@ -8,13 +8,10 @@
  *
  */
 module;
-
-#include <deque>
-#include <set>
 #include <xcb/xcb.h>
-#include <string_view>
 export module i3:bindings;
 
+import std;
 import :x;
 import :util;
 import i3_commands_base;

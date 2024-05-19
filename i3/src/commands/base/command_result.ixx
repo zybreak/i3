@@ -7,9 +7,9 @@
  * commands.c: all command functions (see commands_parser.c)
  *
  */
-module;
-#include <string>
 export module i3_commands_base:command_result;
+
+import std;
 
 /**
  * A struct that contains useful information about the result of a command as a

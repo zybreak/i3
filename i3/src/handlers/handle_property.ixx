@@ -1,13 +1,11 @@
 module;
-#include <optional>
-#include <utility>
-#include <string>
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 #include <cairo.h>
 #include <cmath>
 export module i3:handle_property;
 
+import std;
 import :window;
 
 export namespace handle_property {

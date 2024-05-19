@@ -7,10 +7,6 @@
  * move.c: Moving containers into some direction.
  *
  */
-module;
-
-#include <config.h>
-
 export module i3:move;
 
 import :internal;

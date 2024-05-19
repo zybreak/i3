@@ -2,9 +2,9 @@ module;
 #include <pango/pango.h>
 #include <xcb/xcb.h>
 #include <cairo.h>
-#include <string>
-#include <string_view>
 export module i3:font;
+
+import std;
 
 struct color_t;
 

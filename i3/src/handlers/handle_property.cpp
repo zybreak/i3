@@ -1,7 +1,4 @@
 module;
-#include <optional>
-#include <utility>
-#include <string>
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 #include <cairo.h>
@@ -9,6 +6,7 @@ module;
 #include <fmt/printf.h>
 module i3;
 
+import std;
 import log;
 
 namespace handle_property {

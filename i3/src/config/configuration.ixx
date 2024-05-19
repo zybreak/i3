@@ -11,12 +11,10 @@
  *
  */
 module;
-#include <string>
-#include <vector>
-#include <memory>
-#include "i3.h"
+#include <cstdint>
 export module i3:configuration;
 
+import std;
 import :draw;
 import :bindings;
 import :con;

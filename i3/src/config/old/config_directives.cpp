@@ -13,9 +13,6 @@ struct criteria_state;
 #include <cassert>
 #include <cerrno>
 #include <climits>
-#include <iostream>
-#include <fstream>
-
 #include <cstdlib>
 #include <cstring>
 
@@ -28,6 +25,7 @@ struct criteria_state;
 #include <fmt/printf.h>
 module i3_config_old;
 
+import std;
 import utils;
 import log;
 

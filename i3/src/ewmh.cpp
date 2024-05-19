@@ -10,8 +10,6 @@
 module;
 #include <fmt/printf.h>
 #include <xcb/xcb.h>
-#include <array>
-#include <algorithm>
 
 #include "i3.h"
 
@@ -20,6 +18,7 @@ module;
 xcb_window_t ewmh_window;
 module i3;
 
+import std;
 import log;
 
 /*

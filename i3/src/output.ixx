@@ -8,15 +8,10 @@
  *
  */
 module;
-
-#include <config.h>
-
-#include <deque>
-#include <string>
-
 #include <xcb/randr.h>
 export module i3:output;
 
+import std;
 import rect;
 
 class Con;

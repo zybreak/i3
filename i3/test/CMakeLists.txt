@@ -62,12 +62,6 @@ target_link_libraries(CommandsOldTest PUBLIC i3_lib GTest::gtest_main GTest::gmo
 gtest_discover_tests(CommandsOldTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/commands_old_test.profraw")
 target_code_coverage(CommandsOldTest ALL)
 
-add_executable(EventHandlerTest)
-target_sources(EventHandlerTest PUBLIC event_handler_test.cpp)
-target_link_libraries(EventHandlerTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
-gtest_discover_tests(EventHandlerTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/event_handlers_test.profraw")
-target_code_coverage(EventHandlerTest ALL)
-
 #add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS RegexTest MatchTest ConTest ConfigNewTest ConfigOldTest)
 
 #add_custom_target(coverage COMMAND

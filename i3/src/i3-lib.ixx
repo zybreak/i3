@@ -1,11 +1,9 @@
 module;
 #include <xcb/xproto.h>
-#include <string>
-#include <deque>
-#include <vector>
 #include <sys/resource.h>
-#include <memory>
 export module i3;
+
+import std;
 
 export import :assignments;
 export import :autostarts;

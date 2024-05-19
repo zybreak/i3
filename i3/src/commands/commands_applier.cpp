@@ -14,21 +14,16 @@ module;
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <queue>
-#include <utility>
 
 #include <fcntl.h>
 #include <unistd.h>
-#include <string>
-#include <vector>
-#include <ranges>
-#include <algorithm>
 
 #include <fmt/printf.h>
 
 #include <nlohmann/json.hpp>
 module i3;
 
+import std;
 import utils;
 import log;
 import rect;

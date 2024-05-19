@@ -22,9 +22,9 @@ module;
 #include <xpp/proto/bigreq.hpp>
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_aux.h>
-#include <optional>
 export module i3:x;
 
+import std;
 import rect;
 import :internal;
 

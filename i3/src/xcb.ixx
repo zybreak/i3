@@ -8,16 +8,15 @@
  *
  */
 module;
-
 class Con;
 
 #include <config.h>
 #include <xcb/xcb.h>
-#include <set>
 
 #include "atoms.h"
-
 export module i3:xcb;
+
+import std;
 import rect;
 import :internal;
 

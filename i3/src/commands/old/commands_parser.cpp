@@ -25,22 +25,18 @@
  */
 module;
 struct criteria_state;
-
 #include <cerrno>
 #include <climits>
-#include <utility>
-#include <optional>
 
 #include <err.h>
 #include <cstdlib>
 #include <cstring>
-#include <regex>
 #include <fmt/core.h>
 #include <fmt/printf.h>
 #include <nlohmann/json.hpp>
-
 module i3_commands_old;
 
+import std;
 import i3_commands_base;
 import i3ipc;
 import utils;

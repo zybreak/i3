@@ -15,11 +15,10 @@ module;
 
 #include <sys/wait.h>
 #include <unistd.h>
-#include <filesystem>
 #include <fmt/printf.h>
-#include <string>
 module i3;
 
+import std;
 import utils;
 import log;
 import rect;

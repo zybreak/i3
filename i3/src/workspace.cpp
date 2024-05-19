@@ -13,13 +13,11 @@ module;
 #include <cstring>
 #include <fmt/core.h>
 #include <fmt/printf.h>
-#include <algorithm>
-#include <ranges>
-#include <utility>
 
 #include "i3.h"
 module i3;
 
+import std;
 import :output;
 import log;
 import i3ipc;

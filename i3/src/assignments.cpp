@@ -10,10 +10,9 @@
 module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
-#include <optional>
-#include <ranges>
 module i3;
 
+import std;
 import :window;
 import log;
 import :assignments;

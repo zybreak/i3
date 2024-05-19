@@ -23,16 +23,13 @@ module;
 #include <xcb/xcb_cursor.h>
 #include <xcb/xproto.h>
 
-#include <thread>
-#include <utility>
-
 #if defined(__OpenBSD__)
 #include <sys/cdefs.h>
 #endif
 module i3;
 
+import std;
 import utils;
-
 import log;
 
 static const button_t *get_button_at(const std::vector<button_t> &buttons, int16_t x, int16_t y) {

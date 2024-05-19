@@ -11,11 +11,11 @@
  */
 module;
 #include <cassert>
-#include <err.h>
-
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+
+#include <err.h>
 
 #include <xcb/xcb.h>
 
@@ -23,13 +23,11 @@ module;
 
 #include <xcb/randr.h>
 
-#include <vector>
-#include <algorithm>
 #include <fmt/core.h>
 #include <fmt/printf.h>
-#include <utility>
 module i3;
 
+import std;
 import utils;
 import log;
 import rect;
