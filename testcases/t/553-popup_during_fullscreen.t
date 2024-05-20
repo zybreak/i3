@@ -124,4 +124,31 @@ is($x->input_focus, $w2->id, 'popup still focused');
 
 exit_gracefully($pid);
 
+################################################################################
+# Test popup_during_fullscreen all
+# See #6062
+################################################################################
+
+$config = <<EOT;
+# i3 config file (v4)
+font -misc-fixed-medium-r-normal--13-120-75-75-C-70-iso10646-1
+
+popup_during_fullscreen all
+EOT
+$pid = launch_with_config($config);
+
+($ws, $w1) = setup;
+
+# Fullscreen stays when transient windows open
+$w2 = open_transient_for($w1);
+is_num_fullscreen($ws, 1, 'still one fullscreen window');
+is($x->input_focus, $w2->id, 'popup focused');
+
+# Fullscreen stays when regular windows open
+$w1->fullscreen(1);
+open_without_map_wait;
+is_num_fullscreen($ws, 1, 'still one fullscreen window');
+
+exit_gracefully($pid);
+
 done_testing;
