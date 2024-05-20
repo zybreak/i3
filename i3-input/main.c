@@ -170,7 +170,7 @@ static void finish_input(void) {
             cnt++;
         }
     }
-    printf("occurrences = %ld\n", cnt);
+    printf("occurrences = %zu\n", cnt);
 
     /* allocate space for the output */
     const size_t input_len = strlen(command);
