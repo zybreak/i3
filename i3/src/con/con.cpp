@@ -11,10 +11,6 @@
  */
 module;
 #include <cassert>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-
 #include <xcb/xcb.h>
 #include <vector>
 
@@ -598,7 +594,10 @@ OutputCon* Con::con_get_output() {
     }
     /* We must be able to get an output because focus can never be set higher
      * in the tree (root node cannot be focused). */
-    assert(result != nullptr);
+    if (result == nullptr) {
+        ELOG("Output not found");
+        std::terminate();
+    }
     return dynamic_cast<OutputCon*>(result);
 }
 
@@ -1426,15 +1425,15 @@ orientation_t con_orientation(Con *con) {
 
         case L_DEFAULT:
             ELOG("Someone called con_orientation() on a con with L_DEFAULT, this is a bug in the code.\n");
-            assert(false);
+            std::terminate();
 
         case L_DOCKAREA:
         case L_OUTPUT:
             ELOG(fmt::sprintf("con_orientation() called on dockarea/output (%d) container %p\n", std::to_underlying(con->layout), fmt::ptr(con)));
-            assert(false);
+            std::terminate();
     }
     /* should not be reached */
-    assert(false);
+    std::terminate();
 }
 
 /*
@@ -2088,7 +2087,7 @@ std::string con_get_tree_representation(Con *con) {
         buf.push_back('S');
     } else {
         ELOG("BUG: Code not updated to account for new layout type\n");
-        assert(false);
+        std::terminate();
     }
     buf.push_back('[');
 

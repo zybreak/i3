@@ -1,8 +1,6 @@
 module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
-#include <cmath>
-#include <cstring>
 export module i3:root_atom_contents;
 
 import std;
@@ -29,7 +27,7 @@ export std::optional<std::string> root_atom_contents(const char *atomname, xcb_c
         return std::nullopt;
     }
 
-    atom_cookie = xcb_intern_atom(conn, 0, strlen(atomname), atomname);
+    atom_cookie = xcb_intern_atom(conn, 0, std::strlen(atomname), atomname);
 
     xcb_screen_t *root_screen = xcb_aux_get_screen(conn, screen);
     xcb_window_t root = root_screen->root;
@@ -50,9 +48,9 @@ export std::optional<std::string> root_atom_contents(const char *atomname, xcb_c
     if (xcb_get_property_value_length(prop_reply) > 0 && prop_reply->bytes_after > 0) {
         /* We received an incomplete value. Ask again but with a properly
          * adjusted size. */
-        content_max_words += ceil(prop_reply->bytes_after / 4.0);
+        content_max_words += std::ceil(prop_reply->bytes_after / 4.0);
         /* Repeat the request, with adjusted size */
-        free(prop_reply);
+        std::free(prop_reply);
         prop_cookie = xcb_get_property_unchecked(conn, false, root, atom_reply->atom,
                                                  XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
         prop_reply = xcb_get_property_reply(conn, prop_cookie, nullptr);
@@ -73,9 +71,9 @@ export std::optional<std::string> root_atom_contents(const char *atomname, xcb_c
     }
 
 out:
-    free(prop_reply);
+    std::free(prop_reply);
 out_atom:
-    free(atom_reply);
+    std::free(atom_reply);
 out_conn:
     if (provided_conn == nullptr) {
         xcb_disconnect(conn);

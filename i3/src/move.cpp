@@ -31,7 +31,7 @@ static Con *lowest_common_ancestor(Con *a, Con *b) {
         }
         parent_a = parent_a->parent;
     }
-    assert(false);
+    std::terminate();
 }
 
 /*

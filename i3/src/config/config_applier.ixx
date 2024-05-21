@@ -8,13 +8,6 @@
  *
  */
 module;
-#include <cassert>
-#include <cerrno>
-#include <climits>
-
-#include <cstdlib>
-#include <cstring>
-
 #include <xcb/xcb.h>
 
 #include "i3.h"

@@ -12,10 +12,6 @@
 module;
 #include <err.h>
 
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>

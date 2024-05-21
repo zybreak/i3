@@ -11,10 +11,6 @@
  */
 module;
 #include <cassert>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-
 #include <err.h>
 
 #include <xcb/xcb.h>

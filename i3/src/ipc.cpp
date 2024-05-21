@@ -9,13 +9,7 @@
  */
 module;
 #include <config.h>
-
 #include <cassert>
-#include <cerrno>
-#include <cstdint>
-#include <cstdio>
-#include <clocale>
-
 #include <xcb/xcb.h>
 
 #include "i3.h"
@@ -377,7 +371,7 @@ static std::string layout(Con *con) {
     switch (con->layout) {
         case L_DEFAULT:
             DLOG("About to dump layout=default, this is a bug in the code.\n");
-            assert(false);
+            std::terminate();
             break;
         case L_SPLITV:
             return "splitv";
@@ -406,7 +400,7 @@ static std::string workspace_layout(WorkspaceCon *con) {
             return "tabbed";
         default:
             DLOG(fmt::sprintf("About to dump workspace_layout=%d (none of default/stacked/tabbed), this is a bug.\n",  std::to_underlying(con->workspace_layout)));
-            assert(false);
+            std::terminate();
             break;
     }
 }
@@ -1216,7 +1210,9 @@ static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents) {
 
     /* If this callback is called then there should be a corresponding active
      * timer. */
-    assert(client->timeout != nullptr);
+    if (client->timeout == nullptr) {
+        std::terminate();
+    }
     ipc_push_pending(client);
 }
 

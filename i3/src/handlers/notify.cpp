@@ -9,13 +9,6 @@
 *
 */
 module;
-#include <cassert>
-#include <climits>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
-
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
@@ -209,7 +202,9 @@ static bool handle_strut_partial_change(Con *con, xcb_get_property_reply_t *prop
 
     /* find the dockarea */
     Con *dockarea = con_for_window(search_at, con->window, nullptr);
-    assert(dockarea != nullptr);
+    if (dockarea == nullptr) {
+        std::terminate();
+    }
 
     /* attach the dock to the dock area */
     con->con_detach();

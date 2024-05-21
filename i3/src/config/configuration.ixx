@@ -10,8 +10,6 @@
  * bindings mode).
  *
  */
-module;
-#include <cstdint>
 export module i3:configuration;
 
 import std;
@@ -23,6 +21,9 @@ import :internal;
 import rect;
 
 import i3_config_base;
+
+using std::uint32_t;
+using std::int32_t;
 
 export {
 

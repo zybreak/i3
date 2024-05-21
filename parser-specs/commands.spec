@@ -55,7 +55,7 @@ state CRITERIA:
   ctype = 'floating_from' -> CRITERION_FROM
   ctype = 'tiling_from'   -> CRITERION_FROM
   ctype = 'tiling', 'floating', 'all'
-      -> call cmd::criteria_add($ctype, NULL); CRITERIA
+      -> call cmd::criteria_add($ctype, nullptr); CRITERIA
   ']' -> call cmd::criteria_match_windows(); INITIAL
 
 state CRITERION:
@@ -203,7 +203,7 @@ state FOCUS_OUTPUT:
   output = word
       -> call cmd::focus_output($output); FOCUS_OUTPUT
   end
-      -> call cmd::focus_output(NULL); INITIAL
+      -> call cmd::focus_output(nullptr); INITIAL
 
 # kill [window|client]
 state KILL:
@@ -327,13 +327,13 @@ state RENAME_WORKSPACE_LIKELY_TO:
   'to '
       -> RENAME_WORKSPACE_LIKELY_TO_NEW_NAME
   new_name = word
-      -> call cmd::rename_workspace(NULL, $new_name)
+      -> call cmd::rename_workspace(nullptr, $new_name)
 
 state RENAME_WORKSPACE_LIKELY_TO_NEW_NAME:
   new_name = string
       -> call cmd::rename_workspace("to", $new_name)
   end
-      -> call cmd::rename_workspace(NULL, "to")
+      -> call cmd::rename_workspace(nullptr, "to")
 
 state RENAME_WORKSPACE_TO:
   'to'
@@ -402,7 +402,7 @@ state MOVE_TO_OUTPUT:
   output = word
       -> call cmd::move_con_to_output($output, 0); MOVE_TO_OUTPUT
   end
-      -> call cmd::move_con_to_output(NULL, 0); INITIAL
+      -> call cmd::move_con_to_output(nullptr, 0); INITIAL
 
 state MOVE_WORKSPACE_TO_OUTPUT:
   'output'
@@ -412,7 +412,7 @@ state MOVE_WORKSPACE_TO_OUTPUT_WORD:
   output = word
       -> call cmd::move_con_to_output($output, 1); MOVE_WORKSPACE_TO_OUTPUT_WORD
   end
-      -> call cmd::move_con_to_output(NULL, 1); INITIAL
+      -> call cmd::move_con_to_output(nullptr, 1); INITIAL
 
 state MOVE_TO_ABSOLUTE_POSITION:
   'position'
@@ -447,7 +447,7 @@ state NOP:
   comment = string
       -> call cmd::nop($comment)
   end
-      -> call cmd::nop(NULL)
+      -> call cmd::nop(nullptr)
 
 state TITLE_FORMAT:
   format = string

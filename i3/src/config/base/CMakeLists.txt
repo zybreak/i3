@@ -3,6 +3,7 @@ target_sources(i3_config_base INTERFACE
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES
+        config_result_ir.ixx
         base_config_applier.ixx
         base_parser.ixx
         base_resource_database.ixx

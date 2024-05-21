@@ -41,28 +41,6 @@ include(CTest)
 
 find_package(Perl REQUIRED)
 
-add_custom_target(Commands ALL
-        COMMAND ${PERL_EXECUTABLE}
-            ${PROJECT_SOURCE_DIR}/generate-command-parser.pl
-            --input=${PROJECT_SOURCE_DIR}/parser-specs/commands.spec
-            --prefix=command
-        COMMENT "Generating commands"
-        BYPRODUCTS
-            'GENERATED_command_enums.h'
-            'GENERATED_command_tokens.h'
-            'GENERATED_command_call.h')
-
-add_custom_target(Config ALL
-        COMMAND ${PERL_EXECUTABLE}
-            ${PROJECT_SOURCE_DIR}/generate-command-parser.pl
-            --input=${PROJECT_SOURCE_DIR}/parser-specs/config.spec
-            --prefix=config
-        COMMENT "Generating config"
-        BYPRODUCTS
-            'GENERATED_config_enums.h'
-            'GENERATED_config_tokens.h'
-            'GENERATED_config_call.h')
-
 add_compile_definitions(EV_MULTIPLICITY=1 EV_COMPAT3=0)
 add_subdirectory(lib/i3_ipc)
 add_subdirectory(lib/xpp)

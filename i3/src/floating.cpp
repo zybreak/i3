@@ -8,7 +8,6 @@
  *
  */
 module;
-#include <cassert>
 #include <fmt/core.h>
 #include <fmt/printf.h>
 
@@ -538,7 +537,10 @@ void floating_center(Con *con, Rect rect) {
  *
  */
 void floating_move_to_pointer(Con *con) {
-    assert(con->type == CT_FLOATING_CON);
+    if (con->type == CT_FLOATING_CON) {
+        ELOG("this is not a floating container\n");
+        std::terminate();
+    }
 
     xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(**global.x, xcb_query_pointer(**global.x, global.x->root), nullptr);
     if (reply == nullptr) {

@@ -7,7 +7,6 @@
  */
 module;
 #include <xcb/xcb_xrm.h>
-#include <cstdlib>
 #include <fmt/printf.h>
 module i3;
 

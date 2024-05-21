@@ -9,7 +9,6 @@
  *
  */
 module;
-#include <cstring>
 #include <fmt/printf.h>
 module i3;
 

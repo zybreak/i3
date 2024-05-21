@@ -114,11 +114,12 @@ for my $line (@lines) {
 # is in FOR_WINDOW_COMMAND).
 my @keys = sort { (length($b) <=> length($a)) or ($a cmp $b) } keys %states;
 
-open(my $enumfh, '>', "GENERATED_${prefix}_enums.h");
+open(my $enumfh, '>', "GENERATED_${prefix}_enums.ixx");
 
 my %statenum;
-say $enumfh '#pragma once';
-say $enumfh 'enum class cmdp_state : int {';
+#say $enumfh '#pragma once';
+say $enumfh "export module i3_${prefix}_old:enums;";
+say $enumfh 'export enum class cmdp_state : int {';
 my $cnt = 0;
 for my $state (@keys, '__CALL') {
     say $enumfh ',' if $cnt > 0;
@@ -130,12 +131,20 @@ say $enumfh "\n};";
 close($enumfh);
 
 # Third step: Generate the call function.
-open(my $callfh, '>', "GENERATED_${prefix}_call.h");
+open(my $callfh, '>', "GENERATED_${prefix}_call.ixx");
 my $resultname = uc(substr($prefix, 0, 1)) . substr($prefix, 1) . 'ResultIR';
-say $callfh '#pragma once';
+#say $callfh '#pragma once';
+say $callfh "module;";
+say $callfh "struct criteria_state;";
+say $callfh "export module i3_${prefix}_old:call;";
+say $callfh 'import std;';
+say $callfh "import :${prefix}_directives;";
+say $callfh "import i3_${prefix}_base;";
+say $callfh "import :enums;";
+say $callfh "import :parser_stack;";
 #say $callfh '#include "criteria_state.h"';
 #say $callfh 'struct criteria_state;';
-say $callfh "static void GENERATED_call(criteria_state *criteria_state, stack &stack, const int call_identifier, $resultname &result) {";
+say $callfh "export void GENERATED_call(criteria_state *criteria_state, stack &stack, const int call_identifier, $resultname &result) {";
 say $callfh '    switch (call_identifier) {';
 my $call_id = 0;
 for my $state (@keys) {
@@ -187,21 +196,24 @@ for my $state (@keys) {
     }
 }
 say $callfh '        default:';
-say $callfh '            printf("BUG in the parser. state = %d\n", call_identifier);';
-say $callfh '            assert(false);';
+say $callfh '            throw new std::runtime_error(std::format("BUG in the parser. state = {}", call_identifier));';
 say $callfh '    }';
 say $callfh '}';
 close($callfh);
 
 # Fourth step: Generate the token datastructures.
 
-open(my $tokfh, '>', "GENERATED_${prefix}_tokens.h");
-say $tokfh '#pragma once';
-say $tokfh '#include <vector>';
-say $tokfh '#include <map>';
+open(my $tokfh, '>', "GENERATED_${prefix}_tokens.ixx");
+#say $tokfh '#pragma once';
+say $tokfh "export module i3_${prefix}_old:tokens;";
+#say $tokfh '#include <vector>';
+#say $tokfh '#include <map>';
+say $tokfh 'import std;';
+say $tokfh 'import :enums;';
+say $tokfh 'import :cmdp_token;';
 say $tokfh 'using namespace std::literals;';
 
-say $tokfh 'static std::map<cmdp_state, std::vector<cmdp_token>> tokens{';
+say $tokfh 'export std::map<cmdp_state, std::vector<cmdp_token>> tokens{';
 
 for my $state (@keys) {
     my $tokens = $states{$state};

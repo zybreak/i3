@@ -9,7 +9,7 @@ export module i3_commands_base:command_result_ir;
  * When calling parse_command("floating enable, border none"), the parser will
  * internally use this struct when calling cmd_floating and cmd_border.
  */
-export class CommandResultIR {
+export class CommandsResultIR {
    public:
     BaseCommandsApplier *applier;
 

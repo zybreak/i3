@@ -40,7 +40,7 @@ namespace xpp {
                     throw std::shared_ptr<xcb_generic_error_t>(reinterpret_cast<xcb_generic_error_t *>(event));
                 }
 
-                return shared_generic_event_ptr(event, std::free);
+                return shared_generic_event_ptr(event, free);
             }
 
             check_connection();

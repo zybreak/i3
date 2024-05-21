@@ -8,12 +8,7 @@
  *
  */
 module;
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
 #include <cassert>
-#include <cmath>
-
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 

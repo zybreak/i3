@@ -10,7 +10,6 @@
 module;
 #include <xcb/xproto.h>
 #include <fmt/printf.h>
-#include <cassert>
 module i3;
 
 import rect;
@@ -231,7 +230,7 @@ DRAGGING_CB(drag_callback) {
     } else {
         /* Keep the compiler happy */
         ELOG("min() is broken\n");
-        assert(false);
+        std::terminate();
     }
     const bool target_parent = (d_min < parent_indicator_size &&
                                 con_on_side_of_parent(target, direction));
@@ -398,7 +397,7 @@ void tiling_drag(Con *con, xcb_button_press_event_t *event, bool use_threshold) 
         Con *fs = con->con_get_workspace()->con_get_fullscreen_covering_ws();
         if (fs == con) {
             ELOG("dragged container somehow got fullscreen again.\n");
-            assert(false);
+            std::terminate();
         } else if (fs && set_focus && set_fs) {
             /* con was focused & fullscreen, disable other fullscreen container. */
             con_disable_fullscreen(fs);

@@ -8,9 +8,6 @@
  *
  */
 module;
-#include <cstdint>
-#include <cstdlib>
-
 #include <xcb/xcb.h>
 
 #include <fmt/printf.h>

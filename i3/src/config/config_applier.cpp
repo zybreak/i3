@@ -10,12 +10,6 @@
 module;
 struct criteria_state;
 
-#include <cassert>
-#include <cerrno>
-#include <climits>
-#include <cstdlib>
-#include <cstring>
-
 #include <xcb/xcb.h>
 
 #include <fmt/printf.h>
@@ -371,7 +365,7 @@ void ConfigApplier::title_align(const std::string &alignment) {
     } else if (alignment == "right"s) {
         config.title_align = title_align_t::ALIGN_RIGHT;
     } else {
-        assert(false);
+        std::terminate();
     }
 }
 

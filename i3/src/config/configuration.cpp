@@ -11,12 +11,6 @@
 module;
 #include <config.h>
 
-#include <cassert>
-#include <cerrno>
-#include <climits>
-#include <cstdlib>
-#include <cstring>
-
 #include <err.h>
 
 #include <xcb/xcb.h>
@@ -119,8 +113,6 @@ static std::string get_config_path(const std::string *override_configpath, bool 
 }
 
 static void free_configuration() {
-    assert(*global.x != nullptr);
-
     /* If we are currently in a binding mode, we first revert to the default
      * since we have no guarantee that the current mode will even still exist
      * after parsing the config again. See #2228. */

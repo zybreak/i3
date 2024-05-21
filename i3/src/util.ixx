@@ -9,10 +9,6 @@
  *
  */
 module;
-#include <config.h>
-
-#include <cstring>
-
 #include <err.h>
 #include <xcb/xcb_keysyms.h>
 
@@ -21,9 +17,21 @@ export module i3:util;
 import std;
 import :internal;
 
+char to_lower(char c) {
+    return std::tolower(static_cast<unsigned char>(c));
+}
+
 export {
-    bool STARTS_WITH(const char *string, const char *needle) {
-        return (strncasecmp((string), (needle), strlen((needle))) == 0);
+    bool STARTS_WITH(const std::string_view str, const std::string_view prefix) {
+        if (prefix.length() > str.length()) {
+            return false;
+        }
+
+        auto str_begin = str.begin();
+        auto str_end = str_begin + prefix.size();
+
+        return std::ranges::equal(prefix, std::ranges::subrange(str_begin, str_end),
+            [](char a, char b) { return to_lower(a) == to_lower(b); });
     }
 
     /**
@@ -154,42 +162,42 @@ export {
         /* It might be better to use strtok() here, but the simpler strstr() should
          * do for now. */
         i3_event_state_mask_t result = 0;
-        if (str == nullptr || strcmp(str, "") == 0) {
+        if (str == nullptr || std::strcmp(str, "") == 0) {
             return result;
         }
-        if (strstr(str, "Mod1") != nullptr) {
+        if (std::strstr(str, "Mod1") != nullptr) {
             result |= XCB_KEY_BUT_MASK_MOD_1;
         }
-        if (strstr(str, "Mod2") != nullptr) {
+        if (std::strstr(str, "Mod2") != nullptr) {
             result |= XCB_KEY_BUT_MASK_MOD_2;
         }
-        if (strstr(str, "Mod3") != nullptr) {
+        if (std::strstr(str, "Mod3") != nullptr) {
             result |= XCB_KEY_BUT_MASK_MOD_3;
         }
-        if (strstr(str, "Mod4") != nullptr) {
+        if (std::strstr(str, "Mod4") != nullptr) {
             result |= XCB_KEY_BUT_MASK_MOD_4;
         }
-        if (strstr(str, "Mod5") != nullptr) {
+        if (std::strstr(str, "Mod5") != nullptr) {
             result |= XCB_KEY_BUT_MASK_MOD_5;
         }
-        if (strstr(str, "Control") != nullptr ||
-            strstr(str, "Ctrl") != nullptr) {
+        if (std::strstr(str, "Control") != nullptr ||
+            std::strstr(str, "Ctrl") != nullptr) {
             result |= XCB_KEY_BUT_MASK_CONTROL;
         }
-        if (strstr(str, "Shift") != nullptr) {
+        if (std::strstr(str, "Shift") != nullptr) {
             result |= XCB_KEY_BUT_MASK_SHIFT;
         }
-        if (strstr(str, "Group1") != nullptr) {
+        if (std::strstr(str, "Group1") != nullptr) {
             result |= (I3_XKB_GROUP_MASK_1 << 16);
         }
-        if (strstr(str, "Group2") != nullptr ||
-            strstr(str, "Mode_switch") != nullptr) {
+        if (std::strstr(str, "Group2") != nullptr ||
+            std::strstr(str, "Mode_switch") != nullptr) {
             result |= (I3_XKB_GROUP_MASK_2 << 16);
         }
-        if (strstr(str, "Group3") != nullptr) {
+        if (std::strstr(str, "Group3") != nullptr) {
             result |= (I3_XKB_GROUP_MASK_3 << 16);
         }
-        if (strstr(str, "Group4") != nullptr) {
+        if (std::strstr(str, "Group4") != nullptr) {
             result |= (I3_XKB_GROUP_MASK_4 << 16);
         }
         return result;

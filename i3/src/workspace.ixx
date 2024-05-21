@@ -12,12 +12,12 @@ module;
 
 #include <config.h>
 
-#include <cstdint>
-
 export module i3:workspace;
 
 import std;
 import :internal;
+
+using std::uint32_t;
 
 class Output;
 class WorkspaceCon;

@@ -1,5 +1,4 @@
 module;
-#include <cstring>
 #include <xcb/xcb_xrm.h>
 #include <fmt/printf.h>
 export module i3:resource_database;

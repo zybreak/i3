@@ -8,9 +8,6 @@
  *
  */
 module;
-#include <cassert>
-#include <cstdint>
-
 #include <xcb/xcb.h>
 
 #include "i3.h"
@@ -67,8 +64,12 @@ static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press
         return false;
     }
 
-    assert(first != second);
-    assert(first->parent == second->parent);
+    if (first == second) {
+        std::terminate();
+    }
+    if (first->parent != second->parent) {
+        std::terminate();
+    }
 
     /* The first container should always be in front of the second container */
     if (search_direction == D_UP || search_direction == D_LEFT) {

@@ -10,9 +10,6 @@
  */
 module;
 #include <cassert>
-#include <cstdlib>
-#include <cmath>
-
 #include <xcb/xcb.h>
 
 #include <fmt/printf.h>
@@ -349,12 +346,12 @@ static void render_output(Con *con) {
         if (child->type == CT_CON) {
             if (content != nullptr) {
                 DLOG("More than one CT_CON on output container\n");
-                assert(false);
+                std::terminate();
             }
             content = child;
         } else if (child->type != CT_DOCKAREA) {
             DLOG(fmt::sprintf("Child %p of type %d is inside the OUTPUT con\n", fmt::ptr(child), std::to_underlying(child->type)));
-            assert(false);
+            std::terminate();
         }
     }
 

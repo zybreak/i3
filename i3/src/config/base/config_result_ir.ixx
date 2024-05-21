@@ -1,7 +1,7 @@
-module;
-export module i3_config_old:config_result;
+export module i3_config_base:config_result;
 
-import :parser_ctx;
+import std;
+import :base_parser;
 
 export {
     /**
@@ -10,8 +10,9 @@ export {
      * implement a config parsing IPC command.
      *
      */
-    struct ConfigResultIR {
-        parser_ctx ctx;
+    class ConfigResultIR {
+       public:
+        BaseParser &parser;
 
         /* The next state to transition to. Passed to the function so that we can
          * determine the next state as a result of a function call, like

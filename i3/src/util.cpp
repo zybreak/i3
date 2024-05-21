@@ -10,19 +10,11 @@
  */
 module;
 #include <err.h>
-#include <cerrno>
-#include <climits>
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "i3.h"
 
-#include <cctype>
 #include <fcntl.h>
-#include <cinttypes>
 #include <libgen.h>
 #include <clocale>
 #include <sys/wait.h>

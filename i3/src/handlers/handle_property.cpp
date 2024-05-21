@@ -2,7 +2,6 @@ module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 #include <cairo.h>
-#include <cmath>
 #include <fmt/printf.h>
 module i3;
 

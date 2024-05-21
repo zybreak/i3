@@ -10,7 +10,6 @@ module;
 //#include "config_parser.h"
 
 #include <libgen.h>
-#include <clocale>
 #include <sys/wait.h>
 #include <fmt/core.h>
 #include <fmt/printf.h>

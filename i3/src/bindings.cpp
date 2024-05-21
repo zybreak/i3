@@ -8,12 +8,6 @@
  */
 module;
 struct criteria_state;
-#include <cassert>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <cmath>
-
 #include <sys/types.h>
 
 #include <xcb/xcb.h>

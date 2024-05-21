@@ -36,7 +36,7 @@ import i3ipc;
 
 export class CommandsListener : public commandsGrammarBaseListener {
    private:
-    CommandResultIR command_output;
+    CommandsResultIR command_output;
     criteria_state *criteria_state;
     BaseCommandsApplier &cmd;
     

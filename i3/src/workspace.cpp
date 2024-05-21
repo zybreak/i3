@@ -9,8 +9,6 @@
  *
  */
 module;
-#include <cstdlib>
-#include <cstring>
 #include <fmt/core.h>
 #include <fmt/printf.h>
 

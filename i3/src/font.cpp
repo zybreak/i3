@@ -10,10 +10,6 @@ module;
 #include <cairo/cairo-xcb.h>
 #include <err.h>
 #include <pango/pangocairo.h>
-#include <cassert>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
 module i3;
 
 import utils;

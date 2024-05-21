@@ -12,10 +12,6 @@
  *
  */
 module;
-#include <cassert>
-#include <cstdint>
-#include <cstring>
-
 #include <xcb/xcb.h>
 
 #include <fmt/printf.h>
@@ -313,7 +309,7 @@ bool Match::match_matches_window(const i3Window *window) const {
                 }
                 break;
             case WM_ANY:
-                assert(false);
+                std::terminate();
         }
 
         LOG("window_mode matches\n");

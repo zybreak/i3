@@ -21,7 +21,7 @@ namespace cmd {
      * commands.c for matching target windows of a command.
      *
      */
-    void criteria_init(criteria_state *criteria_state, CommandResultIR &cmd_output) {
+    void criteria_init(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
         cmd_output.applier->criteria_init(criteria_state, cmd_output);
     }
 
@@ -30,7 +30,7 @@ namespace cmd {
      * so we filter the list of owindows.
      *
      */
-    void criteria_match_windows(criteria_state *criteria_state, CommandResultIR &cmd_output) {
+    void criteria_match_windows(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
         cmd_output.applier->criteria_match_windows(criteria_state, cmd_output);
     }
 
@@ -39,7 +39,7 @@ namespace cmd {
      * specification.
      *
      */
-    void criteria_add(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *ctype, const char *cvalue) {
+    void criteria_add(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *ctype, const char *cvalue) {
         cmd_output.applier->criteria_add(criteria_state, cmd_output, ctype, cvalue);
     }
 
@@ -48,7 +48,7 @@ namespace cmd {
      * next|prev|next_on_output|prev_on_output|current'.
      *
      */
-    void move_con_to_workspace(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *which) {
+    void move_con_to_workspace(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *which) {
         cmd_output.applier->move_con_to_workspace(criteria_state, cmd_output, which);
     }
 
@@ -56,7 +56,7 @@ namespace cmd {
      * Implementation of 'move [window|container] [to] workspace back_and_forth'.
      *
      */
-    void move_con_to_workspace_back_and_forth(criteria_state *criteria_state, CommandResultIR &cmd_output) {
+    void move_con_to_workspace_back_and_forth(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
         cmd_output.applier->move_con_to_workspace_back_and_forth(criteria_state, cmd_output);
     }
 
@@ -64,7 +64,7 @@ namespace cmd {
      * Implementation of 'move [--no-auto-back-and-forth] [window|container] [to] workspace <name>'.
      *
      */
-    void move_con_to_workspace_name(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *name, const char *no_auto_back_and_forth) {
+    void move_con_to_workspace_name(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *name, const char *no_auto_back_and_forth) {
         cmd_output.applier->move_con_to_workspace_name(criteria_state, cmd_output, name, no_auto_back_and_forth);
     }
 
@@ -72,7 +72,7 @@ namespace cmd {
      * Implementation of 'move [--no-auto-back-and-forth] [window|container] [to] workspace number <name>'.
      *
      */
-    void move_con_to_workspace_number(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *which, const char *no_auto_back_and_forth) {
+    void move_con_to_workspace_number(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *which, const char *no_auto_back_and_forth) {
         cmd_output.applier->move_con_to_workspace_number(criteria_state, cmd_output, which, no_auto_back_and_forth);
     }
 
@@ -80,7 +80,7 @@ namespace cmd {
      * Implementation of 'resize grow|shrink <direction> [<px> px] [or <ppt> ppt]'.
      *
      */
-    void resize(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *way, const char *direction, long resize_px, long resize_ppt) {
+    void resize(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *way, const char *direction, long resize_px, long resize_ppt) {
         cmd_output.applier->resize(criteria_state, cmd_output, way, direction, resize_px, resize_ppt);
     }
 
@@ -88,7 +88,7 @@ namespace cmd {
      * Implementation of 'resize set <width> [px | ppt] <height> [px | ppt]'.
      *
      */
-    void resize_set(criteria_state *criteria_state, CommandResultIR &cmd_output, long cwidth, const char *mode_width, long cheight, const char *mode_height) {
+    void resize_set(criteria_state *criteria_state, CommandsResultIR &cmd_output, long cwidth, const char *mode_width, long cheight, const char *mode_height) {
         cmd_output.applier->resize_set(criteria_state, cmd_output, cwidth, mode_width, cheight, mode_height);
     }
 
@@ -96,7 +96,7 @@ namespace cmd {
      * Implementation of 'border normal|pixel [<n>]', 'border none|1pixel|toggle'.
      *
      */
-    void border(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *border_style_str, long border_width) {
+    void border(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *border_style_str, long border_width) {
         cmd_output.applier->border(criteria_state, cmd_output, border_style_str, border_width);
     }
 
@@ -104,7 +104,7 @@ namespace cmd {
      * Implementation of 'nop <comment>'.
      *
      */
-    void nop(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *comment) {
+    void nop(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *comment) {
         cmd_output.applier->nop(criteria_state, cmd_output, comment);
     }
 
@@ -112,7 +112,7 @@ namespace cmd {
      * Implementation of 'append_layout <path>'.
      *
      */
-    void append_layout(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *cpath) {
+    void append_layout(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *cpath) {
         cmd_output.applier->append_layout(criteria_state, cmd_output, cpath);
     }
 
@@ -120,7 +120,7 @@ namespace cmd {
      * Implementation of 'workspace next|prev|next_on_output|prev_on_output'.
      *
      */
-    void workspace(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *which) {
+    void workspace(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *which) {
         cmd_output.applier->workspace(criteria_state, cmd_output, which);
     }
 
@@ -128,7 +128,7 @@ namespace cmd {
      * Implementation of 'workspace [--no-auto-back-and-forth] number <name>'
      *
      */
-    void workspace_number(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *which, const char *_no_auto_back_and_forth) {
+    void workspace_number(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *which, const char *_no_auto_back_and_forth) {
         cmd_output.applier->workspace_number(criteria_state, cmd_output, which, _no_auto_back_and_forth);
     }
 
@@ -136,7 +136,7 @@ namespace cmd {
      * Implementation of 'workspace back_and_forth'.
      *
      */
-    void workspace_back_and_forth(criteria_state *criteria_state, CommandResultIR &cmd_output) {
+    void workspace_back_and_forth(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
         cmd_output.applier->workspace_back_and_forth(criteria_state, cmd_output);
     }
 
@@ -144,7 +144,7 @@ namespace cmd {
      * Implementation of 'workspace [--no-auto-back-and-forth] <name>'
      *
      */
-    void workspace_name(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *name, const char *_no_auto_back_and_forth) {
+    void workspace_name(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *name, const char *_no_auto_back_and_forth) {
         cmd_output.applier->workspace_name(criteria_state, cmd_output, name, _no_auto_back_and_forth);
     }
 
@@ -152,7 +152,7 @@ namespace cmd {
      * Implementation of 'mode <string>'.
      *
      */
-    void mode(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *mode) {
+    void mode(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *mode) {
         cmd_output.applier->mode(criteria_state, cmd_output, mode);
     }
 
@@ -160,7 +160,7 @@ namespace cmd {
      * Implementation of 'move [window|container|workspace] [to] output <strings>'.
      *
      */
-    void move_con_to_output(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *name, bool move_workspace) {
+    void move_con_to_output(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *name, bool move_workspace) {
         cmd_output.applier->move_con_to_output(criteria_state, cmd_output, name, move_workspace);
     }
 
@@ -168,7 +168,7 @@ namespace cmd {
      * Implementation of 'floating enable|disable|toggle'
      *
      */
-    void floating(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *floating_mode) {
+    void floating(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *floating_mode) {
         cmd_output.applier->floating(criteria_state, cmd_output, floating_mode);
     }
 
@@ -176,7 +176,7 @@ namespace cmd {
      * Implementation of 'split v|h|t|vertical|horizontal|toggle'.
      *
      */
-    void split(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *direction) {
+    void split(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *direction) {
         cmd_output.applier->split(criteria_state, cmd_output, direction);
     }
 
@@ -184,7 +184,7 @@ namespace cmd {
      * Implementation of 'kill [window|client]'.
      *
      */
-    void kill(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *kill_mode_str) {
+    void kill(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *kill_mode_str) {
         cmd_output.applier->kill(criteria_state, cmd_output, kill_mode_str);
     }
 
@@ -192,7 +192,7 @@ namespace cmd {
      * Implementation of 'exec [--no-startup-id] <command>'.
      *
      */
-    void exec(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *nosn, const char *command) {
+    void exec(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *nosn, const char *command) {
         cmd_output.applier->exec(criteria_state, cmd_output, nosn, command);
     }
 
@@ -200,7 +200,7 @@ namespace cmd {
      * Implementation of 'focus left|right|up|down|next|prev'.
      *
      */
-    void focus_direction(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *direction_str) {
+    void focus_direction(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *direction_str) {
         cmd_output.applier->focus_direction(criteria_state, cmd_output, direction_str);
     }
 
@@ -208,7 +208,7 @@ namespace cmd {
      * Implementation of 'focus next|prev sibling'
      *
      */
-    void focus_sibling(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *direction_str) {
+    void focus_sibling(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *direction_str) {
         cmd_output.applier->focus_sibling(criteria_state, cmd_output, direction_str);
     }
 
@@ -216,7 +216,7 @@ namespace cmd {
      * Implementation of 'focus tiling|floating|mode_toggle'.
      *
      */
-    void focus_window_mode(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *window_mode) {
+    void focus_window_mode(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *window_mode) {
         cmd_output.applier->focus_window_mode(criteria_state, cmd_output, window_mode);
     }
 
@@ -224,7 +224,7 @@ namespace cmd {
      * Implementation of 'focus parent|child'.
      *
      */
-    void focus_level(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *level) {
+    void focus_level(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *level) {
         cmd_output.applier->focus_level(criteria_state, cmd_output, level);
     }
 
@@ -232,7 +232,7 @@ namespace cmd {
      * Implementation of 'focus'.
      *
      */
-    void focus(criteria_state *criteria_state, CommandResultIR &cmd_output, bool focus_workspace) {
+    void focus(criteria_state *criteria_state, CommandsResultIR &cmd_output, bool focus_workspace) {
         cmd_output.applier->focus(criteria_state, cmd_output, focus_workspace);
     }
 
@@ -241,7 +241,7 @@ namespace cmd {
      *                   'fullscreen disable'
      *
      */
-    void fullscreen(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *action, const char *fullscreen_mode) {
+    void fullscreen(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *action, const char *fullscreen_mode) {
         cmd_output.applier->fullscreen(criteria_state, cmd_output, action, fullscreen_mode);
     }
 
@@ -249,7 +249,7 @@ namespace cmd {
      * Implementation of 'sticky enable|disable|toggle'.
      *
      */
-    void sticky(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *action) {
+    void sticky(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *action) {
         cmd_output.applier->sticky(criteria_state, cmd_output, action);
     }
 
@@ -257,7 +257,7 @@ namespace cmd {
      * Implementation of 'move <direction> [<amount> [px|ppt]]'.
      *
      */
-    void move_direction(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *direction_str, long amount, const char *mode) {
+    void move_direction(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *direction_str, long amount, const char *mode) {
         cmd_output.applier->move_direction(criteria_state, cmd_output, direction_str, amount, mode);
     }
 
@@ -265,7 +265,7 @@ namespace cmd {
      * Implementation of 'layout default|stacked|stacking|tabbed|splitv|splith'.
      *
      */
-    void layout(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *layout_str) {
+    void layout(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *layout_str) {
         cmd_output.applier->layout(criteria_state, cmd_output, layout_str);
     }
 
@@ -273,7 +273,7 @@ namespace cmd {
      * Implementation of 'layout toggle [all|split]'.
      *
      */
-    void layout_toggle(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *toggle_mode) {
+    void layout_toggle(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *toggle_mode) {
         cmd_output.applier->layout_toggle(criteria_state, cmd_output, toggle_mode);
     }
 
@@ -281,7 +281,7 @@ namespace cmd {
      * Implementation of 'exit'.
      *
      */
-    void exit(criteria_state *criteria_state, CommandResultIR &cmd_output) {
+    void exit(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
         cmd_output.applier->exit(criteria_state, cmd_output);
     }
 
@@ -289,7 +289,7 @@ namespace cmd {
      * Implementation of 'reload'.
      *
      */
-    void reload(criteria_state *criteria_state, CommandResultIR &cmd_output) {
+    void reload(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
         cmd_output.applier->reload(criteria_state, cmd_output);
     }
 
@@ -297,7 +297,7 @@ namespace cmd {
      * Implementation of 'restart'.
      *
      */
-    void restart(criteria_state *criteria_state, CommandResultIR &cmd_output) {
+    void restart(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
         cmd_output.applier->restart(criteria_state, cmd_output);
     }
 
@@ -305,7 +305,7 @@ namespace cmd {
      * Implementation of 'open'.
      *
      */
-    void open(criteria_state *criteria_state, CommandResultIR &cmd_output) {
+    void open(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
         cmd_output.applier->open(criteria_state, cmd_output);
     }
 
@@ -313,7 +313,7 @@ namespace cmd {
      * Implementation of 'focus output <output>'.
      *
      */
-    void focus_output(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *name) {
+    void focus_output(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *name) {
         cmd_output.applier->focus_output(criteria_state, cmd_output, name);
     }
 
@@ -321,7 +321,7 @@ namespace cmd {
      * Implementation of 'move [window|container] [to] [absolute] position [<pos_x> [px|ppt] <pos_y> [px|ppt]]
      *
      */
-    void move_window_to_position(criteria_state *criteria_state, CommandResultIR &cmd_output, long x, const char *mode_x, long y, const char *mode_y) {
+    void move_window_to_position(criteria_state *criteria_state, CommandsResultIR &cmd_output, long x, const char *mode_x, long y, const char *mode_y) {
         cmd_output.applier->move_window_to_position(criteria_state, cmd_output, x,mode_x, y, mode_y);
     }
 
@@ -329,7 +329,7 @@ namespace cmd {
      * Implementation of 'move [window|container] [to] [absolute] position center
      *
      */
-    void move_window_to_center(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *method) {
+    void move_window_to_center(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *method) {
         cmd_output.applier->move_window_to_center(criteria_state, cmd_output, method);
     }
 
@@ -337,7 +337,7 @@ namespace cmd {
      * Implementation of 'move [window|container] [to] position mouse'
      *
      */
-    void move_window_to_mouse(criteria_state *criteria_state, CommandResultIR &cmd_output) {
+    void move_window_to_mouse(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
         cmd_output.applier->move_window_to_mouse(criteria_state, cmd_output);
     }
 
@@ -345,7 +345,7 @@ namespace cmd {
      * Implementation of 'title_format <format>'
      *
      */
-    void title_format(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *format) {
+    void title_format(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *format) {
         cmd_output.applier->title_format(criteria_state, cmd_output, format);
     }
 
@@ -353,7 +353,7 @@ namespace cmd {
      * Implementation of 'title_window_icon <yes|no|toggle>' and 'title_window_icon <padding|toggle> <px>'
      *
      */
-    void title_window_icon(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *enable, int padding) {
+    void title_window_icon(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *enable, int padding) {
         cmd_output.applier->title_window_icon(criteria_state, cmd_output, enable, padding);
     }
 
@@ -361,7 +361,7 @@ namespace cmd {
      * Implementation of 'rename workspace [<name>] to <name>'
      *
      */
-    void rename_workspace(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *old_name, const char *new_name) {
+    void rename_workspace(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *old_name, const char *new_name) {
         cmd_output.applier->rename_workspace(criteria_state, cmd_output, old_name, new_name);
     }
 
@@ -369,7 +369,7 @@ namespace cmd {
      * Implementation of 'bar mode dock|hide|invisible|toggle [<bar_id>]'
      *
      */
-    void bar_mode(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *bar_mode, const char *bar_id) {
+    void bar_mode(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *bar_mode, const char *bar_id) {
         cmd_output.applier->bar_mode(criteria_state, cmd_output, bar_mode, bar_id);
     }
 
@@ -377,7 +377,7 @@ namespace cmd {
      * Implementation of 'bar hidden_state hide|show|toggle [<bar_id>]'
      *
      */
-    void bar_hidden_state(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *bar_hidden_state, const char *bar_id) {
+    void bar_hidden_state(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *bar_hidden_state, const char *bar_id) {
         cmd_output.applier->bar_hidden_state(criteria_state, cmd_output, bar_hidden_state, bar_id);
     }
 
@@ -385,7 +385,7 @@ namespace cmd {
      * Implementation of 'debuglog toggle|on|off'
      *
      */
-    void debuglog(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *argument) {
+    void debuglog(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *argument) {
         cmd_output.applier->debuglog(criteria_state, cmd_output, argument);
     }
 
@@ -393,14 +393,14 @@ namespace cmd {
      * Implementation of 'nagbar'
      *
      */
-    void nagbar(criteria_state *criteria_state, CommandResultIR &cmd_output, const char* type, const char* message, const char* font, const char* primary, const char* labels, const char* actions, const char* terminals) {
+    void nagbar(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char* type, const char* message, const char* font, const char* primary, const char* labels, const char* actions, const char* terminals) {
         cmd_output.applier->nagbar(criteria_state, cmd_output, type, message, font, primary, labels, actions, terminals);
     }
     /**
      * Implementation of 'gaps inner|outer|top|right|bottom|left|horizontal|vertical current|all set|plus|minus|toggle <px>'
      *
      */
-    void gaps(criteria_state *criteria_state, CommandResultIR &cmd_output, const char *type, const char *scope, const char *mode, const char *value) {
+    void gaps(criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *type, const char *scope, const char *mode, const char *value) {
         cmd_output.applier->gaps(criteria_state, cmd_output, type, scope, mode, value);
     }
 }

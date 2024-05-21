@@ -10,12 +10,7 @@
  */
 module;
 #include <err.h>
-
 #include <cassert>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-
 #include <sys/types.h>
 
 #include <xcb/xcb.h>
@@ -127,7 +122,7 @@ static con_state *state_for_frame(xcb_window_t window) {
 
     /* TODO: better error handling? */
     ELOG(fmt::sprintf("No state found for window 0x%08x\n",  window));
-    assert(false);
+    std::terminate();
     return nullptr;
 }
 

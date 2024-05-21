@@ -1,10 +1,9 @@
-module;
-#include <cstdlib>
-#include <cstring>
 export module i3_commands_old:parser_stack;
 
 import std;
 import utils;
+
+const int EXIT_FAILURE = 1;
 
 export {
     struct stack_entry {
@@ -35,7 +34,7 @@ export {
 void clear_stack(stack &ctx) {
     for (auto & c : ctx.stack) {
         if (c.type == stack_entry::STACK_STR) {
-            free(c.val.str);
+            std::free(c.val.str);
         }
         c.identifier = nullptr;
         c.val.str = nullptr;
@@ -48,7 +47,7 @@ const char *get_string(stack &stack, const char *identifier) {
         if (c.identifier == nullptr) {
             break;
         }
-        if (strcmp(identifier, c.identifier) == 0) {
+        if (std::strcmp(identifier, c.identifier) == 0) {
             return c.val.str;
         }
     }
@@ -60,7 +59,7 @@ long get_long(stack &stack, const char *identifier) {
         if (c.identifier == nullptr) {
             break;
         }
-        if (strcmp(identifier, c.identifier) == 0) {
+        if (std::strcmp(identifier, c.identifier) == 0) {
             return c.val.num;
         }
     }
@@ -88,7 +87,7 @@ void push_long(stack &ctx, const char *identifier, long num) {
             << "10 identified tokens."
             << std::endl;
 
-    exit(EXIT_FAILURE);
+    std::exit(EXIT_FAILURE);
 }
 
 /*
@@ -116,7 +115,7 @@ void push_string(stack &stack, const char *identifier, char *str) {
               << "10 identified tokens."
               << std::endl;
 
-    exit(EXIT_FAILURE);
+    std::exit(EXIT_FAILURE);
 }
 
 /*
@@ -127,7 +126,7 @@ void push_string(stack &stack, const char *identifier, char *str) {
 void push_string_append(stack &ctx, const char *identifier, const char *str) {
     for (auto & c : ctx.stack) {
         if (c.identifier != nullptr &&
-            strcmp(c.identifier, identifier) != 0) {
+            std::strcmp(c.identifier, identifier) != 0) {
             continue;
         }
         if (c.identifier == nullptr) {
@@ -139,7 +138,7 @@ void push_string_append(stack &ctx, const char *identifier, const char *str) {
             /* Append the value. */
             char *prev = c.val.str;
             sasprintf(&(c.val.str), "%s,%s", prev, str);
-            free(prev);
+            std::free(prev);
         }
         return;
     }
@@ -152,5 +151,5 @@ void push_string_append(stack &ctx, const char *identifier, const char *str) {
               << "10 identified tokens."
               << std::endl;
 
-    exit(EXIT_FAILURE);
+    std::exit(EXIT_FAILURE);
 }

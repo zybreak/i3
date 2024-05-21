@@ -11,10 +11,6 @@
  *
  */
 module;
-#include <cassert>
-#include <cstdlib>
-#include <cstring>
-
 #include <xcb/xcb.h>
 
 #include "i3.h"

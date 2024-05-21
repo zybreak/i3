@@ -9,9 +9,6 @@
  *
  */
 module;
-#include <cstring>
-#include <clocale>
-
 #include <fmt/core.h>
 #include <fmt/printf.h>
 #include <nlohmann/json.hpp>

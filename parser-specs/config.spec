@@ -232,7 +232,7 @@ state CRITERIA:
   ctype = 'floating_from' -> CRITERION_FROM
   ctype = 'tiling_from'   -> CRITERION_FROM
   ctype = 'tiling', 'floating', 'all'
-      -> call cfg::criteria_add($ctype, NULL); CRITERIA
+      -> call cfg::criteria_add($ctype, nullptr); CRITERIA
   ']'
       -> call cfg::criteria_pop_state()
 
@@ -378,13 +378,13 @@ state COLOR_INDICATOR:
   indicator = word
       -> COLOR_CHILD_BORDER
   end
-      -> call cfg::color($colorclass, $border, $background, $text, NULL, NULL)
+      -> call cfg::color($colorclass, $border, $background, $text, nullptr, nullptr)
 
 state COLOR_CHILD_BORDER:
   child_border = word
       -> call cfg::color($colorclass, $border, $background, $text, $indicator, $child_border)
   end
-      -> call cfg::color($colorclass, $border, $background, $text, $indicator, NULL)
+      -> call cfg::color($colorclass, $border, $background, $text, $indicator, nullptr)
 
 # <exec|exec_always> [--no-startup-id] command
 state EXEC:
@@ -565,7 +565,7 @@ state BAR_ID:
 
 state BAR_MODIFIER:
   'off', 'none'
-      -> call cfg::bar_modifier(NULL); BAR
+      -> call cfg::bar_modifier(nullptr); BAR
   modifiers = 'Mod1', 'Mod2', 'Mod3', 'Mod4', 'Mod5', 'Shift', 'Control', 'Ctrl'
       ->
   '+'
@@ -727,6 +727,6 @@ state BAR_COLORS_BACKGROUND:
 
 state BAR_COLORS_TEXT:
   end
-      -> call cfg::bar_color($colorclass, $border, $background, NULL); BAR_COLORS
+      -> call cfg::bar_color($colorclass, $border, $background, nullptr); BAR_COLORS
   text = word
       -> call cfg::bar_color($colorclass, $border, $background, $text); BAR_COLORS

@@ -2,7 +2,6 @@ module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 #include <cairo.h>
-#include <cmath>
 export module i3:handle_property;
 
 import std;

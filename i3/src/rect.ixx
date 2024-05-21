@@ -1,8 +1,9 @@
-module;
-#include <cstdint>
 export module rect;
 
 import std;
+
+using std::uint32_t;
+using std::int32_t;
 
 export {
     /**

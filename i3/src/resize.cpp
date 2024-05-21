@@ -9,8 +9,6 @@
  */
 module;
 #include <cassert>
-#include <cstdint>
-
 #include <xcb/xcb.h>
 
 #include <fmt/printf.h>

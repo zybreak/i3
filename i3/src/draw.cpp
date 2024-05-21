@@ -7,9 +7,6 @@
  *
  */
 module;
-#include <cstdlib>
-#include <cstring>
-
 #include <xcb/xcb.h>
 
 #include <fmt/printf.h>

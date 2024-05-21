@@ -9,13 +9,6 @@
 *
 */
 module;
-#include <cassert>
-#include <climits>
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
-
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>

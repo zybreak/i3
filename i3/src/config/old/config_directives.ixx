@@ -11,7 +11,7 @@ module;
 struct criteria_state;
 export module i3_config_old:config_directives;
 
-import :config_result;
+import i3_config_base;
 
 export namespace cfg {
 /* The following functions are called by the config parser, see

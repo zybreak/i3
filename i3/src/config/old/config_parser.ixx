@@ -9,13 +9,13 @@
  */
 module;
 struct criteria_state;
-#include <cstdio>
 export module i3_config_old:config_parser;
 
 import std;
 import i3_config_base;
 import :parser_stack;
 import :parser_ctx;
+import :cmdp_token;
 
 export {
 
@@ -33,11 +33,18 @@ export {
         std::string old_dir{};
         std::istream &stream;
 
+        bool parse_config(parser_ctx &ctx, const std::string &input, const char *filename, std::ostream &err_output);
+        void unhandled_token(const std::string &input, const char *filename, int linecnt, const std::vector<cmdp_token> &ptr, parser_ctx &ctx, bool &has_errors, std::string::const_iterator &walk, std::ostream &err_output);
+        bool handle_literal(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx);
+        bool handle_number(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx);
+        bool handle_word(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx);
+        bool handle_line(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx);
+        bool handle_end(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx, ConfigResultIR &subcommand_output, int *linecnt);
+
        public:
         config_load_t load_type;
         parser_ctx *parent_ctx = nullptr;
         parser_ctx ctx;
-        std::vector<std::unique_ptr<IncludedFile>> included_files{};
         OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier);
         OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier);
         ~OldParser() override;

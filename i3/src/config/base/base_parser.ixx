@@ -1,6 +1,5 @@
 module;
 #include <stdlib.h>
-#include <cstring>
 export module i3_config_base:base_parser;
 
 import std;
@@ -29,6 +28,7 @@ export {
 
     class BaseParser {
        public:
+        std::vector<std::unique_ptr<IncludedFile>> included_files{};
         BaseConfigApplier &applier;
         BaseResourceDatabase &resourceDatabase;
         explicit BaseParser(BaseConfigApplier &applier, BaseResourceDatabase &rd)
