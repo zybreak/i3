@@ -20,6 +20,7 @@ export namespace utils {
      *
      */
     char *parse_string(const char **walk, bool as_word);
+    std::optional<std::string> parse_string_new(std::string::const_iterator &walk, bool as_word);
 }
 
 /**
