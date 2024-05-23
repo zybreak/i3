@@ -167,9 +167,9 @@ static void uds_connection_cb(EV_P_ ev_io *w, int revents) {
         err(EXIT_FAILURE, "accept()");
     }
 
-    auto *connstate = (struct connstate*)scalloc(1, sizeof(struct connstate));
+    auto *connstate = (struct connstate*)calloc(1, sizeof(struct connstate));
 
-    auto *clientw = (ev_io*)scalloc(1, sizeof(ev_io));
+    auto *clientw = (ev_io*)calloc(1, sizeof(ev_io));
     connstate->clientw = clientw;
     clientw->data = connstate;
     ev_io_init(clientw, read_client_setup_request_cb, clientfd, EV_READ);
@@ -222,7 +222,7 @@ static void read_client_setup_request_cb(EV_P_ ev_io *w, int revents) {
     }
 
     /* Wait for a response from the X11 server. */
-    auto *serverw = (ev_io*)scalloc(1, sizeof(ev_io));
+    auto *serverw = (ev_io*)calloc(1, sizeof(ev_io));
     connstate->serverw = serverw;
     serverw->data = connstate;
     ev_io_init(serverw, read_server_setup_reply_cb, fd, EV_READ);

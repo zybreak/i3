@@ -190,7 +190,8 @@ void extract_workspace_names_from_bindings() {
             continue;
         }
         DLOG(fmt::sprintf("relevant command = %s\n",  bind->command));
-        const char *target = bind->command.c_str() + strlen("workspace ");
+        auto target = bind->command.cbegin();
+        std::advance(target, strlen("workspace "));
         while (*target == ' ' || *target == '\t') {
             target++;
         }
@@ -199,38 +200,37 @@ void extract_workspace_names_from_bindings() {
          * Beware: The workspace names "next", "prev", "next_on_output",
          * "prev_on_output", "back_and_forth" and "current" are OK,
          * so we check before stripping the double quotes */
-        if (strncasecmp(target, "next", strlen("next")) == 0 ||
-            strncasecmp(target, "prev", strlen("prev")) == 0 ||
-            strncasecmp(target, "next_on_output", strlen("next_on_output")) == 0 ||
-            strncasecmp(target, "prev_on_output", strlen("prev_on_output")) == 0 ||
-            strncasecmp(target, "back_and_forth", strlen("back_and_forth")) == 0 ||
-            strncasecmp(target, "current", strlen("current")) == 0) {
+        if (strncasecmp(std::to_address(target), "next", strlen("next")) == 0 ||
+            strncasecmp(std::to_address(target), "prev", strlen("prev")) == 0 ||
+            strncasecmp(std::to_address(target), "next_on_output", strlen("next_on_output")) == 0 ||
+            strncasecmp(std::to_address(target), "prev_on_output", strlen("prev_on_output")) == 0 ||
+            strncasecmp(std::to_address(target), "back_and_forth", strlen("back_and_forth")) == 0 ||
+            strncasecmp(std::to_address(target), "current", strlen("current")) == 0) {
             continue;
         }
-        if (strncasecmp(target, "--no-auto-back-and-forth", strlen("--no-auto-back-and-forth")) == 0) {
-            target += strlen("--no-auto-back-and-forth");
+        if (strncasecmp(std::to_address(target), "--no-auto-back-and-forth", strlen("--no-auto-back-and-forth")) == 0) {
+            std::advance(target, strlen("--no-auto-back-and-forth"));
             while (*target == ' ' || *target == '\t') {
                 target++;
             }
         }
-        if (strncasecmp(target, "number", strlen("number")) == 0) {
-            target += strlen("number");
+        if (strncasecmp(std::to_address(target), "number", strlen("number")) == 0) {
+            std::advance(target, strlen("number"));
             while (*target == ' ' || *target == '\t') {
                 target++;
             }
         }
-        char *target_name = utils::parse_string(&target, false);
-        if (target_name == nullptr) {
+        auto target_name = utils::parse_string(target, false);
+        if (!target_name) {
             continue;
         }
-        if (strncasecmp(target_name, "__", strlen("__")) == 0) {
-             LOG(fmt::sprintf("Cannot create workspace \"%s\". Names starting with __ are i3-internal.\n", target));
-            free(target_name);
+        if (target_name->starts_with("__")) {
+            LOG(fmt::sprintf("Cannot create workspace \"%s\". Names starting with __ are i3-internal.\n", *target_name));
             continue;
         }
-         DLOG(fmt::sprintf("Saving workspace name \"%s\"\n", target_name));
+        DLOG(fmt::sprintf("Saving workspace name \"%s\"\n", *target_name));
 
-        binding_workspace_names.emplace_back(target_name);
+        binding_workspace_names.push_back(*target_name);
     }
 }
 

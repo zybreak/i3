@@ -19,8 +19,7 @@ export namespace utils {
      * workspace commands.
      *
      */
-    char *parse_string(const char **walk, bool as_word);
-    std::optional<std::string> parse_string_new(std::string::const_iterator &walk, bool as_word);
+    std::optional<std::string> parse_string(std::string::const_iterator &walk, bool as_word);
 }
 
 /**
@@ -35,13 +34,6 @@ export bool boolstr(const char *str);
  *
  */
 export void *smalloc(size_t size);
-
-/**
- * Safe-wrapper around calloc which exits if malloc returns NULL (meaning that
- * there is no more memory available)
- *
- */
-export void *scalloc(size_t num, size_t size);
 
 /**
  * Safe-wrapper around realloc which exits if realloc returns NULL (meaning

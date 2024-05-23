@@ -27,7 +27,7 @@ export {
     const char *get_string(stack & stack, const char *identifier);
     long get_long(stack & stack, const char *identifier);
     void push_long(stack & ctx, const char *identifier, long num);
-    void push_string(stack & stack, const char *identifier, char *str);
+    void push_string(stack & stack, const char *identifier, const char *str);
     void push_string_append(stack & ctx, const char *identifier, const char *str);
 }
 
@@ -95,14 +95,14 @@ void push_long(stack &ctx, const char *identifier, long num) {
  * single array, since the number of entries we have to store is very small.
  *
  */
-void push_string(stack &stack, const char *identifier, char *str) {
+void push_string(stack &stack, const char *identifier, const char *str) {
     for (auto & c : stack.stack) {
         if (c.identifier != nullptr) {
             continue;
         }
         /* Found a free slot, let’s store it here. */
         c.identifier = identifier;
-        c.val.str = str;
+        c.val.str = sstrdup(str);
         c.type = stack_entry::STACK_STR;
         return;
     }

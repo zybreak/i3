@@ -84,13 +84,13 @@ static cmdp_state next_state(const cmdp_token &token, stack &stack, criteria_sta
 }
 
 
-bool handle_literal(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
+bool handle_literal(std::string::const_iterator &walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
 
-    if (strncasecmp(*walk, token.name.c_str() + 1, token.name.length() - 1) == 0) {
+    if (strncasecmp(std::to_address(walk), token.name.substr(1).c_str(), token.name.size() - 1) == 0) {
         if (token.identifier) {
-            push_string(stack, token.identifier->c_str(), sstrdup(token.name.c_str() + 1));
+            push_string(stack, token.identifier->c_str(), token.name.c_str() + 1);
         }
-        *walk += token.name.length() - 1;
+        walk += token.name.length() - 1;
         *state = next_state(token, stack, criteria_state);
         return true;
     }
@@ -98,18 +98,18 @@ bool handle_literal(const char **walk, const cmdp_token &token, cmdp_state *stat
     return false;
 }
 
-bool handle_number(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
+bool handle_number(std::string::const_iterator &walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
     /* Handle numbers. We only accept decimal numbers for now. */
     char *end = nullptr;
     errno = 0;
-    long int num = strtol(*walk, &end, 10);
+    long int num = strtol(std::to_address(walk), &end, 10);
     if ((errno == ERANGE && (num == LONG_MIN || num == LONG_MAX)) ||
         (errno != 0 && num == 0)) {
         return false;
     }
 
     /* No valid numbers found */
-    if (end == *walk) {
+    if (num == 0) {
         return false;
     }
 
@@ -118,21 +118,22 @@ bool handle_number(const char **walk, const cmdp_token &token, cmdp_state *state
     }
 
     /* Set walk to the first non-number character */
-    *walk = end;
+    int dist = end - std::to_address(walk);
+    std::advance(walk, dist);
     *state = next_state(token, stack, criteria_state);
     return true;
 }
 
-bool handle_word(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
-    char *str = utils::parse_string(walk, (token.name[0] != 's'));
-    if (str != nullptr) {
+bool handle_word(std::string::const_iterator &walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
+    auto str = utils::parse_string(walk, (token.name[0] != 's'));
+    if (str) {
         if (token.identifier) {
-            push_string(stack, token.identifier->c_str(), str);
+            push_string(stack, token.identifier->c_str(), str->c_str());
         }
         /* If we are at the end of a quoted string, skip the ending
                      * double quote. */
-        if (**walk == '"') {
-            (*walk)++;
+        if (*walk == '"') {
+            walk++;
         }
         *state = next_state(token, stack, criteria_state);
         return true;
@@ -140,24 +141,24 @@ bool handle_word(const char **walk, const cmdp_token &token, cmdp_state *state, 
     return false;
 }
 
-bool handle_end(const char **walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
-    if (**walk == '\0' || **walk == ',' || **walk == ';') {
+bool handle_end(std::string::const_iterator &walk, const cmdp_token &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
+    if (*walk == '\0' || *walk == ',' || *walk == ';') {
         *state = next_state(token, stack, criteria_state);
         /* To make sure we start with an appropriate matching
                      * datastructure for commands which do *not* specify any
                      * criteria, we re-initialize the criteria system after
                      * every command. */
-        if (**walk == '\0' || **walk == ';') {
+        if (*walk == '\0' || *walk == ';') {
             cmd::criteria_init(criteria_state, command_output);
         }
-        (*walk)++;
+        walk++;
         return true;
     }
 
     return false;
 }
 
-void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, const std::string &input, const size_t len, const std::vector<cmdp_token> &ptr, const char **walk) {
+void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, const std::string &input, const size_t len, const std::vector<cmdp_token> &ptr, std::string::const_iterator &walk) {
     /* Figure out how much memory we will need to fill in the names of
              * all tokens afterwards. */
     size_t tokenlen = 0;
@@ -195,8 +196,9 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
     /* Contains the same amount of characters as 'input' has, but with
      * the unparsable part highlighted using ^ characters. */
     std::string position(len, '\0');
-    std::fill_n(position.begin(), len - strlen(*walk), ' ');
-    std::fill_n(position.begin() + (len - strlen(*walk)), strlen(*walk), '^');
+    auto walk_len = strlen(std::to_address(walk));
+    std::fill_n(position.begin(), len - walk_len, ' ');
+    std::fill_n(position.begin() + (len - walk_len), walk_len, '^');
 
     //ELOG(fmt::sprintf("%s\n",  errormessage));
     //ELOG(fmt::sprintf("Your command: %s\n",  input));
@@ -244,12 +246,12 @@ CommandResult i3_commands_old::parse_command(const std::string &input, nlohmann:
 
     command_output.needs_tree_render = false;
 
-    const char *walk = input.c_str();
+    std::string::const_iterator walk = input.begin();
     const size_t len = input.length();
 
     /* The "<=" operator is intentional: We also handle the terminating 0-byte
      * explicitly by looking for an 'end' token. */
-    while (static_cast<size_t>(walk - input.c_str()) <= len) {
+    while (walk <= input.cend()) {
         /* skip whitespace and newlines before every token */
         while ((*walk == ' ' || *walk == '\t' ||
                 *walk == '\r' || *walk == '\n') &&
@@ -264,18 +266,18 @@ CommandResult i3_commands_old::parse_command(const std::string &input, nlohmann:
 
             /* A literal. */
             if (token.name[0] == '\'') {
-                token_handled = handle_literal(&walk, token, &state, stack, criteria_state);
+                token_handled = handle_literal(walk, token, &state, stack, criteria_state);
             } else if (token.name == "number") {
-                token_handled = handle_number(&walk, token, &state, stack, criteria_state);
+                token_handled = handle_number(walk, token, &state, stack, criteria_state);
             } else if (token.name == "string" || token.name == "word") {
-                token_handled = handle_word(&walk, token, &state, stack, criteria_state);
+                token_handled = handle_word(walk, token, &state, stack, criteria_state);
             } else if (token.name == "end") {
-                token_handled = handle_end(&walk, token, &state, stack, criteria_state);
+                token_handled = handle_end(walk, token, &state, stack, criteria_state);
             }
         }
 
         if (!token_handled) {
-            unhandled_token(result, gen, stack, input, len, ptr, &walk);
+            unhandled_token(result, gen, stack, input, len, ptr, walk);
             break;
         }
     }

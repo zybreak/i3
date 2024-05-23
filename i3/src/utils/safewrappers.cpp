@@ -27,14 +27,6 @@ void *smalloc(size_t size) {
     return result;
 }
 
-void *scalloc(size_t num, size_t size) {
-    void *result = calloc(num, size);
-    if (result == nullptr) {
-        err(EXIT_FAILURE, "calloc(%zd, %zd)", num, size);
-    }
-    return result;
-}
-
 void *srealloc(void *ptr, size_t size) {
     void *result = realloc(ptr, size);
     if (result == nullptr && size > 0) {
