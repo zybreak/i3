@@ -142,7 +142,6 @@ static void free_configuration() {
         config.font = nullptr;
     }
 
-    free(config.ipc_socket_path);
     free(config.restart_state_path);
     included_files.clear();
 }

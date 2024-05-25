@@ -72,14 +72,12 @@ static int sighandler_backtrace() {
 
     pid_t pid_parent = getpid();
 
-    char *filename = nullptr;
+    std::string filename{};
     int suffix = 0;
     /* Find a unique filename for the backtrace (since the PID of i3 stays the
      * same), so that we don’t overwrite earlier backtraces. */
     do {
-        free(filename);
-        sasprintf(&filename, "%s/i3-backtrace.%d.%d.txt", tmpdir, pid_parent, suffix);
-        suffix++;
+        filename = std::format("{}/i3-backtrace.{}.{}.txt", tmpdir, pid_parent, suffix++);
     } while (std::filesystem::exists(filename));
 
     pid_t pid_gdb = fork();
@@ -113,22 +111,23 @@ static int sighandler_backtrace() {
         dup2(stdin_pipe[0], STDIN_FILENO);
         dup2(stdout_pipe[1], STDOUT_FILENO);
 
-        char *pid_s, *gdb_log_cmd;
-        sasprintf(&pid_s, "%d", pid_parent);
-        sasprintf(&gdb_log_cmd, "set logging file %s", filename);
+        std::string pid_s{};
+        std::string gdb_log_cmd{};
+        pid_s = std::format("{}", pid_parent);
+        gdb_log_cmd = std::format("set logging file {}", filename);
 
         char *args[] = {
                 (char*)"gdb",
-            global.start_argv[0],
+                global.start_argv[0],
                 (char*)"-p",
-            pid_s,
+                (char*)pid_s.c_str(),
                 (char*)"-batch",
                 (char*)"-nx",
-                (char*)"-ex", gdb_log_cmd,
+                (char*)"-ex", (char*)gdb_log_cmd.c_str(),
                 (char*)"-ex", (char*)"set logging on",
                 (char*)"-ex", (char*)"bt full",
                 (char*)"-ex", (char*)"quit",
-            nullptr};
+                nullptr};
         execvp(args[0], args);
         DLOG("Failed to exec GDB\n");
         exit(EXIT_FAILURE);

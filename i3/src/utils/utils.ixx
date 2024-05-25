@@ -29,13 +29,6 @@ export namespace utils {
 export bool boolstr(const char *str);
 
 /**
- * Safe-wrapper around malloc which exits if malloc returns NULL (meaning that
- * there is no more memory available)
- *
- */
-export void *smalloc(size_t size);
-
-/**
  * Safe-wrapper around realloc which exits if realloc returns NULL (meaning
  * that there is no more memory available).
  *
@@ -67,7 +60,7 @@ export int sasprintf(char **strp, const char *fmt, ...);
  * Returns the name of a temporary file with the specified prefix.
  *
  */
-export char *get_process_filename(const char *prefix);
+export std::optional<std::string> get_process_filename(const char *prefix);
 
 /**
  * Emulates mkdir -p (creates any missing folders)

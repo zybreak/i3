@@ -19,14 +19,6 @@ module utils;
  * the called functions returns NULL, meaning that there is no more memory available
  *
  */
-void *smalloc(size_t size) {
-    void *result = malloc(size);
-    if (result == nullptr) {
-        err(EXIT_FAILURE, "malloc(%zd)", size);
-    }
-    return result;
-}
-
 void *srealloc(void *ptr, size_t size) {
     void *result = realloc(ptr, size);
     if (result == nullptr && size > 0) {

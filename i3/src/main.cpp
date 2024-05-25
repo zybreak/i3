@@ -59,7 +59,9 @@ int listen_fds;
  */
 static void i3_exit() {
     ipc_shutdown(SHUTDOWN_REASON_EXIT, -1);
-    unlink(config.ipc_socket_path);
+    if (config.ipc_socket_path) {
+        unlink(config.ipc_socket_path->c_str());
+    }
     xcb_disconnect(**global.x);
 
     /* If a nagbar is active, kill it */
@@ -79,7 +81,7 @@ static void i3_exit() {
  * to.
  *
  */
-static std::tuple<std::string, int> create_socket(const char *filename) {
+static std::tuple<std::string, int> create_socket(std::string filename) {
     auto resolved = utils::resolve_tilde(filename);
     DLOG(fmt::sprintf("Creating UNIX socket at %s\n", resolved));
     const std::filesystem::path p(resolved);
@@ -453,19 +455,28 @@ int main(int argc, char *argv[]) {
 
     load_configuration(&args.override_configpath, config_load_t::C_LOAD);
 
-    if (config.ipc_socket_path == nullptr) {
+    if (!config.ipc_socket_path) {
         /* Fall back to a file name in /tmp/ based on the PID */
-        if ((config.ipc_socket_path = getenv("I3SOCK")) == nullptr) {
-            config.ipc_socket_path = get_process_filename("ipc-socket");
+        if (char *i3sock = getenv("I3SOCK")) {
+            config.ipc_socket_path = i3sock;
         } else {
-            config.ipc_socket_path = sstrdup(config.ipc_socket_path);
+            auto process_filename = get_process_filename("ipc-socket");
+            if (process_filename) {
+                config.ipc_socket_path = *process_filename;
+            } else {
+                config.ipc_socket_path = std::nullopt;
+            }
         }
     }
     /* Create the UNIX domain socket for IPC */
     int ipc_socket;
-    std::tie(global.current_socketpath, ipc_socket) = create_socket(config.ipc_socket_path);
-    if (ipc_socket == -1) {
-        errx(EXIT_FAILURE, "Could not create the IPC socket: %s", config.ipc_socket_path);
+    if (config.ipc_socket_path) {
+        std::tie(global.current_socketpath, ipc_socket) = create_socket(*config.ipc_socket_path);
+        if (ipc_socket == -1) {
+            errx(EXIT_FAILURE, "Could not create the IPC socket: %s", config.ipc_socket_path->c_str());
+        }
+    } else {
+        errx(EXIT_FAILURE, "Could not create the IPC socket since socket path wasnt specified");
     }
 
     /* Acquire the WM_Sn selection. */

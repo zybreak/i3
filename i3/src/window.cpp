@@ -595,9 +595,11 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
 
     this->name_x_changed = true; /* trigger a redraw */
 
-    auto *icon = (uint32_t*)smalloc(len * 4);
+    int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width);
 
-    for (uint64_t i = 0; i < len; i++) {
+    auto *icon_data = new uint32_t[stride * height];
+
+    for (uint64_t i = 0; i < stride * height; i++) {
         uint8_t r, g, b, a;
         const uint32_t pixel = data[2 + i];
         a = (pixel >> 24) & 0xff;
@@ -610,18 +612,20 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
         g = (g * a) / 0xff;
         b = (b * a) / 0xff;
 
-        icon[i] = (static_cast<uint32_t>(a) << 24) | (r << 16) | (g << 8) | b;
+        icon_data[i] = (static_cast<uint32_t>(a) << 24) | (r << 16) | (g << 8) | b;
     }
 
     if (this->icon != nullptr) {
         cairo_surface_destroy(this->icon);
     }
     this->icon = cairo_image_surface_create_for_data(
-        (unsigned char *)icon,
+        reinterpret_cast<unsigned char *>(icon_data),
         CAIRO_FORMAT_ARGB32,
         width,
         height,
-        width * 4);
+        stride);
     static cairo_user_data_key_t free_data;
-    cairo_surface_set_user_data(this->icon, &free_data, icon, free);
+    cairo_surface_set_user_data(this->icon, &free_data, icon_data, [](void *icon_data) {
+        delete[] reinterpret_cast<uint32_t*>(icon_data);
+    });
 }

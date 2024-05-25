@@ -215,7 +215,7 @@ static void read_client_setup_request_cb(EV_P_ ev_io *w, int revents) {
                                XCB_PAD(setup_request.authorization_protocol_name_len) +
                                setup_request.authorization_protocol_data_len +
                                XCB_PAD(setup_request.authorization_protocol_data_len);
-        void *buf = smalloc(authlen);
+        void *buf = malloc(authlen);
         must_read(readall_into(buf, authlen, w->fd));
         must_write(writeall(fd, buf, authlen));
         free(buf);
@@ -245,7 +245,7 @@ static void read_server_setup_reply_cb(EV_P_ ev_io *w, int revents) {
         {
             must_write(writeall(connstate->clientw->fd, &setup_failed, sizeof(xcb_setup_failed_t)));
             const size_t len = (setup_failed.length * 4);
-            void *buf = smalloc(len);
+            void *buf = malloc(len);
             must_read(readall_into(buf, len, w->fd));
             must_write(writeall(connstate->clientw->fd, buf, len));
             free(buf);
@@ -279,7 +279,7 @@ struct generic_x11_reply_t {
 static void read_client_x11_packet_cb(EV_P_ ev_io *w, int revents) {
     auto *connstate = (struct connstate *)w->data;
 
-    auto *request = (generic_x11_request_t*)smalloc(sizeof(generic_x11_request_t));
+    auto *request = (generic_x11_request_t*)malloc(sizeof(generic_x11_request_t));
     must_read(readall_into(request, sizeof(generic_x11_request_t), connstate->clientw->fd));
     const size_t len = (((generic_x11_request_t *)request)->length * 4);
     if (len > sizeof(generic_x11_request_t)) {
@@ -346,7 +346,7 @@ static void read_server_x11_packet_cb(EV_P_ ev_io *w, int revents) {
     struct connstate *connstate = (struct connstate *)w->data;
     // all packets from the server are at least 32 bytes in length
     size_t len = 32;
-    void *packet = smalloc(len);
+    void *packet = malloc(len);
     must_read(readall_into(packet, len, connstate->serverw->fd));
     switch (((generic_x11_reply_t *)packet)->code) {
         case 0: {  // error
@@ -408,7 +408,7 @@ static void must_read_reply(const char *filename, struct injected_reply *reply) 
         err(EXIT_FAILURE, "fstat(%s)", filename);
     }
     reply->len = stbuf.st_size;
-    reply->buf = smalloc(stbuf.st_size);
+    reply->buf = malloc(stbuf.st_size);
     int n = fread(reply->buf, 1, stbuf.st_size, f);
     if (n != stbuf.st_size) {
         err(EXIT_FAILURE, "fread(%s)", filename);

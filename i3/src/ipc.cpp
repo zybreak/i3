@@ -37,7 +37,7 @@ import i3_config_base;
 static std::vector<ipc_client*> all_clients{};
 
 static void ipc_client_timeout(EV_P_ ev_timer *w, int revents);
-static void ipc_socket_writeable_cb(ev_io *w, int revents);
+static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents);
 
 static ev_tstamp kill_timeout = 10.0;
 
@@ -1161,11 +1161,9 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
         free_ipc_client(client, -1);
         return;
     }
-    char *exepath;
-    sasprintf(&exepath, "/proc/%d/cmdline", peercred.pid);
+    std::string exepath = std::format("/proc/{}/cmdline", peercred.pid);
 
-    int fd = open(exepath, O_RDONLY);
-    free(exepath);
+    int fd = open(exepath.c_str(), O_RDONLY);
     if (fd == -1) {
         if (!cmdline) {
             ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));

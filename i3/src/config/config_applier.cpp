@@ -388,8 +388,7 @@ void ConfigApplier::workspace(const std::string &workspace, const std::string &o
 }
 
 void ConfigApplier::ipc_socket(const std::string &path) {
-    free(config.ipc_socket_path);
-    config.ipc_socket_path = sstrdup(path.c_str());
+    config.ipc_socket_path = path;
 }
 
 void ConfigApplier::restart_state(const std::string &path) {

@@ -173,7 +173,7 @@ static std::string store_restart_layout() {
         if (!f) {
             return "";
         } else {
-            filename = f;
+            filename = *f;
         }
     } else {
         auto f = utils::resolve_tilde(config.restart_state_path);

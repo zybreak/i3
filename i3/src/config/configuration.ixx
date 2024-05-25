@@ -139,7 +139,7 @@ export {
         const char *terminal;
         i3Font *font;
 
-        char *ipc_socket_path;
+        std::optional<std::string> ipc_socket_path = std::nullopt;
         char *restart_state_path;
 
         layout_t default_layout;

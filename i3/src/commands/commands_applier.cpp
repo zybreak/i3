@@ -1587,12 +1587,14 @@ void CommandsApplier::restart(struct criteria_state *criteria_state, CommandsRes
             fcntl(exempt_fd, F_SETFD, flags & ~FD_CLOEXEC) < 0) {
             ELOG(fmt::sprintf("Could not disable FD_CLOEXEC on fd %d\n",  exempt_fd));
         }
-        char *fdstr = nullptr;
-        sasprintf(&fdstr, "%d", exempt_fd);
-        setenv("_I3_RESTART_FD", fdstr, 1);
+        std::string fdstr{};
+        fdstr = fmt::format("{}", exempt_fd);
+        setenv("_I3_RESTART_FD", fdstr.c_str(), 1);
     }
     ipc_shutdown(SHUTDOWN_REASON_RESTART, exempt_fd);
-    unlink(config.ipc_socket_path);
+    if (config.ipc_socket_path) {
+        unlink(config.ipc_socket_path->c_str());
+    }
     i3_restart(false);
     /* unreached */
     std::terminate();
