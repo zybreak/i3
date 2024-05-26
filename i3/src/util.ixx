@@ -34,6 +34,8 @@ export {
             [](char a, char b) { return to_lower(a) == to_lower(b); });
     }
 
+    std::vector<std::string> add_argument(std::vector<std::string> &original, const char *opt_char, const char *opt_arg, const char *opt_name);
+    
     /**
      * Returns true if the name consists of only digits.
      *

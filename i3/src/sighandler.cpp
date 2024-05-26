@@ -118,7 +118,7 @@ static int sighandler_backtrace() {
 
         char *args[] = {
                 (char*)"gdb",
-                global.start_argv[0],
+                (char*)global.start_argv.front().c_str(),
                 (char*)"-p",
                 (char*)pid_s.c_str(),
                 (char*)"-batch",

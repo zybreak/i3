@@ -1214,21 +1214,14 @@ void x_push_changes(Con *con) {
 
     /* The bottom-to-top window stack of all windows which are managed by i3.
      * Used for x_get_window_stack(). */
-    static xcb_window_t *client_list_windows = nullptr;
-    static int client_list_count = 0;
-
-    if (cnt != client_list_count) {
-        client_list_windows = static_cast<xcb_window_t *>(srealloc(client_list_windows, sizeof(xcb_window_t) * cnt));
-        client_list_count = cnt;
-    }
-
-    xcb_window_t *walk = client_list_windows;
+    std::vector<xcb_window_t> client_list_windows{};
+    client_list_windows.reserve(cnt);
 
     /* X11 correctly represents the stack if we push it from bottom to top */
     for (auto it = global.x->state_head.rbegin(); it != global.x->state_head.rend(); ++it) {
         auto &state = *it;
         if ((state->con) && state->con->con_has_managed_window()) {
-            memcpy(walk++, &(state->con->window->id), sizeof(xcb_window_t));
+            client_list_windows.push_back(state->con->window->id);
         }
 
         auto prev = std::next(it);
@@ -1256,17 +1249,19 @@ void x_push_changes(Con *con) {
      * the _NET_CLIENT_LIST and _NET_CLIENT_LIST_STACKING hints */
     if (stacking_changed) {
         DLOG(fmt::sprintf("Client list changed (%i clients)\n",  cnt));
-        ewmh_update_client_list_stacking(client_list_windows, client_list_count);
+        ewmh_update_client_list_stacking(client_list_windows.data(), client_list_windows.size());
 
-        walk = client_list_windows;
+        auto walk = client_list_windows.begin();
 
         /* reorder by initial mapping */
         for (auto &s : global.x->initial_mapping_head) {
-            if (s->con && s->con->con_has_managed_window())
-                *walk++ = s->con->window->id;
+            if (s->con && s->con->con_has_managed_window()) {
+                *walk = s->con->window->id;
+                walk++;
+            }
         }
 
-        ewmh_update_client_list(client_list_windows, client_list_count);
+        ewmh_update_client_list(client_list_windows.data(), client_list_windows.size());
     }
 
     DLOG("PUSHING CHANGES\n");

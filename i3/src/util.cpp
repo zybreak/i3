@@ -106,9 +106,9 @@ bool update_if_necessary(uint32_t *destination, const uint32_t new_value) {
  * Goes through the list of arguments (for exec()) and add/replace the given option,
  * including the option name, its argument, and the option character.
  */
-static std::vector<char *> add_argument(std::vector<char*> &original, const char *opt_char, const char *opt_arg, const char *opt_name) {
+std::vector<std::string> add_argument(std::vector<std::string> &original, const char *opt_char, const char *opt_arg, const char *opt_name) {
     int num_args = original.size();
-    std::vector<char*> result{};
+    std::vector<std::string> result{};
     result.reserve(num_args + 3);
 
     /* copy the arguments, but skip the ones we'll replace */
@@ -119,19 +119,19 @@ static std::vector<char *> add_argument(std::vector<char*> &original, const char
             skip_next = false;
             continue;
         }
-        if (!strcmp(original[i], opt_char) ||
-            (opt_name && !strcmp(original[i], opt_name))) {
+        if (!strcmp(original[i].c_str(), opt_char) ||
+            (opt_name && !strcmp(original[i].c_str(), opt_name))) {
             if (opt_arg) {
                 skip_next = true;
             }
             continue;
         }
-        result[write_index++] = sstrdup(original[i]);
+        result.push_back(original.at(i));
     }
 
     /* add the arguments we'll replace */
-    result[write_index++] = (opt_char != nullptr) ? sstrdup(opt_char) : nullptr;
-    result[write_index] = (opt_arg != nullptr) ? sstrdup(opt_arg) : nullptr;
+    if (opt_char != nullptr) result.push_back(opt_char);
+    if (opt_arg != nullptr) result.push_back(opt_arg);
 
     return result;
 }
@@ -228,7 +228,7 @@ void i3_restart(bool forget_layout) {
 
     ipc_shutdown(SHUTDOWN_REASON_RESTART, -1);
 
-     LOG(fmt::sprintf("restarting \"%s\"...\n", global.start_argv[0]));
+     LOG(fmt::sprintf("restarting \"%s\"...\n", global.start_argv.front()));
     /* make sure -a is in the argument list or add it */
     global.start_argv = add_argument(global.start_argv, "-a", nullptr, nullptr);
 
@@ -245,8 +245,11 @@ void i3_restart(bool forget_layout) {
             global.start_argv = add_argument(global.start_argv, "--restart", restart_filename.c_str(), "-r");
         }
     }
+    
+    auto argv_str = global.start_argv | std::ranges::views::transform([](const std::string &s) { return (char*)s.c_str(); }) | std::ranges::to<std::vector<char *>>();
+    auto argv = argv_str.data();
 
-    execvp(global.start_argv[0], global.start_argv.data());
+    execvp(argv[0], argv);
 
     /* not reached */
 }

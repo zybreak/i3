@@ -72,7 +72,7 @@ export class Global {
 
     std::deque<Con *> all_cons{};
 
-    std::vector<char*> start_argv{};
+    std::vector<std::string> start_argv{};
 
     int xkb_current_group;
 

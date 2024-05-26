@@ -393,7 +393,7 @@ int main(int argc, char *argv[]) {
     auto args = parse_args(argc, argv);
 
     for (int i = 0; i < argc; i++) {
-        global.start_argv.push_back(argv[i]);
+        global.start_argv.emplace_back(argv[i]);
     }
     global.new_parser = args.new_parser;
 

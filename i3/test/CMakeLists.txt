@@ -68,6 +68,12 @@ target_link_libraries(UtilsTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
 gtest_discover_tests(UtilsTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/utils_test.profraw")
 target_code_coverage(UtilsTest ALL)
 
+add_executable(UtilTest)
+target_sources(UtilTest PUBLIC util_test.cpp)
+target_link_libraries(UtilTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+gtest_discover_tests(UtilTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/util_test.profraw")
+target_code_coverage(UtilTest ALL)
+
 #add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS RegexTest MatchTest ConTest ConfigNewTest ConfigOldTest)
 
 #add_custom_target(coverage COMMAND
