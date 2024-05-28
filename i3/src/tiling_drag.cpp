@@ -17,6 +17,38 @@ import log;
 
 static xcb_window_t create_drop_indicator(Rect rect);
 
+/*
+ * Converts direction to a string representation.
+ *
+ */
+const char *direction_to_string(direction_t direction) {
+    switch (direction) {
+        case D_LEFT:
+            return "left";
+        case D_RIGHT:
+            return "right";
+        case D_UP:
+            return "up";
+        case D_DOWN:
+            return "down";
+    }
+    return "invalid";
+}
+
+/*
+ * Converts position to a string representation.
+ *
+ */
+static const char *position_to_string(position_t position) {
+    switch (position) {
+        case BEFORE:
+            return "before";
+        case AFTER:
+            return "after";
+    }
+    return "invalid";
+}
+
 static bool is_tiling_drop_target(Con *con) {
     if (!con->con_has_managed_window() ||
         con->con_is_floating() ||

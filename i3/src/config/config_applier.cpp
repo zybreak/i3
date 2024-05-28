@@ -473,7 +473,7 @@ void ConfigApplier::assign(criteria_state *criteria_state, const std::string &wo
         return;
     }
 
-    if (is_number && ws_name_to_number(workspace) == -1) {
+    if (is_number && utils::ws_name_to_number(workspace) == -1) {
         ELOG(fmt::sprintf("Could not parse initial part of \"%s\" as a number.\n", workspace));
         return;
     }

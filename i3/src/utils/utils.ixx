@@ -1,10 +1,83 @@
 module;
 #include <xcb/xcb.h>
+#include <climits>
 export module utils;
 
 import std;
 
 export namespace utils {
+    /*
+     * Returns true if the name consists of only digits.
+     *
+     */
+    __attribute__((pure))
+    bool name_is_digits(const char *name) {
+        /* positive integers and zero are interpreted as numbers */
+        for (size_t i = 0; i < std::strlen(name); i++) {
+            if (!std::isdigit(name[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
+    /*
+     * Parses the workspace name as a number. Returns -1 if the workspace should be
+     * interpreted as a "named workspace".
+     *
+     */
+    __attribute__((pure))
+    int ws_name_to_number(const std::string &name) {
+        /* positive integers and zero are interpreted as numbers */
+        try {
+            return std::stoi(name, nullptr, 10);
+        } catch (const std::logic_error &e) {
+            return -1;
+        }
+    }
+
+    /*
+     * Converts a string into a long using strtol().
+     * This is a convenience wrapper checking the parsing result. It returns true
+     * if the number could be parsed.
+     */
+    bool parse_long(const char *str, long *out, int base) {
+        char *end = nullptr;
+        long result = std::strtol(str, &end, base);
+        if (result == LONG_MIN || result == LONG_MAX || result < 0 || (end != nullptr && *end != '\0')) {
+            *out = result;
+            return false;
+        }
+
+        *out = result;
+        return true;
+    }
+
+    /*
+     * Slurp reads path in its entirety into buf, returning the length of the file
+     * or -1 if the file could not be read. buf is set to a buffer of appropriate
+     * size, or NULL if -1 is returned.
+     *
+     */
+    std::string slurp(const std::string &path) {
+        std::filebuf fb;
+        if (!fb.open(path, std::ios::in)) {
+            throw std::runtime_error(std::format("Cannot open file \"{}\"", path));
+        }
+
+        try {
+            std::istream is(&fb);
+            std::string s(std::istreambuf_iterator<char>(is), {});
+            fb.close();
+            return s;
+        }  catch (std::exception &e) {
+            fb.close();
+            throw e;
+        }
+    }
+
     /**
      * This function resolves ~ in pathnames.
      * It may resolve wildcards in the first part of the path, but if no match

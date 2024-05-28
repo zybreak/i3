@@ -39,7 +39,7 @@ bool tree_restore(const std::string_view path, const xcb_get_geometry_reply_t *g
     }
 
     try {
-        auto slurped = slurp(globbed);
+        auto slurped = utils::slurp(globbed);
         buf = slurped;
     } catch (std::exception &e) {
         return result;

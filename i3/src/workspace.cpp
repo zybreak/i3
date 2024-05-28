@@ -107,8 +107,8 @@ Con *get_assigned_output(const char *name, long parsed_num) {
             }
         } else if (!output && /* Only keep the first numbered assignment. */
                    parsed_num != -1 &&
-                   name_is_digits(assignment->name.c_str()) &&
-                   ws_name_to_number(assignment->name) == parsed_num) {
+                   utils::name_is_digits(assignment->name.c_str()) &&
+                   utils::ws_name_to_number(assignment->name) == parsed_num) {
              DLOG(fmt::sprintf("Found workspace number=%ld assignment to output \"%s\"\n",
                  parsed_num, assignment->output));
             Output *assigned_by_num = global.randr->get_output_by_name(assignment->output, true);
@@ -146,7 +146,7 @@ WorkspaceCon *workspace_get(const std::string &num) {
 
     /* We set workspace->num to the number if this workspace’s name begins with
      * a positive number. Otherwise it’s a named ws and num will be 1. */
-    const int parsed_num = ws_name_to_number(num);
+    const int parsed_num = utils::ws_name_to_number(num);
 
     Con *output = get_assigned_output(num.c_str(), parsed_num);
     /* if an assignment is not found, we create this workspace on the current output */
@@ -255,7 +255,7 @@ WorkspaceCon *create_workspace_on_output(Output *output, Con *content) {
             continue;
         }
 
-        const int num = ws_name_to_number(target_name);
+        const int num = utils::ws_name_to_number(target_name);
         exists = (num == -1)
                      ? get_existing_workspace_by_name(target_name)
                      : get_existing_workspace_by_num(num);
@@ -1046,7 +1046,7 @@ void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
                 continue;
             }
             /* check if this workspace's name or num is already attached to the tree */
-            const int num = ws_name_to_number(assignment->name);
+            const int num = utils::ws_name_to_number(assignment->name);
             const bool attached = (num == -1)
                                       ? get_existing_workspace_by_name(assignment->name)
                                       : get_existing_workspace_by_num(num);

@@ -130,7 +130,7 @@ void configure_binding(const std::string_view bindtype, const std::string_view m
         new_binding->symbol = input_code.data();
     } else {
         long keycode;
-        if (!parse_long(input_code.data(), &keycode, 10)) {
+        if (!utils::parse_long(input_code.data(), &keycode, 10)) {
              ELOG(fmt::sprintf("Could not parse \"%s\" as an input code, ignoring this binding.\n", input_code.data()));
             return;
         }
@@ -501,7 +501,7 @@ void translate_keysyms() {
     for (auto &bind : current_mode->bindings) {
         if (bind->input_type == B_MOUSE) {
             long button;
-            if (!parse_long(bind->symbol.c_str() + (sizeof("button") - 1), &button, 10)) {
+            if (!utils::parse_long(bind->symbol.c_str() + (sizeof("button") - 1), &button, 10)) {
                  ELOG(fmt::sprintf("Could not translate string to button: \"%s\"\n", bind->symbol));
             }
 
@@ -964,7 +964,7 @@ std::set<int> bindings_get_buttons_to_grab() {
         }
 
         long button;
-        if (!parse_long(bind->symbol.c_str() + (sizeof("button") - 1), &button, 10)) {
+        if (!utils::parse_long(bind->symbol.c_str() + (sizeof("button") - 1), &button, 10)) {
             ELOG("Could not parse button number, skipping this binding. Please report this bug in i3.\n");
             continue;
         }

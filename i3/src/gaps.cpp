@@ -13,6 +13,7 @@ module;
 module i3;
 
 import log;
+import utils;
 
 /**
  * Calculates the effective gap sizes for a container.
@@ -127,7 +128,7 @@ gaps_t gaps_for_workspace(WorkspaceCon *ws) {
             gaps = assignment->gaps;
             mask = assignment->gaps_mask;
             break;
-        } else if (ws->num != -1 && name_is_digits(assignment->name.c_str()) && ws_name_to_number(assignment->name.c_str()) == ws->num) {
+        } else if (ws->num != -1 && utils::name_is_digits(assignment->name.c_str()) && utils::ws_name_to_number(assignment->name.c_str()) == ws->num) {
             gaps = assignment->gaps;
             mask = assignment->gaps_mask;
         }

@@ -391,7 +391,7 @@ void Match::parse_property(const char *ctype, const char *cvalue) {
         }
 
         long parsed;
-        if (!parse_long(cvalue, &parsed, 0)) {
+        if (!utils::parse_long(cvalue, &parsed, 0)) {
              ELOG(fmt::sprintf("Could not parse con id \"%s\"\n", cvalue));
             this->error = sstrdup("invalid con_id");
         } else {
@@ -403,7 +403,7 @@ void Match::parse_property(const char *ctype, const char *cvalue) {
 
     if (strcmp(ctype, "id") == 0) {
         long parsed;
-        if (!parse_long(cvalue, &parsed, 0)) {
+        if (!utils::parse_long(cvalue, &parsed, 0)) {
              ELOG(fmt::sprintf("Could not parse window id \"%s\"\n", cvalue));
             this->error = sstrdup("invalid id");
         } else {

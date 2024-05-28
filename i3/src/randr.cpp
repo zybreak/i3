@@ -29,6 +29,17 @@ import log;
 import rect;
 
 /*
+ * Updates *destination with new_value and returns true if it was changed or false
+ * if it was the same
+ *
+ */
+static bool update_if_necessary(uint32_t *destination, const uint32_t new_value) {
+    uint32_t old_value = *destination;
+
+    return ((*destination = new_value) != old_value);
+}
+
+/*
  * Get a specific output by its internal X11 id. Used by randr_query_outputs
  * to check if the output is new (only in the first scan) or if we are
  * re-scanning.

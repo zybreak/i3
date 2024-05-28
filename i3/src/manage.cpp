@@ -316,7 +316,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
 
             Con *assigned_ws = nullptr;
             if (assignmentOpt->get().type == workspace_assignment_type::WORKSPACE_NUMBER) {
-                long parsed_num = ws_name_to_number(assignmentOpt->get().workspace);
+                long parsed_num = utils::ws_name_to_number(assignmentOpt->get().workspace);
 
                 assigned_ws = get_existing_workspace_by_num(parsed_num);
             }

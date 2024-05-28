@@ -41,6 +41,31 @@ static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents);
 
 static ev_tstamp kill_timeout = 10.0;
 
+/**
+ * Like writeall, but instead of retrying upon EAGAIN (returned when a write
+ * would block), the function stops and returns the total number of bytes
+ * written so far.
+ *
+ */
+static ssize_t writeall_nonblock(int fd, const void *buf, size_t count) {
+    size_t written = 0;
+
+    while (written < count) {
+        const ssize_t n = write(fd, ((char *)buf) + written, count - written);
+        if (n == -1) {
+            if (errno == EAGAIN) {
+                return written;
+            } else if (errno == EINTR) {
+                continue;
+            } else {
+                return n;
+            }
+        }
+        written += static_cast<size_t>(n);
+    }
+    return written;
+}
+
 void ipc_set_kill_timeout(ev_tstamp new_timeout) {
     kill_timeout = new_timeout;
 }

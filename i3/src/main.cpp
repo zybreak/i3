@@ -54,6 +54,27 @@ import i3ipc;
 int listen_fds;
 
 /*
+ * Returns true if this version of i3 is a debug build (anything which is not a
+ * release version), based on the git version number.
+ *
+ */
+static bool is_debug_build() {
+    /* i3_version contains either something like this:
+     *     "4.0.2 (2011-11-11)" (release version)
+     * or: "4.0.2-123-gC0FFEE"  (debug version)
+     *
+     * So we check for the offset of the first opening round bracket to
+     * determine whether this is a git version or a release version. */
+    if (strchr(I3_VERSION, '(') == nullptr) {
+        return true;  // e.g. 4.0.2-123-gC0FFEE
+    }
+    /* In practice, debug versions do not contain parentheses at all,
+     * but leave the logic as it was before so that we can re-add
+     * parentheses if we chose to. */
+    return ((strchr(I3_VERSION, '(') - I3_VERSION) > 10);
+}
+
+/*
  * Exit handler which destroys the main_loop. Will trigger cleanup handlers.
  *
  */
@@ -140,7 +161,7 @@ static int parse_restart_fd() {
     }
 
     long int fd = -1;
-    if (!parse_long(restart_fd, &fd, 10)) {
+    if (!utils::parse_long(restart_fd, &fd, 10)) {
         ELOG(fmt::sprintf("Malformed _I3_RESTART_FD \"%s\"\n", restart_fd));
         return -1;
     }

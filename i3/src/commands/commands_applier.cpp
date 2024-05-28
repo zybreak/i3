@@ -24,6 +24,62 @@ import i3_config_base;
 import i3_commands_base;
 import i3ipc;
 
+/*
+ * Convert orientation and position to the corresponding direction.
+ *
+ */
+static direction_t direction_from_orientation_position(orientation_t orientation, position_t position) {
+    if (orientation == HORIZ) {
+        return position == BEFORE ? D_LEFT : D_RIGHT;
+    } else {
+        return position == BEFORE ? D_UP : D_DOWN;
+    }
+}
+
+/*
+ * Set 'out' to the layout_t value for the given layout. The function
+ * returns true on success or false if the passed string is not a valid
+ * layout name.
+ *
+ */
+static bool layout_from_name(const char *layout_str, layout_t *out) {
+    if (strcmp(layout_str, "default") == 0) {
+        *out = L_DEFAULT;
+        return true;
+    } else if (strcasecmp(layout_str, "stacked") == 0 ||
+               strcasecmp(layout_str, "stacking") == 0) {
+        *out = L_STACKED;
+        return true;
+    } else if (strcasecmp(layout_str, "tabbed") == 0) {
+        *out = L_TABBED;
+        return true;
+    } else if (strcasecmp(layout_str, "splitv") == 0) {
+        *out = L_SPLITV;
+        return true;
+    } else if (strcasecmp(layout_str, "splith") == 0) {
+        *out = L_SPLITH;
+        return true;
+    }
+
+    return false;
+}
+
+static char to_lower(char c) {
+    return std::tolower(static_cast<unsigned char>(c));
+}
+
+static bool starts_with(const std::string_view str, const std::string_view prefix) {
+    if (prefix.length() > str.length()) {
+        return false;
+    }
+
+    auto str_begin = str.begin();
+    auto str_end = str_begin + prefix.size();
+
+    return std::ranges::equal(prefix, std::ranges::subrange(str_begin, str_end),
+            [](char a, char b) { return to_lower(a) == to_lower(b); });
+}
+
 static void ysuccess(nlohmann::json *json_gen, bool success) {
     if (json_gen != nullptr) {
         json_gen->push_back({
@@ -397,7 +453,7 @@ void CommandsApplier::move_con_to_workspace_number(struct criteria_state *criter
 
     LOG(fmt::sprintf("should move window to workspace %s\n",  which));
 
-    int parsed_num = ws_name_to_number(which);
+    int parsed_num = utils::ws_name_to_number(which);
     if (parsed_num == -1) {
         LOG(fmt::sprintf("Could not parse initial part of \"%s\" as a number.\n", which));
         throw std::runtime_error(fmt::sprintf("Could not parse number \"%s\"", which));
@@ -788,7 +844,7 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
 
     /* Make sure we allow paths like '~/.i3/layout.json' */
     auto path = utils::resolve_tilde(cpath);
-    std::string buf = slurp(path);
+    std::string buf = utils::slurp(path);
 
     if (!json_validate(buf)) {
         ELOG(fmt::sprintf("Could not parse \"%s\" as JSON, not loading.\n", path));
@@ -889,7 +945,7 @@ void CommandsApplier::workspace_number(struct criteria_state *criteria_state, Co
 
     disable_global_fullscreen();
 
-    long parsed_num = ws_name_to_number(which);
+    long parsed_num = utils::ws_name_to_number(which);
     if (parsed_num == -1) {
         throw std::runtime_error(fmt::sprintf("Could not parse initial part of \"%s\" as a number.", which));
     }
@@ -1239,7 +1295,7 @@ void CommandsApplier::focus_sibling(struct criteria_state *criteria_state, Comma
     HANDLE_EMPTY_MATCH(criteria_state);
     CMD_FOCUS_WARN_CHILDREN(criteria_state);
 
-    const position_t direction = (STARTS_WITH(direction_str, "prev")) ? BEFORE : AFTER;
+    const position_t direction = (starts_with(direction_str, "prev")) ? BEFORE : AFTER;
     for (auto current: criteria_state->owindows) {
         Con *ws = current->con_get_workspace();
         if (!ws) {
@@ -1900,7 +1956,7 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
     char *old_name_copy = sstrdup(old_name);
     workspace->name = new_name;
 
-    workspace->num = ws_name_to_number(new_name);
+    workspace->num = utils::ws_name_to_number(new_name);
     LOG(fmt::sprintf("num = %d\n",  workspace->num));
 
     /* By re-attaching, the sort order will be correct afterwards. */

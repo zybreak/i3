@@ -17,6 +17,7 @@ module;
 #include "i3.h"
 #include "atoms.h"
 #include <fmt/printf.h>
+#include <glib.h>
 module i3;
 
 import std;
@@ -26,6 +27,17 @@ import utils;
 import log;
 import rect;
 import i3ipc;
+
+/*
+ * Escapes the given string if a pango font is currently used.
+ * If the string has to be escaped, the input string will be free'd.
+ *
+ */
+static std::string pango_escape_markup(std::string input) {
+    char *escaped = g_markup_escape_text(input.c_str(), -1);
+
+    return escaped;
+}
 
 /*
  * Returns the content container below the given output container.
