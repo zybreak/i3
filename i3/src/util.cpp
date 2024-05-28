@@ -119,8 +119,7 @@ std::vector<std::string> add_argument(std::vector<std::string> &original, const 
             skip_next = false;
             continue;
         }
-        if (!strcmp(original[i].c_str(), opt_char) ||
-            (opt_name && !strcmp(original[i].c_str(), opt_name))) {
+        if (!strcmp(original[i].c_str(), opt_char) || (opt_name && !strcmp(original[i].c_str(), opt_name))) {
             if (opt_arg) {
                 skip_next = true;
             }
