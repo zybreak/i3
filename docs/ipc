@@ -1004,9 +1004,18 @@ if ($is_event) {
 === workspace event
 
 This event consists of a single serialized map containing a property
-+change (string)+ which indicates the type of the change ("focus", "init",
-"empty", "urgent", "reload", "rename", "restored", "move"). A
-+current (object)+ property will be present with the affected workspace
++change (string)+ which indicates the type of the change.
+
+* +empty+ – the workspace has become empty
+* +focus+ – the workspace has received input focus
+* +init+ – the workspace has been created
+* +move+ – the workspace has been moved to a different output
+* +reload+ – i3 config has been reloaded
+* +rename+ – the workspace's name has changed
+* +restored+ – the workspace's layout has changed to a previously saved layout
+* +urgent+ – the workspace has become urgent or lost its urgent status  
+
+A +current (object)+ property will be present with the affected workspace
 whenever the type of event affects a workspace (otherwise, it will be +null+).
 
 When the change is "focus", an +old (object)+ property will be present with the
