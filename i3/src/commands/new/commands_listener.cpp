@@ -32,17 +32,12 @@ struct criteria_state;
 #include "parser-specs/commandsLexer.h"
 #include "parser-specs/commandsGrammar.h"
 #include "parser-specs/commandsGrammarBaseListener.h"
-#include "fn.hpp"
 #include <nlohmann/json.hpp>
 module i3_commands_new;
 
 import i3_commands_base;
 
 using namespace antlr4;
-
-namespace fn = rangeless::fn;
-using fn::operators::operator%;   // arg % fn   equivalent to fn(std::forward<Arg>(arg))
-using fn::operators::operator%=;  // arg %= fn; equivalent to arg = fn( std::move(arg));
 
 CommandsListener::CommandsListener(BaseCommandsApplier &commandsApplier, nlohmann::json *json_gen, ipc_client *ipc_client) : cmd(commandsApplier) {
     this->command_output = {
@@ -63,12 +58,11 @@ void CommandsListener::enterCommand_move(commandsGrammar::Command_moveContext *c
 
 void CommandsListener::enterCommand_exec(commandsGrammar::Command_execContext * ctx) {
     auto options = ctx->COMMAND_OPTION()
-                   % fn::transform([](auto opt) { return opt->getText(); })
-                   % fn::unique_all()
-                   % fn::to_vector();
+                   | std::views::all
+                   | std::views::transform([](auto const v) { return v->getText(); })
+                   | std::ranges::to<std::vector>();
 
-    auto nosn = options
-                   % fn::exists_where([](auto text) { return text == "--no-startup-id"; });
+    auto nosn = std::ranges::find(options, "--no-startup-id") != options.end();
 
     cmd.exec(criteria_state, command_output, nosn ? "--no-startup-id" : "", ctx->COMMAND_STRING()->getText().c_str());
 }
