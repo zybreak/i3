@@ -16,7 +16,7 @@ target_sources(i3_commands_new PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/commands_parser.ixx
         ${CMAKE_CURRENT_SOURCE_DIR}/commands_listener.ixx
         )
-target_link_libraries(i3_commands_new PUBLIC nlohmann_json::nlohmann_json antlr4_static utils fmt::fmt i3_commands_base fn libi3ipc)
+target_link_libraries(i3_commands_new PUBLIC nlohmann_json::nlohmann_json antlr4_static utils fmt::fmt i3_commands_base libi3ipc)
 target_include_directories(i3_commands_new PUBLIC ${antlr4-runtime_INCLUDE_DIR}
         ${include_dirs}
         )

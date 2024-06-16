@@ -32,7 +32,6 @@ module;
 #include "parser-specs/commandsLexer.h"
 #include "parser-specs/commandsGrammar.h"
 #include "parser-specs/commandsGrammarBaseListener.h"
-#include "fn.hpp"
 module i3_commands_new;
 
 import i3ipc;

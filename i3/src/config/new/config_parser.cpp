@@ -4,7 +4,6 @@ struct criteria_state;
 #include "parser-specs/configLexer.h"
 #include "parser-specs/configGrammar.h"
 #include "parser-specs/configGrammarBaseListener.h"
-#include "fn.hpp"
 #include <xcb/xcb_xrm.h>
 #include "fmt/core.h"
 #include "fmt/printf.h"
@@ -17,10 +16,6 @@ import i3_config_base;
 using namespace std;
 using namespace antlr4;
 using namespace std::literals;
-
-namespace fn = rangeless::fn;
-using fn::operators::operator%;   // arg % fn   equivalent to fn(std::forward<Arg>(arg))
-using fn::operators::operator%=;  // arg %= fn; equivalent to arg = fn( std::move(arg));
 
 static string unquote(std::string &&quoted) {
     if (quoted.starts_with("\"") && quoted.ends_with("\"")) {
@@ -121,8 +116,7 @@ public:
     void enterExec(configGrammar::ExecContext *ctx) override {
         const string text = replace_var(ctx->children[0]->getText());
         auto options = ctx->OPTION();
-        auto no_startup_id = options
-                       % fn::exists_where([](auto *x) { return x->getText() == "--no-startup-id"; });
+        auto no_startup_id = std::ranges::find_if(options, [](auto *x) { return x->getText() == "--no-startup-id"; }) != options.end();
 
         auto arguments = replace_var(unquote(ctx->STRING()->getText()));
 
@@ -132,8 +126,7 @@ public:
     void enterExec_always(configGrammar::Exec_alwaysContext *ctx) override {
         const string text = replace_var(ctx->children[0]->getText());
         auto options = ctx->OPTION();
-        auto no_startup_id = options
-                             % fn::exists_where([](auto *x) { return x->getText() == "--no-startup-id"; });
+        auto no_startup_id = std::ranges::find_if(options, [](auto *x) { return x->getText() == "--no-startup-id"; }) != options.end();
         
         auto arguments = replace_var(unquote(ctx->STRING()->getText()));
 
@@ -230,8 +223,8 @@ public:
 
     void enterFor_window(configGrammar::For_windowContext *ctx) override {
         auto arguments = ctx->commands()->command()
-                         % fn::transform([](auto *x) { return toString(x); })
-                         % fn::to_vector();
+                    | std::ranges::views::transform([](auto *x) { return toString(x); })
+                    | std::ranges::to<std::vector<std::string>>();
 
         auto match = handle_criteria(ctx->criteria());
         for (auto argument : arguments) {
@@ -289,23 +282,19 @@ public:
     void enterBinding(configGrammar::BindingContext *ctx) override {
         auto bindtype = replace_var(ctx->children[0]->getText());
 
-        auto options = ctx->OPTION()
-                % fn::transform([](auto opt) { return opt->getText(); })
-                % fn::unique_all()
-                % fn::to_vector();
+        auto options = ctx->OPTION() | std::ranges::views::transform([](const auto &opt) { return opt->getText(); }) | std::ranges::to<std::vector<std::string>>();
 
         auto commands = ctx->commands()->command()
-                       % fn::transform([](auto *x) { return toString(x); })
-                       % fn::to_vector();
+                       | std::ranges::views::transform([](auto *x) { return toString(x); })
+                       | std::ranges::to<std::vector<std::string>>();
 
-        auto release = options
-                % fn::exists_where([](auto text) { return text == "--release"; });
+        auto release = std::ranges::find_if(options, [](const auto &opt) { return opt == "--release"; }) != options.end();
 
-        auto border = options % fn::exists_where([](auto text) { return text == "--border"; });
+        auto border = std::ranges::find_if(options, [](auto &text) { return text == "--border"; }) != options.end();
 
-        auto whole_window = options % fn::exists_where([](auto text) { return text == "--whole-window"; });
+        auto whole_window = std::ranges::find_if(options, [](auto &text) { return text == "--whole-window"; }) != options.end();
 
-        auto exclude_titlebar = options % fn::exists_where([](auto text) { return text == "--exclude-titlebar"; });
+        auto exclude_titlebar = std::ranges::find_if(options, [](auto &text) { return text == "--exclude-titlebar"; }) != options.end();
 
         std::string modifiers;
         std::string key;
