@@ -13,8 +13,8 @@ target_sources(i3_commands_new PUBLIC
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/commands_parser.ixx
-        ${CMAKE_CURRENT_SOURCE_DIR}/commands_listener.ixx
+        ${CMAKE_CURRENT_SOURCE_DIR}/commands_parser.cppm
+        ${CMAKE_CURRENT_SOURCE_DIR}/commands_listener.cppm
         )
 target_link_libraries(i3_commands_new PUBLIC nlohmann_json::nlohmann_json antlr4_static utils fmt::fmt i3_commands_base libi3ipc)
 target_include_directories(i3_commands_new PUBLIC ${antlr4-runtime_INCLUDE_DIR}

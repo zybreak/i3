@@ -10,7 +10,7 @@ target_sources(utils PUBLIC
         nonblock.cpp
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
-        FILES utils.ixx
-        format_placeholders.ixx)
+        FILES utils.cppm
+        format_placeholders.cppm)
 #target_compile_options(utils PUBLIC "-pthread" "-fsized-deallocation")
 target_compile_options(utils PUBLIC "-Xclang" "-fno-validate-pch")

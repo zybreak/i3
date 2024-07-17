@@ -114,7 +114,7 @@ for my $line (@lines) {
 # is in FOR_WINDOW_COMMAND).
 my @keys = sort { (length($b) <=> length($a)) or ($a cmp $b) } keys %states;
 
-open(my $enumfh, '>', "GENERATED_${prefix}_enums.ixx");
+open(my $enumfh, '>', "GENERATED_${prefix}_enums.cppm");
 
 my %statenum;
 #say $enumfh '#pragma once';
@@ -131,7 +131,7 @@ say $enumfh "\n};";
 close($enumfh);
 
 # Third step: Generate the call function.
-open(my $callfh, '>', "GENERATED_${prefix}_call.ixx");
+open(my $callfh, '>', "GENERATED_${prefix}_call.cppm");
 my $resultname = uc(substr($prefix, 0, 1)) . substr($prefix, 1) . 'ResultIR';
 #say $callfh '#pragma once';
 say $callfh "module;";
@@ -203,7 +203,7 @@ close($callfh);
 
 # Fourth step: Generate the token datastructures.
 
-open(my $tokfh, '>', "GENERATED_${prefix}_tokens.ixx");
+open(my $tokfh, '>', "GENERATED_${prefix}_tokens.cppm");
 #say $tokfh '#pragma once';
 say $tokfh "export module i3_${prefix}_old:tokens;";
 #say $tokfh '#include <vector>';

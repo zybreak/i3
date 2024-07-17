@@ -109,7 +109,7 @@ target_sources(i3_log PUBLIC
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES
-        src/log/log.ixx
+        src/log/log.cppm
 )
 target_link_libraries(i3_log PUBLIC spdlog::spdlog)
 #target_compile_options(i3_log PUBLIC "-pthread" "-fsized-deallocation")
@@ -121,58 +121,58 @@ target_sources(i3_lib PUBLIC
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES
-        src/i3-lib.ixx
-        src/assignments.ixx
-        src/autostarts.ixx
-        src/bindings.ixx
-        src/config/config_applier.ixx
-        src/config/configuration.ixx
-        src/config/resource_database.ixx
-        src/commands/commands.ixx
-        src/commands/commands_applier.ixx
-        src/handlers/handle_property.ixx
-        src/con/con.ixx
-        src/gaps.ixx
-        src/util.ixx
-        src/x.ixx
-        src/workspace.ixx
-        src/keysyms.ixx
-        src/event_handler.ixx
-        src/shape.ixx
-        src/xkb.ixx
-        src/handlers/handlers.ixx
-        src/criteria_state.ixx
-        src/resize.ixx
-        src/window.ixx
-        src/match.ixx
-        src/tiling_drag.ixx
-        src/tree.ixx
-        src/startup.ixx
-        src/draw.ixx
-        src/sync.ixx
-        src/output.ixx
-        src/rect.ixx
-        src/render.ixx
-        src/randr.ixx
-        src/font.ixx
-        src/xcb.ixx
-        src/drag.ixx
-        src/dpi.ixx
-        src/get_visualtype.ixx
-        src/ewmh.ixx
-        src/floating.ixx
-        src/move.ixx
-        src/sighandler.ixx
-        src/ipc.ixx
-        src/is_background_set.ixx
-        src/load_layout.ixx
-        src/restore_layout.ixx
-        src/program_arguments.ixx
-        src/root_atom_contents.ixx
-        src/nagbar/nagbar.ixx
-        src/manage.ixx
-        src/i3_regex.ixx
-        src/internal.ixx
+        src/i3-lib.cppm
+        src/assignments.cppm
+        src/autostarts.cppm
+        src/bindings.cppm
+        src/config/config_applier.cppm
+        src/config/configuration.cppm
+        src/config/resource_database.cppm
+        src/commands/commands.cppm
+        src/commands/commands_applier.cppm
+        src/handlers/handle_property.cppm
+        src/con/con.cppm
+        src/gaps.cppm
+        src/util.cppm
+        src/x.cppm
+        src/workspace.cppm
+        src/keysyms.cppm
+        src/event_handler.cppm
+        src/shape.cppm
+        src/xkb.cppm
+        src/handlers/handlers.cppm
+        src/criteria_state.cppm
+        src/resize.cppm
+        src/window.cppm
+        src/match.cppm
+        src/tiling_drag.cppm
+        src/tree.cppm
+        src/startup.cppm
+        src/draw.cppm
+        src/sync.cppm
+        src/output.cppm
+        src/rect.cppm
+        src/render.cppm
+        src/randr.cppm
+        src/font.cppm
+        src/xcb.cppm
+        src/drag.cppm
+        src/dpi.cppm
+        src/get_visualtype.cppm
+        src/ewmh.cppm
+        src/floating.cppm
+        src/move.cppm
+        src/sighandler.cppm
+        src/ipc.cppm
+        src/is_background_set.cppm
+        src/load_layout.cppm
+        src/restore_layout.cppm
+        src/program_arguments.cppm
+        src/root_atom_contents.cppm
+        src/nagbar/nagbar.cppm
+        src/manage.cppm
+        src/i3_regex.cppm
+        src/internal.cppm
         )
 target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_base i3_config_new i3_config_old i3_commands_base i3_commands_old i3_commands_new utils xpp i3_log)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
