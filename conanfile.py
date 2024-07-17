@@ -14,7 +14,8 @@ class i3(ConanFile):
         deps.generate()
 
         tc = CMakeToolchain(self)
-        tc.generator = "Ninja Multi-Config"
+        #tc.generator = "Ninja Multi-Config"
+        tc.generator = "Ninja"
         tc.generate()
 
 
