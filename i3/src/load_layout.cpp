@@ -115,7 +115,7 @@ static void json_end_map(tree_append_ctx &ctx) {
             }
 
             /* Set num accordingly so that i3bar will properly sort it. */
-            ctx.json_node->num = utils::ws_name_to_number(ctx.json_node->name);
+            dynamic_cast<WorkspaceCon*>(ctx.json_node)->num = utils::ws_name_to_number(ctx.json_node->name);
         }
 
         // When appending JSON layout files that only contain the workspace
@@ -402,7 +402,7 @@ static void json_int(tree_append_ctx &ctx, long long val) {
         ctx.json_node->fullscreen_mode = static_cast<fullscreen_mode_t>(val);
 
     if (ctx.last_key == "num")
-        ctx.json_node->num = val;
+        //ctx.json_node->num = val; TODO: cant really load layout like this
 
     if (ctx.last_key == "current_border_width")
         ctx.json_node->current_border_width = val;
