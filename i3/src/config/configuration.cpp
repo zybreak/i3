@@ -132,8 +132,7 @@ static void free_configuration() {
             con->window->ran_assignments.clear();
         }
         /* Invalidate pixmap caches in case font or colors changed. */
-        delete con->deco_render_params;
-        con->deco_render_params = nullptr;
+        con->deco_render_params.reset();
     }
 
     /* Get rid of the current font */

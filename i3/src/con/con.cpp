@@ -62,8 +62,7 @@ void con_force_split_parents_redraw(Con *con) {
 
     while (parent != nullptr && parent->type != CT_WORKSPACE && parent->type != CT_DOCKAREA) {
         if (!parent->con_is_leaf()) {
-            delete parent->deco_render_params;
-            parent->deco_render_params = nullptr;
+            parent->deco_render_params.reset();
         }
 
         parent = parent->parent;
@@ -111,8 +110,6 @@ Con::Con(Con *parent, i3Window *window, bool skeleton) {
  *
  */
 Con::~Con() {
-
-    delete this->deco_render_params;
     auto it = std::ranges::find(global.all_cons, this);
 
     if (it != global.all_cons.end()) {
@@ -1334,8 +1331,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
     }
 
     /* Ensure the container will be redrawn. */
-    delete con->deco_render_params;
-    con->deco_render_params = nullptr;
+    con->deco_render_params.reset();
 
     parent->on_remove_child();
 

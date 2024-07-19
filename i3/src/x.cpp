@@ -451,7 +451,7 @@ void x_draw_decoration(Con *con) {
     }
 
     /* 1: build deco_params and compare with cache */
-    auto *p = new deco_render_params();
+    auto p = std::make_unique<deco_render_params>();
 
     /* find out which colors to use */
     if (con->urgent) {
@@ -480,23 +480,20 @@ void x_draw_decoration(Con *con) {
     p->con_is_leaf = con->con_is_leaf();
     p->parent_layout = con->parent->layout;
 
-    if (con->deco_render_params != nullptr &&
+    if (con->deco_render_params &&
         (con->window == nullptr || !con->window->name_x_changed) &&
         !parent->pixmap_recreated &&
         !con->pixmap_recreated &&
-        p == con->deco_render_params) {
-        delete p;
+        *p == *con->deco_render_params.value().get()) {
         draw_util_copy_surface(&(con->frame_buffer), &(con->frame), 0, 0, 0, 0, con->rect.width, con->rect.height);
         return;
     }
 
     for (auto c_itr = std::ranges::find(con->parent->nodes, con); c_itr != con->parent->nodes.end(); ++c_itr) {
-        delete (*c_itr)->deco_render_params;
-        (*c_itr)->deco_render_params = nullptr;
+        (*c_itr)->deco_render_params.reset();
     }
 
-    delete con->deco_render_params;
-    con->deco_render_params = p;
+    con->deco_render_params = std::move(p);
 
     if (con->window != nullptr && con->window->name_x_changed) {
         con->window->name_x_changed = false;
@@ -577,8 +574,7 @@ void x_draw_decoration(Con *con) {
      * garbage left on there. This is important to avoid tearing when using
      * transparency. */
     if (con == con::first(con->parent->nodes)) {
-        delete con->parent->deco_render_params;
-        con->parent->deco_render_params = nullptr;
+        con->parent->deco_render_params.reset();
     }
 
     /* if this is a borderless/1pixel window, we don’t need to render the
@@ -595,7 +591,7 @@ void x_draw_decoration(Con *con) {
                         con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height);
 
     /* 5: draw title border */
-    x_draw_title_border(con, p, dest_surface);
+    x_draw_title_border(con, p.get(), dest_surface);
 
     /* 6: draw the icon and title */
     int text_offset_y = (con->deco_rect.height - config.font->height) / 2;
@@ -682,7 +678,7 @@ void x_draw_decoration(Con *con) {
             icon_size);
     }
 
-    x_draw_decoration_after_title(con, p, dest_surface);
+    x_draw_decoration_after_title(con, p.get(), dest_surface);
     draw_util_copy_surface(&(con->frame_buffer), &(con->frame), 0, 0, 0, 0, con->rect.width, con->rect.height);
 }
 

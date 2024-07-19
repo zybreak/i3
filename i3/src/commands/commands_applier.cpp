@@ -1859,8 +1859,7 @@ void CommandsApplier::title_format(struct criteria_state *criteria_state, Comman
             current->window->name_x_changed = true;
         } else {
             /* For windowless containers we also need to force the redrawing. */
-            delete current->deco_render_params;
-            current->deco_render_params = nullptr;
+            current->deco_render_params.reset();
         }
     }
 
@@ -1908,8 +1907,7 @@ void CommandsApplier::title_window_icon(struct criteria_state *criteria_state, C
             current->window->name_x_changed = true;
         } else {
             /* For windowless containers we also need to force the redrawing. */
-            delete current->deco_render_params;
-            current->deco_render_params = nullptr;
+            current->deco_render_params.reset();
         }
     }
 

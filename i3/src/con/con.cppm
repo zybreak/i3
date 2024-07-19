@@ -43,8 +43,8 @@ export {
     struct deco_render_params {
         struct Colortriple *color;
         int border_style;
-        struct width_height con_rect;
-        struct width_height con_window_rect;
+        width_height con_rect;
+        width_height con_window_rect;
         Rect con_deco_rect;
         color_t background;
         layout_t parent_layout;
@@ -139,7 +139,7 @@ export {
         struct ev_timer *urgency_timer{};
 
         /** Cache for the decoration rendering */
-        struct deco_render_params *deco_render_params{};
+        std::optional<std::unique_ptr<deco_render_params>> deco_render_params{};
 
         std::deque<Con *> nodes{};
         std::deque<Con *> focused{};

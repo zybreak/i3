@@ -253,8 +253,7 @@ static void move_to_output_directed(Con *con, direction_t direction) {
     }
 
     /* force re-painting the indicators */
-    delete con->deco_render_params;
-    con->deco_render_params = nullptr;
+    con->deco_render_params.reset();
 
     ipc_send_window_event("move", con);
     tree_flatten(global.croot);
@@ -309,8 +308,7 @@ void tree_move(Con *con, direction_t direction) {
                 DLOG("Inside floating, moving to workspace\n");
                 attach_to_workspace(con, con->con_get_workspace(), direction);
                 /* force re-painting the indicators */
-                delete con->deco_render_params;
-                con->deco_render_params = nullptr;
+                con->deco_render_params.reset();
 
                 ipc_send_window_event("move", con);
                 tree_flatten(global.croot);
@@ -338,8 +336,7 @@ void tree_move(Con *con, direction_t direction) {
                                     : BEFORE);
                     insert_con_into(con, target, position);
                     /* force re-painting the indicators */
-                    delete con->deco_render_params;
-                    con->deco_render_params = nullptr;
+                    con->deco_render_params.reset();
 
                     ipc_send_window_event("move", con);
                     tree_flatten(global.croot);
@@ -426,8 +423,7 @@ void tree_move(Con *con, direction_t direction) {
     }
 
     /* force re-painting the indicators */
-    delete con->deco_render_params;
-    con->deco_render_params = nullptr;
+    con->deco_render_params.reset();
 
     ipc_send_window_event("move", con);
     tree_flatten(global.croot);
