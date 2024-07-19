@@ -94,10 +94,6 @@ export {
 
         con_type_t type;
 
-        /** the workspace number, if this Con is of type CT_WORKSPACE and the
-         * workspace is not a named workspace (for named workspaces, num == -1) */
-        int num{};
-
         Con *parent{};
 
         /* The position and size for this con. These coordinates are absolute. Note
@@ -486,6 +482,10 @@ export {
 
         /** Only applicable for containers of type CT_WORKSPACE. */
         gaps_t gaps;
+
+        /** the workspace number, if this Con is of type CT_WORKSPACE and the
+         * workspace is not a named workspace (for named workspaces, num == -1) */
+        int num{};
 
         WorkspaceCon()
             : Con(nullptr, nullptr, false) {
