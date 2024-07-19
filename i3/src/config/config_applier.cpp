@@ -107,7 +107,7 @@ void ConfigApplier::exec(const std::string &exectype, bool no_startup_id,
 }
 
 static void apply_gaps(gaps_t *gaps, gaps_mask_t mask, int value) {
-    if (gaps == NULL) {
+    if (gaps == nullptr) {
         return;
     }
     if (mask & GAPS_INNER) {

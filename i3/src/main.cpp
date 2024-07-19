@@ -408,7 +408,6 @@ int main(int argc, char *argv[]) {
         setbuf(stdout, nullptr);
     }
 
-    srand(time(nullptr));
     set_formatting();
 
     auto args = parse_args(argc, argv);

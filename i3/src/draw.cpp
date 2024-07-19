@@ -69,7 +69,7 @@ static xcb_gcontext_t get_gc(xcb_connection_t *conn, uint8_t depth, xcb_drawable
     xcb_gcontext_t gc = xcb_generate_id(conn);
     /* The drawable is only used to get the root and depth, thus the GC is not
      * tied to the drawable and it can be re-used with different drawables. */
-    xcb_void_cookie_t gc_cookie = xcb_create_gc_checked(conn, gc, drawable, 0, NULL);
+    xcb_void_cookie_t gc_cookie = xcb_create_gc_checked(conn, gc, drawable, 0, nullptr);
 
     xcb_generic_error_t *error = xcb_request_check(conn, gc_cookie);
     if (error != nullptr) {

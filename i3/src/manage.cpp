@@ -519,8 +519,8 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             DLOG("There is a fullscreen window, leaving fullscreen mode\n");
             con_toggle_fullscreen(fs, CF_OUTPUT);
         } else if (config.popup_during_fullscreen == PDF_SMART &&
-                   fs != NULL &&
-                   fs->window != NULL) {
+                   fs != nullptr &&
+                   fs->window != nullptr) {
             set_focus = con_find_transient_for_window(nc, fs->window->id);
         }
     }

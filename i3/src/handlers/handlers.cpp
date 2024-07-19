@@ -209,7 +209,7 @@ void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
         return;
 
     /* see over which rect the user is */
-    if (con->window != NULL) {
+    if (con->window != nullptr) {
         if (con->deco_rect.rect_contains(event->event_x, event->event_y)) {
             /* We found the rect, let’s see if this window is focused */
             if (con::first(con->parent->focused) == con)
