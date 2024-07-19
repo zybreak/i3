@@ -138,26 +138,26 @@ static int strcasecmp_nullable(const char *a, const char *b) {
     return strcasecmp(a, b);
 }
 
-void WorkspaceCon::con_attach(Con *parent, bool ignore_focus, Con *previous) {
+void WorkspaceCon::con_attach(Con *parent, bool ignore_focus, Con *previous_con) {
     this->parent = parent;
-    Con *current = previous;
-    auto &nodes = parent->nodes;
+    auto previous = dynamic_cast<WorkspaceCon*>(previous_con);
+    WorkspaceCon *current = previous;
     auto &focused = parent->focused;
 
     /* Workspaces are handled differently: they need to be inserted at the
      * right position. */
     DLOG(fmt::sprintf("it's a workspace. num = %d\n",  this->num));
-    if (this->num == -1 || nodes.empty()) {
-        nodes.push_back(this);
+    if (this->num == -1 || parent->nodes.empty()) {
+        parent->nodes.push_back(this);
     } else {
-        current = con::first(nodes);
+        current = dynamic_cast<WorkspaceCon*>(con::first(parent->nodes));
         if (this->num < current->num) {
             /* we need to insert the container at the beginning */
-            nodes.push_front(this);
+            parent->nodes.push_front(this);
         } else {
             while (current && current->num != -1 && this->num > current->num) {
-                current = con::next(current, nodes);
-                if (current == con::last(nodes)) {
+                current = dynamic_cast<WorkspaceCon*>(con::next(current, parent->nodes));
+                if (current == con::last(parent->nodes)) {
                     current = nullptr;
                     break;
                 }
@@ -166,7 +166,7 @@ void WorkspaceCon::con_attach(Con *parent, bool ignore_focus, Con *previous) {
             if (current) {
                 current->insert_before(this);
             } else {
-                nodes.push_back(this);
+                parent->nodes.push_back(this);
             }
         }
     }
@@ -1900,7 +1900,7 @@ void Con::on_remove_child() {
         if (this->focused.empty() && !workspace_is_visible(this)) {
             LOG(fmt::sprintf("Closing old workspace (%p / %s), it is empty\n", fmt::ptr(this), this->name));
             auto gen = ipc_marshal_workspace_event("empty", this, nullptr);
-            tree_close_internal(this, DONT_KILL_WINDOW, false);
+            tree_close_internal(this, kill_window_t::DONT_KILL_WINDOW, false);
 
             auto payload = gen.dump();
             ipc_send_event("workspace", i3ipc::EVENT_WORKSPACE, payload);
@@ -1917,7 +1917,7 @@ void Con::on_remove_child() {
     auto children = this->con_num_children();
     if (children == 0) {
         DLOG("Container empty, closing\n");
-        tree_close_internal(this, DONT_KILL_WINDOW, false);
+        tree_close_internal(this, kill_window_t::DONT_KILL_WINDOW, false);
         return;
     }
 }

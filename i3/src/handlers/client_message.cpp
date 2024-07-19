@@ -262,7 +262,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
            if (event->data.data32[0])
                global.last_timestamp = event->data.data32[0];
 
-           tree_close_internal(con, KILL_WINDOW, false);
+           tree_close_internal(con, kill_window_t::KILL_WINDOW, false);
            tree_render();
        } else {
            DLOG(fmt::sprintf("Couldn't find con for _NET_CLOSE_WINDOW request. (window = %08x)\n", event->window));

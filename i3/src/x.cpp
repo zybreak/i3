@@ -310,7 +310,7 @@ bool window_supports_protocol(xcb_window_t window, xcb_atom_t atom) {
 void x_window_kill(xcb_connection_t *c, xcb_window_t window, kill_window_t kill_window) {
     /* if this window does not support WM_DELETE_WINDOW, we kill it the hard way */
     if (!window_supports_protocol(window, A_WM_DELETE_WINDOW)) {
-        if (kill_window == KILL_WINDOW) {
+        if (kill_window == kill_window_t::KILL_WINDOW) {
             LOG(fmt::sprintf("Killing specific window 0x%08x\n",  window));
             xcb_destroy_window(**global.x, window);
         } else {

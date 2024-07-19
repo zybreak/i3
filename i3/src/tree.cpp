@@ -164,7 +164,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
     }
 
     if (con->window != nullptr) {
-        if (kill_window != DONT_KILL_WINDOW) {
+        if (kill_window != kill_window_t::DONT_KILL_WINDOW) {
             x_window_kill(**global.x, con->window->id, kill_window);
             return false;
         } else {
@@ -714,5 +714,5 @@ void tree_flatten(Con *con) {
 
     /* 4: close the redundant cons */
     DLOG("closing redundant cons\n");
-    tree_close_internal(con, DONT_KILL_WINDOW, true);
+    tree_close_internal(con, kill_window_t::DONT_KILL_WINDOW, true);
 }

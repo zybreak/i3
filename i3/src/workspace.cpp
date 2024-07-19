@@ -50,7 +50,7 @@ WorkspaceCon *get_existing_workspace_by_name(const std::string &name) {
 WorkspaceCon *get_existing_workspace_by_num(int num) {
     WorkspaceCon *workspace = nullptr;
     for (auto &output : global.croot->nodes) {
-        auto ws = std::ranges::find_if(output->output_get_content()->nodes, [&num](auto &child) { return child->num == num; });
+        auto ws = std::ranges::find_if(output->output_get_content()->nodes, [&num](auto &child) { return dynamic_cast<WorkspaceCon*>(child)->num == num; });
         if (ws != output->output_get_content()->nodes.end()) {
             workspace = dynamic_cast<WorkspaceCon*>(*ws);
         }
@@ -519,7 +519,7 @@ void workspace_show(Con *workspace) {
         if (!workspace_is_visible(old)) {
             LOG(fmt::sprintf("Closing old workspace (%p / %s), it is empty\n", fmt::ptr(old), old->name));
             auto gen = ipc_marshal_workspace_event("empty", old, nullptr);
-            tree_close_internal(old, DONT_KILL_WINDOW, false);
+            tree_close_internal(old, kill_window_t::DONT_KILL_WINDOW, false);
 
             auto payload = gen.dump();
             ipc_send_event("workspace", i3ipc::EVENT_WORKSPACE, payload);
@@ -563,7 +563,7 @@ void workspace_show_by_name(const char *num) {
  */
 WorkspaceCon *workspace_next() {
     WorkspaceCon *current = global.focused->con_get_workspace();
-    Con *next = nullptr, *first = nullptr, *first_opposite = nullptr;
+    WorkspaceCon *next = nullptr, *first = nullptr, *first_opposite = nullptr;
 
     if (current->num == -1) {
         /* If currently a named workspace, find next named workspace. */
@@ -576,20 +576,20 @@ WorkspaceCon *workspace_next() {
             for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
                 for (auto &c : output->output_get_content()->nodes) {
                     child = c;
-                    if (child->type != CT_WORKSPACE) {
+                    auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
+                    if (workspace_child == nullptr) {
                         continue;
                     }
                     if (!first) {
-                        first = child;
+                        first = workspace_child;
                     }
-                    if (!first_opposite || (child->num != -1 && child->num < first_opposite->num)) {
-                        first_opposite = child;
+                    if (!first_opposite || (workspace_child->num != -1 && workspace_child->num < first_opposite->num)) {
+                        first_opposite = workspace_child;
                     }
                     if (child == current) {
                         found_current = true;
-                    } else if (child->num == -1 && found_current) {
-                        next = child;
-                        return dynamic_cast<WorkspaceCon *>(next);
+                    } else if (workspace_child->num == -1 && found_current) {
+                        return workspace_child;
                     }
                 }
             }
@@ -600,23 +600,24 @@ WorkspaceCon *workspace_next() {
             for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
                 for (auto &c : output->output_get_content()->nodes) {
                     child = c;
-                    if (child->type != CT_WORKSPACE) {
+                    auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
+                    if (workspace_child == nullptr) {
                         continue;
                     }
-                    if (!first || (child->num != -1 && child->num < first->num)) {
-                        first = child;
+                    if (!first || (workspace_child->num != -1 && workspace_child->num < first->num)) {
+                        first = workspace_child;
                     }
-                    if (!first_opposite && child->num == -1) {
-                        first_opposite = child;
+                    if (!first_opposite && workspace_child->num == -1) {
+                        first_opposite = workspace_child;
                     }
-                    if (child->num == -1) {
+                    if (workspace_child->num == -1) {
                         break;
                     }
                     /* Need to check child against current and next because we are
                      * traversing multiple lists and thus are not guaranteed the
                      * relative order between the list of workspaces. */
-                    if (current->num < child->num && (!next || child->num < next->num)) {
-                        next = child;
+                    if (current->num < workspace_child->num && (!next || workspace_child->num < next->num)) {
+                        next = workspace_child;
                     }
                 }
             }
@@ -627,7 +628,7 @@ WorkspaceCon *workspace_next() {
         next = first_opposite ? first_opposite : first;
     }
 
-    return dynamic_cast<WorkspaceCon*>(next);
+    return next;
 }
 
 /*
@@ -636,12 +637,12 @@ WorkspaceCon *workspace_next() {
  */
 WorkspaceCon *workspace_prev() {
     WorkspaceCon *current = global.focused->con_get_workspace();
-    Con *prev = nullptr, *first_opposite = nullptr, *last = nullptr;
+    WorkspaceCon *prev = nullptr, *first_opposite = nullptr, *last = nullptr;
 
     if (current->num == -1) {
         /* If named workspace, find previous named workspace. */
         auto c_itr = std::ranges::find(current->parent->nodes, current);
-        prev = c_itr == current->parent->nodes.begin() ? nullptr : *(--c_itr);
+        prev = c_itr == current->parent->nodes.begin() ? nullptr : dynamic_cast<WorkspaceCon*>(*(--c_itr));
         if (prev && prev->num != -1) {
             prev = nullptr;
         }
@@ -651,20 +652,20 @@ WorkspaceCon *workspace_prev() {
                 for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
                     for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
                         child = c;
-                        if (child->type != CT_WORKSPACE) {
+                        auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
+                        if (workspace_child == nullptr) {
                             continue;
                         }
                         if (!last) {
-                            last = child;
+                            last = workspace_child;
                         }
-                        if (!first_opposite || (child->num != -1 && child->num > first_opposite->num)) {
-                            first_opposite = child;
+                        if (!first_opposite || (workspace_child->num != -1 && workspace_child->num > first_opposite->num)) {
+                            first_opposite = workspace_child;
                         }
-                        if (child == current) {
+                        if (workspace_child == current) {
                             found_current = true;
-                        } else if (child->num == -1 && found_current) {
-                            prev = child;
-                            return dynamic_cast<WorkspaceCon*>(prev);
+                        } else if (workspace_child->num == -1 && found_current) {
+                            return workspace_child;
                         }
                     }
                 }
@@ -676,23 +677,24 @@ WorkspaceCon *workspace_prev() {
             for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
                 for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
                     child = c;
-                    if (child->type != CT_WORKSPACE) {
+                    auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
+                    if (workspace_child == nullptr) {
                         continue;
                     }
-                    if (!last || (child->num != -1 && last->num < child->num)) {
-                        last = child;
+                    if (!last || (workspace_child->num != -1 && last->num < workspace_child->num)) {
+                        last = workspace_child;
                     }
-                    if (!first_opposite && child->num == -1) {
-                        first_opposite = child;
+                    if (!first_opposite && workspace_child->num == -1) {
+                        first_opposite = workspace_child;
                     }
-                    if (child->num == -1) {
+                    if (workspace_child->num == -1) {
                         continue;
                     }
                     /* Need to check child against current and previous because we
                      * are traversing multiple lists and thus are not guaranteed
                      * the relative order between the list of workspaces. */
-                    if (current->num > child->num && (!prev || child->num > prev->num)) {
-                        prev = child;
+                    if (current->num > workspace_child->num && (!prev || workspace_child->num > prev->num)) {
+                        prev = workspace_child;
                     }
                 }
             }
@@ -703,7 +705,7 @@ WorkspaceCon *workspace_prev() {
         prev = first_opposite ? first_opposite : last;
     }
 
-    return dynamic_cast<WorkspaceCon*>(prev);
+    return prev;
 }
 
 /*
@@ -712,28 +714,29 @@ WorkspaceCon *workspace_prev() {
  */
 WorkspaceCon *workspace_next_on_output() {
     WorkspaceCon *current = global.focused->con_get_workspace();
-    Con *next = nullptr;
+    WorkspaceCon *next = nullptr;
     Con *output = global.focused->con_get_output();
 
     if (current->num == -1) {
         /* If currently a named workspace, find next named workspace. */
-        next = con::next(current, current->parent->nodes);
+        next = dynamic_cast<WorkspaceCon*>(con::next(current, current->parent->nodes));
     } else {
         /* If currently a numbered workspace, find next numbered workspace. */
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
             for (auto &c : output->output_get_content()->nodes) {
                 child = c;
-                if (child->type != CT_WORKSPACE) {
+                auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
+                if (workspace_child == nullptr) {
                     continue;
                 }
-                if (child->num == -1) {
+                if (workspace_child->num == -1) {
                     break;
                 }
                 /* Need to check child against current and next because we are
                  * traversing multiple lists and thus are not guaranteed the
                  * relative order between the list of workspaces. */
-                if (current->num < child->num && (!next || child->num < next->num)) {
-                    next = child;
+                if (current->num < workspace_child->num && (!next || workspace_child->num < next->num)) {
+                    next = workspace_child;
                 }
             }
         }
@@ -745,13 +748,14 @@ WorkspaceCon *workspace_next_on_output() {
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
             for (auto &c : output->output_get_content()->nodes) {
                 child = c;
-                if (child->type != CT_WORKSPACE) {
+                auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
+                if (workspace_child == nullptr) {
                     continue;
                 }
-                if (child == current) {
+                if (workspace_child == current) {
                     found_current = true;
-                } else if (child->num == -1 && (current->num != -1 || found_current)) {
-                    next = child;
+                } else if (workspace_child->num == -1 && (current->num != -1 || found_current)) {
+                    next = workspace_child;
                     goto workspace_next_on_output_end;
                 }
             }
@@ -763,17 +767,18 @@ WorkspaceCon *workspace_next_on_output() {
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
             for (auto &c : output->output_get_content()->nodes) {
                 child = c;
-                if (child->type != CT_WORKSPACE) {
+                auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
+                if (workspace_child == nullptr) {
                     continue;
                 }
-                if (!next || (child->num != -1 && child->num < next->num)) {
-                    next = child;
+                if (!next || (workspace_child->num != -1 && workspace_child->num < next->num)) {
+                    next = workspace_child;
                 }
             }
         }
     }
 workspace_next_on_output_end:
-    return dynamic_cast<WorkspaceCon*>(next);
+    return next;
 }
 
 /*
@@ -782,13 +787,13 @@ workspace_next_on_output_end:
  */
 WorkspaceCon *workspace_prev_on_output() {
     WorkspaceCon *current = global.focused->con_get_workspace();
-    Con *prev = nullptr;
+    WorkspaceCon *prev = nullptr;
     Con *output = global.focused->con_get_output();
     DLOG(fmt::sprintf("output = %s\n",  output->name));
 
     if (current->num == -1) {
         /* If named workspace, find previous named workspace. */
-        prev = con::previous(current, current->parent->nodes);
+        prev = dynamic_cast<WorkspaceCon*>(con::previous(current, current->parent->nodes));
         if (prev && prev->num != -1) {
             prev = nullptr;
         }
@@ -797,14 +802,15 @@ WorkspaceCon *workspace_prev_on_output() {
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
             for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
                 child = c;
-                if (child->type != CT_WORKSPACE || child->num == -1) {
+                auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
+                if (workspace_child == nullptr || workspace_child->num == -1) {
                     continue;
                 }
                 /* Need to check child against current and previous because we
                  * are traversing multiple lists and thus are not guaranteed
                  * the relative order between the list of workspaces. */
-                if (current->num > child->num && (!prev || child->num > prev->num)) {
-                    prev = child;
+                if (current->num > workspace_child->num && (!prev || workspace_child->num > prev->num)) {
+                    prev = workspace_child;
                 }
             }
         }
@@ -816,13 +822,14 @@ WorkspaceCon *workspace_prev_on_output() {
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
             for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
                 child = c;
-                if (child->type != CT_WORKSPACE) {
+                auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
+                if (workspace_child == nullptr) {
                     continue;
                 }
-                if (child == current) {
+                if (workspace_child == current) {
                     found_current = true;
-                } else if (child->num == -1 && (current->num != -1 || found_current)) {
-                    prev = child;
+                } else if (workspace_child->num == -1 && (current->num != -1 || found_current)) {
+                    prev = workspace_child;
                     goto workspace_prev_on_output_end;
                 }
             }
@@ -834,18 +841,19 @@ WorkspaceCon *workspace_prev_on_output() {
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
             for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
                 child = c;
-                if (child->type != CT_WORKSPACE) {
+                auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
+                if (workspace_child == nullptr) {
                     continue;
                 }
-                if (!prev || child->num > prev->num) {
-                    prev = child;
+                if (!prev || workspace_child->num > prev->num) {
+                    prev = workspace_child;
                 }
             }
         }
     }
 
 workspace_prev_on_output_end:
-    return dynamic_cast<WorkspaceCon*>(prev);
+    return prev;
 }
 
 /*

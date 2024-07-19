@@ -429,11 +429,13 @@ void init_ws_for_output(Output *output) {
      * Note: in order to do that we iterate over all_cons and not using another
      * list that would be updated during iteration by the
      * workspace_move_to_output function. */
-    for (const auto &workspace : global.all_cons) {
-        if (workspace->type != CT_WORKSPACE) {
+    for (const auto &workspace_con : global.all_cons) {
+        auto *workspace = dynamic_cast<WorkspaceCon*>(workspace_con);
+
+        if (workspace == nullptr) {
             continue;
         }
-
+        
         Con *workspace_out = get_assigned_output(workspace->name.c_str(), workspace->num);
 
         if (output->con != workspace_out) {
@@ -523,7 +525,10 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
      * the workspaces and their children depending on output resolution. This is
      * only done for workspaces with maximum one child. */
     if (config.default_orientation == NO_ORIENTATION) {
-        for (auto &workspace : content->nodes) {
+        //content->nodes | std::views::transform([](auto &child) { return dynamic_cast<WorkspaceCon*>(child); }) | std::views::filter([](auto &child) { return child != nullptr; });
+        
+        for (auto &workspace_con : content->nodes) {
+            auto workspace = dynamic_cast<WorkspaceCon*>(workspace_con);
             /* Workspaces with more than one child are left untouched because
              * we do not want to change an existing layout. */
             if (workspace->con_num_children() > 1)
@@ -535,7 +540,7 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
                 auto child = con::first(workspace->nodes);
                 if (child->layout == L_SPLITV || child->layout == L_SPLITH)
                     child->layout = workspace->layout;
-                DLOG(fmt::sprintf("Setting child [%d,%s]'s layout to %d.\n",  child->num, child->name, std::to_underlying(child->layout)));
+                DLOG(fmt::sprintf("Setting child [%s]'s layout to %d.\n",  child->name, std::to_underlying(child->layout)));
             }
         }
     }
@@ -824,7 +829,7 @@ static void move_content(Con *con) {
         if (current != next && current->focused.empty()) {
             /* the workspace is empty and not focused, get rid of it */
             DLOG(fmt::sprintf("Getting rid of current = %p / %s (empty, unfocused)\n", fmt::ptr(current), current->name));
-            tree_close_internal(current, DONT_KILL_WINDOW, false);
+            tree_close_internal(current, kill_window_t::DONT_KILL_WINDOW, false);
             continue;
         }
         DLOG(fmt::sprintf("Detaching current = %p / %s\n", fmt::ptr(current), current->name));
@@ -867,7 +872,7 @@ static void move_content(Con *con) {
     }
 
     DLOG(fmt::sprintf("Destroying disappearing con %p\n", fmt::ptr(con)));
-    tree_close_internal(con, DONT_KILL_WINDOW, true);
+    tree_close_internal(con, kill_window_t::DONT_KILL_WINDOW, true);
 }
 
 /*

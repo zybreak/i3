@@ -326,7 +326,7 @@ bool floating_enable(Con *con, bool automatic) {
         Con *parent = con->parent;
         /* clear the pointer before calling tree_close_internal in which the memory is freed */
         con->parent = nullptr;
-        tree_close_internal(parent, DONT_KILL_WINDOW, false);
+        tree_close_internal(parent, kill_window_t::DONT_KILL_WINDOW, false);
     }
 
     x_set_name(nc, fmt::format("[i3 con] floatingcon around {}", fmt::ptr(con)));
@@ -434,7 +434,7 @@ void floating_disable(Con *con) {
         Con *parent = con->parent;
         con->con_detach();
         con->parent = nullptr;
-        tree_close_internal(parent, DONT_KILL_WINDOW, true);
+        tree_close_internal(parent, kill_window_t::DONT_KILL_WINDOW, true);
         con->con_attach(tiling_focused, false);
         con->percent = 0.0;
         con->parent->con_fix_percent();

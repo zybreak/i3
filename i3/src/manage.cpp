@@ -139,7 +139,7 @@ void con_merge_into(Con *old, Con *new_con) {
 
     con_set_urgency(new_con, old->urgent);
 
-    tree_close_internal(old, DONT_KILL_WINDOW, false);
+    tree_close_internal(old, kill_window_t::DONT_KILL_WINDOW, false);
 }
 
 /*

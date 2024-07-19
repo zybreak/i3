@@ -488,7 +488,7 @@ void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event
     xcb_delete_property(**global.x, event->window, A__NET_WM_DESKTOP);
     xcb_delete_property(**global.x, event->window, A__NET_WM_STATE);
 
-    tree_close_internal(con, DONT_KILL_WINDOW, false);
+    tree_close_internal(con, kill_window_t::DONT_KILL_WINDOW, false);
     tree_render();
 
 ignore_end:

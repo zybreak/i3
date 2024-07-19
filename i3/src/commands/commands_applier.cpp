@@ -1197,9 +1197,9 @@ void CommandsApplier::kill(struct criteria_state *criteria_state, CommandsResult
 
     int kill_mode;
     if (strcmp(kill_mode_str, "window") == 0)
-        kill_mode = KILL_WINDOW;
+        kill_mode = std::to_underlying(kill_window_t::KILL_WINDOW);
     else if (strcmp(kill_mode_str, "client") == 0)
-        kill_mode = KILL_CLIENT;
+        kill_mode = std::to_underlying(kill_window_t::KILL_CLIENT);
     else {
         throw std::runtime_error(fmt::sprintf("BUG: called with kill_mode=%s", kill_mode_str));
     }
