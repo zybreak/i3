@@ -411,22 +411,22 @@ bool OldParser::parse_config(parser_ctx &ctx, const std::string &input, const ch
  * Inserts or updates a variable assignment depending on whether it already exists.
  *
  */
-static void upsert_variable(std::vector<std::shared_ptr<Variable>> &variables, char *key, char *value) {
+static void upsert_variable(std::vector<std::shared_ptr<Variable>> &variables, std::string_view const key, std::string_view const value) {
     for (auto &current : variables) {
-        if (strcmp(current->key.c_str(), key) != 0) {
+        if (strcmp(current->key.c_str(), key.data()) != 0) {
             continue;
         }
 
-        DLOG(fmt::sprintf("Updated variable: %s = %s -> %s\n",  key, current->value, value));
-        current->value = value;
+        DLOG(fmt::sprintf("Updated variable: %s = %s -> %s\n",  key, current->value, value.data()));
+        current->value = value.data();
         return;
     }
 
     DLOG(fmt::sprintf("Defined new variable: %s = %s\n",  key, value));
     auto n = std::make_shared<Variable>();
     auto loc = variables.begin();
-    n->key = key;
-    n->value = value;
+    n->key = key.data();
+    n->value = value.data();
     /* ensure that the correct variable is matched in case of one being
      * the prefix of another */
     while (loc != variables.end()) {
@@ -506,10 +506,9 @@ static std::string read_file(std::istream &fstr, BaseResourceDatabase &resourceD
             if (v_key[0] != '$') {
                 throw std::domain_error("Malformed variable assignment, name has to start with $\n");
             }
-            char *res_value = resourceDatabase.get_resource(res_name, fallback);
+            std::string res_value = resourceDatabase.get_resource(res_name, fallback);
 
             upsert_variable(ctx.variables, v_key, res_value);
-            free(res_value);
             continue;
         }
     }

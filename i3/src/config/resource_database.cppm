@@ -1,8 +1,10 @@
 module;
 #include <xcb/xcb_xrm.h>
 #include <fmt/printf.h>
+#include <cassert>
 export module i3:resource_database;
 
+import std;
 import i3_config_base;
 import log;
 
@@ -12,13 +14,10 @@ export class ResourceDatabase : public BaseResourceDatabase {
    public:
 
     explicit ResourceDatabase(xcb_connection_t *conn) : conn(conn) {
+        assert(conn != nullptr);
     }
 
-    char* get_resource(char *name, const char *fallback) override {
-        if (conn == nullptr) {
-            return nullptr;
-        }
-
+    std::string get_resource(std::string_view const name, std::string_view const fallback) override {
         /* Load the resource database lazily. */
         if (database == nullptr) {
             database = xcb_xrm_database_from_default(conn);
@@ -30,19 +29,23 @@ export class ResourceDatabase : public BaseResourceDatabase {
                  * default database over and over again. */
                 database = xcb_xrm_database_from_string("");
 
-                return strdup(fallback);
+                return fallback.data();
             }
         }
 
         char *resource;
-        xcb_xrm_resource_get_string(database, name, nullptr, &resource);
+        xcb_xrm_resource_get_string(database, name.data(), nullptr, &resource);
 
         if (resource == nullptr) {
             DLOG(fmt::sprintf("Could not get resource '%s', using fallback '%s'.\n",  name, fallback));
-            resource = strdup(fallback);
+            return fallback.data();
         }
-
-        return resource;
+        
+        std::string resource_str = resource;
+        
+        free(resource);
+        
+        return resource_str;
     }
 
     ~ResourceDatabase() override {
