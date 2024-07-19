@@ -331,7 +331,7 @@ bool load_configuration(const std::string *override_configpath, config_load_t lo
     }
 
     if (load_type == config_load_t::C_RELOAD) {
-        translate_keysyms();
+        translate_keysyms(global.keymap);
         grab_all_keys(*global.x);
         regrab_all_buttons(*global.x);
         gaps_reapply_workspace_assignments();

@@ -639,11 +639,14 @@ int main(int argc, char *argv[]) {
 
     x.xcb_numlock_mask = global.keysyms->get_numlock_mask();
 
-    if (!load_keymap()) {
+    auto keymap = load_keymap();
+    if (!keymap) {
         errx(EXIT_FAILURE, "Could not load keymap\n");
     }
+    
+    global.keymap = &keymap.value();
 
-    translate_keysyms();
+    translate_keysyms(global.keymap);
     grab_all_keys(&*x);
 
     do_tree_init(args, greply.get());

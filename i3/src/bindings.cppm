@@ -9,6 +9,8 @@
  */
 module;
 #include <xcb/xcb.h>
+#include <xkbcommon/xkbcommon-x11.h>
+#include <xkbcommon/xkbcommon.h>
 export module i3:bindings;
 
 import std;
@@ -119,6 +121,35 @@ export {
 
         ~Binding() = default;
     };
+    
+    class Keymap {
+        xkb_context *context;
+    public:
+        xkb_keymap *keymap;
+        
+        Keymap();
+        
+        Keymap(const Keymap &other) = delete;
+        void operator=(const Keymap &other) = delete;
+       
+        Keymap(Keymap &&other) {
+            auto tmp_context = this->context;
+            auto tmp_keymap = this->keymap;
+            this->keymap = other.keymap;
+            this->context = other.context;
+            other.keymap = tmp_keymap;
+            other.context = tmp_context;
+        }
+        
+        ~Keymap() {
+            if (keymap) {
+                xkb_keymap_unref(keymap);
+            }
+            if (context) {
+                xkb_context_unref(context);
+            }
+        }
+    };
 
     /**
      * Adds a binding from config parameters given as strings and returns a
@@ -162,7 +193,7 @@ export {
      * Translates keysymbols to keycodes for all bindings which use keysyms.
      *
      */
-    void translate_keysyms();
+    void translate_keysyms(Keymap const * keymap);
 
     /**
      * Switches the key bindings to the given mode, if the mode exists
@@ -207,7 +238,7 @@ export {
      * Loads the XKB keymap from the X11 server and feeds it to xkbcommon.
      *
      */
-    bool load_keymap();
+    std::optional<Keymap> load_keymap();
 
     /**
      * Returns a list of buttons that should be grabbed on a window.

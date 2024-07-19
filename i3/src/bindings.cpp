@@ -26,9 +26,6 @@ import log;
 import i3_commands_base;
 import i3ipc;
 
-static xkb_context *context;
-static xkb_keymap *keymap;
-
 using namespace std::literals;
 
 struct resolve {
@@ -483,17 +480,17 @@ static void add_keycode_if_matches(xkb_keymap *keymap, xkb_keycode_t key, void *
  * Translates keysymbols to keycodes for all bindings which use keysyms.
  *
  */
-void translate_keysyms() {
+void translate_keysyms(Keymap const * keymap) {
     struct xkb_state *dummy_state = nullptr;
     struct xkb_state *dummy_state_no_shift = nullptr;
     struct xkb_state *dummy_state_numlock = nullptr;
     struct xkb_state *dummy_state_numlock_no_shift = nullptr;
     bool has_errors = false;
 
-    if ((dummy_state = xkb_state_new(keymap)) == nullptr ||
-        (dummy_state_no_shift = xkb_state_new(keymap)) == nullptr ||
-        (dummy_state_numlock = xkb_state_new(keymap)) == nullptr ||
-        (dummy_state_numlock_no_shift = xkb_state_new(keymap)) == nullptr) {
+    if ((dummy_state = xkb_state_new(keymap->keymap)) == nullptr ||
+        (dummy_state_no_shift = xkb_state_new(keymap->keymap)) == nullptr ||
+        (dummy_state_numlock = xkb_state_new(keymap->keymap)) == nullptr ||
+        (dummy_state_numlock_no_shift = xkb_state_new(keymap->keymap)) == nullptr) {
         ELOG("Could not create XKB state, cannot translate keysyms.\n");
         goto out;
     }
@@ -627,7 +624,7 @@ void translate_keysyms() {
 
         bind->keycodes.clear();
 
-        xkb_keymap_key_for_each(keymap, add_keycode_if_matches, &resolving);
+        xkb_keymap_key_for_each(keymap->keymap, add_keycode_if_matches, &resolving);
         std::string keycodes{};
         int num_keycodes = 0;
         for (auto &binding_keycode : bind->keycodes) {
@@ -680,7 +677,7 @@ void switch_mode(const std::string_view &new_mode) {
 
         ungrab_all_keys(*global.x);
         current_mode = mode.get();
-        translate_keysyms();
+        translate_keysyms(global.keymap);
         grab_all_keys(*global.x);
         regrab_all_buttons(*global.x);
 
@@ -896,54 +893,52 @@ static int fill_rmlvo_from_root(xkb_rule_names *xkb_names) {
     return 0;
 }
 
-/*
- * Loads the XKB keymap from the X11 server and feeds it to xkbcommon.
- *
- */
-bool load_keymap() {
-    if (context == nullptr) {
-        if ((context = xkb_context_new(XKB_CONTEXT_NO_FLAGS)) == nullptr) {
-            ELOG("Could not create xkbcommon context\n");
-            return false;
-        }
+Keymap::Keymap() {
+    if ((context = xkb_context_new(XKB_CONTEXT_NO_FLAGS)) == nullptr) {
+        throw std::runtime_error("Could not create xkbcommon context");
     }
 
-    struct xkb_keymap *new_keymap = nullptr;
     int32_t device_id;
     if (global.xkb->xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(**global.x)) > -1) {
-        if ((new_keymap = xkb_x11_keymap_new_from_device(context, **global.x, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
-            ELOG("xkb_x11_keymap_new_from_device failed\n");
-            return false;
+        if ((keymap = xkb_x11_keymap_new_from_device(context, **global.x, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
+            throw std::runtime_error("xkb_x11_keymap_new_from_device failed");
         }
     } else {
         /* Likely there is no XKB support on this server, possibly because it
          * is a VNC server. */
         LOG("No XKB / core keyboard device? Assembling keymap from local RMLVO.\n");
         struct xkb_rule_names names = {
-            .rules = nullptr,
-            .model = nullptr,
-            .layout = nullptr,
-            .variant = nullptr,
-            .options = nullptr};
+                .rules = nullptr,
+                .model = nullptr,
+                .layout = nullptr,
+                .variant = nullptr,
+                .options = nullptr};
         if (fill_rmlvo_from_root(&names) == -1) {
             ELOG("Could not get _XKB_RULES_NAMES atom from root window, falling back to defaults.\n");
             /* Using NULL for the fields of xkb_rule_names. */
         }
-        new_keymap = xkb_keymap_new_from_names(context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
+        keymap = xkb_keymap_new_from_names(context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
         free((char *)names.rules);
         free((char *)names.model);
         free((char *)names.layout);
         free((char *)names.variant);
         free((char *)names.options);
-        if (new_keymap == nullptr) {
-            ELOG("xkb_keymap_new_from_names failed\n");
-            return false;
+        if (keymap == nullptr) {
+            throw std::runtime_error("xkb_keymap_new_from_names failed");
         }
     }
-    xkb_keymap_unref(keymap);
-    keymap = new_keymap;
+}
 
-    return true;
+/*
+ * Loads the XKB keymap from the X11 server and feeds it to xkbcommon.
+ *
+ */
+std::optional<Keymap> load_keymap() {
+    try {
+        return Keymap{};
+    } catch (std::runtime_error &e) {
+        return std::nullopt;
+    }
 }
 
 /*
