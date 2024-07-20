@@ -33,8 +33,8 @@ static std::deque<std::string> binding_workspace_names{};
 WorkspaceCon *get_existing_workspace_by_name(const std::string &name) {
     WorkspaceCon *workspace = nullptr;
     for (auto &output : global.croot->nodes) {
-        auto ws = std::ranges::find_if(output->output_get_content()->nodes, [&name](auto &child) { return !strcasecmp(child->name.c_str(), name.c_str()); });
-        if (ws != output->output_get_content()->nodes.end()) {
+        auto ws = std::ranges::find_if(dynamic_cast<OutputCon*>(output)->output_get_content()->nodes, [&name](auto &child) { return !strcasecmp(child->name.c_str(), name.c_str()); });
+        if (ws != dynamic_cast<OutputCon*>(output)->output_get_content()->nodes.end()) {
             workspace = dynamic_cast<WorkspaceCon*>(*ws);
         }
     }
@@ -50,8 +50,8 @@ WorkspaceCon *get_existing_workspace_by_name(const std::string &name) {
 WorkspaceCon *get_existing_workspace_by_num(int num) {
     WorkspaceCon *workspace = nullptr;
     for (auto &output : global.croot->nodes) {
-        auto ws = std::ranges::find_if(output->output_get_content()->nodes, [&num](auto &child) { return dynamic_cast<WorkspaceCon*>(child)->num == num; });
-        if (ws != output->output_get_content()->nodes.end()) {
+        auto ws = std::ranges::find_if(dynamic_cast<OutputCon*>(output)->output_get_content()->nodes, [&num](auto &child) { return dynamic_cast<WorkspaceCon*>(child)->num == num; });
+        if (ws != dynamic_cast<OutputCon*>(output)->output_get_content()->nodes.end()) {
             workspace = dynamic_cast<WorkspaceCon*>(*ws);
         }
     }
@@ -90,8 +90,8 @@ static void _workspace_apply_default_orientation(Con *ws) {
  * 'name' is ignored when NULL, 'parsed_num' is ignored when it is -1.
  *
  */
-Con *get_assigned_output(const char *name, long parsed_num) {
-    Con *output = nullptr;
+OutputCon *get_assigned_output(const char *name, long parsed_num) {
+    OutputCon *output = nullptr;
     for (const auto &assignment : global.ws_assignments) {
         if (assignment->output.empty()) {
             continue;
@@ -148,7 +148,7 @@ WorkspaceCon *workspace_get(const std::string &num) {
      * a positive number. Otherwise it’s a named ws and num will be 1. */
     const int parsed_num = utils::ws_name_to_number(num);
 
-    Con *output = get_assigned_output(num.c_str(), parsed_num);
+    OutputCon *output = get_assigned_output(num.c_str(), parsed_num);
     /* if an assignment is not found, we create this workspace on the current output */
     if (!output) {
         output = global.focused->con_get_output();
@@ -574,7 +574,7 @@ WorkspaceCon *workspace_next() {
         bool found_current = false;
         for (auto &output : global.croot->nodes) {
             for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-                for (auto &c : output->output_get_content()->nodes) {
+                for (auto &c : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
                     child = c;
                     auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
                     if (workspace_child == nullptr) {
@@ -598,7 +598,7 @@ WorkspaceCon *workspace_next() {
         /* If currently a numbered workspace, find next numbered workspace. */
         for (auto &output : global.croot->nodes) {
             for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-                for (auto &c : output->output_get_content()->nodes) {
+                for (auto &c : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
                     child = c;
                     auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
                     if (workspace_child == nullptr) {
@@ -650,7 +650,7 @@ WorkspaceCon *workspace_prev() {
             bool found_current = false;
             for (auto &output : global.croot->nodes | std::views::reverse) {
                 for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-                    for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
+                    for (auto &c : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes | std::views::reverse) {
                         child = c;
                         auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
                         if (workspace_child == nullptr) {
@@ -675,7 +675,7 @@ WorkspaceCon *workspace_prev() {
         /* If numbered workspace, find previous numbered workspace. */
         for (auto &output : global.croot->nodes | std::views::reverse) {
             for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-                for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
+                for (auto &c : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes | std::views::reverse) {
                     child = c;
                     auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
                     if (workspace_child == nullptr) {
@@ -723,7 +723,7 @@ WorkspaceCon *workspace_next_on_output() {
     } else {
         /* If currently a numbered workspace, find next numbered workspace. */
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-            for (auto &c : output->output_get_content()->nodes) {
+            for (auto &c : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
                 child = c;
                 auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
                 if (workspace_child == nullptr) {
@@ -746,7 +746,7 @@ WorkspaceCon *workspace_next_on_output() {
     if (!next) {
         bool found_current = false;
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-            for (auto &c : output->output_get_content()->nodes) {
+            for (auto &c : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
                 child = c;
                 auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
                 if (workspace_child == nullptr) {
@@ -765,7 +765,7 @@ WorkspaceCon *workspace_next_on_output() {
     /* Find first workspace. */
     if (!next) {
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-            for (auto &c : output->output_get_content()->nodes) {
+            for (auto &c : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
                 child = c;
                 auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
                 if (workspace_child == nullptr) {
@@ -800,7 +800,7 @@ WorkspaceCon *workspace_prev_on_output() {
     } else {
         /* If numbered workspace, find previous numbered workspace. */
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-            for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
+            for (auto &c : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes | std::views::reverse) {
                 child = c;
                 auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
                 if (workspace_child == nullptr || workspace_child->num == -1) {
@@ -820,7 +820,7 @@ WorkspaceCon *workspace_prev_on_output() {
     if (!prev) {
         bool found_current = false;
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-            for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
+            for (auto &c : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes | std::views::reverse) {
                 child = c;
                 auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
                 if (workspace_child == nullptr) {
@@ -839,7 +839,7 @@ WorkspaceCon *workspace_prev_on_output() {
     /* Find last workspace. */
     if (!prev) {
         for (Con *child = (Con *)-1; (child == (Con *)-1) && ((child = 0), true);) {
-            for (auto &c : output->output_get_content()->nodes | std::views::reverse) {
+            for (auto &c : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes | std::views::reverse) {
                 child = c;
                 auto workspace_child = dynamic_cast<WorkspaceCon*>(c);
                 if (workspace_child == nullptr) {

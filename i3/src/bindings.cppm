@@ -123,14 +123,23 @@ export {
     };
     
     class Keymap {
-        xkb_context *context;
+        xkb_context *context = nullptr;
     public:
-        xkb_keymap *keymap;
+        xkb_keymap *keymap = nullptr;
         
         Keymap();
         
-        Keymap(const Keymap &other) = delete;
-        void operator=(const Keymap &other) = delete;
+        Keymap(Keymap &other) = delete;
+        void operator=(Keymap &other) = delete;
+        
+        void operator=(Keymap &&other) {
+            auto tmp_context = this->context;
+            auto tmp_keymap = this->keymap;
+            this->keymap = other.keymap;
+            this->context = other.context;
+            other.keymap = tmp_keymap;
+            other.context = tmp_context;
+        }
        
         Keymap(Keymap &&other) {
             auto tmp_context = this->context;

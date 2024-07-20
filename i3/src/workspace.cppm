@@ -20,6 +20,7 @@ import :internal;
 using std::uint32_t;
 
 class Output;
+class OutputCon;
 class WorkspaceCon;
 class Con;
 
@@ -76,7 +77,7 @@ export {
      * 'name' is ignored when NULL, 'parsed_num' is ignored when it is -1.
      *
      */
-    Con *get_assigned_output(const char *name, long parsed_num);
+    OutputCon *get_assigned_output(const char *name, long parsed_num);
 
     /**
      * Returns true if the first output assigned to a workspace with the given

@@ -352,7 +352,8 @@ void output_init_con(Output *output) {
     }
 
     if (con == nullptr) {
-        con = new OutputCon(global.croot);
+        con = new OutputCon();
+        con->con_attach(global.croot, false);
         con->name = output->output_primary_name();
         global.croot->con_fix_percent();
     }
@@ -813,7 +814,7 @@ void RandR::randr_query_outputs_14() {
  *
  */
 static void move_content(Con *con) {
-    Con *first = global.randr->get_first_output()->con;
+    OutputCon *first = global.randr->get_first_output()->con;
     Con *first_content = first->output_get_content();
 
     /* We need to move the workspaces from the disappearing output to the first output */
@@ -823,7 +824,7 @@ static void move_content(Con *con) {
     /* 2: iterate through workspaces and re-assign them, fixing the coordinates
      * of floating containers as we go */
     Con *current;
-    Con *old_content = con->output_get_content();
+    Con *old_content = dynamic_cast<OutputCon*>(con) != nullptr ? dynamic_cast<OutputCon*>(con)->output_get_content() : nullptr;
     while (!old_content->nodes.empty()) {
         current = con::first(old_content->nodes);
         if (current != next && current->focused.empty()) {

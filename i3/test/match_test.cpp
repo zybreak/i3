@@ -44,7 +44,7 @@ TEST(MatchTest, MatchesUrgentLatest){
     i3Window w2{};
     w2.urgent = std::chrono::system_clock::now() + std::chrono::seconds(1);
 
-    auto c = new ConCon(nullptr, &w2, true);
+    auto c = new ConCon(&w2, true);
 
     ASSERT_FALSE(m.match_matches_window(&w));
 }
@@ -63,7 +63,7 @@ TEST(MatchTest, MatchesUrgentOldest){
     i3Window w2{};
     w2.urgent = std::chrono::system_clock::now() + std::chrono::seconds(1);
 
-    auto c = new ConCon(nullptr, &w2, true);
+    auto c = new ConCon(&w2, true);
 
     ASSERT_TRUE(m.match_matches_window(&w));
 }

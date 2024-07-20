@@ -2223,7 +2223,7 @@ static bool gaps_update(gap_accessor get, const char *scope, const char *mode, i
 
     if (strcmp(scope, "all") == 0) {
         for (auto &output : global.croot->nodes) {
-            for (auto &ws : output->output_get_content()->nodes) {
+            for (auto &ws : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
                 WorkspaceCon *cur_ws = dynamic_cast<WorkspaceCon*>(ws);
                 int *gaps_value = get(&(cur_ws->gaps));
                 DLOG(fmt::sprintf("current gaps_value = %d\n", *gaps_value));

@@ -42,7 +42,7 @@ struct render_params {
 
 /* Forward declarations */
 static std::vector<int> precalculate_sizes(Con *con, render_params *p);
-static void render_root(Con *con, Con *fullscreen);
+static void render_root(RootCon *con, Con *fullscreen);
 static void render_output(Con *con);
 static void render_con_split(Con *con, Con *child, render_params *p, int i);
 static void render_con_stacked(Con *con, Con *child, render_params *p, int i);
@@ -181,7 +181,7 @@ void render_con(Con *con) {
     if (con->layout == L_OUTPUT) {
         render_output(con);
     } else if (con->type == CT_ROOT) {
-        render_root(con, fullscreen);
+        render_root(dynamic_cast<RootCon*>(con), fullscreen);
     } else {
         for (auto &child : con->nodes) {
             assert(params.children > 0);
@@ -220,12 +220,12 @@ void render_con(Con *con) {
         /* in a stacking or tabbed container, we ensure the focused client is raised */
         if (con->layout == L_STACKED || con->layout == L_TABBED) {
             // TODO: swap is ambigous when using the views::reverse
-            //for (auto &it : con->focused | std::views::reverse) {
-            //    x_raise_con(it);
-            //}
-            for (auto it = con->focused.rbegin(); it != con->focused.rend(); ++it) {
-                x_raise_con(*it);
+            for (auto &it : con->focused | std::views::reverse) {
+                x_raise_con(it);
             }
+            //for (auto it = con->focused.rbegin(); it != con->focused.rend(); ++it) {
+            //    x_raise_con(*it);
+            //}
             Con *child = con::first(con->focused);
             if (child != nullptr) {
                 /* By rendering the stacked container again, we handle the case
@@ -275,7 +275,7 @@ static std::vector<int> precalculate_sizes(Con *con, render_params *p) {
     return sizes;
 }
 
-static void render_root(Con *con, Con *fullscreen) {
+static void render_root(RootCon *con, Con *fullscreen) {
     if (!fullscreen) {
         for (auto &output : con->nodes) {
             render_con(output);
@@ -289,7 +289,7 @@ static void render_root(Con *con, Con *fullscreen) {
     DLOG("Rendering floating windows:\n");
     for (auto &output : con->nodes) {
         /* Get the active workspace of that output */
-        Con *content = output->output_get_content();
+        Con *content = dynamic_cast<OutputCon*>(output)->output_get_content();
         if (!content || content->focused.empty()) {
             DLOG("Skipping this output because it is currently being destroyed.\n");
             continue;

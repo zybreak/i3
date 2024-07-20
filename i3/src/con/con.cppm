@@ -15,6 +15,7 @@ export module i3:con;
 
 import std;
 import rect;
+import utils;
 import :draw;
 import :internal;
 
@@ -41,7 +42,7 @@ export {
      *
      */
     struct deco_render_params {
-        struct Colortriple *color;
+        Colortriple *color;
         int border_style;
         width_height con_rect;
         width_height con_window_rect;
@@ -192,12 +193,6 @@ export {
         void on_remove_child();
 
         /**
-         * Returns the output container below the given output container.
-         *
-         */
-        Con *output_get_content();
-
-        /**
          * Sets input focus to the given container. Will be updated in X11 in the next
          * run of x_push_changes().
          *
@@ -305,7 +300,7 @@ export {
          * Checks if the given container is inside a focused container.
          *
          */
-        bool con_inside_focused();
+        bool con_inside_focused() const;
 
         /**
          * Returns the number of children of this container.
@@ -409,7 +404,7 @@ export {
          * This function only initializes the data structures.
          *
          */
-        Con(Con *parent = nullptr, i3Window *window = nullptr, bool skeleton = false);
+        Con(i3Window *window = nullptr, bool skeleton = false);
 
         /**
          * Frees the specified container.
@@ -421,7 +416,7 @@ export {
     class RootCon : public Con {
        public:
         RootCon()
-            : Con(nullptr, nullptr, false) {
+            : Con(nullptr, false) {
             this->type = CT_ROOT;
             this->name = "root";
         }
@@ -429,17 +424,24 @@ export {
 
     class OutputCon : public Con {
        public:
-        OutputCon(Con *parent)
-            : Con(parent, nullptr, false) {
+        OutputCon()
+            : Con(nullptr, false) {
             this->type = CT_OUTPUT;
             this->layout = L_OUTPUT;
         }
+
+        /**
+         * Returns the output container below the given output container.
+         *
+         */
+        Con *output_get_content();
+
     };
 
     class ConCon : public Con {
        public:
-        ConCon(Con *parent = nullptr, i3Window *window = nullptr, bool skeleton = false)
-            : Con(parent, window, skeleton) {
+        ConCon(i3Window *window = nullptr, bool skeleton = false)
+            : Con(window, skeleton) {
             this->type = CT_CON;
         }
         bool con_has_managed_window() override;
@@ -450,7 +452,7 @@ export {
     class FloatingCon : public Con {
        public:
         FloatingCon()
-            : Con(nullptr, nullptr, false) {
+            : Con(nullptr, false) {
             this->type = CT_FLOATING_CON;
         }
         void con_attach(Con *parent, bool ignore_focus, Con *previous = nullptr) override;
@@ -461,7 +463,7 @@ export {
     class DockCon : public Con {
        public:
         DockCon()
-            : Con(nullptr, nullptr, false) {
+            : Con(nullptr, false) {
             this->type = CT_DOCKAREA;
             this->layout = L_DOCKAREA;
         }
@@ -488,7 +490,7 @@ export {
         int num{};
 
         WorkspaceCon()
-            : Con(nullptr, nullptr, false) {
+            : Con(nullptr, false) {
             this->type = CT_WORKSPACE;
             this->workspace_layout = L_DEFAULT;
         }
@@ -497,13 +499,13 @@ export {
     };
 
     namespace con {
-    Con *first(std::deque<Con *> &queue);
+        Con *first(std::deque<Con *> &queue);
 
-    Con *previous(Con *con, std::deque<Con *> &queue);
+        Con *previous(Con *con, std::deque<Con *> &queue);
 
-    Con *next(Con *con, std::deque<Con *> &queue);
+        Con *next(Con *con, std::deque<Con *> &queue);
 
-    Con *last(std::deque<Con *> &queue);
+        Con *last(std::deque<Con *> &queue);
     }  // namespace con
 
     /**

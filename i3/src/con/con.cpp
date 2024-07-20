@@ -43,7 +43,7 @@ static std::string pango_escape_markup(std::string input) {
  * Returns the content container below the given output container.
  *
  */
-Con* Con::output_get_content() {
+Con* OutputCon::output_get_content() {
     for (auto &child : this->nodes) {
         if (child->type == CT_CON) {
             return child;
@@ -74,7 +74,7 @@ void con_force_split_parents_redraw(Con *con) {
  * This function only initializes the data structures.
  *
  */
-Con::Con(Con *parent, i3Window *window, bool skeleton) {
+Con::Con(i3Window *window, bool skeleton) {
     this->fullscreen_mode = CF_NONE;
     this->layout = L_DEFAULT;
     this->last_split_layout = L_DEFAULT;
@@ -95,10 +95,6 @@ Con::Con(Con *parent, i3Window *window, bool skeleton) {
     global.all_cons.push_back(this);
 
     DLOG("opening window\n");
-
-    if (parent != nullptr) {
-        this->con_attach(parent, false);
-    }
 
     if (!skeleton) {
         global.x->con_init(this);
@@ -746,7 +742,7 @@ FloatingCon* Con::con_inside_floating() {
  * Checks if the given container is inside a focused container.
  *
  */
-bool Con::con_inside_focused() {
+bool Con::con_inside_focused() const {
     if (this == global.focused) {
         return true;
     }
@@ -1197,7 +1193,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
      * of this function. */
     Con *current_ws = global.focused->con_get_workspace();
 
-    Con *source_output = con->con_get_output(),
+    OutputCon *source_output = con->con_get_output(),
         *dest_output = target_ws->con_get_output();
 
     /* 1: save the container which is going to be focused after the current
@@ -1454,7 +1450,7 @@ Con *con_next_focused(Con *con) {
     /* dock clients cannot be focused, so we focus the workspace instead */
     if (con->parent->type == CT_DOCKAREA) {
         DLOG("selecting workspace for dock client\n");
-        return con_descend_focused(con->parent->parent->output_get_content());
+        return con_descend_focused(dynamic_cast<OutputCon*>(con->parent->parent)->output_get_content());
     }
     if (con->con_is_floating()) {
         con = con->parent;

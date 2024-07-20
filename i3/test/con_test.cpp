@@ -14,7 +14,7 @@ class MockX : public X {
 
 TEST(ConTest, Floating) {
     global.x = new MockX{};
-    Con x{nullptr, nullptr, true};
+    Con x{nullptr, true};
     FloatingCon f{};
 
     x.con_attach(&f, true, nullptr);

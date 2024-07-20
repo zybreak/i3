@@ -119,7 +119,9 @@ Con *tree_open_con(Con *con, i3Window *window) {
     assert(con != nullptr);
 
     /* 3. create the container and attach it to its parent */
-    Con *new_con = new ConCon(con, window);
+    Con *new_con = new ConCon(window);
+    new_con->con_attach(con, false);
+
     new_con->layout = L_SPLITH;
 
     /* 4: re-calculate child->percent for each child */

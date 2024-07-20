@@ -824,7 +824,7 @@ static void handle_get_workspaces(ipc_client *client, uint8_t *message, int size
     Con *focused_ws = global.focused->con_get_workspace();
 
     for (auto &output : global.croot->nodes) {
-        for (auto &ws_con : output->output_get_content()->nodes) {
+        for (auto &ws_con : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
             assert(ws_con->type == CT_WORKSPACE);
             auto ws = dynamic_cast<WorkspaceCon*>(ws_con);
 

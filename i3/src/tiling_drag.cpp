@@ -85,8 +85,8 @@ bool has_drop_targets() {
     /* In addition to tiling containers themselves, an visible but empty
      * workspace (in a multi-monitor scenario) also is a drop target. */
     for (auto &output : global.croot->focused) {
-        auto visible_ws = std::ranges::find_if(output->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
-        if (visible_ws != output->output_get_content()->nodes.end() && (*visible_ws)->con_num_children() == 0) {
+        auto visible_ws = std::ranges::find_if(dynamic_cast<OutputCon*>(output)->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
+        if (visible_ws != dynamic_cast<OutputCon*>(output)->output_get_content()->nodes.end() && (*visible_ws)->con_num_children() == 0) {
             drop_targets++;
         }
     }

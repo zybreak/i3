@@ -19,6 +19,7 @@ import :con;
 import :font;
 import :internal;
 import rect;
+import utils;
 
 import i3_config_base;
 
@@ -44,19 +45,6 @@ export {
         FOCUS_WRAPPING_ON = 1,
         FOCUS_WRAPPING_FORCE = 2,
         FOCUS_WRAPPING_WORKSPACE = 3
-    };
-
-    /**
-     * Part of the struct Config. It makes sense to group colors for background,
-     * border and text as every element in i3 has them (window decorations, bar).
-     *
-     */
-    struct Colortriple {
-        color_t border;
-        color_t background;
-        color_t text;
-        color_t indicator;
-        color_t child_border;
     };
 
     /**
@@ -236,18 +224,18 @@ export {
         /* Color codes are stored here */
         struct config_client {
             color_t background;
-            struct Colortriple focused;
-            struct Colortriple focused_inactive;
-            struct Colortriple focused_tab_title;
-            struct Colortriple unfocused;
-            struct Colortriple urgent;
-            struct Colortriple placeholder;
+            Colortriple focused;
+            Colortriple focused_inactive;
+            Colortriple focused_tab_title;
+            Colortriple unfocused;
+            Colortriple urgent;
+            Colortriple placeholder;
             bool got_focused_tab_title;
         } client;
         struct config_bar {
-            struct Colortriple focused;
-            struct Colortriple unfocused;
-            struct Colortriple urgent;
+            Colortriple focused;
+            Colortriple unfocused;
+            Colortriple urgent;
         } bar;
 
         /** What should happen when a new popup is opened during fullscreen mode */

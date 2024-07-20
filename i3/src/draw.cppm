@@ -4,23 +4,11 @@ module;
 export module i3:draw;
 
 import std;
+import utils;
 
 class i3Font;
 
 export {
-
-    /* Represents a color split by color channel. */
-    struct color_t {
-        double red;
-        double green;
-        double blue;
-        double alpha;
-
-        /* The colorpixel we use for direct XCB calls. */
-        uint32_t colorpixel;
-
-        auto operator<=>(const color_t &r) const = default;
-    };
 
     /* A wrapper grouping an XCB drawable and both a graphics context
      * and the corresponding cairo objects representing it. */

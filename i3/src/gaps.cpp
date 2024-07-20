@@ -163,7 +163,7 @@ gaps_t gaps_for_workspace(WorkspaceCon *ws) {
  */
 void gaps_reapply_workspace_assignments() {
     for (auto &output : global.croot->nodes) {
-        Con *content = output->output_get_content();
+        Con *content = dynamic_cast<OutputCon*>(output)->output_get_content();
         for (auto &workspace : content->nodes) {
             WorkspaceCon *ws = dynamic_cast<WorkspaceCon *>(workspace);
             if (ws == nullptr)

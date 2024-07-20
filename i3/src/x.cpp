@@ -334,7 +334,8 @@ void x_window_kill(xcb_connection_t *c, xcb_window_t window, kill_window_t kill_
     xcb_flush(c);
 }
 
-static void x_draw_title_border(Con *con, struct deco_render_params *p, surface_t *dest_surface) {
+static void x_draw_title_border(Con *con, surface_t *dest_surface) {
+    deco_render_params *p = con->deco_render_params.value().get();
     Rect *dr = &(con->deco_rect);
 
     /* Left */
@@ -352,13 +353,6 @@ static void x_draw_title_border(Con *con, struct deco_render_params *p, surface_
     /* Bottom */
     draw_util_rectangle(dest_surface, p->color->border,
                         dr->x, dr->y + dr->height - 1, dr->width, 1);
-}
-
-static void x_draw_decoration_after_title(Con *con, struct deco_render_params *p, surface_t *dest_surface) {
-    assert(con->parent != nullptr);
-
-    /* Redraw the border. */
-    x_draw_title_border(con, p, dest_surface);
 }
 
 /*
@@ -413,6 +407,25 @@ static size_t x_get_border_rectangles(Con *con, xcb_rectangle_t rectangles[4]) {
     return count;
 }
 
+static Colortriple* get_color(Con *con, bool leaf) {
+    Con *parent = con->parent;
+    /* find out which colors to use */
+    if (con->urgent) {
+        return &config.client.urgent;
+    } else if (con == global.focused || con->con_inside_focused()) {
+        return &config.client.focused;
+    } else if (con == con::first(parent->focused)) {
+        if (config.client.got_focused_tab_title && !leaf && con_descend_focused(con) == global.focused) {
+            /* Stacked/tabbed parent of focused container */
+            return &config.client.focused_tab_title;
+        } else {
+            return &config.client.focused_inactive;
+        }
+    } else {
+        return &config.client.unfocused;
+    }
+}
+
 /*
  * Draws the decoration of the given container onto its parent.
  *
@@ -450,29 +463,14 @@ void x_draw_decoration(Con *con) {
         return;
     }
 
+    Rect *r = &(con->rect);
+    Rect *w = &(con->window_rect);
+    
     /* 1: build deco_params and compare with cache */
     auto p = std::make_unique<deco_render_params>();
 
-    /* find out which colors to use */
-    if (con->urgent) {
-        p->color = &config.client.urgent;
-    } else if (con == global.focused || con->con_inside_focused()) {
-        p->color = &config.client.focused;
-    } else if (con == con::first(parent->focused)) {
-        if (config.client.got_focused_tab_title && !leaf && con_descend_focused(con) == global.focused) {
-            /* Stacked/tabbed parent of focused container */
-            p->color = &config.client.focused_tab_title;
-        } else {
-            p->color = &config.client.focused_inactive;
-        }
-    } else {
-        p->color = &config.client.unfocused;
-    }
-
+    p->color = get_color(con, leaf);
     p->border_style = con_border_style(con);
-
-    Rect *r = &(con->rect);
-    Rect *w = &(con->window_rect);
     p->con_rect = {r->width, r->height};
     p->con_window_rect = {w->width, w->height};
     p->con_deco_rect = con->deco_rect;
@@ -522,14 +520,14 @@ void x_draw_decoration(Con *con) {
     }
 
     /* 3: draw a rectangle in border color around the client */
-    if (p->border_style != BS_NONE && p->con_is_leaf) {
+    if (con->deco_render_params.value()->border_style != BS_NONE && con->deco_render_params.value()->con_is_leaf) {
         /* Fill the border. We don’t just fill the whole rectangle because some
          * children are not freely resizable and we want their background color
          * to "shine through". */
         xcb_rectangle_t rectangles[4];
         size_t rectangles_count = x_get_border_rectangles(con, rectangles);
         for (size_t i = 0; i < rectangles_count; i++) {
-            draw_util_rectangle(&(con->frame_buffer), p->color->child_border,
+            draw_util_rectangle(&(con->frame_buffer), con->deco_render_params.value()->color->child_border,
                                 rectangles[i].x,
                                 rectangles[i].y,
                                 rectangles[i].width,
@@ -544,11 +542,11 @@ void x_draw_decoration(Con *con) {
         if (con::next(con, con->parent->nodes) == nullptr &&
             con::previous(con, con->parent->nodes) == nullptr &&
             con->parent->type != CT_FLOATING_CON) {
-            if (p->parent_layout == L_SPLITH) {
-                draw_util_rectangle(&(con->frame_buffer), p->color->indicator,
+            if (con->deco_render_params.value()->parent_layout == L_SPLITH) {
+                draw_util_rectangle(&(con->frame_buffer), con->deco_render_params.value()->color->indicator,
                                     r->width + (br.width + br.x), br.y, -(br.width + br.x), r->height + br.height);
-            } else if (p->parent_layout == L_SPLITV) {
-                draw_util_rectangle(&(con->frame_buffer), p->color->indicator,
+            } else if (con->deco_render_params.value()->parent_layout == L_SPLITV) {
+                draw_util_rectangle(&(con->frame_buffer), con->deco_render_params.value()->color->indicator,
                                     br.x, r->height + (br.height + br.y), r->width + br.width, -(br.height + br.y));
             }
         }
@@ -579,7 +577,7 @@ void x_draw_decoration(Con *con) {
 
     /* if this is a borderless/1pixel window, we don’t need to render the
      * decoration. */
-    if (p->border_style != BS_NORMAL) {
+    if (con->deco_render_params.value()->border_style != BS_NORMAL) {
         draw_util_copy_surface(&(con->frame_buffer), &(con->frame), 0, 0, 0, 0, con->rect.width, con->rect.height);
         return;
     }
@@ -587,11 +585,11 @@ void x_draw_decoration(Con *con) {
     /* 4: paint the bar */
     DLOG(fmt::sprintf("con->deco_rect = (x=%d, y=%d, w=%d, h=%d) for con->name=%s\n",
          con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height, con->name));
-    draw_util_rectangle(dest_surface, p->color->background,
+    draw_util_rectangle(dest_surface, con->deco_render_params.value()->color->background,
                         con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height);
 
     /* 5: draw title border */
-    x_draw_title_border(con, p.get(), dest_surface);
+    x_draw_title_border(con, dest_surface);
 
     /* 6: draw the icon and title */
     int text_offset_y = (con->deco_rect.height - config.font->height) / 2;
@@ -664,7 +662,7 @@ void x_draw_decoration(Con *con) {
     }
 
     draw_util_text(**global.x, config.font, title, dest_surface,
-                   p->color->text, p->color->background,
+                   con->deco_render_params.value()->color->text, con->deco_render_params.value()->color->background,
                    con->deco_rect.x + title_offset_x,
                    con->deco_rect.y + text_offset_y,
                    deco_width - mark_width - 2 * title_padding - total_icon_space);
@@ -678,7 +676,7 @@ void x_draw_decoration(Con *con) {
             icon_size);
     }
 
-    x_draw_decoration_after_title(con, p.get(), dest_surface);
+    x_draw_title_border(con, dest_surface);
     draw_util_copy_surface(&(con->frame_buffer), &(con->frame), 0, 0, 0, 0, con->rect.width, con->rect.height);
 }
 

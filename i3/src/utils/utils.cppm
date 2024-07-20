@@ -159,3 +159,32 @@ export void set_nonblock(int sockfd);
  *
  */
 export uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *hex);
+
+/* Represents a color split by color channel. */
+export struct color_t {
+    double red;
+    double green;
+    double blue;
+    double alpha;
+
+    /* The colorpixel we use for direct XCB calls. */
+    uint32_t colorpixel;
+
+    auto operator<=>(const color_t &r) const = default;
+};
+
+
+/**
+ * Part of the struct Config. It makes sense to group colors for background,
+ * border and text as every element in i3 has them (window decorations, bar).
+ *
+ */
+export struct Colortriple {
+    color_t border;
+    color_t background;
+    color_t text;
+    color_t indicator;
+    color_t child_border;
+    
+    auto operator<=>(const Colortriple &r) const = default;
+};

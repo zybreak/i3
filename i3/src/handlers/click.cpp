@@ -403,9 +403,10 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
         /* If the root window is clicked, find the relevant output from the
          * click coordinates and focus the output's active workspace. */
         if (event->event == global.x->root && event->response_type == XCB_BUTTON_PRESS) {
-            Con *output, *ws;
+            OutputCon *output;
+            Con *ws;
             for (auto &c : global.croot->nodes) {
-                output = c;
+                output = dynamic_cast<OutputCon*>(c);
                 if (!output->rect.rect_contains(event->event_x, event->event_y))
                     continue;
 
