@@ -55,23 +55,6 @@ void con_force_split_parents_redraw(Con *con) {
     }
 }
 
-/*
- * Like strcasecmp but considers the case where either string is NULL.
- *
- */
-static int strcasecmp_nullable(const char *a, const char *b) {
-    if (a == b) {
-        return 0;
-    }
-    if (a == nullptr) {
-        return -1;
-    }
-    if (b == nullptr) {
-        return 1;
-    }
-    return strcasecmp(a, b);
-}
-
 namespace con {
     Con *first(std::deque<Con*> &queue) {
         if (queue.empty()) {
@@ -121,18 +104,6 @@ static bool con_has_urgent_child(Con *con) {
     /* We are not interested in floating windows since they can only be
      * attached to a workspace → nodes instead of focused */
     return std::ranges::any_of(con->nodes, [](Con *child) { return con_has_urgent_child(child); });
-}
-
-/*
- * Raise container to the top if it is floating or inside some floating
- * container.
- *
- */
-static void con_raise(Con *con) {
-    Con *floating = con->con_inside_floating();
-    if (floating) {
-        floating_raise_con(floating);
-    }
 }
 
 /*
