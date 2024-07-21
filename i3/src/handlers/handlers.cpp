@@ -410,7 +410,7 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
             tree_render();
         } else if (config.focus_on_window_activation == FOWA_URGENT || (config.focus_on_window_activation == FOWA_SMART && !workspace_is_visible(workspace))) {
             DLOG(fmt::sprintf("Marking con = %p urgent\n", fmt::ptr(con)));
-            con_set_urgency(con, true);
+            con->con_set_urgency(true);
             con = remanage_window(con);
             tree_render();
         } else {

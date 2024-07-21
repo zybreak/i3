@@ -69,7 +69,7 @@ static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
 static bool handle_hints(Con *con, xcb_get_property_reply_t *reply) {
     bool urgency_hint;
     con->window->window_update_hints(reply, &urgency_hint);
-    con_set_urgency(con, urgency_hint);
+    con->con_set_urgency(urgency_hint);
     remanage_window(con);
     tree_render();
     return true;

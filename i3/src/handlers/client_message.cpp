@@ -91,11 +91,11 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
        } else if (event->data.data32[1] == A__NET_WM_STATE_DEMANDS_ATTENTION) {
            /* Check if the urgent flag must be set or not */
            if (event->data.data32[0] == _NET_WM_STATE_ADD)
-               con_set_urgency(con, true);
+               con->con_set_urgency(true);
            else if (event->data.data32[0] == _NET_WM_STATE_REMOVE)
-               con_set_urgency(con, false);
+               con->con_set_urgency(false);
            else if (event->data.data32[0] == _NET_WM_STATE_TOGGLE)
-               con_set_urgency(con, !con->urgent);
+               con->con_set_urgency(!con->urgent);
        } else if (event->data.data32[1] == A__NET_WM_STATE_STICKY) {
            DLOG("Received a client message to modify _NET_WM_STATE_STICKY.\n");
            if (event->data.data32[0] == _NET_WM_STATE_ADD)
@@ -147,7 +147,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
                con->con_activate_unblock();
            } else if (config.focus_on_window_activation == FOWA_URGENT || (config.focus_on_window_activation == FOWA_SMART && !workspace_is_visible(ws))) {
                DLOG(fmt::sprintf("Marking con = %p urgent\n", fmt::ptr(con)));
-               con_set_urgency(con, true);
+               con->con_set_urgency(true);
            } else
                DLOG(fmt::sprintf("Ignoring request for con = %p.\n", fmt::ptr(con)));
        }

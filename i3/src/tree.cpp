@@ -144,8 +144,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
 
     /* remove the urgency hint of the workspace (if set) */
     if (con->urgent) {
-        con_set_urgency(con, false);
-        con_update_parents_urgency(con);
+        con->con_set_urgency(false);
         workspace_update_urgent_flag(con->con_get_workspace());
     }
 

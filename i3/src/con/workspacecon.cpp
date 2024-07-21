@@ -17,6 +17,19 @@ import std;
 import log;
 import i3ipc;
 
+
+/*
+ * Make all parent containers urgent if con is urgent or clear the urgent flag
+ * of all parent containers if there are no more urgent children left.
+ *
+ */
+void WorkspaceCon::con_update_parents_urgency() {
+    /* Urgency hints should not be set on any container higher up in the
+     * hierarchy than the workspace level. Unfortunately, since the content
+     * container has type == CT_CON, that’s not easy to verify in the loop
+     * below, so we need another condition to catch that case: */
+}
+
 void WorkspaceCon::con_attach(Con *parent, bool ignore_focus, Con *previous_con) {
     this->parent = parent;
     auto previous = dynamic_cast<WorkspaceCon*>(previous_con);

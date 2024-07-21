@@ -137,7 +137,7 @@ void con_merge_into(Con *old, Con *new_con) {
 
     new_con->sticky = old->sticky;
 
-    con_set_urgency(new_con, old->urgent);
+    new_con->con_set_urgency(old->urgent);
 
     tree_close_internal(old, kill_window_t::DONT_KILL_WINDOW, false);
 }
@@ -690,7 +690,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
      * known to do that), so check for that and handle the hint accordingly.
      * This code needs to be in this part of manage_window() because the window
      * needs to be on the final workspace first. */
-    con_set_urgency(nc, urgency_hint);
+    nc->con_set_urgency(urgency_hint);
 
     /* Update _NET_WM_DESKTOP. We invalidate the cached value first to force an update. */
     cwindow->wm_desktop = NET_WM_DESKTOP_NONE;

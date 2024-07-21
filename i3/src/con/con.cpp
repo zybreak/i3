@@ -294,8 +294,7 @@ void Con::con_focus() {
      * checks before resetting the urgency.
      */
     if (this->urgent && this->con_is_leaf()) {
-        con_set_urgency(this, false);
-        con_update_parents_urgency(this);
+        this->con_set_urgency(false);
         workspace_update_urgent_flag(this->con_get_workspace());
         ipc_send_window_event("urgent", this);
     }
@@ -1226,7 +1225,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
     /* 9. If the container was marked urgent, move the urgency hint. */
     if (urgent) {
         workspace_update_urgent_flag(source_ws);
-        con_set_urgency(con, true);
+        con->con_set_urgency(true);
     }
 
     /* Ensure the container will be redrawn. */
@@ -1742,7 +1741,7 @@ void Con::on_remove_child() {
 
     con_force_split_parents_redraw(this);
     this->urgent = con_has_urgent_child(this);
-    con_update_parents_urgency(this);
+    this->con_update_parents_urgency();
 
     /* TODO: check if this container would swallow any other client and
      * don’t close it automatically. */
@@ -1818,18 +1817,10 @@ bool con_fullscreen_permits_focusing(Con *con) {
  * of all parent containers if there are no more urgent children left.
  *
  */
-void con_update_parents_urgency(Con *con) {
-    Con *parent = con->parent;
+void Con::con_update_parents_urgency() {
+    Con *parent = this->parent;
 
-    /* Urgency hints should not be set on any container higher up in the
-     * hierarchy than the workspace level. Unfortunately, since the content
-     * container has type == CT_CON, that’s not easy to verify in the loop
-     * below, so we need another condition to catch that case: */
-    if (con->type == CT_WORKSPACE) {
-        return;
-    }
-
-    bool new_urgency_value = con->urgent;
+    bool new_urgency_value = this->urgent;
     while (parent && parent->type != CT_WORKSPACE && parent->type != CT_DOCKAREA) {
         if (new_urgency_value) {
             parent->urgent = true;
@@ -1848,7 +1839,9 @@ void con_update_parents_urgency(Con *con) {
  * Set urgency flag to the container, all the parent containers and the workspace.
  *
  */
-void con_set_urgency(Con *con, bool urgent) {
+void Con::con_set_urgency(bool urgent) {
+    Con *con = this;
+    
     if (urgent && global.focused == con) {
         DLOG("Ignoring urgency flag for current client\n");
         return;
@@ -1870,7 +1863,7 @@ void con_set_urgency(Con *con, bool urgent) {
         }
     }
 
-    con_update_parents_urgency(con);
+    con->con_update_parents_urgency();
 
     Con *ws;
     /* Set the urgency flag on the workspace, if a workspace could be found

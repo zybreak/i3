@@ -415,8 +415,7 @@ static void workspace_defer_update_urgent_hint_cb(EV_P_ ev_timer *w, int revents
 
     if (con->urgent) {
         DLOG(fmt::sprintf("Resetting urgency flag of con %p by timer\n", fmt::ptr(con)));
-        con_set_urgency(con, false);
-        con_update_parents_urgency(con);
+        con->con_set_urgency(false);
         workspace_update_urgent_flag(con->con_get_workspace());
         ipc_send_window_event("urgent", con);
         tree_render();

@@ -22,6 +22,7 @@ import :internal;
 class Output;
 class i3Window;
 class Match;
+
 export {
     /**
      * Stores a width/height pair, used as part of deco_render_params to check
@@ -74,6 +75,15 @@ export {
      *
      */
     class Con {
+      private:
+
+        /**
+         * Make all parent containers urgent if con is urgent or clear the urgent flag
+         * of all parent containers if there are no more urgent children left.
+         *
+         */
+        virtual void con_update_parents_urgency();
+
        public:
         bool mapped{};
 
@@ -406,6 +416,12 @@ export {
         virtual void con_set_layout(layout_t layout);
 
         /**
+         * Set urgency flag to the container, all the parent containers and the workspace.
+         *
+         */
+        void con_set_urgency(bool urgent);
+
+        /**
          * Create a new container (and attach it to the given parent, if not NULL).
          * This function only initializes the data structures.
          *
@@ -495,6 +511,8 @@ export {
     };
 
     class WorkspaceCon : public Con {
+       private:
+        void con_update_parents_urgency() override;
        public:
         /* Only workspace-containers can have floating clients */
         std::deque<Con *> floating_windows{};
@@ -725,19 +743,6 @@ export {
      *
      */
     bool con_fullscreen_permits_focusing(Con * con);
-
-    /**
-     * Make all parent containers urgent if con is urgent or clear the urgent flag
-     * of all parent containers if there are no more urgent children left.
-     *
-     */
-    void con_update_parents_urgency(Con * con);
-
-    /**
-     * Set urgency flag to the container, all the parent containers and the workspace.
-     *
-     */
-    void con_set_urgency(Con * con, bool urgent);
 
     /**
      * Create a string representing the subtree under con.
