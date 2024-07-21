@@ -398,6 +398,14 @@ export {
         void con_fix_percent();
 
         /**
+         * This function changes the layout of a given container. Use it to handle
+         * special cases like changing a whole workspace to stacked/tabbed (creates a
+         * new split container before).
+         *
+         */
+        void con_set_layout(layout_t layout);
+
+        /**
          * Create a new container (and attach it to the given parent, if not NULL).
          * This function only initializes the data structures.
          *
@@ -670,14 +678,6 @@ export {
      *
      */
     void con_set_border_style(Con *con, border_style_t border_style, int border_width);
-
-    /**
-     * This function changes the layout of a given container. Use it to handle
-     * special cases like changing a whole workspace to stacked/tabbed (creates a
-     * new split container before).
-     *
-     */
-    void con_set_layout(Con * con, layout_t layout);
 
     /**
      * Returns true if changing the focus to con would be allowed considering

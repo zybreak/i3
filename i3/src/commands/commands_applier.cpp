@@ -232,27 +232,24 @@ static void con_toggle_layout(Con *con, const char *toggle_mode) {
         free(tm_dup);
 
         if (new_layout != L_DEFAULT) {
-            con_set_layout(con, new_layout);
+            con->con_set_layout(new_layout);
         }
     } else if (strcasecmp(toggle_mode, "all") == 0 || strcasecmp(toggle_mode, "default") == 0) {
         if (parent->layout == L_STACKED)
-            con_set_layout(con, L_TABBED);
+            con->con_set_layout(L_TABBED);
         else if (parent->layout == L_TABBED) {
             if (strcasecmp(toggle_mode, "all") == 0)
-                con_set_layout(con, L_SPLITH);
+                con->con_set_layout(L_SPLITH);
             else
-                con_set_layout(con, parent->last_split_layout);
+                con->con_set_layout(parent->last_split_layout);
         } else if (parent->layout == L_SPLITH || parent->layout == L_SPLITV) {
             if (strcasecmp(toggle_mode, "all") == 0) {
                 /* When toggling through all modes, we toggle between
                  * splith/splitv, whereas normally we just directly jump to
                  * stacked. */
-                if (parent->layout == L_SPLITH)
-                    con_set_layout(con, L_SPLITV);
-                else
-                    con_set_layout(con, L_STACKED);
+                con->con_set_layout(parent->layout == L_SPLITH ? L_SPLITV : L_STACKED);
             } else {
-                con_set_layout(con, L_STACKED);
+                con->con_set_layout(L_STACKED);
             }
         }
     }
@@ -1550,7 +1547,7 @@ void CommandsApplier::layout(struct criteria_state *criteria_state, CommandsResu
         }
 
         DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
-        con_set_layout(current, layout);
+        current->con_set_layout(layout);
     }
 
     cmd_output.needs_tree_render = true;

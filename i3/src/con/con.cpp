@@ -1790,7 +1790,8 @@ void con_set_border_style(Con *con, border_style_t border_style, int border_widt
  * new split container before).
  *
  */
-void con_set_layout(Con *con, layout_t layout) {
+void Con::con_set_layout(layout_t layout) {
+    Con *con = this;
     DLOG(fmt::sprintf("con_set_layout(%p, %d), con->type = %d\n",
          fmt::ptr(con), std::to_underlying(layout), std::to_underlying(con->type)));
 
