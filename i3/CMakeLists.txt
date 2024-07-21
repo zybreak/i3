@@ -59,6 +59,12 @@ list(APPEND i3_src
         src/commands/commands_parser.cpp
         src/commands/commands_applier.cpp
         src/con/con.cpp
+        src/con/outputcon.cpp
+        src/con/rootcon.cpp
+        src/con/concon.cpp
+        src/con/floatingcon.cpp
+        src/con/dockcon.cpp
+        src/con/workspacecon.cpp
         src/config/configuration.cpp
         src/config/config_applier.cpp
         src/drag.cpp
