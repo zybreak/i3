@@ -188,7 +188,7 @@ export {
         xcb_colormap_t colormap{};
 
         /** callbacks */
-        void on_remove_child();
+        virtual void on_remove_child();
 
         /**
          * Sets input focus to the given container. Will be updated in X11 in the next
@@ -430,6 +430,8 @@ export {
         void con_set_layout(layout_t layout) override {
             throw std::domain_error("Cannot change layout of root");
         }
+        
+        void on_remove_child() override;
     };
 
     class OutputCon : public Con {
@@ -449,6 +451,8 @@ export {
         void con_set_layout(layout_t layout) override {
             throw std::domain_error("Cannot change layout of output");
         }
+
+        void on_remove_child() override;
     };
 
     class ConCon : public Con {
@@ -486,6 +490,8 @@ export {
         void con_set_layout(layout_t layout) override {
             throw std::domain_error("Cannot change layout of dockarea");
         }
+
+        void on_remove_child() override;
     };
 
     class WorkspaceCon : public Con {
@@ -518,6 +524,8 @@ export {
         FloatingCon *con_inside_floating() override;
 
         void con_set_layout(layout_t layout) override;
+        
+        void on_remove_child() override;
     };
 
     namespace con {

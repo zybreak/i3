@@ -1900,6 +1900,42 @@ void Con::con_set_layout(layout_t layout) {
     con_force_split_parents_redraw(con);
 }
 
+void RootCon::on_remove_child() {
+    DLOG("on_remove_child\n");
+    DLOG(fmt::sprintf("not handling, type = %d, name = %s\n",  std::to_underlying(this->type), this->name));
+}
+
+void OutputCon::on_remove_child() {
+    DLOG("on_remove_child\n");
+    DLOG(fmt::sprintf("not handling, type = %d, name = %s\n",  std::to_underlying(this->type), this->name));
+}
+
+void DockCon::on_remove_child() {
+    DLOG("on_remove_child\n");
+    DLOG(fmt::sprintf("not handling, type = %d, name = %s\n",  std::to_underlying(this->type), this->name));
+}
+
+void WorkspaceCon::on_remove_child() {
+    DLOG("on_remove_child\n");
+
+    /* Every container 'above' (in the hierarchy) the workspace content should
+     * not be closed when the last child was removed */
+    if (this->parent != nullptr && this->parent->type == CT_OUTPUT) {
+        DLOG(fmt::sprintf("not handling, type = %d, name = %s\n",  std::to_underlying(this->type), this->name));
+        return;
+    }
+
+    /* For workspaces, close them only if they're not visible anymore */
+    if (this->focused.empty() && !workspace_is_visible(this)) {
+        LOG(fmt::sprintf("Closing old workspace (%p / %s), it is empty\n", fmt::ptr(this), this->name));
+        auto gen = ipc_marshal_workspace_event("empty", this, nullptr);
+        tree_close_internal(this, kill_window_t::DONT_KILL_WINDOW, false);
+
+        auto payload = gen.dump();
+        ipc_send_event("workspace", i3ipc::EVENT_WORKSPACE, payload);
+    }
+}
+
 /*
  * Callback which will be called when removing a child from the given con.
  * Kills the container if it is empty and replaces it with the child if there
@@ -1911,24 +1947,8 @@ void Con::on_remove_child() {
 
     /* Every container 'above' (in the hierarchy) the workspace content should
      * not be closed when the last child was removed */
-    if (this->type == CT_OUTPUT ||
-        this->type == CT_ROOT ||
-        this->type == CT_DOCKAREA ||
-        (this->parent != nullptr && this->parent->type == CT_OUTPUT)) {
+    if (this->parent != nullptr && this->parent->type == CT_OUTPUT) {
         DLOG(fmt::sprintf("not handling, type = %d, name = %s\n",  std::to_underlying(this->type), this->name));
-        return;
-    }
-
-    /* For workspaces, close them only if they're not visible anymore */
-    if (this->type == CT_WORKSPACE) {
-        if (this->focused.empty() && !workspace_is_visible(this)) {
-            LOG(fmt::sprintf("Closing old workspace (%p / %s), it is empty\n", fmt::ptr(this), this->name));
-            auto gen = ipc_marshal_workspace_event("empty", this, nullptr);
-            tree_close_internal(this, kill_window_t::DONT_KILL_WINDOW, false);
-
-            auto payload = gen.dump();
-            ipc_send_event("workspace", i3ipc::EVENT_WORKSPACE, payload);
-        }
         return;
     }
 
@@ -1942,7 +1962,6 @@ void Con::on_remove_child() {
     if (children == 0) {
         DLOG("Container empty, closing\n");
         tree_close_internal(this, kill_window_t::DONT_KILL_WINDOW, false);
-        return;
     }
 }
 
