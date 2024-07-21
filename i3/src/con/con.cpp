@@ -1784,23 +1784,21 @@ void con_set_border_style(Con *con, border_style_t border_style, int border_widt
     parent->rect -= bsr;
 }
 
+
 /*
  * This function changes the layout of a given container. Use it to handle
  * special cases like changing a whole workspace to stacked/tabbed (creates a
  * new split container before).
+ * 
+ * Users can focus workspaces, but not any higher in the hierarchy.
+ * Focus on the workspace is a special case, since in every other case, the
+ * user means "change the layout of the parent split container".
  *
  */
-void Con::con_set_layout(layout_t layout) {
-    Con *con = this;
+void WorkspaceCon::con_set_layout(layout_t layout) {
+    WorkspaceCon *con = this;
     DLOG(fmt::sprintf("con_set_layout(%p, %d), con->type = %d\n",
-         fmt::ptr(con), std::to_underlying(layout), std::to_underlying(con->type)));
-
-    /* Users can focus workspaces, but not any higher in the hierarchy.
-     * Focus on the workspace is a special case, since in every other case, the
-     * user means "change the layout of the parent split container". */
-    if (con->type != CT_WORKSPACE) {
-        con = con->parent;
-    }
+            fmt::ptr(con), std::to_underlying(layout), std::to_underlying(con->type)));
 
     /* We fill in last_split_layout when switching to a different layout
      * since there are many places in the code that don’t use
@@ -1813,46 +1811,76 @@ void Con::con_set_layout(layout_t layout) {
      * whole workspace into stacked/tabbed mode. To do this and still allow
      * intuitive operations (like level-up and then opening a new window), we
      * need to create a new split container. */
-    if (con->type == CT_WORKSPACE) {
-        auto workspaceCon = dynamic_cast<WorkspaceCon*>(con);
-        if (con->con_num_children() == 0) {
-            layout_t ws_layout = (layout == L_STACKED || layout == L_TABBED) ? layout : L_DEFAULT;
-            DLOG(fmt::sprintf("Setting workspace_layout to %d\n", std::to_underlying(ws_layout)));
-            workspaceCon->workspace_layout = ws_layout;
-            DLOG(fmt::sprintf("Setting layout to %d\n",  std::to_underlying(layout)));
-            con->layout = layout;
-        } else if (layout == L_STACKED || layout == L_TABBED || layout == L_SPLITV || layout == L_SPLITH) {
-            DLOG("Creating new split container\n");
-            /* 1: create a new split container */
-            Con *new_con = new ConCon();
-            new_con->parent = con;
+    if (con->con_num_children() == 0) {
+        layout_t ws_layout = (layout == L_STACKED || layout == L_TABBED) ? layout : L_DEFAULT;
+        DLOG(fmt::sprintf("Setting workspace_layout to %d\n", std::to_underlying(ws_layout)));
+        con->workspace_layout = ws_layout;
+        DLOG(fmt::sprintf("Setting layout to %d\n",  std::to_underlying(layout)));
 
-            /* 2: Set the requested layout on the split container and mark it as
-             * split. */
-            new_con->layout = layout;
-            new_con->last_split_layout = con->last_split_layout;
-
-            /* 3: move the existing cons of this workspace below the new con */
-            auto focus_order = con->get_focus_order();
-
-            DLOG("Moving cons\n");
-            Con *child;
-            while (!con->nodes.empty()) {
-                child = con::first(con->nodes);
-                child->con_detach();
-                child->con_attach(new_con, true);
+        if (layout == L_DEFAULT) {
+            /* Special case: the layout formerly known as "default" (in combination
+             * with an orientation). Since we switched to splith/splitv layouts,
+             * using the "default" layout (which "only" should happen when using
+             * legacy configs) is using the last split layout (either splith or
+             * splitv) in order to still do the same thing. */
+            con->layout = con->last_split_layout;
+            /* In case last_split_layout was not initialized… */
+            if (con->layout == L_DEFAULT) {
+                con->layout = L_SPLITH;
             }
-
-            new_con->set_focus_order(focus_order);
-
-            /* 4: attach the new split container to the workspace */
-            DLOG("Attaching new split to ws\n");
-            new_con->con_attach(con, false);
-
-            tree_flatten(global.croot);
-            con_force_split_parents_redraw(con);
-            return;
+        } else {
+            con->layout = layout;
         }
+    } else if (layout == L_STACKED || layout == L_TABBED || layout == L_SPLITV || layout == L_SPLITH) {
+        DLOG("Creating new split container\n");
+        /* 1: create a new split container */
+        Con *new_con = new ConCon();
+        new_con->parent = con;
+
+        /* 2: Set the requested layout on the split container and mark it as
+         * split. */
+        new_con->layout = layout;
+        new_con->last_split_layout = con->last_split_layout;
+
+        /* 3: move the existing cons of this workspace below the new con */
+        auto focus_order = con->get_focus_order();
+
+        DLOG("Moving cons\n");
+        Con *child;
+        while (!con->nodes.empty()) {
+            child = con::first(con->nodes);
+            child->con_detach();
+            child->con_attach(new_con, true);
+        }
+
+        new_con->set_focus_order(focus_order);
+
+        /* 4: attach the new split container to the workspace */
+        DLOG("Attaching new split to ws\n");
+        new_con->con_attach(con, false);
+
+        tree_flatten(global.croot);
+    }
+    con_force_split_parents_redraw(con);
+}
+
+/*
+ * This function changes the layout of a given container. Use it to handle
+ * special cases like changing a whole workspace to stacked/tabbed (creates a
+ * new split container before).
+ *
+ */
+void Con::con_set_layout(layout_t layout) {
+    DLOG(fmt::sprintf("con_set_layout(%p, %d), con->type = %d\n",
+         fmt::ptr(this), std::to_underlying(layout), std::to_underlying(this->type)));
+
+    Con *con = this->parent;
+
+    /* We fill in last_split_layout when switching to a different layout
+     * since there are many places in the code that don’t use
+     * con_set_layout(). */
+    if (con->layout == L_SPLITH || con->layout == L_SPLITV) {
+        con->last_split_layout = con->layout;
     }
 
     if (layout == L_DEFAULT) {

@@ -403,7 +403,7 @@ export {
          * new split container before).
          *
          */
-        void con_set_layout(layout_t layout);
+        virtual void con_set_layout(layout_t layout);
 
         /**
          * Create a new container (and attach it to the given parent, if not NULL).
@@ -426,6 +426,10 @@ export {
             this->type = CT_ROOT;
             this->name = "root";
         }
+
+        void con_set_layout(layout_t layout) override {
+            throw std::domain_error("Cannot change layout of root");
+        }
     };
 
     class OutputCon : public Con {
@@ -442,6 +446,9 @@ export {
          */
         Con *output_get_content();
 
+        void con_set_layout(layout_t layout) override {
+            throw std::domain_error("Cannot change layout of output");
+        }
     };
 
     class ConCon : public Con {
@@ -473,7 +480,12 @@ export {
             this->type = CT_DOCKAREA;
             this->layout = L_DOCKAREA;
         }
+        
         FloatingCon *con_inside_floating() override;
+
+        void con_set_layout(layout_t layout) override {
+            throw std::domain_error("Cannot change layout of dockarea");
+        }
     };
 
     class WorkspaceCon : public Con {
@@ -500,8 +512,12 @@ export {
             this->type = CT_WORKSPACE;
             this->workspace_layout = L_DEFAULT;
         }
+        
         void con_attach(Con *parent, bool ignore_focus, Con *previous = nullptr) override;
+        
         FloatingCon *con_inside_floating() override;
+
+        void con_set_layout(layout_t layout) override;
     };
 
     namespace con {
