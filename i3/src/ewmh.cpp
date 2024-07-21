@@ -160,14 +160,10 @@ static void ewmh_update_wm_desktop_recursively(Con *con, const uint32_t desktop)
         wm_desktop = NET_WM_DESKTOP_ALL;
     }
 
-    /* If the window is on the scratchpad we assign the sticky value to it
-     * since showing it works on any workspace. We cannot remove the property
-     * as per specification. */
-    Con *ws = con->con_get_workspace();
-
     /* If this is the cached value, we don't need to do anything. */
-    if (con->window->wm_desktop == wm_desktop)
+    if (con->window->wm_desktop == wm_desktop) {
         return;
+    }
     con->window->wm_desktop = wm_desktop;
 
     const xcb_window_t window = con->window->id;
