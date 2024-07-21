@@ -79,7 +79,6 @@ Con::Con(i3Window *window, bool skeleton) {
     this->layout = L_DEFAULT;
     this->last_split_layout = L_DEFAULT;
     this->floating = FLOATING_AUTO_OFF;
-    this->scratchpad_state = SCRATCHPAD_NONE;
 
     this->type = CT_CON;
     this->window = window;

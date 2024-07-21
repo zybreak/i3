@@ -177,8 +177,6 @@ export {
          * FLOATING_AUTO_ON if a client is floating. */
         con_floating_t floating;
 
-        enum con_scratchpad_t scratchpad_state;
-
         /* The ID of this container before restarting. Necessary to correctly
          * interpret back-references in the JSON (such as the focus stack). */
         int old_id{};

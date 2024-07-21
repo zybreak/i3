@@ -621,11 +621,6 @@ void floating_drag_window(Con *con, const xcb_button_press_event_t *event, bool 
         return;
     }
 
-    /* If this is a scratchpad window, don't auto center it from now on. */
-    if (con->scratchpad_state == SCRATCHPAD_FRESH) {
-        con->scratchpad_state = SCRATCHPAD_CHANGED;
-    }
-
     tree_render();
 }
 
@@ -744,11 +739,6 @@ void floating_resize_window(Con *con, const bool proportional,
     if (drag_result == DRAG_REVERT) {
         floating_reposition(con, initial_rect);
     }
-
-    /* If this is a scratchpad window, don't auto center it from now on. */
-    if (con->scratchpad_state == SCRATCHPAD_FRESH) {
-        con->scratchpad_state = SCRATCHPAD_CHANGED;
-    }
 }
 
 /*
@@ -769,11 +759,6 @@ bool floating_reposition(Con *con, Rect newrect) {
     con->rect = newrect;
 
     floating_maybe_reassign_ws(con);
-
-    /* If this is a scratchpad window, don't auto center it from now on. */
-    if (con->scratchpad_state == SCRATCHPAD_FRESH) {
-        con->scratchpad_state = SCRATCHPAD_CHANGED;
-    }
 
     tree_render();
     return true;
@@ -807,11 +792,6 @@ void floating_resize(Con *floating_con, uint32_t x, uint32_t y) {
     }
 
     floating_check_size(floating_con, prefer_height);
-
-    /* If this is a scratchpad window, don't auto center it from now on. */
-    if (floating_con->scratchpad_state == SCRATCHPAD_FRESH) {
-        floating_con->scratchpad_state = SCRATCHPAD_CHANGED;
-    }
 }
 
 /*

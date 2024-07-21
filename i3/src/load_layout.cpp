@@ -376,16 +376,6 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
             else if (strcasecmp(buf, "user_on") == 0)
                 ctx.json_node->floating = FLOATING_USER_ON;
             free(buf);
-        } else if (ctx.last_key == "scratchpad_state") {
-            char *buf = nullptr;
-            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
-            if (strcasecmp(buf, "none") == 0)
-                ctx.json_node->scratchpad_state = SCRATCHPAD_NONE;
-            else if (strcasecmp(buf, "fresh") == 0)
-                ctx.json_node->scratchpad_state = SCRATCHPAD_FRESH;
-            else if (strcasecmp(buf, "changed") == 0)
-                ctx.json_node->scratchpad_state = SCRATCHPAD_CHANGED;
-            free(buf);
         } else if (ctx.last_key == "previous_workspace_name") {
             previous_workspace_name.assign(val);
         }

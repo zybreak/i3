@@ -379,19 +379,6 @@ static std::string orientation(Con *con) {
     }
 }
 
-static std::string scratchpad_state(Con *con) {
-    switch (con->scratchpad_state) {
-        case SCRATCHPAD_NONE:
-            return "none";
-        case SCRATCHPAD_FRESH:
-            return "fresh";
-        case SCRATCHPAD_CHANGED:
-            return "changed";
-        default:
-            throw std::runtime_error("unknown scratchpad_state");
-    }
-}
-
 static std::string layout(Con *con) {
     switch (con->layout) {
         case L_DEFAULT:
@@ -494,8 +481,6 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
 
     /* provided for backwards compatibility only. */
     j["orientation"] = orientation(con);
-
-    j["scratchpad_state"] = scratchpad_state(con);
 
     if (con->percent > 0.0) {
         j["percent"] = con->percent;

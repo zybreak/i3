@@ -546,11 +546,6 @@ static void resize_floating(struct criteria_state *criteria_state, CommandsResul
     } else if (direction == D_LEFT) {
         floating_con->rect.x -= (floating_con->rect.width - old_rect.width);
     }
-
-    /* If this is a scratchpad window, don't auto center it from now on. */
-    if (floating_con->scratchpad_state == SCRATCHPAD_FRESH) {
-        floating_con->scratchpad_state = SCRATCHPAD_CHANGED;
-    }
 }
 
 static bool cmd_resize_tiling_direction(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *current, const char *direction, int px, int ppt) {
