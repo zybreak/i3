@@ -59,6 +59,7 @@ list(APPEND i3_src
         src/commands/commands_parser.cpp
         src/commands/commands_applier.cpp
         src/con/con.cpp
+        src/con/con_functions.cpp
         src/con/outputcon.cpp
         src/con/rootcon.cpp
         src/con/concon.cpp
