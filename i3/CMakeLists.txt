@@ -11,26 +11,23 @@ list(APPEND libraries ${libsn_dep_LINK_LIBRARIES})
 list(APPEND include_dirs ${libsn_dep_INCLUDE_DIRS})
 list(APPEND compile_options ${libsn_dep_CFLAGS_OTHER})
 
-find_package(libev)
+find_package(libev CONFIG REQUIRED)
 list(APPEND libraries libev::libev)
 
 find_package(X11 REQUIRED COMPONENTS xcb xcb_cursor xcb_shape xcb_xrm xcb_xkb xcb_randr xcb_util xcb_keysyms xcb_icccm xkbcommon xkbcommon_X11)
 list(APPEND libraries X11 X11::xcb X11::xcb_cursor X11::xcb_shape X11::xcb_xrm X11::xcb_xkb X11::xcb_randr X11::xcb_util X11::xcb_keysyms X11::xcb_icccm X11::xkbcommon X11::xkbcommon_X11)
 
-find_package(PCRE CONFIG)
+find_package(PCRE2 CONFIG REQUIRED)
 list(APPEND libraries pcre2::pcre2)
 
-pkg_check_modules(cairo_dep REQUIRED cairo>=1.14.4)
-list(APPEND libraries ${cairo_dep_LINK_LIBRARIES})
-list(APPEND include_dirs ${cairo_dep_INCLUDE_DIRS})
-list(APPEND compile_options ${cairo_dep_CFLAGS_OTHER})
+find_package(cairo CONFIG REQUIRED)
+list(APPEND libraries cairo::cairo)
 
-pkg_check_modules(pangocairo_dep REQUIRED pangocairo)
-list(APPEND libraries ${pangocairo_dep_LINK_LIBRARIES})
-list(APPEND include_dirs ${pangocairo_dep_INCLUDE_DIRS})
-list(APPEND compile_options ${pangocairo_dep_CFLAGS_OTHER})
+find_package(pango CONFIG REQUIRED COMPONENTS pangocairo)
+list(APPEND libraries pango::pango)
+list(APPEND libraries pango::pangocairo)
 
-find_package(glib CONFIG COMPONENTS gobject-2.0)
+find_package(glib CONFIG REQUIRED COMPONENTS gobject-2.0)
 list(APPEND libraries glib::glib)
 list(APPEND libraries glib::gobject-2.0)
 
