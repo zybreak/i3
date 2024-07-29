@@ -39,7 +39,7 @@ list(APPEND libraries fmt::fmt)
 
 find_package(spdlog CONFIG REQUIRED)
 
-find_package(nlohmann_json 3.11.2 REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 list(APPEND libraries nlohmann_json::nlohmann_json)
 
 list(APPEND libraries libi3ipc)

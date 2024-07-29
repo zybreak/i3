@@ -28,6 +28,7 @@ class i3(ConanFile):
         self.requires("glib/2.76.2")
         self.requires("gtest/1.13.0")
         self.requires("spdlog/1.13.0")
+        self.requires("nlohmann_json/3.11.3")
 
 
     def layout(self):
