@@ -277,7 +277,7 @@ static void handle_move_resize(xcb_client_message_event_t *event) {
         return;
     }
     DLOG(fmt::sprintf("Handling _NET_WM_MOVERESIZE request (con = %p)\n", fmt::ptr(con)));
-    xcb_ewmh_moveresize_direction_t direction = static_cast<xcb_ewmh_moveresize_direction_t>(event->data.data32[2]);
+    uint32_t direction = event->data.data32[2];
     uint32_t x_root = event->data.data32[0];
     uint32_t y_root = event->data.data32[1];
     /* construct fake xcb_button_press_event_t */
@@ -294,7 +294,7 @@ static void handle_move_resize(xcb_client_message_event_t *event) {
             floating_resize_window(con->parent, false, &fake);
             break;
         default:
-            DLOG(fmt::sprintf("_NET_WM_MOVERESIZE direction %d not implemented\n", std::to_underlying(direction)));
+            DLOG(fmt::sprintf("_NET_WM_MOVERESIZE direction %d not implemented\n", direction));
             break;
     }
 }
