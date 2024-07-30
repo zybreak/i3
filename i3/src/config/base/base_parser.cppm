@@ -1,5 +1,5 @@
 module;
-#include <stdlib.h>
+#include <cstdlib>
 export module i3_config_base:base_parser;
 
 import std;

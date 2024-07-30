@@ -14,7 +14,6 @@ module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
 #include <getopt.h>
-#include <paths.h>
 
 #include <xcb/randr.h>
 #include <xcb/xcb.h>

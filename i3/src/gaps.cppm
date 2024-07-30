@@ -8,7 +8,6 @@
 module;
 class WorkspaceCon;
 class Con;
-#include <stdbool.h>
 export module i3:gaps;
 
 import :internal;

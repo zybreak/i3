@@ -14,7 +14,6 @@
 #include <config.h>
 
 #include <sys/time.h>
-#include <queue>
 
 #include <xcb/shape.h>
 #include <xcb/xcb_keysyms.h>

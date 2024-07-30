@@ -6,10 +6,9 @@
  *
  */
 module;
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include <vector>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <xcb/xcb.h>
 module utils;
 

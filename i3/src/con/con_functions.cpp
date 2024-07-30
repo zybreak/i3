@@ -12,7 +12,6 @@
 module;
 #include <cassert>
 #include <xcb/xcb.h>
-#include <vector>
 
 #include "i3.h"
 #include "atoms.h"

@@ -25,6 +25,7 @@ module;
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-launcher.h>
 #include <libsn/sn-monitor.h>
+#undef SN_API_NOT_YET_FROZEN
 #include <config.h>
 #include <fmt/printf.h>
 module i3;

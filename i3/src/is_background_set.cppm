@@ -6,7 +6,7 @@
  *
  */
 module;
-#include <stdlib.h>
+#include <cstdlib>
 #include <cairo.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>

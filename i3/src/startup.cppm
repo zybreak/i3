@@ -13,6 +13,7 @@
 module;
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-monitor.h>
+#undef SN_API_NOT_YET_FROZEN
 export module i3:startup;
 
 import std;

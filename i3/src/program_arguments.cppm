@@ -1,6 +1,7 @@
 module;
 #include "i3.h"
-
+#include <cstdlib>
+#include <cstdio>
 #include <getopt.h>
 export module program_arguments;
 
@@ -62,8 +63,8 @@ program_arguments parse_args(int argc, char *argv[]) {
                 args.only_check_config = true;
                 break;
             case 'v':
-                printf("i3 version %s © 2009 Michael Stapelberg and contributors\n", I3_VERSION);
-                exit(EXIT_SUCCESS);
+                std::printf("i3 version %s © 2009 Michael Stapelberg and contributors\n", I3_VERSION);
+                std::exit(EXIT_SUCCESS);
                 break;
             case 'V':
                 set_verbosity(true);
@@ -83,11 +84,11 @@ program_arguments parse_args(int argc, char *argv[]) {
                            strcmp(long_options[option_index].name, "get_socketpath") == 0) {
                     std::optional<std::string> socket_path = root_atom_contents("I3_SOCKET_PATH", nullptr, 0);
                     if (socket_path) {
-                        printf("%s\n", socket_path->c_str());
-                        exit(EXIT_SUCCESS);
+                        std::printf("%s\n", socket_path->c_str());
+                        std::exit(EXIT_SUCCESS);
                     }
 
-                    exit(EXIT_FAILURE);
+                    std::exit(EXIT_FAILURE);
                 } else if (strcmp(long_options[option_index].name, "restart") == 0) {
                     args.layout_path = optarg;
                     args.delete_layout_path = true;
@@ -95,24 +96,24 @@ program_arguments parse_args(int argc, char *argv[]) {
                 }
                 /* fall-through */
             default:
-                fprintf(stderr, "Usage: %s [-c configfile] [-d all] [-a] [-v] [-V] [-C]\n", argv[0]);
-                fprintf(stderr, "\n");
-                fprintf(stderr, "\t-a          disable autostart ('exec' lines in config)\n");
-                fprintf(stderr, "\t-c <file>   use the provided configfile instead\n");
-                fprintf(stderr, "\t-C          validate configuration file and exit\n");
-                fprintf(stderr, "\t-p          use new configuration parser\n");
-                fprintf(stderr, "\t-d all      enable debug output\n");
-                fprintf(stderr, "\t-L <file>   path to the serialized layout during restarts\n");
-                fprintf(stderr, "\t-v          display version and exit\n");
-                fprintf(stderr, "\t-V          enable verbose mode\n");
-                fprintf(stderr, "\t--replace\n"
+                std::fprintf(stderr, "Usage: %s [-c configfile] [-d all] [-a] [-v] [-V] [-C]\n", argv[0]);
+                std::fprintf(stderr, "\n");
+                std::fprintf(stderr, "\t-a          disable autostart ('exec' lines in config)\n");
+                std::fprintf(stderr, "\t-c <file>   use the provided configfile instead\n");
+                std::fprintf(stderr, "\t-C          validate configuration file and exit\n");
+                std::fprintf(stderr, "\t-p          use new configuration parser\n");
+                std::fprintf(stderr, "\t-d all      enable debug output\n");
+                std::fprintf(stderr, "\t-L <file>   path to the serialized layout during restarts\n");
+                std::fprintf(stderr, "\t-v          display version and exit\n");
+                std::fprintf(stderr, "\t-V          enable verbose mode\n");
+                std::fprintf(stderr, "\t--replace\n"
                                 "\tReplace an existing window manager.\n");
-                fprintf(stderr, "\n");
-                fprintf(stderr, "\n");
-                fprintf(stderr, "\t--get-socketpath\n"
+                std::fprintf(stderr, "\n");
+                std::fprintf(stderr, "\n");
+                std::fprintf(stderr, "\t--get-socketpath\n"
                                 "\tRetrieve the i3 IPC socket path from X11, print it, then exit.\n");
-                fprintf(stderr, "\n");
-                fprintf(stderr, "If you pass plain text arguments, i3 will interpret them as a command\n"
+                std::fprintf(stderr, "\n");
+                std::fprintf(stderr, "If you pass plain text arguments, i3 will interpret them as a command\n"
                                 "to send to a currently running i3 (like old i3-msg). This allows you to\n"
                                 "use nice and logical commands, such as:\n"
                                 "\n"
@@ -120,7 +121,7 @@ program_arguments parse_args(int argc, char *argv[]) {
                                 "\ti3 floating toggle\n"
                                 "\ti3 kill window\n"
                                 "\n");
-                exit(opt == 'h' ? EXIT_SUCCESS : EXIT_FAILURE);
+                std::exit(opt == 'h' ? EXIT_SUCCESS : EXIT_FAILURE);
         }
     }
 
