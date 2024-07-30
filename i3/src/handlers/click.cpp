@@ -10,7 +10,6 @@
 module;
 #include <xcb/xcb.h>
 
-#include "i3.h"
 #include <fmt/printf.h>
 module i3;
 
@@ -18,6 +17,16 @@ import std;
 import :output;
 import log;
 import rect;
+
+/** Mouse buttons */
+#define XCB_BUTTON_CLICK_LEFT XCB_BUTTON_INDEX_1
+#define XCB_BUTTON_CLICK_MIDDLE XCB_BUTTON_INDEX_2
+#define XCB_BUTTON_CLICK_RIGHT XCB_BUTTON_INDEX_3
+#define XCB_BUTTON_SCROLL_UP XCB_BUTTON_INDEX_4
+#define XCB_BUTTON_SCROLL_DOWN XCB_BUTTON_INDEX_5
+/* xcb doesn't define constants for these. */
+#define XCB_BUTTON_SCROLL_LEFT 6
+#define XCB_BUTTON_SCROLL_RIGHT 7
 
 enum click_destination_t {
     CLICK_BORDER = 0,

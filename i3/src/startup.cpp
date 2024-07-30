@@ -13,7 +13,19 @@
 module;
 #include <xcb/xcb.h>
 
-#include "i3.h"
+#include <ev.h>
+
+#include <config.h>
+
+#include <sys/time.h>
+
+#include <xcb/shape.h>
+#include <xcb/xcb_keysyms.h>
+
+#define explicit dont_use_cxx_explicit
+#include <xcb/xkb.h>
+#undef explicit
+
 #include "atoms.h"
 
 #include <paths.h>
@@ -26,7 +38,6 @@ module;
 #include <libsn/sn-launcher.h>
 #include <libsn/sn-monitor.h>
 #undef SN_API_NOT_YET_FROZEN
-#include <config.h>
 #include <fmt/printf.h>
 module i3;
 

@@ -12,8 +12,6 @@ module;
 #include <err.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include "i3.h"
-
 #include <fcntl.h>
 #include <libgen.h>
 #include <clocale>

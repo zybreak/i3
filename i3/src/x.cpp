@@ -17,11 +17,10 @@ module;
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_aux.h>
+#include <xcb/shape.h>
 
 #include <xpp/connection.hpp>
 #include <xpp/proto/x.hpp>
-
-#include "i3.h"
 
 #include <unistd.h>
 

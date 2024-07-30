@@ -11,8 +11,8 @@
 module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
+#include <ev.h>
 
-#include "i3.h"
 module i3;
 
 import std;

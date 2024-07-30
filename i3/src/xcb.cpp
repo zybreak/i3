@@ -10,8 +10,8 @@
 module;
 
 #include <xcb/xcb.h>
-#include <config.h>
-#include "i3.h"
+#include <xcb/shape.h>
+#include <xcb/xcb_keysyms.h>
 #include <fmt/printf.h>
 #include "atoms.h"
 module i3;

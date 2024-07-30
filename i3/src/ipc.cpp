@@ -12,7 +12,7 @@ module;
 #include <cassert>
 #include <xcb/xcb.h>
 
-#include "i3.h"
+#include <ev.h>
 
 #include <fcntl.h>
 #include <sys/socket.h>

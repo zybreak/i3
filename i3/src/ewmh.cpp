@@ -10,9 +10,6 @@
 module;
 #include <fmt/printf.h>
 #include <xcb/xcb.h>
-
-#include "i3.h"
-
 #include "atoms.h"
 
 xcb_window_t ewmh_window;

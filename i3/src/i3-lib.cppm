@@ -58,6 +58,16 @@ export namespace i3 {
 
 }
 
+/**
+ * The EWMH support window that is used to indicate that an EWMH-compliant
+ * window manager is present. This window is created when i3 starts and
+ * kept alive until i3 exits.
+ * We also use this window as the focused window if no other window is
+ * available to be focused on the active workspace in order to prevent
+ * keyboard focus issues (see #1378).
+ */
+export xcb_window_t ewmh_window;
+
 export class Global {
 
    public:

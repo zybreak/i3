@@ -12,7 +12,8 @@ module;
 
 #include <xcb/xcb.h>
 
-#include "i3.h"
+#include <ev.h>
+
 module i3;
 
 import log;

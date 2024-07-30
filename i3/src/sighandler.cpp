@@ -10,8 +10,11 @@ module;
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
+#include <xcb/shape.h>
 
-#include "i3.h"
+#define explicit dont_use_cxx_explicit
+#include <xcb/xkb.h>
+#undef explicit
 
 #include <sys/wait.h>
 #include <unistd.h>

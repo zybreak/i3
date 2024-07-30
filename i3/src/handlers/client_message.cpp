@@ -13,13 +13,14 @@ module;
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
 
-#include "i3.h"
+#define SN_API_NOT_YET_FROZEN 1
+#include <libsn/sn-launcher.h>
+#include <libsn/sn-monitor.h>
+#undef SN_API_NOT_YET_FROZEN
+
 #include "atoms.h"
 
 #include <xcb/randr.h>
-#define SN_API_NOT_YET_FROZEN 1
-#include <libsn/sn-monitor.h>
-#include <config.h>
 #include <fmt/printf.h>
 module i3;
 

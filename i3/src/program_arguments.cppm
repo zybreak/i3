@@ -1,7 +1,8 @@
 module;
-#include "i3.h"
+#include <config.h>
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #include <getopt.h>
 export module program_arguments;
 

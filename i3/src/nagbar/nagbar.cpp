@@ -5,7 +5,6 @@ module;
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "i3.h"
 #include "atoms.h"
 //#include "config_parser.h"
 

@@ -8,9 +8,7 @@
  *
  */
 module;
-#include <config.h>
-#include "i3.h"
-
+#include <ev.h>
 #include <nlohmann/json.hpp>
 export module i3:ipc;
 

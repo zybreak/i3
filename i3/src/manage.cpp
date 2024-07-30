@@ -14,7 +14,9 @@ module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
 
-#include "i3.h"
+#include <xcb/shape.h>
+#include <xcb/xcb_keysyms.h>
+
 #include "atoms.h"
 module i3;
 

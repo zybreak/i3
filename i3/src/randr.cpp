@@ -15,8 +15,6 @@ module;
 
 #include <xcb/xcb.h>
 
-#include "i3.h"
-
 #include <xcb/randr.h>
 
 #include <fmt/core.h>

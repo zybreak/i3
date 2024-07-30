@@ -16,7 +16,23 @@ struct criteria_state;
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_keysyms.h>
 
-#include "i3.h"
+#include <ev.h>
+
+#include <config.h>
+
+#include <sys/time.h>
+
+#include <xcb/shape.h>
+#include <xcb/xcb_keysyms.h>
+
+#define explicit dont_use_cxx_explicit
+#include <xcb/xkb.h>
+#undef explicit
+
+#define SN_API_NOT_YET_FROZEN 1
+#include <libsn/sn-launcher.h>
+#undef SN_API_NOT_YET_FROZEN
+
 
 #include <fcntl.h>
 #include <libgen.h>

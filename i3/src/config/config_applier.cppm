@@ -10,8 +10,6 @@
 module;
 #include <xcb/xcb.h>
 
-#include "i3.h"
-
 #include <wordexp.h>
 export module i3:config_applier;
 

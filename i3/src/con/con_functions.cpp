@@ -13,7 +13,15 @@ module;
 #include <cassert>
 #include <xcb/xcb.h>
 
-#include "i3.h"
+#include <config.h>
+
+#include <xcb/shape.h>
+#include <xcb/xcb_keysyms.h>
+
+#define explicit dont_use_cxx_explicit
+#include <xcb/xkb.h>
+#undef explicit
+
 #include "atoms.h"
 #include <fmt/printf.h>
 #include <glib.h>
