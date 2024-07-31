@@ -1342,11 +1342,11 @@ void x_push_changes(Con *con) {
     if (global.x->focused_id == XCB_NONE) {
         /* If we still have no window to focus, we focus the EWMH window instead. We use this rather than the
          * root window in order to avoid an X11 fallback mechanism causing a ghosting effect (see #1378). */
-        DLOG(fmt::sprintf("Still no window focused, better set focus to the EWMH support window (%d)\n",  ewmh_window));
-        xcb_set_input_focus(**global.x, XCB_INPUT_FOCUS_POINTER_ROOT, ewmh_window, global.last_timestamp);
+        DLOG(fmt::sprintf("Still no window focused, better set focus to the EWMH support window (%d)\n",  global.x->ewmh_window));
+        xcb_set_input_focus(**global.x, XCB_INPUT_FOCUS_POINTER_ROOT, global.x->ewmh_window, global.last_timestamp);
         change_ewmh_focus(XCB_WINDOW_NONE, global.x->last_focused);
 
-        global.x->focused_id = ewmh_window;
+        global.x->focused_id = global.x->ewmh_window;
         global.x->last_focused = XCB_NONE;
     }
 

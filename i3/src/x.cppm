@@ -83,6 +83,17 @@ export {
         }
 
        public:
+
+        /**
+         * The EWMH support window that is used to indicate that an EWMH-compliant
+         * window manager is present. This window is created when i3 starts and
+         * kept alive until i3 exits.
+         * We also use this window as the focused window if no other window is
+         * available to be focused on the active workspace in order to prevent
+         * keyboard focus issues (see #1378).
+         */
+        xcb_window_t ewmh_window;
+
         /* Color depth, visual id and colormap to use when creating windows and
          * pixmaps. Will use 32 bit depth and an appropriate visual, if available,
          * otherwise the root window’s default (usually 24 bit TrueColor). */

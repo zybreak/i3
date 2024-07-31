@@ -10,8 +10,6 @@
 module;
 #include <fmt/printf.h>
 #include <xcb/xcb.h>
-
-xcb_window_t ewmh_window;
 module i3;
 
 import std;
@@ -342,7 +340,7 @@ void ewmh_setup_hints() {
      * present, a child window has to be created (and kept alive as long as the
      * window manager is running) which has the _NET_SUPPORTING_WM_CHECK and
      * _NET_WM_ATOMS. */
-    ewmh_window = xcb_generate_id(**global.x);
+    xcb_window_t ewmh_window = xcb_generate_id(**global.x);
     /* We create the window and put it at (-1, -1) so that it is off-screen. */
     uint32_t v_list[]{1};
     xcb_create_window(
@@ -369,6 +367,8 @@ void ewmh_setup_hints() {
     xcb_map_window(**global.x, ewmh_window);
     uint32_t value_list[]{XCB_STACK_MODE_BELOW};
     xcb_configure_window(**global.x, ewmh_window, XCB_CONFIG_WINDOW_STACK_MODE, value_list);
+    
+    global.x->ewmh_window = ewmh_window;
 }
 
 /*
