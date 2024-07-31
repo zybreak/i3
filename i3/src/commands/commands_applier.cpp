@@ -1957,9 +1957,9 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
     workspace->con_attach(parent, false);
     ipc_send_workspace_event("rename", workspace, nullptr);
 
-    Con *assigned = get_assigned_output(workspace->name.c_str(), workspace->num);
+    Output *assigned = global.workspaceManager->get_assigned_output(workspace->name, workspace->num);
     if (assigned) {
-        workspace_move_to_output(workspace, get_output_for_con(assigned));
+        workspace_move_to_output(workspace, assigned);
     }
 
     bool can_restore_focus = previously_focused != nullptr;
@@ -1981,8 +1981,8 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
 
     /* Let back-and-forth work after renaming the previous workspace.
      * See #3694. */
-    if (!previous_workspace_name.empty() && !strcmp(previous_workspace_name.c_str(), old_name_copy)) {
-        previous_workspace_name.assign(new_name);
+    if (!global.workspaceManager->previous_workspace_name.empty() && !strcmp(global.workspaceManager->previous_workspace_name.c_str(), old_name_copy)) {
+        global.workspaceManager->previous_workspace_name.assign(new_name);
     }
 
     cmd_output.needs_tree_render = true;

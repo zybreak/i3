@@ -93,11 +93,9 @@ export class Global {
     rlimit original_rlimit_core;
 
     /* The list of assignments */
-    std::deque<std::unique_ptr<Assignment>> assignments{};
-
-    /* The list of workspace assignments (which workspace should end up on which
-     * output) */
-    std::deque<std::unique_ptr<Workspace_Assignment>> ws_assignments{};
+    AssignmentManager *assignmentManager;
+    
+    WorkspaceManager *workspaceManager;
 
     /* The last timestamp we got from X11 (timestamps are included in some events
      * and are used for some things, like determining a unique ID in startup

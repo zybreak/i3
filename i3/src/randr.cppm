@@ -80,7 +80,10 @@ export {
 
         void fallback_to_root_output();
 
-       public:
+    protected:
+        RandR() {}
+
+    public:
         int randr_base{-1};
 
         /* Stores all outputs available in your current session. */
@@ -91,7 +94,7 @@ export {
          * If require_active is true, only active outputs are considered.
          *
          */
-        Output *get_output_by_name(const std::string &name, const bool require_active);
+        virtual Output *get_output_by_name(const std::string &name, const bool require_active);
 
         /*
          * Returns the first output which is active.
@@ -143,8 +146,6 @@ export {
          */
         void randr_query_outputs();
         
-        RandR() = delete;
-
         /*
          * We have just established a connection to the X server and need the initial
          * XRandR information to setup workspaces for each screen.

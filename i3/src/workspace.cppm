@@ -37,20 +37,88 @@ export {
      * Stores which workspace (by name or number) goes to which output and its gaps config.
      *
      */
-    class Workspace_Assignment {
+    class WorkspaceConfig {
        public:
         std::string name{};
         std::string output{};
         gaps_t gaps;
         gaps_mask_t gaps_mask;
+        
+        auto operator<=>(WorkspaceConfig const&) const = default;
+        WorkspaceConfig& operator=(WorkspaceConfig const&) = default;
+        
+        explicit WorkspaceConfig(std::string name) : name(std::move(name)) {
+        }
+        
+        WorkspaceConfig(std::string name, std::string output) : name(std::move(name)), output(std::move(output)) {
+        }
+        
+        WorkspaceConfig(WorkspaceConfig const &) = default;
+        WorkspaceConfig(WorkspaceConfig &&) = default;
     };
 
-    /**
-     * Stores a copy of the name of the last used workspace for the workspace
-     * back-and-forth switching.
-     *
-     */
-    std::string previous_workspace_name{};
+   
+    // TODO: I feel this should reside with the configuration
+    class WorkspaceManager {
+    private:
+
+        /* The list of workspace assignments (which workspace should end up on which
+         * output) */
+        std::map<std::string, WorkspaceConfig> ws_assignments{};
+
+    public:
+        /**
+         * Returns the first output that is assigned to a workspace specified by the
+         * given name or number. Returns NULL if no such output exists.
+         *
+         * If an assignment matches by number but there is an assignment later that
+         * matches by name, the second one is preferred.
+         * The order of the 'ws_assignments' queue is respected: if multiple
+         * assignments match the criteria, the first one is returned.
+         * 'name' is ignored when NULL, 'parsed_num' is ignored when it is -1.
+         *
+         */
+        Output* get_assigned_output(std::string const name, long const parsed_num);
+        Output* get_assigned_output(long const parsed_num);
+        Output* get_assigned_output(std::string const name);
+
+        /**
+         * Stores a copy of the name of the last used workspace for the workspace
+         * back-and-forth switching.
+         *
+         */
+        std::string previous_workspace_name{};
+        
+        std::optional<WorkspaceConfig> get_workspace_config(const std::string &name);
+
+        std::optional<WorkspaceConfig> get_workspace_config(WorkspaceCon const *ws);
+        
+        void add_workspace_config(WorkspaceConfig &&config) {
+            auto name = config.name;
+            ws_assignments.insert_or_assign(name, std::forward<WorkspaceConfig>(config));
+        }
+        
+        void clear() {
+            ws_assignments.clear();
+        }
+        
+        std::vector<WorkspaceConfig> all_workspace_configs() {
+            std::vector<WorkspaceConfig> config{};
+            config.reserve(ws_assignments.size());
+            for (auto &c : ws_assignments) {
+                config.push_back(c.second);
+            }
+            return config;
+        }
+
+        /**
+         * Returns workspace assignments which would be triggered for the output.
+         */
+        std::vector<WorkspaceConfig> configs_for_output(Output * output);
+
+        friend WorkspaceCon *workspace_get(const std::string &num);
+        friend WorkspaceCon *create_workspace_on_output(Output *output, Con *content);
+    };
 
     /**
      * Returns the workspace with the given name or NULL if such a workspace does
@@ -65,26 +133,6 @@ export {
      *
      */
     WorkspaceCon *get_existing_workspace_by_num(int num);
-
-    /**
-     * Returns the first output that is assigned to a workspace specified by the
-     * given name or number. Returns NULL if no such output exists.
-     *
-     * If an assignment matches by number but there is an assignment later that
-     * matches by name, the second one is preferred.
-     * The order of the 'ws_assignments' queue is respected: if multiple
-     * assignments match the criteria, the first one is returned.
-     * 'name' is ignored when NULL, 'parsed_num' is ignored when it is -1.
-     *
-     */
-    OutputCon *get_assigned_output(const char *name, long parsed_num);
-
-    /**
-     * Returns true if the first output assigned to a workspace with the given
-     * workspace assignment is the same as the given output.
-     *
-     */
-    bool output_triggers_assignment(Output * output, const Workspace_Assignment *assignment);
 
     /**
      * Returns a pointer to the workspace with the given number (starting at 0),
@@ -129,7 +177,7 @@ export {
      * Looks up the workspace by name and switches to it.
      *
      */
-    void workspace_show_by_name(const char *num);
+    void workspace_show_by_name(const std::string &num);
 
     /**
      * Returns the next workspace.

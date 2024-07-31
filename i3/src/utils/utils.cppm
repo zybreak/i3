@@ -6,23 +6,7 @@ export module utils;
 import std;
 
 export namespace utils {
-    /*
-     * Returns true if the name consists of only digits.
-     *
-     */
-    __attribute__((pure))
-    bool name_is_digits(const char *name) {
-        /* positive integers and zero are interpreted as numbers */
-        for (size_t i = 0; i < std::strlen(name); i++) {
-            if (!std::isdigit(name[i])) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-
+    
     /*
      * Parses the workspace name as a number. Returns -1 if the workspace should be
      * interpreted as a "named workspace".

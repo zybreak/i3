@@ -25,6 +25,18 @@ import utils;
  * keybindings. */
 static std::deque<std::string> binding_workspace_names{};
 
+/**
+ * Returns true if the name consists of only digits.
+ *
+ */
+__attribute__((pure))
+static bool name_is_digits(const std::string &name) {
+    /* positive integers and zero are interpreted as numbers */
+    auto it = std::ranges::find_if(name, [](auto c) { return !std::isdigit(c); });
+    
+    return it == name.end();
+}
+
 /*
  * Returns the workspace with the given name or NULL if such a workspace does
  * not exist.
@@ -79,7 +91,40 @@ static void _workspace_apply_default_orientation(Con *ws) {
     }
 }
 
-/*
+Output* WorkspaceManager::get_assigned_output(std::string const name) {
+    
+    auto it = ws_assignments.find(name);
+    if (it != ws_assignments.end() && !it->second.output.empty()) {
+        auto assignment = it->second;
+        DLOG(fmt::sprintf("Found workspace name=\"%s\" assignment to output \"%s\"\n",
+                name, assignment.output));
+        return global.randr->get_output_by_name(assignment.output, true);
+    }
+    
+    return nullptr;
+}
+
+Output* WorkspaceManager::get_assigned_output(long const parsed_num) {
+    for (const auto &it : ws_assignments) {
+        auto assignment = it.second;
+        if (assignment.output.empty()) {
+            continue;
+        }
+
+        if (parsed_num != -1 &&
+                   name_is_digits(assignment.name) &&
+                   utils::ws_name_to_number(assignment.name) == parsed_num) {
+            DLOG(fmt::sprintf("Found workspace number=%ld assignment to output \"%s\"\n",
+                    parsed_num, assignment.output));
+            return global.randr->get_output_by_name(assignment.output, true);
+        }
+    }
+    
+    return nullptr;
+}
+
+
+/**
  * Returns the first output that is assigned to a workspace specified by the
  * given name or number. Returns NULL if no such output exists.
  *
@@ -90,44 +135,61 @@ static void _workspace_apply_default_orientation(Con *ws) {
  * 'name' is ignored when NULL, 'parsed_num' is ignored when it is -1.
  *
  */
-OutputCon *get_assigned_output(const char *name, long parsed_num) {
-    OutputCon *output = nullptr;
-    for (const auto &assignment : global.ws_assignments) {
-        if (assignment->output.empty()) {
-            continue;
-        }
-
-        if (name && strcmp(assignment->name.c_str(), name) == 0) {
-             DLOG(fmt::sprintf("Found workspace name=\"%s\" assignment to output \"%s\"\n",
-                 name, assignment->output));
-            Output *assigned_by_name = global.randr->get_output_by_name(assignment->output, true);
-            if (assigned_by_name) {
-                /* When the name matches exactly, skip numbered assignments. */
-                return assigned_by_name->con;
-            }
-        } else if (!output && /* Only keep the first numbered assignment. */
-                   parsed_num != -1 &&
-                   utils::name_is_digits(assignment->name.c_str()) &&
-                   utils::ws_name_to_number(assignment->name) == parsed_num) {
-             DLOG(fmt::sprintf("Found workspace number=%ld assignment to output \"%s\"\n",
-                 parsed_num, assignment->output));
-            Output *assigned_by_num = global.randr->get_output_by_name(assignment->output, true);
-            if (assigned_by_num) {
-                output = assigned_by_num->con;
-            }
-        }
+Output* WorkspaceManager::get_assigned_output(std::string const name, long const parsed_num) {
+    if (auto output = get_assigned_output(name)) {
+        DLOG(fmt::sprintf("Found workspace name=\"%s\" assignment to output \"%s\"\n",
+                name, output->names.front()));
+        return output;
     }
 
-    return output;
+    if (auto output = get_assigned_output(parsed_num)) {
+        DLOG(fmt::sprintf("Found workspace number=%ld assignment to output \"%s\"\n",
+                parsed_num, output->names.front()));
+        return output;
+    }
+    
+    return nullptr;
+}
+
+std::optional<WorkspaceConfig> WorkspaceManager::get_workspace_config(WorkspaceCon const *ws) {
+    auto findByCon = [ws](auto &i) {
+        auto a = i.second;
+        return (a.name == ws->name || (ws->num != -1 && name_is_digits(a.name) && utils::ws_name_to_number(a.name) == ws->num));
+    };
+    
+    auto it = std::ranges::find_if(ws_assignments, findByCon);
+    if (it != ws_assignments.end()) {
+        return it->second;
+    }
+
+    return std::nullopt;
 }
 
 /*
  * Returns true if the first output assigned to a workspace with the given
  * workspace assignment is the same as the given output.
  */
-bool output_triggers_assignment(Output *output, const Workspace_Assignment *assignment) {
-    Con *assigned = get_assigned_output(assignment->name.c_str(), -1);
-    return assigned && assigned == output->con;
+std::vector<WorkspaceConfig> WorkspaceManager::configs_for_output(Output *output) {
+    std::vector<WorkspaceConfig> assignments{};
+    
+    for (auto &it : ws_assignments) {
+        auto assignment = it.second;
+        Output *assigned = get_assigned_output(assignment.name);
+        if (assigned && assigned == output) {
+            assignments.push_back(assignment);
+        }
+    }
+    
+    return assignments;
+}
+
+std::optional<WorkspaceConfig> WorkspaceManager::get_workspace_config(const std::string &name) {
+    auto it = ws_assignments.find(name);
+    if (it != ws_assignments.end()) {
+        return it->second;
+    }
+
+    return std::nullopt;
 }
 
 /*
@@ -148,7 +210,8 @@ WorkspaceCon *workspace_get(const std::string &num) {
      * a positive number. Otherwise it’s a named ws and num will be 1. */
     const int parsed_num = utils::ws_name_to_number(num);
 
-    OutputCon *output = get_assigned_output(num.c_str(), parsed_num);
+    Output *o = global.workspaceManager->get_assigned_output(num, parsed_num);
+    OutputCon *output = o ? o->con : nullptr;
     /* if an assignment is not found, we create this workspace on the current output */
     if (!output) {
         output = global.focused->con_get_output();
@@ -250,8 +313,8 @@ WorkspaceCon *create_workspace_on_output(Output *output, Con *content) {
         /* Ensure that this workspace is not assigned to a different output —
          * otherwise we would create it, then move it over to its output, then
          * find a new workspace, etc… */
-        Con *assigned = get_assigned_output(target_name.c_str(), -1);
-        if (assigned && assigned != output->con) {
+        Output *assigned = global.workspaceManager->get_assigned_output(target_name);
+        if (assigned && assigned != output) {
             continue;
         }
 
@@ -276,8 +339,8 @@ WorkspaceCon *create_workspace_on_output(Output *output, Con *content) {
         int c = 0;
         while (exists) {
             c++;
-            Con *assigned = get_assigned_output(nullptr, c);
-            exists = (get_existing_workspace_by_num(c) || (assigned && assigned != output->con));
+            Output *assigned = global.workspaceManager->get_assigned_output(c);
+            exists = (get_existing_workspace_by_num(c) || (assigned && assigned != output));
             DLOG(fmt::sprintf("result for ws %d: exists = %d\n",  c, exists));
         }
         ws->num = c;
@@ -462,8 +525,8 @@ void workspace_show(Con *workspace) {
      * NOTE: Internal cons such as __i3_scratch (when a scratchpad window is
      * focused) are skipped, see bug #868. */
     if (current) {
-        previous_workspace_name.assign(current->name);
-        DLOG(fmt::sprintf("Setting previous_workspace_name = %s\n",  previous_workspace_name));
+        global.workspaceManager->previous_workspace_name.assign(current->name);
+        DLOG(fmt::sprintf("Setting previous_workspace_name = %s\n",  global.workspaceManager->previous_workspace_name));
     }
 
     workspace_reassign_sticky(workspace);
@@ -552,7 +615,7 @@ void workspace_show(Con *workspace) {
  * Looks up the workspace by name and switches to it.
  *
  */
-void workspace_show_by_name(const char *num) {
+void workspace_show_by_name(const std::string &num) {
     workspace_show(workspace_get(num));
 }
 
@@ -860,12 +923,12 @@ workspace_prev_on_output_end:
  *
  */
 void workspace_back_and_forth() {
-    if (previous_workspace_name.empty()) {
+    if (global.workspaceManager->previous_workspace_name.empty()) {
         DLOG("No previous workspace name set. Not switching.\n");
         return;
     }
 
-    workspace_show_by_name(previous_workspace_name.c_str());
+    workspace_show_by_name(global.workspaceManager->previous_workspace_name);
 }
 
 /*
@@ -873,12 +936,12 @@ void workspace_back_and_forth() {
  *
  */
 WorkspaceCon *workspace_back_and_forth_get() {
-    if (previous_workspace_name.empty()) {
+    if (global.workspaceManager->previous_workspace_name.empty()) {
         DLOG("No previous workspace name set.\n");
         return nullptr;
     }
 
-    return workspace_get(previous_workspace_name);
+    return workspace_get(global.workspaceManager->previous_workspace_name);
 }
 
 static bool get_urgency_flag(Con *con) {
@@ -1048,22 +1111,19 @@ void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
 
         /* check if we can find a workspace assigned to this output */
         bool used_assignment = false;
-        for (const auto &assignment : global.ws_assignments) {
-            if (!output_triggers_assignment(current_output, assignment.get())) {
-                continue;
-            }
+        for (const auto &assignment : global.workspaceManager->configs_for_output(current_output)) {
             /* check if this workspace's name or num is already attached to the tree */
-            const int num = utils::ws_name_to_number(assignment->name);
+            const int num = utils::ws_name_to_number(assignment.name);
             const bool attached = (num == -1)
-                                      ? get_existing_workspace_by_name(assignment->name)
+                                      ? get_existing_workspace_by_name(assignment.name)
                                       : get_existing_workspace_by_num(num);
             if (attached) {
                 continue;
             }
 
             /* so create the workspace referenced to by this assignment */
-            DLOG(fmt::sprintf("Creating workspace from assignment %s.\n",  assignment->name));
-            workspace_get(assignment->name);
+            DLOG(fmt::sprintf("Creating workspace from assignment %s.\n",  assignment.name));
+            workspace_get(assignment.name);
             used_assignment = true;
             break;
         }

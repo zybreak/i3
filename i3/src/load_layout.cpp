@@ -377,7 +377,7 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
                 ctx.json_node->floating = FLOATING_USER_ON;
             free(buf);
         } else if (ctx.last_key == "previous_workspace_name") {
-            previous_workspace_name.assign(val);
+            global.workspaceManager->previous_workspace_name.assign(val);
         }
     }
 }

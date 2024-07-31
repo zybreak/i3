@@ -213,7 +213,7 @@ static bool handle_strut_partial_change(Con *con, xcb_get_property_reply_t *prop
 
 static bool handle_window_type(Con *con, xcb_get_property_reply_t *reply) {
     if (con->window->window_update_type(reply)) {
-        run_assignments(con->window);
+        global.assignmentManager->run_assignments(con->window);
     }
     return true;
 }

@@ -123,15 +123,11 @@ bool gaps_has_adjacent_container(Con *con, direction_t direction) {
 gaps_t gaps_for_workspace(WorkspaceCon *ws) {
     gaps_t gaps = (gaps_t){0, 0, 0, 0, 0};
     gaps_mask_t mask = gaps_mask_t::GAPS_INNER;
-    for (auto &assignment : global.ws_assignments) {
-        if (strcmp(assignment->name.c_str(), ws->name.c_str()) == 0) {
-            gaps = assignment->gaps;
-            mask = assignment->gaps_mask;
-            break;
-        } else if (ws->num != -1 && utils::name_is_digits(assignment->name.c_str()) && utils::ws_name_to_number(assignment->name.c_str()) == ws->num) {
-            gaps = assignment->gaps;
-            mask = assignment->gaps_mask;
-        }
+    
+    auto c = global.workspaceManager->get_workspace_config(ws);
+    if (c) {
+        gaps = c->gaps;
+        mask = c->gaps_mask;
     }
     if (mask == 0) {
         return gaps;

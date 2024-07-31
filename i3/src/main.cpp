@@ -449,6 +449,9 @@ int main(int argc, char *argv[]) {
     }
 
     LOG(fmt::sprintf("i3 %s starting\n", I3_VERSION));
+    
+    global.assignmentManager = new AssignmentManager();
+    global.workspaceManager = new WorkspaceManager();
 
     /* Prefetch X11 extensions that we are interested in. */
     X x{};

@@ -19,15 +19,16 @@ export {
      *
      */
     class Assignment {
-       public:
-        /** the criteria to check if a window matches */
-        Match match;
-
+    protected:
         Assignment(Match &&match) : match(match) {}
 
-        virtual ~Assignment() {
+    public:
+        /** the criteria to check if a window matches */
+        Match match;
+        
+        Assignment() = delete;
 
-        }
+        virtual ~Assignment() {}
     };
 
     /**
@@ -64,27 +65,43 @@ export {
         NoFocusAssignment(Match &&match) : Assignment(std::move(match)) {}
     };
 
-    /**
-     * Checks the list of assignments for the given window and runs all matching
-     * ones (unless they have already been run for this specific window).
-     *
-     */
-    void run_assignments(i3Window * window);
-
-    /**
-     * Returns the first matching assignment for the given window.
-     *
-     */
-    template<typename T>
-    std::optional<std::reference_wrapper<T>> assignment_for(const std::deque<std::unique_ptr<Assignment>> &assignments, const i3Window *window) {
-        auto assignment = std::ranges::find_if(assignments, [&](auto &a) {
-            return ((dynamic_cast<T*>(a.get())) && (a->match.match_matches_window(window)));
-        });
-
-        if (assignment != assignments.end()) {
-            DLOG("got a matching assignment\n");
-            return std::reference_wrapper<T>(*static_cast<T*>(assignment->get()));
+    class AssignmentManager {
+    private:
+        /* The list of assignments */
+        std::deque<std::unique_ptr<Assignment>> assignments{};
+    public:
+        void add(std::unique_ptr<Assignment> &&assignment) {
+            assignments.push_back(std::move(assignment));
         }
-        return std::nullopt;
-    }
+
+        /**
+         * Checks the list of assignments for the given window and runs all matching
+         * ones (unless they have already been run for this specific window).
+         *
+         */
+        void run_assignments(i3Window * window);
+        
+        void clear() {
+            assignments.clear();
+        }
+
+        /**
+         * Returns the first matching assignment for the given window.
+         *
+         */
+        template<typename T>
+        std::optional<std::reference_wrapper<T>> assignment_for(const i3Window *window) {
+            auto assignment = std::ranges::find_if(assignments, [&](auto &a) {
+                return ((dynamic_cast<T*>(a.get())) && (a->match.match_matches_window(window)));
+            });
+
+            if (assignment != assignments.end()) {
+                DLOG("got a matching assignment\n");
+                return std::reference_wrapper<T>(*static_cast<T*>(assignment->get()));
+            }
+            return std::nullopt;
+        }
+
+    };
+
 }

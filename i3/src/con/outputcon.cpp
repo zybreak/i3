@@ -20,10 +20,10 @@ import log;
  * Returns the content container below the given output container.
  *
  */
-Con* OutputCon::output_get_content() {
+ConCon* OutputCon::output_get_content() {
     for (auto &child : this->nodes) {
         if (child->type == CT_CON) {
-            return child;
+            return dynamic_cast<ConCon*>(child);
         }
     }
 

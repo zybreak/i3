@@ -435,9 +435,9 @@ void init_ws_for_output(Output *output) {
             continue;
         }
         
-        Con *workspace_out = get_assigned_output(workspace->name.c_str(), workspace->num);
+        Output *workspace_out = global.workspaceManager->get_assigned_output(workspace->name, workspace->num);
 
-        if (output->con != workspace_out) {
+        if (output != workspace_out) {
             continue;
         }
 
@@ -468,14 +468,10 @@ void init_ws_for_output(Output *output) {
     }
 
     /* otherwise, we create the first assigned ws for this output */
-    for (const auto &assignment : global.ws_assignments) {
-        if (!output_triggers_assignment(output, assignment.get())) {
-            continue;
-        }
-
-         LOG(fmt::sprintf("Initializing first assigned workspace \"%s\" for output \"%s\"\n",
-            assignment->name, assignment->output));
-        workspace_show_by_name(assignment->name.c_str());
+    for (const auto &assignment : global.workspaceManager->configs_for_output(output)) {
+        LOG(fmt::sprintf("Initializing first assigned workspace \"%s\" for output \"%s\"\n",
+                assignment.name, assignment.output));
+        workspace_show_by_name(assignment.name);
         goto restore_focus;
     }
 

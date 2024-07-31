@@ -25,29 +25,23 @@ import i3_commands_base;
  * ones (unless they have already been run for this specific window).
  *
  */
-void run_assignments(i3Window *window) {
+void AssignmentManager::run_assignments(i3Window *window) {
     DLOG("Checking if any assignments match this window\n");
 
     bool needs_tree_render = false;
 
     /* Check if any assignments match */
-    for (const auto &current : global.assignments) {
-        if (dynamic_cast<CommandAssignment*>(current.get()) == nullptr || !current->match.match_matches_window(window)) {
+    for (const auto &current : this->assignments) {
+        auto command = dynamic_cast<CommandAssignment *>(current.get());
+
+        if (command == nullptr || !current->match.match_matches_window(window)) {
             continue;
         }
 
-        bool skip = false;
-        for (const auto &c : window->ran_assignments) {
-            if (c != current.get()) {
-                continue;
-            }
+        auto it = std::ranges::find(window->ran_assignments, current.get());
 
+        if (it != window->ran_assignments.end()) {
             DLOG("This assignment already ran for the given window, not executing it again.\n");
-            skip = true;
-            break;
-        }
-
-        if (skip) {
             continue;
         }
 
@@ -55,8 +49,6 @@ void run_assignments(i3Window *window) {
          * to do this before running the actual command to prevent infinite
          * loops. */
         window->ran_assignments.push_back(current.get());
-
-        auto command = dynamic_cast<CommandAssignment *>(current.get());
 
         DLOG(fmt::sprintf("matching assignment, execute command %s\n", command->command));
         std::string full_command = fmt::format("[id=\"{}\"] {}", std::to_string(window->id), command->command);

@@ -1,5 +1,7 @@
 export module i3:internal;
 
+import std;
+
 export {
 
 
@@ -115,6 +117,8 @@ export {
         int right;
         int bottom;
         int left;
+        
+        auto operator<=>(const gaps_t&) const = default;
     };
 
     enum gaps_mask_t : int {

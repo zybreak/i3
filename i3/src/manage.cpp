@@ -308,7 +308,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     const bool match_from_restart_mode = (match && match->restart_mode);
     if (nc == nullptr) {
         Con *wm_desktop_ws = nullptr;
-        auto assignmentOpt = assignment_for<WorkspaceAssignment>(global.assignments, cwindow);
+        auto assignmentOpt = global.assignmentManager->assignment_for<WorkspaceAssignment>(cwindow);
 
         /* If not, check if it is assigned to a specific workspace */
         if (assignmentOpt) {
@@ -374,7 +374,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
                 nc = tree_open_con(nullptr, cwindow);
             }
         }
-        auto outputAssignmentOpt = assignment_for<OutputAssignment>(global.assignments, cwindow);
+        auto outputAssignmentOpt = global.assignmentManager->assignment_for<OutputAssignment>(cwindow);
         if (outputAssignmentOpt) {
             con_move_to_output_name(nc, outputAssignmentOpt->get().output, true);
         }
@@ -600,7 +600,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     }
 
     /* Check if any assignments match */
-    run_assignments(cwindow);
+    global.assignmentManager->run_assignments(cwindow);
 
     /* 'ws' may be invalid because of the assignments, e.g. when the user uses
      * "move window to workspace 1", but had it assigned to workspace 2. */
@@ -633,7 +633,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     /* Send an event about window creation */
     ipc_send_window_event("new", nc);
 
-    if (set_focus && assignment_for<NoFocusAssignment>(global.assignments, cwindow).has_value()) {
+    if (set_focus && global.assignmentManager->assignment_for<NoFocusAssignment>(cwindow).has_value()) {
         /* The first window on a workspace should always be focused. We have to
          * compare with == 1 because the container has already been inserted at
          * this point. */
@@ -728,7 +728,7 @@ Con *remanage_window(Con *con) {
     Con *nc = placeholder_for_con(con);
     if (!nc) {
         /* The con is not updated, just run assignments */
-        run_assignments(con->window);
+        global.assignmentManager->run_assignments(con->window);
         return con;
     }
 
@@ -754,7 +754,7 @@ Con *remanage_window(Con *con) {
         xcb_destroy_window(**global.x, old_frame);
     }
 
-    run_assignments(nc->window);
+    global.assignmentManager->run_assignments(nc->window);
 
     if (moved_workpaces) {
         /* If the window is associated with a startup sequence, delete it so

@@ -58,6 +58,7 @@ export {
     class WorkspaceCon;
     class FloatingCon;
     class OutputCon;
+    class ConCon;
 
     /**
      * A 'Con' represents everything from the X11 root window down to a single X11 window.
@@ -462,7 +463,7 @@ export {
          * Returns the output container below the given output container.
          *
          */
-        Con *output_get_content();
+        ConCon *output_get_content();
 
         void con_set_layout(layout_t layout) override {
             throw std::domain_error("Cannot change layout of output");

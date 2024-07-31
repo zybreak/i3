@@ -122,8 +122,8 @@ static void free_configuration() {
     ungrab_all_keys(*global.x);
 
     modes.clear();
-    global.assignments.clear();
-    global.ws_assignments.clear();
+    global.assignmentManager->clear();
+    global.workspaceManager->clear();
     barconfigs.clear();
 
     for (const auto &con : global.all_cons) {

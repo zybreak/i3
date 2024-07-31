@@ -635,8 +635,8 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
         j["depth"] = con->depth;
     }
 
-    if (inplace_restart && con->type == CT_ROOT && !previous_workspace_name.empty()) {
-        j["previous_workspace_name"] = previous_workspace_name.c_str();
+    if (inplace_restart && con->type == CT_ROOT && !global.workspaceManager->previous_workspace_name.empty()) {
+        j["previous_workspace_name"] = global.workspaceManager->previous_workspace_name.c_str();
     }
 
     return j;
