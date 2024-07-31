@@ -26,7 +26,6 @@ module;
 #include <xcb/xkb.h>
 #undef explicit
 
-#include "atoms.h"
 #include <fmt/printf.h>
 #include <glib.h>
 module i3;

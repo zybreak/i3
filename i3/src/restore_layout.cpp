@@ -29,8 +29,6 @@ module;
 #include <xcb/xkb.h>
 #undef explicit
 
-#include "atoms.h"
-
 #ifdef I3_ASAN_ENABLED
 #include <sanitizer/lsan_interface.h>
 #endif
@@ -226,7 +224,7 @@ static void open_placeholder_window(x_connection *conn, Con *con) {
          * clarity to which placeholder is waiting for which actual window. */
         if (!con->name.empty()) {
             xcb_change_property(restore_conn, XCB_PROP_MODE_REPLACE, placeholder,
-                                A__NET_WM_NAME, A_UTF8_STRING, 8, con->name.length(), con->name.c_str());
+                                i3::atoms[i3::Atom::_NET_WM_NAME], i3::atoms[i3::Atom::UTF8_STRING], 8, con->name.length(), con->name.c_str());
         }
         DLOG(fmt::sprintf("Created placeholder window 0x%08x for leaf container %p / %s\n",
              placeholder, fmt::ptr(con), con->name));

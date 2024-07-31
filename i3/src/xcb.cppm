@@ -12,8 +12,6 @@ class Con;
 
 #include <config.h>
 #include <xcb/xcb.h>
-
-#include "atoms.h"
 export module i3:xcb;
 
 import std;

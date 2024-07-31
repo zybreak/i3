@@ -22,8 +22,6 @@ module;
 #undef explicit
 
 #include <fmt/printf.h>
-
-#include "atoms.h"
 module i3;
 
 import std;
@@ -195,7 +193,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
              * WM_STATE_WITHDRAWN (see ICCCM 4.1.3.1) */
             long data[] = {XCB_ICCCM_WM_STATE_WITHDRAWN, XCB_NONE};
             cookie = xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE,
-                                         con->window->id, A_WM_STATE, A_WM_STATE, 32, 2, data);
+                                         con->window->id, i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], 32, 2, data);
 
             /* Remove the window from the save set. All windows in the save set
              * will be mapped when i3 closes its connection (e.g. when

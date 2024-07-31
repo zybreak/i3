@@ -20,7 +20,6 @@ module;
 #include <unistd.h>
 
 #include <nlohmann/json.hpp>
-#include "atoms.h"
 
 #include <fmt/printf.h>
 module i3;
@@ -431,27 +430,27 @@ static std::string border_style(Con *con) {
 }
 
 static std::string window_type(Con *con) {
-    if (con->window->window_type == A__NET_WM_WINDOW_TYPE_NORMAL) {
+    if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NORMAL]) {
         return "normal";
-    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_DOCK) {
+    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK]) {
         return "dock";
-    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_DIALOG) {
+    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DIALOG]) {
         return "dialog";
-    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_UTILITY) {
+    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_UTILITY]) {
         return "utility";
-    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_TOOLBAR) {
+    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLBAR]) {
         return "toolbar";
-    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_SPLASH) {
+    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_SPLASH]) {
         return "splash";
-    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_MENU) {
+    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_MENU]) {
         return "menu";
-    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_DROPDOWN_MENU) {
+    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DROPDOWN_MENU]) {
         return "dropdown_menu";
-    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_POPUP_MENU) {
+    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_POPUP_MENU]) {
         return "popup_menu";
-    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_TOOLTIP) {
+    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLTIP]) {
         return "tooltip";
-    } else if (con->window->window_type == A__NET_WM_WINDOW_TYPE_NOTIFICATION) {
+    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NOTIFICATION]) {
         return "notification";
     } else {
         return "unknown";

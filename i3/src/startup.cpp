@@ -26,8 +26,6 @@ module;
 #include <xcb/xkb.h>
 #undef explicit
 
-#include "atoms.h"
-
 #include <paths.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -306,7 +304,7 @@ static std::optional<std::reference_wrapper<Startup_Sequence>> startup_sequence_
         DLOG(fmt::sprintf("Checking leader window 0x%08x\n",  cwindow->leader));
 
         auto property = global.x->conn->get_property_unchecked(false, cwindow->leader,
-                                  A__NET_STARTUP_ID, XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
+                                  i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
         startup_id_reply = property.get().get();
 
         if (startup_id_reply == nullptr ||
@@ -364,7 +362,7 @@ char *startup_workspace_for_window(i3Window *cwindow, xcb_get_property_reply_t *
  */
 void startup_sequence_delete_by_window(i3Window *win) {
 
-    auto startup_id_reply = global.x->conn->get_property(false, win->id, A__NET_STARTUP_ID, XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
+    auto startup_id_reply = global.x->conn->get_property(false, win->id, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
 
     auto sequence = startup_sequence_get(win, (startup_id_reply.get() != nullptr) ? startup_id_reply.get().get() : nullptr, true);
     if (sequence) {

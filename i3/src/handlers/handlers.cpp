@@ -24,8 +24,6 @@ module;
 #include <libsn/sn-monitor.h>
 #undef SN_API_NOT_YET_FROZEN
 
-#include "atoms.h"
-
 #include <config.h>
 #include <fmt/printf.h>
 module i3;
@@ -492,8 +490,8 @@ void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event
 
     /* Since we close the container, we need to unset _NET_WM_DESKTOP and
      * _NET_WM_STATE according to the spec. */
-    xcb_delete_property(**global.x, event->window, A__NET_WM_DESKTOP);
-    xcb_delete_property(**global.x, event->window, A__NET_WM_STATE);
+    xcb_delete_property(**global.x, event->window, i3::atoms[i3::Atom::_NET_WM_DESKTOP]);
+    xcb_delete_property(**global.x, event->window, i3::atoms[i3::Atom::_NET_WM_STATE]);
 
     tree_close_internal(con, kill_window_t::DONT_KILL_WINDOW, false);
     tree_render();

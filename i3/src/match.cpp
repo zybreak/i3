@@ -15,8 +15,6 @@ module;
 #include <xcb/xcb.h>
 
 #include <fmt/printf.h>
-
-#include "atoms.h"
 module i3;
 
 import std;
@@ -415,25 +413,25 @@ void Match::parse_property(const char *ctype, const char *cvalue) {
 
     if (strcmp(ctype, "window_type") == 0) {
         if (strcasecmp(cvalue, "normal") == 0) {
-            this->window_type = A__NET_WM_WINDOW_TYPE_NORMAL;
+            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NORMAL];
         } else if (strcasecmp(cvalue, "dialog") == 0) {
-            this->window_type = A__NET_WM_WINDOW_TYPE_DIALOG;
+            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DIALOG];
         } else if (strcasecmp(cvalue, "utility") == 0) {
-            this->window_type = A__NET_WM_WINDOW_TYPE_UTILITY;
+            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_UTILITY];
         } else if (strcasecmp(cvalue, "toolbar") == 0) {
-            this->window_type = A__NET_WM_WINDOW_TYPE_TOOLBAR;
+            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLBAR];
         } else if (strcasecmp(cvalue, "splash") == 0) {
-            this->window_type = A__NET_WM_WINDOW_TYPE_SPLASH;
+            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_SPLASH];
         } else if (strcasecmp(cvalue, "menu") == 0) {
-            this->window_type = A__NET_WM_WINDOW_TYPE_MENU;
+            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_MENU];
         } else if (strcasecmp(cvalue, "dropdown_menu") == 0) {
-            this->window_type = A__NET_WM_WINDOW_TYPE_DROPDOWN_MENU;
+            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DROPDOWN_MENU];
         } else if (strcasecmp(cvalue, "popup_menu") == 0) {
-            this->window_type = A__NET_WM_WINDOW_TYPE_POPUP_MENU;
+            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_POPUP_MENU];
         } else if (strcasecmp(cvalue, "tooltip") == 0) {
-            this->window_type = A__NET_WM_WINDOW_TYPE_TOOLTIP;
+            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLTIP];
         } else if (strcasecmp(cvalue, "notification") == 0) {
-            this->window_type = A__NET_WM_WINDOW_TYPE_NOTIFICATION;
+            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NOTIFICATION];
         } else {
              ELOG(fmt::sprintf("unknown window_type value \"%s\"\n", cvalue));
             this->error = sstrdup("unknown window_type value");

@@ -16,8 +16,6 @@ module;
 
 #include <xcb/shape.h>
 #include <xcb/xcb_keysyms.h>
-
-#include "atoms.h"
 module i3;
 
 import std;
@@ -208,23 +206,23 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         return;
     }
 
-    auto wm_type_cookie = global.x->conn->get_property(false, window, A__NET_WM_WINDOW_TYPE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto strut_cookie = global.x->conn->get_property(false, window, A__NET_WM_STRUT_PARTIAL, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto state_cookie = global.x->conn->get_property(false, window, A__NET_WM_STATE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto utf8_title_cookie = global.x->conn->get_property(false, window, A__NET_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
-    auto leader_cookie = global.x->conn->get_property(false, window, A_WM_CLIENT_LEADER, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto wm_type_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto strut_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto state_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_STATE], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto utf8_title_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_NAME], XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
+    auto leader_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
     auto transient_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_TRANSIENT_FOR, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
     auto title_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
     auto class_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLASS, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
-    auto role_cookie = global.x->conn->get_property(false, window, A_WM_WINDOW_ROLE, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
-    auto startup_id_cookie = global.x->conn->get_property(false, window, A__NET_STARTUP_ID, XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
+    auto role_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
+    auto startup_id_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
     auto wm_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_HINTS, XCB_ATOM_WM_HINTS, 0L, XCB_ICCCM_NUM_WM_HINTS_ELEMENTS);
     auto wm_normal_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS, 0L, XCB_ICCCM_NUM_WM_SIZE_HINTS_ELEMENTS);
-    auto motif_wm_hints_cookie = global.x->conn->get_property(false, window, A__MOTIF_WM_HINTS, XCB_GET_PROPERTY_TYPE_ANY, 0, 5 * sizeof(uint64_t));
-    auto wm_user_time_cookie = global.x->conn->get_property(false, window, A__NET_WM_USER_TIME, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto wm_desktop_cookie = global.x->conn->get_property(false, window, A__NET_WM_DESKTOP, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto motif_wm_hints_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], XCB_GET_PROPERTY_TYPE_ANY, 0, 5 * sizeof(uint64_t));
+    auto wm_user_time_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto wm_desktop_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
     auto wm_machine_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto wm_icon_cookie = global.x->conn->get_property(false, window, A__NET_WM_ICON, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    auto wm_icon_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_ICON], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
 
     auto *cwindow = new i3Window();
     cwindow->id = window;
@@ -264,7 +262,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     }
 
     /* check if the window needs WM_TAKE_FOCUS */
-    cwindow->needs_take_focus = window_supports_protocol(cwindow->id, A_WM_TAKE_FOCUS);
+    cwindow->needs_take_focus = window_supports_protocol(cwindow->id, i3::atoms[i3::Atom::WM_TAKE_FOCUS]);
 
     /* read the preferred _NET_WM_WINDOW_TYPE atom */
     cwindow->window_type = xcb_get_preferred_window_type(type_reply);
@@ -272,7 +270,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     /* Where to start searching for a container that swallows the new one? */
     Con *search_at = global.croot;
 
-    if (xcb_reply_contains_atom(type_reply, A__NET_WM_WINDOW_TYPE_DOCK)) {
+    if (xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK])) {
         LOG("This window is of type dock\n");
         Output *output = global.randr->get_output_containing(geom->x, geom->y);
         if (output != nullptr) {
@@ -427,7 +425,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     Con *ws = nc->con_get_workspace();
     Con *fs = ws ? ws->con_get_fullscreen_covering_ws() : nullptr;
 
-    if (xcb_reply_contains_atom(state_reply, A__NET_WM_STATE_FULLSCREEN)) {
+    if (xcb_reply_contains_atom(state_reply, i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN])) {
         /* If this window is already fullscreen (after restarting!), skip
          * toggling fullscreen, that would drop it out of fullscreen mode. */
         if (fs != nc) {
@@ -484,11 +482,11 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
 
     /* set floating if necessary */
     bool want_floating = false;
-    if (xcb_reply_contains_atom(type_reply, A__NET_WM_WINDOW_TYPE_DIALOG) ||
-        xcb_reply_contains_atom(type_reply, A__NET_WM_WINDOW_TYPE_UTILITY) ||
-        xcb_reply_contains_atom(type_reply, A__NET_WM_WINDOW_TYPE_TOOLBAR) ||
-        xcb_reply_contains_atom(type_reply, A__NET_WM_WINDOW_TYPE_SPLASH) ||
-        xcb_reply_contains_atom(state_reply, A__NET_WM_STATE_MODAL) ||
+    if (xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DIALOG]) ||
+        xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_UTILITY]) ||
+        xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLBAR]) ||
+        xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_SPLASH]) ||
+        xcb_reply_contains_atom(state_reply, i3::atoms[i3::Atom::_NET_WM_STATE_MODAL]) ||
         (cwindow->max_width > 0 && cwindow->max_height > 0 &&
          cwindow->min_height == cwindow->max_height &&
          cwindow->min_width == cwindow->max_width)) {
@@ -496,7 +494,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         want_floating = true;
     }
 
-    if (xcb_reply_contains_atom(state_reply, A__NET_WM_STATE_STICKY)) {
+    if (xcb_reply_contains_atom(state_reply, i3::atoms[i3::Atom::_NET_WM_STATE_STICKY])) {
         nc->sticky = true;
     }
 

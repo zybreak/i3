@@ -14,8 +14,6 @@ module;
 #include <xcb/xcb.h>
 #include <xcb/shape.h>
 #include <xcb/xcb_keysyms.h>
-
-#include "atoms.h"
 module i3;
 
 import std;
@@ -60,9 +58,9 @@ static void floating_set_hint_atom(Con *con, bool floating) {
     if (floating) {
         uint32_t val = 1;
         xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->window->id,
-                            A_I3_FLOATING_WINDOW, XCB_ATOM_CARDINAL, 32, 1, &val);
+                            i3::atoms[i3::Atom::I3_FLOATING_WINDOW], XCB_ATOM_CARDINAL, 32, 1, &val);
     } else {
-        xcb_delete_property(**global.x, con->window->id, A_I3_FLOATING_WINDOW);
+        xcb_delete_property(**global.x, con->window->id, i3::atoms[i3::Atom::I3_FLOATING_WINDOW]);
     }
 
     xcb_flush(**global.x);

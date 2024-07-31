@@ -18,8 +18,6 @@ module;
 #include <libsn/sn-monitor.h>
 #undef SN_API_NOT_YET_FROZEN
 
-#include "atoms.h"
-
 #include <xcb/randr.h>
 #include <fmt/printf.h>
 module i3;
@@ -54,9 +52,9 @@ const int _NET_MOVERESIZE_WINDOW_HEIGHT = (1 << 11);
 
 static void handle_state(xcb_client_message_event_t *event) {
     if (event->format != 32 ||
-        (event->data.data32[1] != A__NET_WM_STATE_FULLSCREEN &&
-         event->data.data32[1] != A__NET_WM_STATE_DEMANDS_ATTENTION &&
-         event->data.data32[1] != A__NET_WM_STATE_STICKY)) {
+        (event->data.data32[1] != i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN] &&
+         event->data.data32[1] != i3::atoms[i3::Atom::_NET_WM_STATE_DEMANDS_ATTENTION] &&
+         event->data.data32[1] != i3::atoms[i3::Atom::_NET_WM_STATE_STICKY])) {
         DLOG(fmt::sprintf("Unknown atom in clientmessage of type %d\n", event->data.data32[1]));
         return;
     }
@@ -67,7 +65,7 @@ static void handle_state(xcb_client_message_event_t *event) {
         return;
     }
 
-    if (event->data.data32[1] == A__NET_WM_STATE_FULLSCREEN) {
+    if (event->data.data32[1] == i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN]) {
         /* Check if the fullscreen state should be toggled */
         if ((con->fullscreen_mode != CF_NONE &&
              (event->data.data32[0] == _NET_WM_STATE_REMOVE ||
@@ -78,7 +76,7 @@ static void handle_state(xcb_client_message_event_t *event) {
             DLOG("toggling fullscreen\n");
             con_toggle_fullscreen(con, CF_OUTPUT);
         }
-    } else if (event->data.data32[1] == A__NET_WM_STATE_DEMANDS_ATTENTION) {
+    } else if (event->data.data32[1] == i3::atoms[i3::Atom::_NET_WM_STATE_DEMANDS_ATTENTION]) {
         /* Check if the urgent flag must be set or not */
         if (event->data.data32[0] == _NET_WM_STATE_ADD)
             con->con_set_urgency(true);
@@ -86,7 +84,7 @@ static void handle_state(xcb_client_message_event_t *event) {
             con->con_set_urgency(false);
         else if (event->data.data32[0] == _NET_WM_STATE_TOGGLE)
             con->con_set_urgency(!con->urgent);
-    } else if (event->data.data32[1] == A__NET_WM_STATE_STICKY) {
+    } else if (event->data.data32[1] == i3::atoms[i3::Atom::_NET_WM_STATE_STICKY]) {
         DLOG("Received a client message to modify _NET_WM_STATE_STICKY.\n");
         if (event->data.data32[0] == _NET_WM_STATE_ADD)
             con->sticky = true;
@@ -173,7 +171,7 @@ static void handle_frame_extents(xcb_client_message_event_t *event) {
             **global.x,
             XCB_PROP_MODE_REPLACE,
             event->window,
-            A__NET_FRAME_EXTENTS,
+            i3::atoms[i3::Atom::_NET_FRAME_EXTENTS],
             XCB_ATOM_CARDINAL, 32, 4,
             &r);
     xcb_flush(**global.x);
@@ -205,7 +203,7 @@ static void handle_change_state(xcb_client_message_event_t *event) {
         DLOG(fmt::sprintf("Client has requested iconic state, rejecting. (window = %08x)\n", event->window));
         long data[] = {XCB_ICCCM_WM_STATE_NORMAL, XCB_NONE};
         xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, event->window,
-                A_WM_STATE, A_WM_STATE, 32, 2, data);
+                i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], 32, 2, data);
     } else {
         DLOG(fmt::sprintf("Not handling WM_CHANGE_STATE request. (window = %08x, state = %d)\n", event->window, event->data.data32[0]));
     }
@@ -341,27 +339,27 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
    }
 
    LOG(fmt::sprintf("ClientMessage for window 0x%08x\n", event->window));
-   if (event->type == A__NET_WM_STATE) {
+   if (event->type == i3::atoms[i3::Atom::_NET_WM_STATE]) {
        handle_state(event);
-   } else if (event->type == A__NET_ACTIVE_WINDOW) {
+   } else if (event->type == i3::atoms[i3::Atom::_NET_ACTIVE_WINDOW]) {
        handle_active_window(event);
-   } else if (event->type == A_I3_SYNC) {
+   } else if (event->type == i3::atoms[i3::Atom::I3_SYNC]) {
        xcb_window_t window = event->data.data32[0];
        uint32_t rnd = event->data.data32[1];
        sync_respond(global.x, window, rnd);
-   } else if (event->type == A__NET_REQUEST_FRAME_EXTENTS) {
+   } else if (event->type == i3::atoms[i3::Atom::_NET_REQUEST_FRAME_EXTENTS]) {
        handle_frame_extents(event);
-   } else if (event->type == A_WM_CHANGE_STATE) {
+   } else if (event->type == i3::atoms[i3::Atom::WM_CHANGE_STATE]) {
        handle_change_state(event);
-   } else if (event->type == A__NET_CURRENT_DESKTOP) {
+   } else if (event->type == i3::atoms[i3::Atom::_NET_CURRENT_DESKTOP]) {
        handle_current_desktop(event);
-   } else if (event->type == A__NET_WM_DESKTOP) {
+   } else if (event->type == i3::atoms[i3::Atom::_NET_WM_DESKTOP]) {
        handle_desktop(event);
-   } else if (event->type == A__NET_CLOSE_WINDOW) {
+   } else if (event->type == i3::atoms[i3::Atom::_NET_CLOSE_WINDOW]) {
        handle_close_window(event);
-   } else if (event->type == A__NET_WM_MOVERESIZE) {
+   } else if (event->type == i3::atoms[i3::Atom::_NET_WM_MOVERESIZE]) {
        handle_move_resize(event);
-   } else if (event->type == A__NET_MOVERESIZE_WINDOW) {
+   } else if (event->type == i3::atoms[i3::Atom::_NET_MOVERESIZE_WINDOW]) {
        xcb_configure_request_event_t generated_event = handle_move_resize_window(event);
        handle_configure_request(&generated_event);
    } else {

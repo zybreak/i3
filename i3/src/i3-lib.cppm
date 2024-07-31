@@ -53,6 +53,7 @@ export import :config_applier;
 export import :commands_applier;
 export import :internal;
 export import :handle_property;
+export import :atoms;
 
 export namespace i3 {
 

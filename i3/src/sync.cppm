@@ -11,13 +11,12 @@ module;
 #include <xcb/xcb.h>
 
 #include <fmt/printf.h>
-
-#include "atoms.h"
 export module i3:sync;
 
 import utils;
 import log;
 import :x;
+import :atoms;
 
 export void sync_respond(X *x, xcb_window_t window, uint32_t rnd) {
     DLOG(fmt::sprintf("[i3 sync protocol] Sending random value %d back to X11 window 0x%08x\n",  rnd, window));
@@ -26,7 +25,7 @@ export void sync_respond(X *x, xcb_window_t window, uint32_t rnd) {
 
     ev.response_type = XCB_CLIENT_MESSAGE;
     ev.window = window;
-    ev.type = A_I3_SYNC;
+    ev.type = i3::atoms[i3::Atom::I3_SYNC];
     ev.format = 32;
     ev.data.data32[0] = window;
     ev.data.data32[1] = rnd;

@@ -13,7 +13,6 @@ module;
 #include <xcb/shape.h>
 #include <xcb/xcb_keysyms.h>
 #include <fmt/printf.h>
-#include "atoms.h"
 module i3;
 
 import std;
@@ -112,9 +111,9 @@ void send_take_focus(xcb_window_t window, xcb_timestamp_t timestamp) {
 
     ev.response_type = XCB_CLIENT_MESSAGE;
     ev.window = window;
-    ev.type = A_WM_PROTOCOLS;
+    ev.type = i3::atoms[i3::Atom::WM_PROTOCOLS];
     ev.format = 32;
-    ev.data.data32[0] = A_WM_TAKE_FOCUS;
+    ev.data.data32[0] = i3::atoms[i3::Atom::WM_TAKE_FOCUS];
     ev.data.data32[1] = timestamp;
 
     DLOG("Sending WM_TAKE_FOCUS to the client\n");
@@ -153,16 +152,16 @@ xcb_atom_t xcb_get_preferred_window_type(xcb_get_property_reply_t *reply) {
 
     for (int i = 0; i < xcb_get_property_value_length(reply) / (reply->format / 8); i++) {
         xcb_atom_t atom = atoms[i];
-        if (atom == A__NET_WM_WINDOW_TYPE_NORMAL ||
-            atom == A__NET_WM_WINDOW_TYPE_DIALOG ||
-            atom == A__NET_WM_WINDOW_TYPE_UTILITY ||
-            atom == A__NET_WM_WINDOW_TYPE_TOOLBAR ||
-            atom == A__NET_WM_WINDOW_TYPE_SPLASH ||
-            atom == A__NET_WM_WINDOW_TYPE_MENU ||
-            atom == A__NET_WM_WINDOW_TYPE_DROPDOWN_MENU ||
-            atom == A__NET_WM_WINDOW_TYPE_POPUP_MENU ||
-            atom == A__NET_WM_WINDOW_TYPE_TOOLTIP ||
-            atom == A__NET_WM_WINDOW_TYPE_NOTIFICATION) {
+        if (atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NORMAL] ||
+            atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DIALOG] ||
+            atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_UTILITY] ||
+            atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLBAR] ||
+            atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_SPLASH] ||
+            atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_MENU] ||
+            atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DROPDOWN_MENU] ||
+            atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_POPUP_MENU] ||
+            atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLTIP] ||
+            atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NOTIFICATION]) {
             return atom;
         }
     }

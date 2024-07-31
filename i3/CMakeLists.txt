@@ -45,11 +45,30 @@ list(APPEND include_dirs
         "${PROJECT_BINARY_DIR}"
         "${PROJECT_SOURCE_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/src"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/include"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/commands"
         )
 
-list(APPEND i3_src
+add_subdirectory(src/commands/base)
+add_subdirectory(src/commands/new)
+add_subdirectory(src/commands/old)
+add_subdirectory(src/config/base)
+add_subdirectory(src/config/new)
+add_subdirectory(src/config/old)
+add_subdirectory(src/utils)
+
+add_library(i3_log STATIC)
+target_sources(i3_log PUBLIC
+        PUBLIC
+        FILE_SET cxx_modules TYPE CXX_MODULES
+        FILES
+        src/log/log.cppm
+)
+target_link_libraries(i3_log PUBLIC spdlog::spdlog)
+#target_compile_options(i3_log PUBLIC "-pthread" "-fsized-deallocation")
+#target_compile_options(i3_log PUBLIC "-Xclang" "-fno-validate-pch")
+
+add_library(i3_lib STATIC)
+target_sources(i3_lib PUBLIC
         src/assignments.cpp
         src/atoms.cpp
         src/bindings.cpp
@@ -97,37 +116,13 @@ list(APPEND i3_src
         src/workspace.cpp
         src/xcb.cpp
         src/x.cpp
-        )
-
-
-add_subdirectory(src/commands/base)
-add_subdirectory(src/commands/new)
-add_subdirectory(src/commands/old)
-add_subdirectory(src/config/base)
-add_subdirectory(src/config/new)
-add_subdirectory(src/config/old)
-add_subdirectory(src/utils)
-
-add_library(i3_log STATIC)
-target_sources(i3_log PUBLIC
-        PUBLIC
-        FILE_SET cxx_modules TYPE CXX_MODULES
-        FILES
-        src/log/log.cppm
-)
-target_link_libraries(i3_log PUBLIC spdlog::spdlog)
-#target_compile_options(i3_log PUBLIC "-pthread" "-fsized-deallocation")
-#target_compile_options(i3_log PUBLIC "-Xclang" "-fno-validate-pch")
-
-add_library(i3_lib STATIC)
-target_sources(i3_lib PUBLIC
-        ${i3_src}
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES
         src/i3-lib.cppm
         src/assignments.cppm
         src/autostarts.cppm
+        src/atoms.cppm
         src/bindings.cppm
         src/config/config_applier.cppm
         src/config/configuration.cppm

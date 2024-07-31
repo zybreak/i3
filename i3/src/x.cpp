@@ -25,8 +25,6 @@ module;
 #include <unistd.h>
 
 #include <fmt/printf.h>
-
-#include "atoms.h"
 module i3;
 
 import std;
@@ -285,7 +283,7 @@ bool window_supports_protocol(xcb_window_t window, xcb_atom_t atom) {
     xcb_icccm_get_wm_protocols_reply_t protocols;
     bool result = false;
 
-    cookie = xcb_icccm_get_wm_protocols(**global.x, window, A_WM_PROTOCOLS);
+    cookie = xcb_icccm_get_wm_protocols(**global.x, window, i3::atoms[i3::Atom::WM_PROTOCOLS]);
     if (xcb_icccm_get_wm_protocols_reply(**global.x, cookie, &protocols, nullptr) != 1) {
         return false;
     }
@@ -308,7 +306,7 @@ bool window_supports_protocol(xcb_window_t window, xcb_atom_t atom) {
  */
 void x_window_kill(xcb_connection_t *c, xcb_window_t window, kill_window_t kill_window) {
     /* if this window does not support WM_DELETE_WINDOW, we kill it the hard way */
-    if (!window_supports_protocol(window, A_WM_DELETE_WINDOW)) {
+    if (!window_supports_protocol(window, i3::atoms[i3::Atom::WM_DELETE_WINDOW])) {
         if (kill_window == kill_window_t::KILL_WINDOW) {
             LOG(fmt::sprintf("Killing specific window 0x%08x\n",  window));
             xcb_destroy_window(**global.x, window);
@@ -323,9 +321,9 @@ void x_window_kill(xcb_connection_t *c, xcb_window_t window, kill_window_t kill_
 
     ev.response_type = XCB_CLIENT_MESSAGE;
     ev.window = window;
-    ev.type = A_WM_PROTOCOLS;
+    ev.type = i3::atoms[i3::Atom::WM_PROTOCOLS];
     ev.format = 32;
-    ev.data.data32[0] = A_WM_DELETE_WINDOW;
+    ev.data.data32[0] = i3::atoms[i3::Atom::WM_DELETE_WINDOW];
     ev.data.data32[1] = XCB_CURRENT_TIME;
 
     LOG("Sending WM_DELETE to the client\n");
@@ -728,10 +726,10 @@ static void set_hidden_state(Con *con) {
 
     if (should_be_hidden) {
         DLOG(fmt::sprintf("setting _NET_WM_STATE_HIDDEN for con = %p\n", fmt::ptr(con)));
-        xcb_add_property_atom(**global.x, con->window->id, A__NET_WM_STATE, A__NET_WM_STATE_HIDDEN);
+        xcb_add_property_atom(**global.x, con->window->id, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_HIDDEN]);
     } else {
         DLOG(fmt::sprintf("removing _NET_WM_STATE_HIDDEN for con = %p\n", fmt::ptr(con)));
-        xcb_remove_property_atom(**global.x, con->window->id, A__NET_WM_STATE, A__NET_WM_STATE_HIDDEN);
+        xcb_remove_property_atom(**global.x, con->window->id, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_HIDDEN]);
     }
 
     state->is_hidden = should_be_hidden;
@@ -1054,7 +1052,7 @@ void x_push_node(Con *con) {
              * drag & drop if we don’t. Also, xprop(1) needs it. */
             long data[] = {XCB_ICCCM_WM_STATE_NORMAL, XCB_NONE};
             xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->window->id,
-                                A_WM_STATE, A_WM_STATE, 32, 2, data);
+                                i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], 32, 2, data);
         }
 
         uint32_t values[1];
@@ -1125,7 +1123,7 @@ static void x_push_node_unmaps(Con *con) {
             /* Set WM_STATE_WITHDRAWN, it seems like Java apps need it */
             long data[] = {XCB_ICCCM_WM_STATE_WITHDRAWN, XCB_NONE};
             xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->window->id,
-                                A_WM_STATE, A_WM_STATE, 32, 2, data);
+                                i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], 32, 2, data);
         }
 
         cookie = xcb_unmap_window(**global.x, con->frame.id);
@@ -1417,11 +1415,11 @@ void x_set_name(Con *con, const std::string &name) {
  */
 void x_set_i3_atoms() {
     pid_t pid = getpid();
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, A_I3_SOCKET_PATH, A_UTF8_STRING, 8,
+    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_SOCKET_PATH], i3::atoms[i3::Atom::UTF8_STRING], 8,
                         global.current_socketpath.length(),
                         global.current_socketpath.c_str());
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, A_I3_PID, XCB_ATOM_CARDINAL, 32, 1, &pid);
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, A_I3_CONFIG_PATH, A_UTF8_STRING, 8,
+    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_PID], XCB_ATOM_CARDINAL, 32, 1, &pid);
+    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_CONFIG_PATH], i3::atoms[i3::Atom::UTF8_STRING], 8,
                         current_configpath.length(), current_configpath.c_str());
 }
 

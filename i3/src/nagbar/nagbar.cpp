@@ -5,7 +5,6 @@ module;
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#include "atoms.h"
 //#include "config_parser.h"
 
 #include <libgen.h>
@@ -406,11 +405,11 @@ class Nagbar {
         xcb_change_property(conn,
                             XCB_PROP_MODE_REPLACE,
                             win,
-                            A__NET_WM_WINDOW_TYPE,
+                            i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE],
                             A_ATOM,
                             32,
                             1,
-                            (unsigned char *)&A__NET_WM_WINDOW_TYPE_DOCK);
+                            (unsigned char *)&i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK]);
 
         /* Reserve some space at the top of the screen */
         struct {
@@ -436,7 +435,7 @@ class Nagbar {
         xcb_change_property(conn,
                             XCB_PROP_MODE_REPLACE,
                             win,
-                            A__NET_WM_STRUT_PARTIAL,
+                            i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL],
                             A_CARDINAL,
                             32,
                             12,

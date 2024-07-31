@@ -15,8 +15,6 @@ module;
 
 #include <config.h>
 
-#include "atoms.h"
-
 #include <xcb/randr.h>
 #include <fmt/printf.h>
 module i3;
@@ -304,20 +302,20 @@ void PropertyHandlers::property_notify(xcb_property_notify_event_t *event) {
     xcb_atom_t atom = event->atom;
 
     static std::map<xcb_atom_t, property_handler_t> property_handlers{
-        {A__NET_WM_NAME, {A__NET_WM_NAME, 128, handle_windowname_change}},
+        {i3::atoms[i3::Atom::_NET_WM_NAME], {i3::atoms[i3::Atom::_NET_WM_NAME], 128, handle_windowname_change}},
         {XCB_ATOM_WM_HINTS, {XCB_ATOM_WM_HINTS, UINT_MAX, handle_hints}},
         {XCB_ATOM_WM_NAME, {XCB_ATOM_WM_NAME, 128, handle_windowname_change_legacy}},
         {XCB_ATOM_WM_NORMAL_HINTS, {XCB_ATOM_WM_NORMAL_HINTS, UINT_MAX, handle_normal_hints}},
-        {A_WM_CLIENT_LEADER, {A_WM_CLIENT_LEADER, UINT_MAX, handle_clientleader_change}},
+        {i3::atoms[i3::Atom::WM_CLIENT_LEADER], {i3::atoms[i3::Atom::WM_CLIENT_LEADER], UINT_MAX, handle_clientleader_change}},
         {XCB_ATOM_WM_TRANSIENT_FOR, {XCB_ATOM_WM_TRANSIENT_FOR, UINT_MAX, handle_transient_for}},
-        {A_WM_WINDOW_ROLE, {A_WM_WINDOW_ROLE, 128, handle_windowrole_change}},
+        {i3::atoms[i3::Atom::WM_WINDOW_ROLE], {i3::atoms[i3::Atom::WM_WINDOW_ROLE], 128, handle_windowrole_change}},
         {XCB_ATOM_WM_CLASS, {XCB_ATOM_WM_CLASS, 128, handle_class_change}},
-        {A__NET_WM_STRUT_PARTIAL, {A__NET_WM_STRUT_PARTIAL, UINT_MAX, handle_strut_partial_change}},
-        {A__NET_WM_WINDOW_TYPE, {A__NET_WM_WINDOW_TYPE, UINT_MAX, handle_window_type}},
-        {A_I3_FLOATING_WINDOW, {A_I3_FLOATING_WINDOW, UINT_MAX, handle_i3_floating}},
+        {i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], {i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], UINT_MAX, handle_strut_partial_change}},
+        {i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], {i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], UINT_MAX, handle_window_type}},
+        {i3::atoms[i3::Atom::I3_FLOATING_WINDOW], {i3::atoms[i3::Atom::I3_FLOATING_WINDOW], UINT_MAX, handle_i3_floating}},
         {XCB_ATOM_WM_CLIENT_MACHINE, {XCB_ATOM_WM_CLIENT_MACHINE, 128, handle_machine_change}},
-        {A__MOTIF_WM_HINTS, {A__MOTIF_WM_HINTS, 5 * sizeof(uint64_t), handle_motif_hints_change}},
-        {A__NET_WM_ICON, {A__NET_WM_ICON, UINT_MAX, handle_windowicon_change}}
+        {i3::atoms[i3::Atom::_MOTIF_WM_HINTS], {i3::atoms[i3::Atom::_MOTIF_WM_HINTS], 5 * sizeof(uint64_t), handle_motif_hints_change}},
+        {i3::atoms[i3::Atom::_NET_WM_ICON], {i3::atoms[i3::Atom::_NET_WM_ICON], UINT_MAX, handle_windowicon_change}}
     };
 
     auto it = property_handlers.find(atom);

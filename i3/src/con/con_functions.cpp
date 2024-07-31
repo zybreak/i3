@@ -22,7 +22,6 @@ module;
 #include <xcb/xkb.h>
 #undef explicit
 
-#include "atoms.h"
 #include <fmt/printf.h>
 #include <glib.h>
 module i3;
@@ -264,10 +263,10 @@ static void con_set_fullscreen_mode(xcb_connection_t *conn, Con *con, fullscreen
 
     if (con->fullscreen_mode != CF_NONE) {
         DLOG(fmt::sprintf("Setting _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n", fmt::ptr(con), con->window->id));
-        xcb_add_property_atom(conn, con->window->id, A__NET_WM_STATE, A__NET_WM_STATE_FULLSCREEN);
+        xcb_add_property_atom(conn, con->window->id, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN]);
     } else {
         DLOG(fmt::sprintf("Removing _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n", fmt::ptr(con), con->window->id));
-        xcb_remove_property_atom(conn, con->window->id, A__NET_WM_STATE, A__NET_WM_STATE_FULLSCREEN);
+        xcb_remove_property_atom(conn, con->window->id, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN]);
     }
 }
 

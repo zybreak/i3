@@ -54,8 +54,6 @@ struct criteria_state;
 #include <sanitizer/lsan_interface.h>
 #endif
 
-#include "atoms.h"
-
 import std;
 
 import i3ipc;
@@ -604,7 +602,7 @@ int main(int argc, char *argv[]) {
         event.message.response_type = XCB_CLIENT_MESSAGE;
         event.message.window = x.root_screen->root;
         event.message.format = 32;
-        event.message.type = A_MANAGER;
+        event.message.type = i3::atoms[i3::Atom::MANAGER];
         event.message.data.data32[0] = last_timestamp;
         event.message.data.data32[1] = x.wm_sn;
         event.message.data.data32[2] = x.wm_sn_selection_owner;
