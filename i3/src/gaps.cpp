@@ -28,21 +28,21 @@ gaps_t calculate_effective_gaps(Con *con) {
                       (con::first(workspace->nodes)->layout == L_TABBED ||
                        con::first(workspace->nodes)->layout == L_STACKED));
 
-    if (config.smart_gaps == SMART_GAPS_ON && one_child)
+    if (global.config->smart_gaps == SMART_GAPS_ON && one_child)
         return (gaps_t){0, 0, 0, 0, 0};
 
     gaps_t gaps = {
-        .inner = (workspace->gaps.inner + config.gaps.inner),
+        .inner = (workspace->gaps.inner + global.config->gaps.inner),
         .top = 0,
         .right = 0,
         .bottom = 0,
         .left = 0};
 
-    if (config.smart_gaps != SMART_GAPS_INVERSE_OUTER || one_child) {
-        gaps.top = workspace->gaps.top + config.gaps.top;
-        gaps.right = workspace->gaps.right + config.gaps.right;
-        gaps.bottom = workspace->gaps.bottom + config.gaps.bottom;
-        gaps.left = workspace->gaps.left + config.gaps.left;
+    if (global.config->smart_gaps != SMART_GAPS_INVERSE_OUTER || one_child) {
+        gaps.top = workspace->gaps.top + global.config->gaps.top;
+        gaps.right = workspace->gaps.right + global.config->gaps.right;
+        gaps.bottom = workspace->gaps.bottom + global.config->gaps.bottom;
+        gaps.left = workspace->gaps.left + global.config->gaps.left;
     }
 
     return gaps;
@@ -134,19 +134,19 @@ gaps_t gaps_for_workspace(WorkspaceCon *ws) {
     }
 
     if (mask & GAPS_INNER) {
-        gaps.inner -= config.gaps.inner;
+        gaps.inner -= global.config->gaps.inner;
     }
     if (mask & GAPS_TOP) {
-        gaps.top -= config.gaps.top;
+        gaps.top -= global.config->gaps.top;
     }
     if (mask & GAPS_RIGHT) {
-        gaps.right -= config.gaps.right;
+        gaps.right -= global.config->gaps.right;
     }
     if (mask & GAPS_BOTTOM) {
-        gaps.bottom -= config.gaps.bottom;
+        gaps.bottom -= global.config->gaps.bottom;
     }
     if (mask & GAPS_LEFT) {
-        gaps.left -= config.gaps.left;
+        gaps.left -= global.config->gaps.left;
     }
 
     return gaps;

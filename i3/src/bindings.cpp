@@ -59,7 +59,7 @@ struct resolve {
  * Launch nagbar to indicate errors in the configuration file.
  */
 static void start_config_error_nagbar(bool has_errors) {
-    std::string font_pattern = config.font->pattern;
+    std::string font_pattern = global.config->font->pattern;
     auto type = has_errors ? bar_type_t::TYPE_ERROR : bar_type_t::TYPE_WARNING;
     std::string text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
 
@@ -835,7 +835,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
     if (result.parse_error) {
         std::vector<button_t> buttons{};
         auto prompt = std::string("The configured command for this shortcut could not be run successfully.");
-        start_nagbar(&global.command_error_nagbar_pid, buttons, prompt, config.font->pattern, bar_type_t::TYPE_ERROR, false);
+        start_nagbar(&global.command_error_nagbar_pid, buttons, prompt, global.config->font->pattern, bar_type_t::TYPE_ERROR, false);
     }
 
     ipc_send_binding_event("run", &bind_cp, modename.c_str());

@@ -514,11 +514,11 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         DLOG("This window is transient for another window, setting floating\n");
         want_floating = true;
 
-        if (config.popup_during_fullscreen == PDF_LEAVE_FULLSCREEN &&
+        if (global.config->popup_during_fullscreen == PDF_LEAVE_FULLSCREEN &&
             fs != nullptr) {
             DLOG("There is a fullscreen window, leaving fullscreen mode\n");
             con_toggle_fullscreen(fs, CF_OUTPUT);
-        } else if (config.popup_during_fullscreen == PDF_SMART &&
+        } else if (global.config->popup_during_fullscreen == PDF_SMART &&
                    fs != nullptr &&
                    fs->window != nullptr) {
             set_focus = con_find_transient_for_window(nc, fs->window->id);
@@ -549,15 +549,15 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     if (has_mwm_hints) {
         DLOG(fmt::sprintf("MOTIF_WM_HINTS specifies decorations (border_style = %d)\n", std::to_underlying(motif_border_style)));
         if (want_floating) {
-            con_set_border_style(nc, motif_border_style, config.default_floating_border_width);
+            con_set_border_style(nc, motif_border_style, global.config->default_floating_border_width);
         } else {
-            con_set_border_style(nc, motif_border_style, config.default_border_width);
+            con_set_border_style(nc, motif_border_style, global.config->default_border_width);
         }
     }
 
     /* explicitly set the border width to the default */
     if (nc->current_border_width == -1) {
-        nc->current_border_width = (want_floating ? config.default_floating_border_width : config.default_border_width);
+        nc->current_border_width = (want_floating ? global.config->default_floating_border_width : global.config->default_border_width);
     }
 
     /* to avoid getting an UnmapNotify event due to reparenting, we temporarily

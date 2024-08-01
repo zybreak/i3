@@ -519,7 +519,7 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
     /* If default_orientation is NO_ORIENTATION, we change the orientation of
      * the workspaces and their children depending on output resolution. This is
      * only done for workspaces with maximum one child. */
-    if (config.default_orientation == NO_ORIENTATION) {
+    if (global.config->default_orientation == NO_ORIENTATION) {
         //content->nodes | std::views::transform([](auto &child) { return dynamic_cast<WorkspaceCon*>(child); }) | std::views::filter([](auto &child) { return child != nullptr; });
         
         for (auto &workspace_con : content->nodes) {

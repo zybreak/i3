@@ -52,7 +52,7 @@ void ConfigApplier::criteria_add(criteria_state *cs, const char *ctype, const ch
 }
 
 void ConfigApplier::font(const std::string &font) {
-    config.font = load_font(**global.x, global.x->root_screen, font.c_str(), true);
+    this->config->font = load_font(**global.x, global.x->root_screen, font.c_str(), true);
 }
 
 void ConfigApplier::binding(const std::string &bindtype, const std::string &modifiers,
@@ -172,7 +172,7 @@ void ConfigApplier::gaps(const std::string &workspace, const std::string &scope,
     gaps_mask_t mask = gaps_scope_to_mask(scope);
 
     if (workspace.empty()) {
-        apply_gaps(&config.gaps, mask, pixels);
+        apply_gaps(&this->config->gaps, mask, pixels);
     } else {
         create_gaps_assignment(workspace, mask, pixels);
     }
@@ -180,16 +180,16 @@ void ConfigApplier::gaps(const std::string &workspace, const std::string &scope,
 
 void ConfigApplier::smart_borders(const std::string &enable) {
     if (!strcmp(enable.c_str(), "no_gaps"))
-        config.smart_borders = SMART_BORDERS_NO_GAPS;
+        this->config->smart_borders = SMART_BORDERS_NO_GAPS;
     else
-        config.smart_borders = boolstr(enable.c_str()) ? SMART_BORDERS_ON : SMART_BORDERS_OFF;
+        this->config->smart_borders = boolstr(enable.c_str()) ? SMART_BORDERS_ON : SMART_BORDERS_OFF;
 }
 
 void ConfigApplier::smart_gaps(const std::string &enable) {
     if (!strcmp(enable.c_str(), "inverse_outer"))
-        config.smart_gaps = SMART_GAPS_INVERSE_OUTER;
+        this->config->smart_gaps = SMART_GAPS_INVERSE_OUTER;
     else
-        config.smart_gaps = boolstr(enable.c_str()) ? SMART_GAPS_ON : SMART_GAPS_OFF;
+        this->config->smart_gaps = boolstr(enable.c_str()) ? SMART_GAPS_ON : SMART_GAPS_OFF;
 }
 
 void ConfigApplier::for_window(criteria_state *criteria_state, const std::string &command) {
@@ -204,35 +204,35 @@ void ConfigApplier::for_window(criteria_state *criteria_state, const std::string
 }
 
 void ConfigApplier::floating_minimum_size(const long width, const long height) {
-    config.floating_minimum_width = width;
-    config.floating_minimum_height = height;
+    this->config->floating_minimum_width = width;
+    this->config->floating_minimum_height = height;
 }
 
 void ConfigApplier::floating_maximum_size(const long width, const long height) {
-    config.floating_maximum_width = width;
-    config.floating_maximum_height = height;
+    this->config->floating_maximum_width = width;
+    this->config->floating_maximum_height = height;
 }
 
 void ConfigApplier::floating_modifier(const std::string &modifiers) {
-    config.floating_modifier = event_state_from_str(modifiers.c_str());
+    this->config->floating_modifier = event_state_from_str(modifiers.c_str());
 }
 
 void ConfigApplier::default_orientation(const std::string &orientation) {
     if (orientation == "horizontal"s)
-        config.default_orientation = HORIZ;
+        this->config->default_orientation = HORIZ;
     else if (orientation == "vertical"s)
-        config.default_orientation = VERT;
+        this->config->default_orientation = VERT;
     else
-        config.default_orientation = NO_ORIENTATION;
+        this->config->default_orientation = NO_ORIENTATION;
 }
 
 void ConfigApplier::workspace_layout(const std::string &layout) {
     if (layout == "default"s)
-        config.default_layout = L_DEFAULT;
+        this->config->default_layout = L_DEFAULT;
     else if (layout == "stacking"s || layout == "stacked"s)
-        config.default_layout = L_STACKED;
+        this->config->default_layout = L_STACKED;
     else
-        config.default_layout = L_TABBED;
+        this->config->default_layout = L_TABBED;
 }
 
 void ConfigApplier::default_border(const std::string &windowtype, const std::string &border, const long width) {
@@ -256,103 +256,103 @@ void ConfigApplier::default_border(const std::string &windowtype, const std::str
     if (windowtype ==  "default_border"s || windowtype == "new_window"s) {
         DLOG(fmt::sprintf("default tiled border style = %d and border width = %d (%ld physical px)\n",
              border_style, border_width, logical_px(global.x->root_screen, border_width)));
-        config.default_border = static_cast<border_style_t>(border_style);
-        config.default_border_width = logical_px(global.x->root_screen, border_width);
+        this->config->default_border = static_cast<border_style_t>(border_style);
+        this->config->default_border_width = logical_px(global.x->root_screen, border_width);
     } else {
         DLOG(fmt::sprintf("default floating border style = %d and border width = %d (%ld physical px)\n",
              border_style, border_width, logical_px(global.x->root_screen, border_width)));
-        config.default_floating_border = static_cast<border_style_t>(border_style);
-        config.default_floating_border_width = logical_px(global.x->root_screen, border_width);
+        this->config->default_floating_border = static_cast<border_style_t>(border_style);
+        this->config->default_floating_border_width = logical_px(global.x->root_screen, border_width);
     }
 }
 
 void ConfigApplier::hide_edge_borders(const std::string &borders) {
     if (strcmp(borders.c_str(), "smart_no_gaps") == 0)
-        config.hide_edge_borders = HEBM_SMART_NO_GAPS;
+        this->config->hide_edge_borders = HEBM_SMART_NO_GAPS;
     else if (borders.c_str() == "smart"s)
-        config.hide_edge_borders = HEBM_SMART;
+        this->config->hide_edge_borders = HEBM_SMART;
     else if (borders.c_str() == "vertical"s)
-        config.hide_edge_borders = HEBM_VERTICAL;
+        this->config->hide_edge_borders = HEBM_VERTICAL;
     else if (borders.c_str() == "horizontal"s)
-        config.hide_edge_borders = HEBM_HORIZONTAL;
+        this->config->hide_edge_borders = HEBM_HORIZONTAL;
     else if (borders.c_str() == "both"s)
-        config.hide_edge_borders = HEBM_BOTH;
+        this->config->hide_edge_borders = HEBM_BOTH;
     else if (borders.c_str() == "none"s)
-        config.hide_edge_borders = HEBM_NONE;
+        this->config->hide_edge_borders = HEBM_NONE;
     else if (boolstr(borders.c_str()))
-        config.hide_edge_borders = HEBM_VERTICAL;
+        this->config->hide_edge_borders = HEBM_VERTICAL;
     else
-        config.hide_edge_borders = HEBM_NONE;
+        this->config->hide_edge_borders = HEBM_NONE;
 }
 
 void ConfigApplier::focus_follows_mouse(const std::string &value) {
-    config.disable_focus_follows_mouse = !boolstr(value.c_str());
+    this->config->disable_focus_follows_mouse = !boolstr(value.c_str());
 }
 
 void ConfigApplier::mouse_warping(const std::string &value) {
     if (value == "none"s)
-        config.mouse_warping = POINTER_WARPING_NONE;
+        this->config->mouse_warping = POINTER_WARPING_NONE;
     else if (value == "output"s)
-        config.mouse_warping = POINTER_WARPING_OUTPUT;
+        this->config->mouse_warping = POINTER_WARPING_OUTPUT;
 }
 
 void ConfigApplier::focus_wrapping(const std::string &value) {
     if (value == "force"s) {
-        config.focus_wrapping = FOCUS_WRAPPING_FORCE;
+        this->config->focus_wrapping = FOCUS_WRAPPING_FORCE;
     } else if (value == "workspace"s) {
-        config.focus_wrapping = FOCUS_WRAPPING_WORKSPACE;
+        this->config->focus_wrapping = FOCUS_WRAPPING_WORKSPACE;
     } else if (boolstr(value.c_str())) {
-        config.focus_wrapping = FOCUS_WRAPPING_ON;
+        this->config->focus_wrapping = FOCUS_WRAPPING_ON;
     } else {
-        config.focus_wrapping = FOCUS_WRAPPING_OFF;
+        this->config->focus_wrapping = FOCUS_WRAPPING_OFF;
     }
 }
 
 void ConfigApplier::force_focus_wrapping(const std::string &value) {
     /* Legacy syntax. */
     if (boolstr(value.c_str())) {
-        config.focus_wrapping = FOCUS_WRAPPING_FORCE;
+        this->config->focus_wrapping = FOCUS_WRAPPING_FORCE;
     } else {
         /* For "force_focus_wrapping off", don't enable or disable
          * focus wrapping, just ensure it's not forced. */
-        if (config.focus_wrapping == FOCUS_WRAPPING_FORCE) {
-            config.focus_wrapping = FOCUS_WRAPPING_ON;
+        if (this->config->focus_wrapping == FOCUS_WRAPPING_FORCE) {
+            this->config->focus_wrapping = FOCUS_WRAPPING_ON;
         }
     }
 }
 
 void ConfigApplier::workspace_back_and_forth(const std::string &value) {
-    config.workspace_auto_back_and_forth = boolstr(value.c_str());
+    this->config->workspace_auto_back_and_forth = boolstr(value.c_str());
 }
 
 void ConfigApplier::force_display_urgency_hint(const long duration_ms) {
-    config.workspace_urgency_timer = duration_ms / 1000.0;
+    this->config->workspace_urgency_timer = duration_ms / 1000.0;
 }
 
 void ConfigApplier::focus_on_window_activation(const std::string &mode) {
     if (mode == "smart"s)
-        config.focus_on_window_activation = FOWA_SMART;
+        this->config->focus_on_window_activation = FOWA_SMART;
     else if (mode == "urgent"s)
-        config.focus_on_window_activation = FOWA_URGENT;
+        this->config->focus_on_window_activation = FOWA_URGENT;
     else if (mode == "focus"s)
-        config.focus_on_window_activation = FOWA_FOCUS;
+        this->config->focus_on_window_activation = FOWA_FOCUS;
     else if (mode == "none"s)
-        config.focus_on_window_activation = FOWA_NONE;
+        this->config->focus_on_window_activation = FOWA_NONE;
     else {
          ELOG(fmt::sprintf("Unknown focus_on_window_activation mode \"%s\", ignoring it.\n", mode));
         return;
     }
 
-    DLOG(fmt::sprintf("Set new focus_on_window_activation mode = %d.\n",  std::to_underlying(config.focus_on_window_activation)));
+    DLOG(fmt::sprintf("Set new focus_on_window_activation mode = %d.\n",  std::to_underlying(this->config->focus_on_window_activation)));
 }
 
 void ConfigApplier::title_align(const std::string &alignment) {
     if (alignment == "left"s) {
-        config.title_align = title_align_t::ALIGN_LEFT;
+        this->config->title_align = title_align_t::ALIGN_LEFT;
     } else if (alignment == "center"s) {
-        config.title_align = title_align_t::ALIGN_CENTER;
+        this->config->title_align = title_align_t::ALIGN_CENTER;
     } else if (alignment == "right"s) {
-        config.title_align = title_align_t::ALIGN_RIGHT;
+        this->config->title_align = title_align_t::ALIGN_RIGHT;
     } else {
         std::terminate();
     }
@@ -371,27 +371,27 @@ void ConfigApplier::workspace(const std::string &workspace, const std::string &o
 }
 
 void ConfigApplier::ipc_socket(const std::string &path) {
-    config.ipc_socket_path = path;
+    this->config->ipc_socket_path = path;
 }
 
 void ConfigApplier::restart_state(const std::string &path) {
-    free(config.restart_state_path);
-    config.restart_state_path = sstrdup(path.c_str());
+    free(this->config->restart_state_path);
+    this->config->restart_state_path = sstrdup(path.c_str());
 }
 
 void ConfigApplier::popup_during_fullscreen(const std::string &value) {
     if (value == "ignore"s) {
-        config.popup_during_fullscreen = PDF_IGNORE;
+        this->config->popup_during_fullscreen = PDF_IGNORE;
     } else if (value == "leave_fullscreen"s) {
-        config.popup_during_fullscreen = PDF_LEAVE_FULLSCREEN;
+        this->config->popup_during_fullscreen = PDF_LEAVE_FULLSCREEN;
     } else {
-        config.popup_during_fullscreen = PDF_SMART;
+        this->config->popup_during_fullscreen = PDF_SMART;
     }
 }
 
 void ConfigApplier::color_single(const std::string &colorclass, const std::string &color) {
     /* used for client.background only currently */
-    config.client.background = draw_util_hex_to_color(**global.x, global.x->root_screen, color.c_str());
+    this->config->client.background = draw_util_hex_to_color(**global.x, global.x->root_screen, color.c_str());
 }
 
 void ConfigApplier::color(const std::string &colorclass, const std::string &border, const std::string &background, const std::string &text, const std::string &indicator, const std::string &child_border) {
@@ -399,21 +399,21 @@ void ConfigApplier::color(const std::string &colorclass, const std::string &bord
     do {                                                                                     \
         if (strcmp(colorclass.c_str(), "client." #classname) == 0) {                         \
             if (strcmp("focused_tab_title", #classname) == 0) {                                              \
-                config.client.got_focused_tab_title = true;                                                  \
+                this->config->client.got_focused_tab_title = true;                                                  \
                 if (!indicator.empty() || !child_border.empty()) {                                                             \
                     ELOG("indicator and child_border colors have no effect for client.focused_tab_title\n"); \
                 }                                                                                            \
             }                                                                                 \
-            config.client.classname.border = draw_util_hex_to_color(**global.x, global.x->root_screen, border.c_str());                 \
-            config.client.classname.background = draw_util_hex_to_color(**global.x, global.x->root_screen, background.c_str());         \
-            config.client.classname.text = draw_util_hex_to_color(**global.x, global.x->root_screen, text.c_str());                     \
+            this->config->client.classname.border = draw_util_hex_to_color(**global.x, global.x->root_screen, border.c_str());                 \
+            this->config->client.classname.background = draw_util_hex_to_color(**global.x, global.x->root_screen, background.c_str());         \
+            this->config->client.classname.text = draw_util_hex_to_color(**global.x, global.x->root_screen, text.c_str());                     \
             if (!indicator.empty()) {                                                         \
-                config.client.classname.indicator = draw_util_hex_to_color(**global.x, global.x->root_screen, indicator.c_str());       \
+                this->config->client.classname.indicator = draw_util_hex_to_color(**global.x, global.x->root_screen, indicator.c_str());       \
             }                                                                                \
             if (!child_border.empty()) {                                                      \
-                config.client.classname.child_border = draw_util_hex_to_color(**global.x, global.x->root_screen, child_border.c_str()); \
+                this->config->client.classname.child_border = draw_util_hex_to_color(**global.x, global.x->root_screen, child_border.c_str()); \
             } else {                                                                         \
-                config.client.classname.child_border = config.client.classname.background;   \
+                this->config->client.classname.child_border = this->config->client.classname.background;   \
             }                                                                                \
         }                                                                                    \
     } while (0)
@@ -486,15 +486,15 @@ void ConfigApplier::ipc_kill_timeout(const long timeout_ms) {
 
 void ConfigApplier::tiling_drag(const std::string &value) {
     if (strcmp(value.c_str(), "modifier") == 0) {
-        config.tiling_drag = TILING_DRAG_MODIFIER;
+        this->config->tiling_drag = TILING_DRAG_MODIFIER;
     } else if (strcmp(value.c_str(), "titlebar") == 0) {
-        config.tiling_drag = TILING_DRAG_TITLEBAR;
+        this->config->tiling_drag = TILING_DRAG_TITLEBAR;
     } else if (strcmp(value.c_str(), "modifier,titlebar") == 0 ||
                strcmp(value.c_str(), "titlebar,modifier") == 0) {
         /* Switch the above to strtok() or similar if we ever grow more options */
-        config.tiling_drag = TILING_DRAG_MODIFIER_OR_TITLEBAR;
+        this->config->tiling_drag = TILING_DRAG_MODIFIER_OR_TITLEBAR;
     } else {
-        config.tiling_drag = TILING_DRAG_OFF;
+        this->config->tiling_drag = TILING_DRAG_OFF;
     }
 }
 

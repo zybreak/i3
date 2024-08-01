@@ -94,8 +94,8 @@ static bool is_debug_build() {
  */
 static void i3_exit() {
     ipc_shutdown(SHUTDOWN_REASON_EXIT, -1);
-    if (config.ipc_socket_path) {
-        unlink(config.ipc_socket_path->c_str());
+    if (global.config->ipc_socket_path) {
+        unlink(global.config->ipc_socket_path->c_str());
     }
     xcb_disconnect(**global.x);
 
@@ -432,7 +432,12 @@ int main(int argc, char *argv[]) {
     global.new_parser = args.new_parser;
 
     if (args.only_check_config) {
-        exit(load_configuration(&args.override_configpath, config_load_t::C_VALIDATE) ? EXIT_SUCCESS : EXIT_FAILURE);
+        try {
+            load_configuration(&args.override_configpath, config_load_t::C_VALIDATE);
+            exit(EXIT_SUCCESS);
+        } catch (std::exception &e) {
+            exit(EXIT_FAILURE);
+        }
     }
 
     /* If the user passes more arguments, we act like old i3-msg would: Just send
@@ -490,27 +495,28 @@ int main(int argc, char *argv[]) {
 
     init_dpi(*x, x.root_screen);
 
-    load_configuration(&args.override_configpath, config_load_t::C_LOAD);
+    global.config = load_configuration(&args.override_configpath, config_load_t::C_LOAD);
 
-    if (!config.ipc_socket_path) {
+    if (!global.config->ipc_socket_path) {
         /* Fall back to a file name in /tmp/ based on the PID */
         if (char *i3sock = getenv("I3SOCK")) {
-            config.ipc_socket_path = i3sock;
+            global.config->ipc_socket_path = i3sock;
         } else {
             auto process_filename = get_process_filename("ipc-socket");
             if (process_filename) {
-                config.ipc_socket_path = *process_filename;
+                global.config->ipc_socket_path = *process_filename;
             } else {
-                config.ipc_socket_path = std::nullopt;
+                global.config->ipc_socket_path = std::nullopt;
             }
         }
     }
+    
     /* Create the UNIX domain socket for IPC */
     int ipc_socket;
-    if (config.ipc_socket_path) {
-        std::tie(global.current_socketpath, ipc_socket) = create_socket(*config.ipc_socket_path);
+    if (global.config->ipc_socket_path) {
+        std::tie(global.current_socketpath, ipc_socket) = create_socket(*global.config->ipc_socket_path);
         if (ipc_socket == -1) {
-            errx(EXIT_FAILURE, "Could not create the IPC socket: %s", config.ipc_socket_path->c_str());
+            errx(EXIT_FAILURE, "Could not create the IPC socket: %s", global.config->ipc_socket_path->c_str());
         }
     } else {
         errx(EXIT_FAILURE, "Could not create the IPC socket since socket path wasnt specified");

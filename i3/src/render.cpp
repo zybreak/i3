@@ -53,8 +53,8 @@ static void render_con_dockarea(Con *con, Con *child, render_params *p);
  * Returns the height for the decorations
  */
 int render_deco_height() {
-    int deco_height = config.font->height + 4;
-    if (config.font->height & 0x01) {
+    int deco_height = global.config->font->height + 4;
+    if (global.config->font->height & 0x01) {
         ++deco_height;
     }
     return deco_height;
@@ -307,7 +307,7 @@ static void render_root(RootCon *con, Con *fullscreen) {
                      * fullscreen work correctly (ticket #564). Exception to the
                      * above rule: smart popup_during_fullscreen handling (popups
                      * belonging to the fullscreen app will be rendered). */
-                    if (config.popup_during_fullscreen != PDF_SMART || fullscreen->window == nullptr) {
+                    if (global.config->popup_during_fullscreen != PDF_SMART || fullscreen->window == nullptr) {
                         continue;
                     }
 

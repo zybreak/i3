@@ -87,7 +87,7 @@ static void check_crossing_screen_boundary(uint32_t x, uint32_t y) {
     Output *output;
 
     /* If the user disable focus follows mouse, we have nothing to do here */
-    if (config.disable_focus_follows_mouse) {
+    if (global.config->disable_focus_follows_mouse) {
         return;
     }
 
@@ -166,7 +166,7 @@ void PropertyHandlers::handle_enter_notify(xcb_enter_notify_event_t *event) {
         }
     }
 
-    if (config.disable_focus_follows_mouse)
+    if (global.config->disable_focus_follows_mouse)
         return;
 
     /* if this container is already focused, there is nothing to do. */
@@ -207,7 +207,7 @@ void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
         return;
     }
 
-    if (config.disable_focus_follows_mouse)
+    if (global.config->disable_focus_follows_mouse)
         return;
 
     if (con->layout != L_DEFAULT && con->layout != L_SPLITV && con->layout != L_SPLITH)
@@ -408,12 +408,12 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
             goto out;
         }
 
-        if (config.focus_on_window_activation == FOWA_FOCUS || (config.focus_on_window_activation == FOWA_SMART && workspace_is_visible(workspace))) {
+        if (global.config->focus_on_window_activation == FOWA_FOCUS || (global.config->focus_on_window_activation == FOWA_SMART && workspace_is_visible(workspace))) {
             DLOG(fmt::sprintf("Focusing con = %p\n", fmt::ptr(con)));
             workspace_show(workspace);
             con->con_activate_unblock();
             tree_render();
-        } else if (config.focus_on_window_activation == FOWA_URGENT || (config.focus_on_window_activation == FOWA_SMART && !workspace_is_visible(workspace))) {
+        } else if (global.config->focus_on_window_activation == FOWA_URGENT || (global.config->focus_on_window_activation == FOWA_SMART && !workspace_is_visible(workspace))) {
             DLOG(fmt::sprintf("Marking con = %p urgent\n", fmt::ptr(con)));
             con->con_set_urgency(true);
             con = remanage_window(con);

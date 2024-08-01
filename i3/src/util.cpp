@@ -96,7 +96,7 @@ static std::string store_restart_layout() {
     /* create a temporary file if one hasn't been specified, or just
      * resolve the tildes in the specified path */
     std::string filename;
-    if (config.restart_state_path == nullptr) {
+    if (global.config->restart_state_path == nullptr) {
         auto f = get_process_filename("restart-state");
         if (!f) {
             return "";
@@ -104,7 +104,7 @@ static std::string store_restart_layout() {
             filename = *f;
         }
     } else {
-        auto f = utils::resolve_tilde(config.restart_state_path);
+        auto f = utils::resolve_tilde(global.config->restart_state_path);
         filename = f;
     }
 
@@ -174,9 +174,13 @@ void i3_restart(bool forget_layout) {
         }
     }
     
-    auto argv_str = global.start_argv | std::ranges::views::transform([](const std::string &s) { return (char*)s.c_str(); }) | std::ranges::to<std::vector<char *>>();
-    auto argv = argv_str.data();
-
+    char* argv[global.start_argv.size() + 1];
+    
+    for (int i = 0; i < global.start_argv.size(); i++) {
+        argv[i] = (char*)global.start_argv[i].c_str();
+    }
+    argv[global.start_argv.size()] = nullptr;
+    
     execvp(argv[0], argv);
 
     /* not reached */

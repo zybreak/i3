@@ -189,22 +189,22 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
 
     /* Unless user requests otherwise (-1), raise the width/height to
      * reasonable minimum dimensions */
-    if (config.floating_minimum_height != -1) {
+    if (global.config->floating_minimum_height != -1) {
         floating_con->rect.height -= border_rect.height;
-        if (config.floating_minimum_height == 0) {
+        if (global.config->floating_minimum_height == 0) {
             floating_con->rect.height = std::max(floating_con->rect.height, floating_sane_min_height);
         } else {
-            floating_con->rect.height = std::max(floating_con->rect.height, static_cast<uint32_t>(config.floating_minimum_height));
+            floating_con->rect.height = std::max(floating_con->rect.height, static_cast<uint32_t>(global.config->floating_minimum_height));
         }
         floating_con->rect.height += border_rect.height;
     }
 
-    if (config.floating_minimum_width != -1) {
+    if (global.config->floating_minimum_width != -1) {
         floating_con->rect.width -= border_rect.width;
-        if (config.floating_minimum_width == 0) {
+        if (global.config->floating_minimum_width == 0) {
             floating_con->rect.width = std::max(floating_con->rect.width, floating_sane_min_width);
         } else {
-            floating_con->rect.width = std::max(floating_con->rect.width, static_cast<uint32_t>(config.floating_minimum_width));
+            floating_con->rect.width = std::max(floating_con->rect.width, static_cast<uint32_t>(global.config->floating_minimum_width));
         }
         floating_con->rect.width += border_rect.width;
     }
@@ -213,22 +213,22 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
      * configured maxima or, if unconfigured, limit to combined width of all
      * outputs */
     floating_sane_max_dimensions = total_outputs_dimensions(global.x->root_screen);
-    if (config.floating_maximum_height != -1) {
+    if (global.config->floating_maximum_height != -1) {
         floating_con->rect.height -= border_rect.height;
-        if (config.floating_maximum_height == 0) {
+        if (global.config->floating_maximum_height == 0) {
             floating_con->rect.height = std::min(floating_con->rect.height, floating_sane_max_dimensions.height);
         } else {
-            floating_con->rect.height = std::min(floating_con->rect.height, static_cast<uint32_t>(config.floating_maximum_height));
+            floating_con->rect.height = std::min(floating_con->rect.height, static_cast<uint32_t>(global.config->floating_maximum_height));
         }
         floating_con->rect.height += border_rect.height;
     }
 
-    if (config.floating_maximum_width != -1) {
+    if (global.config->floating_maximum_width != -1) {
         floating_con->rect.width -= border_rect.width;
-        if (config.floating_maximum_width == 0) {
+        if (global.config->floating_maximum_width == 0) {
             floating_con->rect.width = std::min(floating_con->rect.width, floating_sane_max_dimensions.width);
         } else {
-            floating_con->rect.width = std::min(floating_con->rect.width, static_cast<uint32_t>(config.floating_maximum_width));
+            floating_con->rect.width = std::min(floating_con->rect.width, static_cast<uint32_t>(global.config->floating_maximum_width));
         }
         floating_con->rect.width += border_rect.width;
     }
@@ -355,7 +355,7 @@ bool floating_enable(Con *con, bool automatic) {
 
     /* 4: set the border style as specified with new_float */
     if (automatic) {
-        con->border_style = con->max_user_border_style = config.default_floating_border;
+        con->border_style = con->max_user_border_style = global.config->default_floating_border;
     }
 
     /* Add pixels for the decoration. */

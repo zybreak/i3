@@ -18,6 +18,8 @@ import utils;
 import i3_config_base;
 import :criteria_state;
 
+class Config;
+
 /*******************************************************************************
  * Include functions.
  ******************************************************************************/
@@ -25,8 +27,10 @@ export class ConfigApplier : public BaseConfigApplier {
 private:
     std::string current_mode{};
     bool current_mode_pango_markup;
+    Config *config;
 
 public:
+    ConfigApplier(Config *config) : config(config) {};
     criteria_state* criteria_create(int _state) override;
 
     void criteria_init(criteria_state *cs, int _state) override;

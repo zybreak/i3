@@ -237,7 +237,7 @@ void resize_graphical_handler(Con *first, Con *second, orientation_t orientation
     }
 
     mask = XCB_CW_BACK_PIXEL;
-    values[0] = config.client.focused.border.colorpixel;
+    values[0] = global.config->client.focused.border.colorpixel;
 
     mask |= XCB_CW_OVERRIDE_REDIRECT;
     values[1] = 1;

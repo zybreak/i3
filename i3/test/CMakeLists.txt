@@ -80,6 +80,13 @@ target_link_libraries(WorkspaceManagerTest PUBLIC i3_lib GTest::gtest_main GTest
 gtest_discover_tests(WorkspaceManagerTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/workspace_manager_test.profraw")
 target_code_coverage(WorkspaceManagerTest ALL)
 
+add_executable(ConfigurationTest)
+target_sources(ConfigurationTest PUBLIC configuration_test.cpp)
+target_link_libraries(ConfigurationTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+gtest_discover_tests(ConfigurationTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/configuration_test.profraw")
+target_code_coverage(ConfigurationTest ALL)
+
+
 #add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS RegexTest MatchTest ConTest ConfigNewTest ConfigOldTest)
 
 #add_custom_target(coverage COMMAND

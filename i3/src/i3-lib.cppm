@@ -61,7 +61,7 @@ export namespace i3 {
 
 export class Global {
 
-   public:
+public:
     Global() = default;
     Global(Global const &) = delete;
     Global &operator=(Global const &) = delete;
@@ -86,6 +86,7 @@ export class Global {
     RandR *randr;
     Shape *shape;
     Xkb *xkb;
+    std::unique_ptr<Config> config{};
 
     /* The original value of RLIMIT_CORE when i3 was started. We need to restore
      * this before starting any other process, since we set RLIMIT_CORE to
@@ -94,7 +95,7 @@ export class Global {
 
     /* The list of assignments */
     AssignmentManager *assignmentManager;
-    
+
     WorkspaceManager *workspaceManager;
 
     /* The last timestamp we got from X11 (timestamps are included in some events

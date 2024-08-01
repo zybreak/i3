@@ -31,6 +31,7 @@ TEST(MatchTest, MatchesWindowClass){
 }
 
 TEST(MatchTest, MatchesUrgentLatest){
+    global.config = std::make_unique<Config>();
     Match m{};
 
     m.urgent = U_LATEST;
@@ -50,6 +51,7 @@ TEST(MatchTest, MatchesUrgentLatest){
 }
 
 TEST(MatchTest, MatchesUrgentOldest){
+    global.config = std::make_unique<Config>();
     Match m{};
 
     m.urgent = U_OLDEST;

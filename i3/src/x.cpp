@@ -363,7 +363,7 @@ static size_t x_get_border_rectangles(Con *con, xcb_rectangle_t rectangles[4]) {
     int border_style = con_border_style(con);
 
     if (border_style != BS_NONE && con->con_is_leaf()) {
-        auto borders_to_hide = static_cast<adjacent_t>(std::to_underlying(con_adjacent_borders(con)) & std::to_underlying(config.hide_edge_borders));
+        auto borders_to_hide = static_cast<adjacent_t>(std::to_underlying(con_adjacent_borders(con)) & std::to_underlying(global.config->hide_edge_borders));
         Rect br = con_border_style_rect(con);
 
         if (!(borders_to_hide & ADJ_LEFT_SCREEN_EDGE)) {
@@ -408,18 +408,18 @@ static Colortriple* get_color(Con *con, bool leaf) {
     Con *parent = con->parent;
     /* find out which colors to use */
     if (con->urgent) {
-        return &config.client.urgent;
+        return &global.config->client.urgent;
     } else if (con == global.focused || con->con_inside_focused()) {
-        return &config.client.focused;
+        return &global.config->client.focused;
     } else if (con == con::first(parent->focused)) {
-        if (config.client.got_focused_tab_title && !leaf && con_descend_focused(con) == global.focused) {
+        if (global.config->client.got_focused_tab_title && !leaf && con_descend_focused(con) == global.focused) {
             /* Stacked/tabbed parent of focused container */
-            return &config.client.focused_tab_title;
+            return &global.config->client.focused_tab_title;
         } else {
-            return &config.client.focused_inactive;
+            return &global.config->client.focused_inactive;
         }
     } else {
-        return &config.client.unfocused;
+        return &global.config->client.unfocused;
     }
 }
 
@@ -471,7 +471,7 @@ void x_draw_decoration(Con *con) {
     p->con_rect = {r->width, r->height};
     p->con_window_rect = {w->width, w->height};
     p->con_deco_rect = con->deco_rect;
-    p->background = config.client.background;
+    p->background = global.config->client.background;
     p->con_is_leaf = con->con_is_leaf();
     p->parent_layout = con->parent->layout;
 
@@ -503,16 +503,16 @@ void x_draw_decoration(Con *con) {
         draw_util_clear_surface(&(con->frame_buffer), (color_t){.red = 0.0, .green = 0.0, .blue = 0.0});
 
         /* top area */
-        draw_util_rectangle(&(con->frame_buffer), config.client.background,
+        draw_util_rectangle(&(con->frame_buffer), global.config->client.background,
                             0, 0, r->width, w->y);
         /* bottom area */
-        draw_util_rectangle(&(con->frame_buffer), config.client.background,
+        draw_util_rectangle(&(con->frame_buffer), global.config->client.background,
                             0, w->y + w->height, r->width, r->height - (w->y + w->height));
         /* left area */
-        draw_util_rectangle(&(con->frame_buffer), config.client.background,
+        draw_util_rectangle(&(con->frame_buffer), global.config->client.background,
                             0, 0, w->x, r->height);
         /* right area */
-        draw_util_rectangle(&(con->frame_buffer), config.client.background,
+        draw_util_rectangle(&(con->frame_buffer), global.config->client.background,
                             w->x + w->width, 0, r->width - (w->x + w->width), r->height);
     }
 
@@ -589,7 +589,7 @@ void x_draw_decoration(Con *con) {
     x_draw_title_border(con, dest_surface);
 
     /* 6: draw the icon and title */
-    int text_offset_y = (con->deco_rect.height - config.font->height) / 2;
+    int text_offset_y = (con->deco_rect.height - global.config->font->height) / 2;
 
     i3Window *win = con->window;
 
@@ -625,7 +625,7 @@ void x_draw_decoration(Con *con) {
     /* Determine x offsets according to title alignment */
     int icon_offset_x;
     int title_offset_x;
-    switch (config.title_align) {
+    switch (global.config->title_align) {
         case title_align_t::ALIGN_LEFT:
             /* (pad)[(pad)(icon)(pad)][text    ](pad)[mark + its pad)
              *             ^           ^--- title_offset_x
@@ -642,23 +642,23 @@ void x_draw_decoration(Con *con) {
              * by two the total available area. That's the decoration width
              * minus the elements that come after icon_offset_x (icon, its
              * padding, text, marks). */
-            icon_offset_x = std::max(icon_padding, (deco_width - icon_padding - icon_size - predict_text_width(config.font, **global.x, global.x->root_screen, title) - title_padding - mark_width) / 2);
+            icon_offset_x = std::max(icon_padding, (deco_width - icon_padding - icon_size - predict_text_width(global.config->font, **global.x, global.x->root_screen, title) - title_padding - mark_width) / 2);
             title_offset_x = std::max(title_padding, icon_offset_x + icon_padding + icon_size);
             break;
         case title_align_t::ALIGN_RIGHT:
             /* [mark + its pad](pad)[    text][(pad)(icon)(pad)](pad)
              *                           ^           ^--- icon_offset_x
              *                           ^--- title_offset_x */
-            title_offset_x = std::max(title_padding + mark_width, deco_width - title_padding - predict_text_width(config.font, **global.x, global.x->root_screen, title) - total_icon_space);
+            title_offset_x = std::max(title_padding + mark_width, deco_width - title_padding - predict_text_width(global.config->font, **global.x, global.x->root_screen, title) - total_icon_space);
             /* Make sure the icon does not escape title boundaries */
-            icon_offset_x = std::min(deco_width - icon_size - icon_padding - title_padding, title_offset_x + predict_text_width(config.font, **global.x, global.x->root_screen, title) + icon_padding);
+            icon_offset_x = std::min(deco_width - icon_size - icon_padding - title_padding, title_offset_x + predict_text_width(global.config->font, **global.x, global.x->root_screen, title) + icon_padding);
             break;
         default:
-            ELOG(fmt::sprintf("BUG: invalid config.title_align value %d\n", std::to_underlying(config.title_align)));
+            ELOG(fmt::sprintf("BUG: invalid config.title_align value %d\n", std::to_underlying(global.config->title_align)));
             return;
     }
 
-    draw_util_text(**global.x, config.font, title, dest_surface,
+    draw_util_text(**global.x, global.config->font, title, dest_surface,
                    con->deco_render_params.value()->color->text, con->deco_render_params.value()->color->background,
                    con->deco_rect.x + title_offset_x,
                    con->deco_rect.y + text_offset_y,
@@ -1429,7 +1429,7 @@ void x_set_i3_atoms() {
  *
  */
 void x_set_warp_to(std::optional<Rect> rect) {
-    if (config.mouse_warping != POINTER_WARPING_NONE) {
+    if (global.config->mouse_warping != POINTER_WARPING_NONE) {
         global.x->warp_to = rect;
     }
 }

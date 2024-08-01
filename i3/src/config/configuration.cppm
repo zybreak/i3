@@ -132,7 +132,7 @@ export {
         const char *terminal;
         i3Font *font;
 
-        std::optional<std::string> ipc_socket_path = std::nullopt;
+        std::optional<std::string> ipc_socket_path{};
         char *restart_state_path;
 
         layout_t default_layout;
@@ -413,7 +413,6 @@ export {
     };
 
     std::string current_configpath{};
-    Config config;
     std::vector<std::unique_ptr<Mode>> modes{};
     std::vector<std::unique_ptr<Barconfig>> barconfigs{};
     std::vector<std::unique_ptr<IncludedFile>> included_files{};
@@ -431,5 +430,7 @@ export {
      * the config for normal use and display errors in the nagbar. C_RELOAD will
      * also clear the previous config.
      */
-    bool load_configuration(const std::string *override_configfile, config_load_t load_type);
+    std::unique_ptr<Config> load_configuration(const std::string *override_configfile, config_load_t load_type);
+    void free_configuration();
+    void config_reload();
 }
