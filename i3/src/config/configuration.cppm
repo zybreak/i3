@@ -124,6 +124,11 @@ export {
      *
      */
     struct Config {
+
+        /* NULL-terminated list of workspace names (in order) extracted from
+         * keybindings. */
+        std::vector<std::string> binding_workspace_names{};
+
         const char *terminal;
         i3Font *font;
 

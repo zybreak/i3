@@ -200,6 +200,67 @@ static void start_config_error_nagbar(bool has_errors) {
     start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type, false);
 }
 
+
+/*
+ * Extracts workspace names from keybindings (e.g. “web” from “bindsym $mod+1
+ * workspace web”), so that when an output needs a workspace, i3 can start with
+ * the first configured one. Needs to be called before reorder_bindings() so
+ * that the config-file order is used, not the i3-internal order.
+ *
+ */
+static void extract_workspace_names_from_bindings() {
+    config.binding_workspace_names.clear();
+    for (auto &bind : current_mode->bindings) {
+        DLOG(fmt::sprintf("binding with command %s\n",  bind->command));
+        if (bind->command.length() < strlen("workspace ") ||
+            strncasecmp(bind->command.c_str(), "workspace", strlen("workspace")) != 0) {
+            continue;
+        }
+        DLOG(fmt::sprintf("relevant command = %s\n",  bind->command));
+        auto target = bind->command.cbegin();
+        std::advance(target, strlen("workspace "));
+        while (*target == ' ' || *target == '\t') {
+            target++;
+        }
+        /* We check if this is the workspace
+         * next/prev/next_on_output/prev_on_output/back_and_forth command.
+         * Beware: The workspace names "next", "prev", "next_on_output",
+         * "prev_on_output", "back_and_forth" and "current" are OK,
+         * so we check before stripping the double quotes */
+        if (strncasecmp(std::to_address(target), "next", strlen("next")) == 0 ||
+            strncasecmp(std::to_address(target), "prev", strlen("prev")) == 0 ||
+            strncasecmp(std::to_address(target), "next_on_output", strlen("next_on_output")) == 0 ||
+            strncasecmp(std::to_address(target), "prev_on_output", strlen("prev_on_output")) == 0 ||
+            strncasecmp(std::to_address(target), "back_and_forth", strlen("back_and_forth")) == 0 ||
+            strncasecmp(std::to_address(target), "current", strlen("current")) == 0) {
+            continue;
+        }
+        if (strncasecmp(std::to_address(target), "--no-auto-back-and-forth", strlen("--no-auto-back-and-forth")) == 0) {
+            std::advance(target, strlen("--no-auto-back-and-forth"));
+            while (*target == ' ' || *target == '\t') {
+                target++;
+            }
+        }
+        if (strncasecmp(std::to_address(target), "number", strlen("number")) == 0) {
+            std::advance(target, strlen("number"));
+            while (*target == ' ' || *target == '\t') {
+                target++;
+            }
+        }
+        auto target_name = utils::parse_string(target, false);
+        if (!target_name) {
+            continue;
+        }
+        if (target_name->starts_with("__")) {
+            LOG(fmt::sprintf("Cannot create workspace \"%s\". Names starting with __ are i3-internal.\n", *target_name));
+            continue;
+        }
+        DLOG(fmt::sprintf("Saving workspace name \"%s\"\n", *target_name));
+
+        config.binding_workspace_names.push_back(*target_name);
+    }
+}
+
 /*
  * (Re-)loads the configuration file (sets useful defaults before).
  *

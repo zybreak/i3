@@ -116,7 +116,7 @@ export {
          */
         std::vector<WorkspaceConfig> configs_for_output(Output * output);
 
-        friend WorkspaceCon *workspace_get(const std::string &num);
+        friend WorkspaceCon *workspace_get_or_create(const std::string &num);
         friend WorkspaceCon *create_workspace_on_output(Output *output, Con *content);
     };
 
@@ -140,16 +140,7 @@ export {
      * memory and initializing the data structures correctly).
      *
      */
-    WorkspaceCon *workspace_get(const std::string &num);
-
-    /**
-     * Extracts workspace names from keybindings (e.g. “web” from “bindsym $mod+1
-     * workspace web”), so that when an output needs a workspace, i3 can start with
-     * the first configured one. Needs to be called before reorder_bindings() so
-     * that the config-file order is used, not the i3-internal order.
-     *
-     */
-    void extract_workspace_names_from_bindings();
+    WorkspaceCon *workspace_get_or_create(const std::string &num);
 
     /**
      * Returns a pointer to a new workspace in the given output. The workspace

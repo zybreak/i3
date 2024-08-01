@@ -21,10 +21,6 @@ import log;
 import i3ipc;
 import utils;
 
-/* NULL-terminated list of workspace names (in order) extracted from
- * keybindings. */
-static std::deque<std::string> binding_workspace_names{};
-
 /**
  * Returns true if the name consists of only digits.
  *
@@ -45,8 +41,12 @@ static bool name_is_digits(const std::string &name) {
 WorkspaceCon *get_existing_workspace_by_name(const std::string &name) {
     WorkspaceCon *workspace = nullptr;
     for (auto &output : global.croot->nodes) {
-        auto ws = std::ranges::find_if(dynamic_cast<OutputCon*>(output)->output_get_content()->nodes, [&name](auto &child) { return !strcasecmp(child->name.c_str(), name.c_str()); });
-        if (ws != dynamic_cast<OutputCon*>(output)->output_get_content()->nodes.end()) {
+        auto outputCon = dynamic_cast<OutputCon*>(output);
+        if (!outputCon) {
+            continue;
+        }
+        auto ws = std::ranges::find_if(outputCon->output_get_content()->nodes, [&name](auto &child) { return child->name == name; });
+        if (ws != outputCon->output_get_content()->nodes.end()) {
             workspace = dynamic_cast<WorkspaceCon*>(*ws);
         }
     }
@@ -62,8 +62,12 @@ WorkspaceCon *get_existing_workspace_by_name(const std::string &name) {
 WorkspaceCon *get_existing_workspace_by_num(int num) {
     WorkspaceCon *workspace = nullptr;
     for (auto &output : global.croot->nodes) {
-        auto ws = std::ranges::find_if(dynamic_cast<OutputCon*>(output)->output_get_content()->nodes, [&num](auto &child) { return dynamic_cast<WorkspaceCon*>(child)->num == num; });
-        if (ws != dynamic_cast<OutputCon*>(output)->output_get_content()->nodes.end()) {
+        auto outputCon = dynamic_cast<OutputCon*>(output);
+        if (!outputCon) {
+            continue;
+        }
+        auto ws = std::ranges::find_if(outputCon->output_get_content()->nodes, [&num](auto &child) { return dynamic_cast<WorkspaceCon*>(child)->num == num; });
+        if (ws != outputCon->output_get_content()->nodes.end()) {
             workspace = dynamic_cast<WorkspaceCon*>(*ws);
         }
     }
@@ -198,7 +202,7 @@ std::optional<WorkspaceConfig> WorkspaceManager::get_workspace_config(const std:
  * memory and initializing the data structures correctly).
  *
  */
-WorkspaceCon *workspace_get(const std::string &num) {
+WorkspaceCon *workspace_get_or_create(const std::string &num) {
     WorkspaceCon *workspace = get_existing_workspace_by_name(num);
     if (workspace) {
         return workspace;
@@ -238,66 +242,6 @@ WorkspaceCon *workspace_get(const std::string &num) {
 }
 
 /*
- * Extracts workspace names from keybindings (e.g. “web” from “bindsym $mod+1
- * workspace web”), so that when an output needs a workspace, i3 can start with
- * the first configured one. Needs to be called before reorder_bindings() so
- * that the config-file order is used, not the i3-internal order.
- *
- */
-void extract_workspace_names_from_bindings() {
-    binding_workspace_names.clear();
-    for (auto &bind : current_mode->bindings) {
-        DLOG(fmt::sprintf("binding with command %s\n",  bind->command));
-        if (bind->command.length() < strlen("workspace ") ||
-            strncasecmp(bind->command.c_str(), "workspace", strlen("workspace")) != 0) {
-            continue;
-        }
-        DLOG(fmt::sprintf("relevant command = %s\n",  bind->command));
-        auto target = bind->command.cbegin();
-        std::advance(target, strlen("workspace "));
-        while (*target == ' ' || *target == '\t') {
-            target++;
-        }
-        /* We check if this is the workspace
-         * next/prev/next_on_output/prev_on_output/back_and_forth command.
-         * Beware: The workspace names "next", "prev", "next_on_output",
-         * "prev_on_output", "back_and_forth" and "current" are OK,
-         * so we check before stripping the double quotes */
-        if (strncasecmp(std::to_address(target), "next", strlen("next")) == 0 ||
-            strncasecmp(std::to_address(target), "prev", strlen("prev")) == 0 ||
-            strncasecmp(std::to_address(target), "next_on_output", strlen("next_on_output")) == 0 ||
-            strncasecmp(std::to_address(target), "prev_on_output", strlen("prev_on_output")) == 0 ||
-            strncasecmp(std::to_address(target), "back_and_forth", strlen("back_and_forth")) == 0 ||
-            strncasecmp(std::to_address(target), "current", strlen("current")) == 0) {
-            continue;
-        }
-        if (strncasecmp(std::to_address(target), "--no-auto-back-and-forth", strlen("--no-auto-back-and-forth")) == 0) {
-            std::advance(target, strlen("--no-auto-back-and-forth"));
-            while (*target == ' ' || *target == '\t') {
-                target++;
-            }
-        }
-        if (strncasecmp(std::to_address(target), "number", strlen("number")) == 0) {
-            std::advance(target, strlen("number"));
-            while (*target == ' ' || *target == '\t') {
-                target++;
-            }
-        }
-        auto target_name = utils::parse_string(target, false);
-        if (!target_name) {
-            continue;
-        }
-        if (target_name->starts_with("__")) {
-            LOG(fmt::sprintf("Cannot create workspace \"%s\". Names starting with __ are i3-internal.\n", *target_name));
-            continue;
-        }
-        DLOG(fmt::sprintf("Saving workspace name \"%s\"\n", *target_name));
-
-        binding_workspace_names.push_back(*target_name);
-    }
-}
-
-/*
  * Returns a pointer to a new workspace in the given output. The workspace
  * is created attached to the tree hierarchy through the given content
  * container.
@@ -309,7 +253,7 @@ WorkspaceCon *create_workspace_on_output(Output *output, Con *content) {
     auto *ws = new WorkspaceCon();
 
     /* try the configured workspace bindings first to find a free name */
-    for (const auto &target_name : binding_workspace_names) {
+    for (const auto &target_name : config.binding_workspace_names) {
         /* Ensure that this workspace is not assigned to a different output —
          * otherwise we would create it, then move it over to its output, then
          * find a new workspace, etc… */
@@ -616,7 +560,7 @@ void workspace_show(Con *workspace) {
  *
  */
 void workspace_show_by_name(const std::string &num) {
-    workspace_show(workspace_get(num));
+    workspace_show(workspace_get_or_create(num));
 }
 
 /*
@@ -941,7 +885,7 @@ WorkspaceCon *workspace_back_and_forth_get() {
         return nullptr;
     }
 
-    return workspace_get(global.workspaceManager->previous_workspace_name);
+    return workspace_get_or_create(global.workspaceManager->previous_workspace_name);
 }
 
 static bool get_urgency_flag(Con *con) {
@@ -1123,14 +1067,14 @@ void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
 
             /* so create the workspace referenced to by this assignment */
             DLOG(fmt::sprintf("Creating workspace from assignment %s.\n",  assignment.name));
-            workspace_get(assignment.name);
+            workspace_get_or_create(assignment.name);
             used_assignment = true;
             break;
         }
 
         /* if we couldn't create the workspace using an assignment, create it on
          * the output. Workspace init IPC events are sent either by
-         * workspace_get or create_workspace_on_output. */
+         * workspace_get_or_create or create_workspace_on_output. */
         if (!used_assignment) {
             create_workspace_on_output(current_output, ws->parent);
         }

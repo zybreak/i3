@@ -428,7 +428,7 @@ void CommandsApplier::move_con_to_workspace_name(struct criteria_state *criteria
 
     LOG(fmt::sprintf("should move window to workspace %s\n",  name));
     /* get the workspace */
-    WorkspaceCon *ws = workspace_get(name);
+    WorkspaceCon *ws = workspace_get_or_create(name);
 
     if (no_auto_back_and_forth == nullptr) {
         ws = maybe_auto_back_and_forth_workspace(ws);
@@ -458,7 +458,7 @@ void CommandsApplier::move_con_to_workspace_number(struct criteria_state *criter
 
     WorkspaceCon *ws = get_existing_workspace_by_num(parsed_num);
     if (!ws) {
-        ws = workspace_get(which);
+        ws = workspace_get_or_create(which);
     }
 
     if (no_auto_back_and_forth == nullptr) {
