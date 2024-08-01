@@ -1614,9 +1614,9 @@ void CommandsApplier::reload(struct criteria_state *criteria_state, CommandsResu
     /* Send an IPC event just in case the ws names have changed */
     ipc_send_workspace_event("reload", nullptr, nullptr);
     /* Send an update event for each barconfig just in case it has changed */
-    for (auto &current: barconfigs) {
-        ipc_send_barconfig_update_event(current.get());
-    }
+    //for (auto &current: barconfigs) {
+    //    ipc_send_barconfig_update_event(current.get());
+    //}
 
     // XXX: default reply for now, make this a better reply
     ysuccess(cmd_output.json_gen, true);
@@ -2001,56 +2001,7 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
  *
  */
 void CommandsApplier::bar_mode(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *bar_mode, const char *bar_id) {
-    int mode = M_DOCK;
-    bool toggle = false;
-    if (strcmp(bar_mode, "dock") == 0)
-        mode = M_DOCK;
-    else if (strcmp(bar_mode, "hide") == 0)
-        mode = M_HIDE;
-    else if (strcmp(bar_mode, "invisible") == 0)
-        mode = M_INVISIBLE;
-    else if (strcmp(bar_mode, "toggle") == 0)
-        toggle = true;
-    else {
-        ELOG(fmt::sprintf("Unknown bar mode \"%s\", this is a mismatch between code and parser spec.\n", bar_mode));
-        std::terminate();
-    }
-
-    if (barconfigs.empty()) {
-        throw std::runtime_error("No bars found\n");
-    }
-
-    for (auto &current: barconfigs) {
-        if (bar_id && strcmp(current->id, bar_id) != 0) {
-            continue;
-        }
-
-        if (toggle) {
-            mode = (current->mode + 1) % 2;
-        }
-
-        DLOG(fmt::sprintf("Changing bar mode of bar_id '%s' from '%d' to '%s (%d)'\n",
-             current->id, std::to_underlying(current->mode), bar_mode, mode));
-        if ((int) current->mode != mode) {
-            current->mode = static_cast<config_mode_t>(mode);
-            ipc_send_barconfig_update_event(current.get());
-        }
-
-        if (bar_id) {
-            /* We are looking for a specific bar and we found it */
-            ysuccess(cmd_output.json_gen, true);
-            return;
-        }
-    }
-
-    if (bar_id) {
-        /* We are looking for a specific bar and we did not find it */
-        throw std::runtime_error(fmt::sprintf("Changing bar mode of bar_id %s failed, bar_id not found.\n", bar_id));
-    } else {
-        /* We have already handled the case of no bars, so we must have
-         * updated all active bars now. */
-        ysuccess(cmd_output.json_gen, true);
-    }
+    
 }
 
 /*
@@ -2058,54 +2009,7 @@ void CommandsApplier::bar_mode(struct criteria_state *criteria_state, CommandsRe
  *
  */
 void CommandsApplier::bar_hidden_state(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *bar_hidden_state, const char *bar_id) {
-    enum config_hidden_state_t hidden_state = S_SHOW;
-    bool toggle = false;
-    if (strcmp(bar_hidden_state, "hide") == 0)
-        hidden_state = S_HIDE;
-    else if (strcmp(bar_hidden_state, "show") == 0)
-        hidden_state = S_SHOW;
-    else if (strcmp(bar_hidden_state, "toggle") == 0)
-        toggle = true;
-    else {
-        ELOG(fmt::sprintf("Unknown bar state \"%s\", this is a mismatch between code and parser spec.\n", bar_hidden_state));
-        std::terminate();
-    }
-
-    if (barconfigs.empty()) {
-        throw std::runtime_error("No bars found\n");
-    }
-
-    for (auto &current: barconfigs) {
-        if (bar_id && strcmp(current->id, bar_id) != 0) {
-            continue;
-        }
-
-        if (toggle) {
-            hidden_state = static_cast<config_hidden_state_t>((current->hidden_state + 1) % 2);
-        }
-
-        DLOG(fmt::sprintf("Changing bar hidden_state of bar_id '%s' from '%d' to '%s (%d)'\n",
-             current->id, std::to_underlying(current->hidden_state), bar_hidden_state, std::to_underlying(hidden_state)));
-        if ((int) current->hidden_state != hidden_state) {
-            current->hidden_state = hidden_state;
-            ipc_send_barconfig_update_event(current.get());
-        }
-
-        if (bar_id) {
-            /* We are looking for a specific bar and we found it */
-            ysuccess(cmd_output.json_gen, true);
-            return;
-        }
-    }
-
-    if (bar_id) {
-        /* We are looking for a specific bar and we did not find it */
-        throw std::runtime_error(fmt::sprintf("Changing bar hidden_state of bar_id %s failed, bar_id not found.\n", bar_id));
-    } else {
-        /* We have already handled the case of no bars, so we must have
-         * updated all active bars now. */
-        ysuccess(cmd_output.json_gen, true);
-    }
+    
 }
 
 /*

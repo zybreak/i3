@@ -394,18 +394,6 @@ static void fix_empty_background(x_connection *conn) {
     }
 }
 
-/* Start i3bar processes for all configured bars */
-static void start_i3bar() {
-    for (auto &barconfig : barconfigs) {
-        std::string command = fmt::format("{} {} --bar_id={} --socket=\"{}\"",
-                                          barconfig->i3bar_command ? barconfig->i3bar_command : "exec i3bar",
-                                          barconfig->verbose ? "-V" : "",
-                                          barconfig->id, global.current_socketpath);
-        LOG(fmt::sprintf("Starting bar process: %s\n", command));
-        start_application(command, true);
-    }
-}
-
 int main(int argc, char *argv[]) {
     /* Keep a symbol pointing to the I3_VERSION string constant so that we have
      * it in gdb backtraces. */
@@ -729,9 +717,6 @@ int main(int argc, char *argv[]) {
 
     /* Autostarting exec_always-lines */
     autostart_always();
-
-    /* Start i3bar processes for all configured bars */
-    start_i3bar();
 
     /* Make sure to destroy the event loop to invoke the cleanup callbacks
      * when calling exit() */

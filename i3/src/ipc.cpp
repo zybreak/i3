@@ -642,151 +642,6 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
     return j;
 }
 
-static nlohmann::json dump_bar_bindings(Barconfig *config) {
-    auto a = nlohmann::json::array();
-
-    if (config->bar_bindings.empty()) {
-        return a;
-    }
-
-    for (auto &current : config->bar_bindings) {
-        a.push_back({
-            { "input_code", current->input_code },
-            { "command", current->command },
-            { "release", current->release == B_UPON_KEYRELEASE }
-        });
-    }
-
-    return a;
-}
-
-static std::string canonicalize_output_name(const std::string &name) {
-    /* Do not canonicalize special output names. */
-    if (strcasecmp(name.c_str(), "primary") == 0 || strcasecmp(name.c_str(), "nonprimary") == 0) {
-        return name;
-    }
-    Output *output = global.randr->get_output_by_name(name, false);
-    return output ? output->output_primary_name() : name;
-}
-
-static std::string mode(Barconfig *config) {
-    switch (config->mode) {
-        case M_HIDE:
-            return "hide";
-        case M_INVISIBLE:
-            return "invisible";
-        case M_DOCK:
-        default:
-            return "dock";
-    }
-}
-
-static std::string hidden_state(Barconfig *config) {
-    switch (config->hidden_state) {
-        case S_SHOW:
-            return "show";
-        case S_HIDE:
-        default:
-            return "hide";
-    }
-}
-
-static nlohmann::json dump_bar_config(Barconfig *config) {
-    nlohmann::json j;
-
-    j["id"] = config->id;
-
-    if (!config->outputs.empty()) {
-        auto a = nlohmann::json::array();
-        for (auto &output : config->outputs) {
-            /* Convert monitor names (RandR ≥ 1.5) or output names
-             * (RandR < 1.5) into monitor names. This way, existing
-             * configs which use output names transparently keep
-             * working. */
-            a.push_back(canonicalize_output_name(output));
-        }
-        j["outputs"] = a;
-    }
-
-    if (!config->tray_outputs.empty()) {
-        auto a = nlohmann::json::array();
-        std::ranges::transform(config->tray_outputs, std::back_inserter(a), [](auto &output) { return canonicalize_output_name(output); });
-        j["tray_outputs"] = a;
-    }
-
-    j["tray_padding"] = config->tray_padding;
-    if (config->socket_path) {
-        j["socket_path"] = config->socket_path;
-    }
-
-    j["mode"] = mode(config);
-
-    j["hidden_state"] = hidden_state(config);
-
-
-    j["modifier"] = config->modifier;
-
-    j["bindings"] = dump_bar_bindings(config);
-
-    j["position"] = (config->position == P_BOTTOM) ? "bottom" : "top";
-
-    if (config->status_command) {
-        j["status_command"] = config->status_command;
-    }
-
-    if (config->workspace_command) {
-        j["workspace_command"] = config->workspace_command;
-    }
-
-    if (config->font) {
-        j["font"] = *config->font;
-    }
-
-    if (config->bar_height) {
-        j["bar_height"] = config->bar_height;
-    }
-
-    j["padding"] = dump_rect(config->padding);
-
-    if (config->separator_symbol) {
-        j["separator_symbol"] = config->separator_symbol;
-    }
-
-    j["workspace_buttons"] = !config->hide_workspace_buttons;
-    j["workspace_min_width"] = config->workspace_min_width;
-    j["strip_workspace_numbers"] = config->strip_workspace_numbers;
-    j["strip_workspace_name"] = config->strip_workspace_name;
-    j["binding_mode_indicator"] = !config->hide_binding_mode_indicator;
-    j["verbose"] = config->verbose;
-
-    auto m = nlohmann::json::object();
-    if (config->colors.background) { m["background"] = config->colors.background; }
-    if (config->colors.statusline) { m["statusline"] = config->colors.statusline; }
-    if (config->colors.separator) { m["separator"] = config->colors.separator; }
-    if (config->colors.focused_background) { m["focused_background"] = config->colors.focused_background; }
-    if (config->colors.focused_statusline) { m["focused_statusline"] = config->colors.focused_statusline; }
-    if (config->colors.focused_separator) { m["focused_separator"] = config->colors.focused_separator; }
-    if (config->colors.focused_workspace_border) { m["focused_workspace_border"] = config->colors.focused_workspace_border; }
-    if (config->colors.focused_workspace_bg) { m["focused_workspace_bg"] = config->colors.focused_workspace_bg; }
-    if (config->colors.focused_workspace_text) { m["focused_workspace_text"] = config->colors.focused_workspace_text; }
-    if (config->colors.active_workspace_border) { m["active_workspace_border"] = config->colors.active_workspace_border; }
-    if (config->colors.active_workspace_bg) { m["active_workspace_bg"] = config->colors.active_workspace_bg; }
-    if (config->colors.active_workspace_text) { m["active_workspace_text"] = config->colors.active_workspace_text; }
-    if (config->colors.inactive_workspace_border) { m["inactive_workspace_border"] = config->colors.inactive_workspace_border; }
-    if (config->colors.inactive_workspace_bg) { m["inactive_workspace_bg"] = config->colors.inactive_workspace_bg; }
-    if (config->colors.inactive_workspace_text) { m["inactive_workspace_text"] = config->colors.inactive_workspace_text; }
-    if (config->colors.urgent_workspace_border) { m["urgent_workspace_border"] = config->colors.urgent_workspace_border; }
-    if (config->colors.urgent_workspace_bg) { m["urgent_workspace_bg"] = config->colors.urgent_workspace_bg; }
-    if (config->colors.urgent_workspace_text) { m["urgent_workspace_text"] = config->colors.urgent_workspace_text; }
-    if (config->colors.binding_mode_border) { m["binding_mode_border"] = config->colors.binding_mode_border; }
-    if (config->colors.binding_mode_bg) { m["binding_mode_bg"] = config->colors.binding_mode_bg; }
-    if (config->colors.binding_mode_text) { m["binding_mode_text"] = config->colors.binding_mode_text; }
-
-    j["colors"] = m;
-
-    return j;
-}
-
 static void handle_tree(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     setlocale(LC_NUMERIC, "C");
     auto j = dump_node(global.croot, false);
@@ -888,39 +743,6 @@ static void handle_get_version(ipc_client *client, uint8_t *message, int size, u
  *
  */
 static void handle_get_bar_config(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
-    /* If no ID was passed, we return a JSON array with all IDs */
-    if (message_size == 0) {
-        auto a = nlohmann::json::array();
-        std::ranges::transform(barconfigs, std::back_inserter(a), [](auto &current) { return current->id; });
-        auto payload = a.dump();
-
-        ipc_send_client_message(client, i3ipc::REPLY_TYPE::BAR_CONFIG, payload);
-        return;
-    }
-
-    /* To get a properly terminated buffer, we copy
-     * message_size bytes out of the buffer */
-    char *bar_id = nullptr;
-    sasprintf(&bar_id, "%.*s", message_size, message);
-     LOG(fmt::sprintf("IPC: looking for config for bar ID \"%s\"\n", bar_id));
-    auto config_ptr = std::ranges::find_if(barconfigs, [&bar_id](auto &current) {
-        return (strcmp(current->id, bar_id) == 0);
-    });
-    free(bar_id);
-
-    nlohmann::json j;
-
-    if (config_ptr == barconfigs.end()) {
-        /* If we did not find a config for the given ID, the reply will contain
-         * a null 'id' field. */
-        j["id"] = nullptr;
-    } else {
-        j = dump_bar_config((*config_ptr).get());
-    }
-
-    auto payload = j.dump();
-
-    ipc_send_client_message(client, i3ipc::REPLY_TYPE::BAR_CONFIG, payload);
 }
 
 /*
@@ -1318,15 +1140,7 @@ void ipc_send_window_event(const char *property, Con *con) {
  * For the barconfig update events, we send the serialized barconfig.
  */
 void ipc_send_barconfig_update_event(Barconfig *barconfig) {
-    DLOG(fmt::sprintf("Issue barconfig_update event for id = %s\n",  barconfig->id));
-    setlocale(LC_NUMERIC, "C");
-
-    auto j = dump_bar_config(barconfig);
-
-    auto payload = j.dump();
-
-    ipc_send_event("barconfig_update", i3ipc::EVENT_BARCONFIG_UPDATE, payload);
-    setlocale(LC_NUMERIC, "");
+    // NOOP
 }
 
 /*

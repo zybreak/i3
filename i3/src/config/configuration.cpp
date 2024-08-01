@@ -124,7 +124,6 @@ void free_configuration() {
     modes.clear();
     global.assignmentManager->clear();
     global.workspaceManager->clear();
-    barconfigs.clear();
 
     for (const auto &con : global.all_cons) {
         /* Assignments changed, previously ran assignments are invalid. */
@@ -139,41 +138,6 @@ void free_configuration() {
     global.config->font.reset();
 
     included_files.clear();
-}
-
-Barconfig::~Barconfig() {
-    Barconfig *barconfig = this;
-
-    barconfig->outputs.clear();
-    barconfig->bar_bindings.clear();
-    barconfig->tray_outputs.clear();
-
-    free(barconfig->id);
-    free(barconfig->socket_path);
-    free(barconfig->status_command);
-    free(barconfig->i3bar_command);
-    free(barconfig->font);
-    free(barconfig->colors.background);
-    free(barconfig->colors.statusline);
-    free(barconfig->colors.separator);
-    free(barconfig->colors.focused_background);
-    free(barconfig->colors.focused_statusline);
-    free(barconfig->colors.focused_separator);
-    free(barconfig->colors.focused_workspace_border);
-    free(barconfig->colors.focused_workspace_bg);
-    free(barconfig->colors.focused_workspace_text);
-    free(barconfig->colors.active_workspace_border);
-    free(barconfig->colors.active_workspace_bg);
-    free(barconfig->colors.active_workspace_text);
-    free(barconfig->colors.inactive_workspace_border);
-    free(barconfig->colors.inactive_workspace_bg);
-    free(barconfig->colors.inactive_workspace_text);
-    free(barconfig->colors.urgent_workspace_border);
-    free(barconfig->colors.urgent_workspace_bg);
-    free(barconfig->colors.urgent_workspace_text);
-    free(barconfig->colors.binding_mode_border);
-    free(barconfig->colors.binding_mode_bg);
-    free(barconfig->colors.binding_mode_text);
 }
 
 void INIT_COLOR(Colortriple &x, const char *cborder, const char *cbackground, const char *ctext, const char *cindicator) {
@@ -373,16 +337,6 @@ std::unique_ptr<Config> load_configuration(const std::string *override_configpat
         ELOG("You did not specify required configuration option \"font\"\n");
         using namespace std::literals;
         config->font = load_font(**global.x, global.x->root_screen, "fixed"s, true);
-    }
-
-    /* Make bar config blocks without a configured font use the i3-wide font. */
-    if (load_type != config_load_t::C_VALIDATE) {
-        for (auto &current : barconfigs) {
-            if (current->font != nullptr) {
-                continue;
-            }
-            current->font = sstrdup(config->font->pattern.c_str());
-        }
     }
 
     return config;
