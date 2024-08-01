@@ -96,7 +96,7 @@ static std::string store_restart_layout() {
     /* create a temporary file if one hasn't been specified, or just
      * resolve the tildes in the specified path */
     std::string filename;
-    if (global.config->restart_state_path == nullptr) {
+    if (!global.config->restart_state_path) {
         auto f = get_process_filename("restart-state");
         if (!f) {
             return "";
@@ -104,7 +104,7 @@ static std::string store_restart_layout() {
             filename = *f;
         }
     } else {
-        auto f = utils::resolve_tilde(global.config->restart_state_path);
+        auto f = utils::resolve_tilde(*global.config->restart_state_path);
         filename = f;
     }
 

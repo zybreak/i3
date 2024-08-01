@@ -38,9 +38,9 @@ static PangoLayout *create_layout_with_dpi(cairo_t *cr) {
  * on success, false otherwise.
  *
  */
-static bool load_pango_font(xcb_connection_t *conn, xcb_screen_t *root_screen, i3Font *font, const char *desc) {
+static bool load_pango_font(xcb_connection_t *conn, xcb_screen_t *root_screen, i3Font *font, const std::string desc) {
     /* Load the font description */
-    font->pango_desc = pango_font_description_from_string(desc);
+    font->pango_desc = pango_font_description_from_string(desc.c_str());
     if (!font->pango_desc) {
         ELOG(fmt::sprintf("Could not open font %s with Pango, fallback to X font.\n",  desc));
         return false;
@@ -151,8 +151,8 @@ static int predict_text_width_pango(i3Font *savedFont, xcb_connection_t *conn, x
  * font was previously loaded, it will be freed.
  *
  */
-i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *pattern, const bool fallback) {
-    auto *font = new i3Font{};
+std::unique_ptr<i3Font> load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const std::string pattern, const bool fallback) {
+    auto font = std::make_unique<i3Font>();
 
     /* No XCB connection, return early because we're just validating the
      * configuration file. */
@@ -160,18 +160,18 @@ i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char 
         return font;
     }
 
-    const char *font_pattern = nullptr;
+    std::string font_pattern{};
 
     /* Try to load a pango font if specified */
-    if (strlen(pattern) > strlen("pango:") && !strncmp(pattern, "pango:", strlen("pango:"))) {
-        font_pattern = pattern + strlen("pango:");
-    } else if (strlen(pattern) > strlen("xft:") && !strncmp(pattern, "xft:", strlen("xft:"))) {
-        font_pattern = pattern + strlen("xft:");
+    if (pattern.starts_with("pango:")) {
+        font_pattern = pattern.substr(strlen("pango:"));
+    } else if (pattern.starts_with("xft:")) {
+        font_pattern = pattern.substr(strlen("xft:"));
     } else {
         font_pattern = pattern;
     }
 
-    if (load_pango_font(conn, root_screen, font, font_pattern)) {
+    if (load_pango_font(conn, root_screen, font.get(), font_pattern)) {
         font->pattern = pattern;
     }
 

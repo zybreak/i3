@@ -136,12 +136,8 @@ void free_configuration() {
     }
 
     /* Get rid of the current font */
-    if (global.config->font != nullptr) {
-        delete global.config->font;
-        global.config->font = nullptr;
-    }
+    global.config->font.reset();
 
-    free(global.config->restart_state_path);
     included_files.clear();
 }
 
@@ -373,9 +369,10 @@ std::unique_ptr<Config> load_configuration(const std::string *override_configpat
     extract_workspace_names_from_bindings(config.get());
     reorder_bindings();
 
-    if (config->font == nullptr && load_type != config_load_t::C_VALIDATE) {
+    if (!config->font && load_type != config_load_t::C_VALIDATE) {
         ELOG("You did not specify required configuration option \"font\"\n");
-        config->font = load_font(**global.x, global.x->root_screen, "fixed", true);
+        using namespace std::literals;
+        config->font = load_font(**global.x, global.x->root_screen, "fixed"s, true);
     }
 
     /* Make bar config blocks without a configured font use the i3-wide font. */

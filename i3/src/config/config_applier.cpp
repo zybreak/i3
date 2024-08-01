@@ -52,7 +52,7 @@ void ConfigApplier::criteria_add(criteria_state *cs, const char *ctype, const ch
 }
 
 void ConfigApplier::font(const std::string &font) {
-    this->config->font = load_font(**global.x, global.x->root_screen, font.c_str(), true);
+    this->config->font = load_font(**global.x, global.x->root_screen, font, true);
 }
 
 void ConfigApplier::binding(const std::string &bindtype, const std::string &modifiers,
@@ -375,8 +375,7 @@ void ConfigApplier::ipc_socket(const std::string &path) {
 }
 
 void ConfigApplier::restart_state(const std::string &path) {
-    free(this->config->restart_state_path);
-    this->config->restart_state_path = sstrdup(path.c_str());
+    this->config->restart_state_path = path;
 }
 
 void ConfigApplier::popup_during_fullscreen(const std::string &value) {

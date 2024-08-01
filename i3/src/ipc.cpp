@@ -739,7 +739,7 @@ static nlohmann::json dump_bar_config(Barconfig *config) {
     }
 
     if (config->font) {
-        j["font"] = config->font;
+        j["font"] = *config->font;
     }
 
     if (config->bar_height) {

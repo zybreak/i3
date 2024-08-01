@@ -58,7 +58,7 @@ export {
      * font was previously loaded, it will be freed.
      *
      */
-    i3Font* load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *pattern, bool fallback);
+    std::unique_ptr<i3Font> load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const std::string pattern, bool fallback);
 
     /**
      * Draws text onto the specified X drawable (normally a pixmap) at the

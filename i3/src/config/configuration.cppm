@@ -119,6 +119,27 @@ export {
         ALIGN_RIGHT
     };
 
+    struct config_client {
+        color_t background;
+        Colortriple focused;
+        Colortriple focused_inactive;
+        Colortriple focused_tab_title;
+        Colortriple unfocused;
+        Colortriple urgent;
+        Colortriple placeholder;
+        bool got_focused_tab_title;
+        
+        auto operator<=>(const config_client &r) const = default;
+    };
+
+    struct config_bar {
+        Colortriple focused;
+        Colortriple unfocused;
+        Colortriple urgent;
+        
+        auto operator<=>(const config_bar &r) const = default;
+    };
+    
     /**
      * Holds part of the configuration
      *
@@ -129,11 +150,10 @@ export {
          * keybindings. */
         std::vector<std::string> binding_workspace_names{};
 
-        const char *terminal;
-        i3Font *font;
+        std::unique_ptr<i3Font> font{};
 
         std::optional<std::string> ipc_socket_path{};
-        char *restart_state_path;
+        std::optional<std::string> restart_state_path{};
 
         layout_t default_layout;
         int container_stack_limit;
@@ -205,7 +225,7 @@ export {
         float workspace_urgency_timer;
 
         /** Behavior when a window sends a NET_ACTIVE_WINDOW message. */
-        enum conf_fowa_t focus_on_window_activation;
+        conf_fowa_t focus_on_window_activation;
 
         /** Title alignment options. */
         title_align_t title_align;
@@ -227,24 +247,12 @@ export {
         int32_t floating_minimum_height;
 
         /* Color codes are stored here */
-        struct config_client {
-            color_t background;
-            Colortriple focused;
-            Colortriple focused_inactive;
-            Colortriple focused_tab_title;
-            Colortriple unfocused;
-            Colortriple urgent;
-            Colortriple placeholder;
-            bool got_focused_tab_title;
-        } client;
-        struct config_bar {
-            Colortriple focused;
-            Colortriple unfocused;
-            Colortriple urgent;
-        } bar;
+        config_client client;
+        
+        config_bar bar;
 
         /** What should happen when a new popup is opened during fullscreen mode */
-        enum conf_pdf_t popup_during_fullscreen;
+        conf_pdf_t popup_during_fullscreen;
 
         /* The number of currently parsed barconfigs */
         int number_barconfigs;

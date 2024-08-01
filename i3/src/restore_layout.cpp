@@ -177,7 +177,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
         DLOG(fmt::sprintf("con %p (placeholder 0x%08x) line %d: %s\n", fmt::ptr(state->con), state->window, n, serialized));
 
         std::string str{serialized};
-        draw_util_text(*conn, global.config->font, str, &(state->surface), foreground, background,
+        draw_util_text(*conn, global.config->font.get(), str, &(state->surface), foreground, background,
                        logical_px(global.x->root_screen, 2),
                        (n * (global.config->font->height + logical_px(global.x->root_screen, 2))) + logical_px(global.x->root_screen, 2),
                        state->rect.width - 2 * logical_px(global.x->root_screen, 2));
@@ -187,10 +187,10 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
 
     // TODO: render the watch symbol in a bigger font
     std::string line{"⌚"};
-    int text_width = predict_text_width(global.config->font, *conn, global.x->root_screen, line);
+    int text_width = predict_text_width(global.config->font.get(), *conn, global.x->root_screen, line);
     int x = (state->rect.width / 2) - (text_width / 2);
     int y = (state->rect.height / 2) - (global.config->font->height / 2);
-    draw_util_text(*conn, global.config->font, line, &(state->surface), foreground, background, x, y, text_width);
+    draw_util_text(*conn, global.config->font.get(), line, &(state->surface), foreground, background, x, y, text_width);
     xcb_aux_sync(restore_conn);
 }
 

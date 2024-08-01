@@ -642,23 +642,23 @@ void x_draw_decoration(Con *con) {
              * by two the total available area. That's the decoration width
              * minus the elements that come after icon_offset_x (icon, its
              * padding, text, marks). */
-            icon_offset_x = std::max(icon_padding, (deco_width - icon_padding - icon_size - predict_text_width(global.config->font, **global.x, global.x->root_screen, title) - title_padding - mark_width) / 2);
+            icon_offset_x = std::max(icon_padding, (deco_width - icon_padding - icon_size - predict_text_width(global.config->font.get(), **global.x, global.x->root_screen, title) - title_padding - mark_width) / 2);
             title_offset_x = std::max(title_padding, icon_offset_x + icon_padding + icon_size);
             break;
         case title_align_t::ALIGN_RIGHT:
             /* [mark + its pad](pad)[    text][(pad)(icon)(pad)](pad)
              *                           ^           ^--- icon_offset_x
              *                           ^--- title_offset_x */
-            title_offset_x = std::max(title_padding + mark_width, deco_width - title_padding - predict_text_width(global.config->font, **global.x, global.x->root_screen, title) - total_icon_space);
+            title_offset_x = std::max(title_padding + mark_width, deco_width - title_padding - predict_text_width(global.config->font.get(), **global.x, global.x->root_screen, title) - total_icon_space);
             /* Make sure the icon does not escape title boundaries */
-            icon_offset_x = std::min(deco_width - icon_size - icon_padding - title_padding, title_offset_x + predict_text_width(global.config->font, **global.x, global.x->root_screen, title) + icon_padding);
+            icon_offset_x = std::min(deco_width - icon_size - icon_padding - title_padding, title_offset_x + predict_text_width(global.config->font.get(), **global.x, global.x->root_screen, title) + icon_padding);
             break;
         default:
             ELOG(fmt::sprintf("BUG: invalid config.title_align value %d\n", std::to_underlying(global.config->title_align)));
             return;
     }
 
-    draw_util_text(**global.x, global.config->font, title, dest_surface,
+    draw_util_text(**global.x, global.config->font.get(), title, dest_surface,
                    con->deco_render_params.value()->color->text, con->deco_render_params.value()->color->background,
                    con->deco_rect.x + title_offset_x,
                    con->deco_rect.y + text_offset_y,

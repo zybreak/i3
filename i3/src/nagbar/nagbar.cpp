@@ -45,7 +45,7 @@ class Nagbar {
     surface_t bar;
     button_t btn_close;
     xcb_screen_t *root_screen;
-    i3Font *font;
+    std::unique_ptr<i3Font> font{};
     std::string prompt;
     std::vector<button_t> buttons;
     bool running{true};
@@ -159,7 +159,7 @@ class Nagbar {
      *
      */
     int button_draw(button_t *button, int position) {
-        int text_width = predict_text_width(font, conn, root_screen, button->label);
+        int text_width = predict_text_width(font.get(), conn, root_screen, button->label);
         button->width = text_width + 2 * BTN_PADDING + 2 * BTN_BORDER;
         button->x = position - button->width;
 
@@ -176,7 +176,7 @@ class Nagbar {
                             text_width + 2 * BTN_PADDING,
                             font->height + 2 * BTN_PADDING);
         /* draw label */
-        draw_util_text(conn, font, button->label, &bar, color_text, color_button_background,
+        draw_util_text(conn, font.get(), button->label, &bar, color_text, color_button_background,
                        position - button->width + BTN_BORDER + BTN_PADDING,
                        MSG_PADDING,
                        200);
@@ -254,7 +254,7 @@ class Nagbar {
         /* draw background */
         draw_util_clear_surface(&bar, color_background);
         /* draw message */
-        draw_util_text(conn, font, prompt, &bar, color_text, color_background,
+        draw_util_text(conn, font.get(), prompt, &bar, color_text, color_background,
                        MSG_PADDING, MSG_PADDING,
                        bar.width - 2 * MSG_PADDING);
 
@@ -316,7 +316,7 @@ class Nagbar {
         }
 
         init_dpi(conn, root_screen);
-        font = load_font(conn, root_screen, pattern.c_str(), true);
+        font = load_font(conn, root_screen, pattern, true);
 
         /* Place requests for the atoms we need as soon as possible */
         ATOM_cookie = xcb_intern_atom(conn, 0, strlen("ATOM"), "ATOM");
