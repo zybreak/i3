@@ -28,7 +28,7 @@ export {
 
     class BaseParser {
        public:
-        std::vector<std::unique_ptr<IncludedFile>> included_files{};
+        std::vector<IncludedFile> included_files{};
         BaseConfigApplier &applier;
         BaseResourceDatabase &resourceDatabase;
         explicit BaseParser(BaseConfigApplier &applier, BaseResourceDatabase &rd)

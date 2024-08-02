@@ -171,13 +171,13 @@ static void start_config_error_nagbar(Config *config, bool has_errors) {
 static void extract_workspace_names_from_bindings(Config *config) {
     config->binding_workspace_names.clear();
     for (auto &bind : current_mode->bindings) {
-        DLOG(fmt::sprintf("binding with command %s\n",  bind->command));
-        if (bind->command.length() < strlen("workspace ") ||
-            strncasecmp(bind->command.c_str(), "workspace", strlen("workspace")) != 0) {
+        DLOG(fmt::sprintf("binding with command %s\n",  bind.command));
+        if (bind.command.length() < strlen("workspace ") ||
+            strncasecmp(bind.command.c_str(), "workspace", strlen("workspace")) != 0) {
             continue;
         }
-        DLOG(fmt::sprintf("relevant command = %s\n",  bind->command));
-        auto target = bind->command.cbegin();
+        DLOG(fmt::sprintf("relevant command = %s\n",  bind.command));
+        auto target = bind.command.cbegin();
         std::advance(target, strlen("workspace "));
         while (*target == ' ' || *target == '\t') {
             target++;
@@ -239,9 +239,9 @@ std::unique_ptr<Config> load_configuration(const std::string *override_configpat
     //}
 
     // TODO: don't set mode to default if reloading
-    auto default_mode = std::make_unique<Mode>("default");
-    current_mode = default_mode.get();
-    modes.push_back(std::move(default_mode));
+    Mode default_mode{"default"};
+    modes.push_back(default_mode);
+    current_mode = &modes.back();
 
 
     /* Clear the old config or initialize the data structure */
@@ -310,9 +310,7 @@ std::unique_ptr<Config> load_configuration(const std::string *override_configpat
         } else {
             OldParser op{ resolved_path, stream, resourceDatabase, load_type, configApplier };
             op.parse_file();
-            for (auto &included_file : op.included_files) {
-                included_files.push_back(std::move(included_file));
-            }
+            included_files = op.included_files;
         }
         
         if (has_duplicate_bindings()) {

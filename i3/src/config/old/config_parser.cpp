@@ -588,13 +588,13 @@ OldParser::~OldParser() {
  *
  */
 void OldParser::parse_file() {
-    auto included_file = std::make_unique<IncludedFile>(filename);
+    IncludedFile included_file{filename};
 
     while (!stream.eof()) {
         std::string line;
         std::getline(stream, line);
-        included_file->raw_contents.append(line);
-        included_file->raw_contents.append("\n");
+        included_file.raw_contents.append(line);
+        included_file.raw_contents.append("\n");
     }
 
     stream.clear();
@@ -606,7 +606,7 @@ void OldParser::parse_file() {
      * but replace occurrences of our variables */
     std::string n = replace_variables(buf, ctx);
 
-    included_file->variable_replaced_contents = n;
+    included_file.variable_replaced_contents = n;
 
     included_files.push_back(std::move(included_file));
 

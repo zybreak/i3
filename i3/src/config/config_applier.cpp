@@ -76,13 +76,13 @@ void ConfigApplier::mode_binding(const std::string &bindtype, const std::string 
 }
 
 void ConfigApplier::enter_mode(bool pango_markup, const std::string &modename) {
-    if (strcmp(modename.c_str(), DEFAULT_BINDING_MODE) == 0) {
+    if (modename == DEFAULT_BINDING_MODE) {
         ELOG(fmt::sprintf("You cannot use the name %s for your mode\n",  DEFAULT_BINDING_MODE));
         return;
     }
 
     for (auto &mode : modes) {
-        if (mode->name == modename) {
+        if (mode.name == modename) {
              ELOG(fmt::sprintf("The binding mode with name \"%s\" is defined at least twice.\n", modename));
         }
     }

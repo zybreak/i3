@@ -56,17 +56,13 @@ export {
     struct Mode {
         std::string name{};
         bool pango_markup{};
-        std::vector<std::unique_ptr<Binding>> bindings{};
+        std::vector<Binding> bindings{};
 
-        explicit Mode(std::string s)
-            : name(std::move(s)) {
-        }
+        explicit Mode(std::string s) : name(std::move(s)) {}
 
-        Mode(std::string s, const bool pango_markup)
-            : name(std::move(s)), pango_markup(pango_markup) {
-        }
-
-        ~Mode() = default;
+        Mode(std::string s, const bool pango_markup) : name(std::move(s)), pango_markup(pango_markup) {}
+        
+        auto operator<=>(const Mode &) const = default;
     };
 
     enum conf_fowa_t {
@@ -267,8 +263,8 @@ export {
     };
 
     std::string current_configpath{};
-    std::vector<std::unique_ptr<Mode>> modes{};
-    std::vector<std::unique_ptr<IncludedFile>> included_files{};
+    std::vector<Mode> modes{};
+    std::vector<IncludedFile> included_files{};
     /* The list of key bindings */
     Mode *current_mode{};
 

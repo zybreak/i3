@@ -728,7 +728,7 @@ static void handle_get_version(ipc_client *client, uint8_t *message, int size, u
 
     auto a = nlohmann::json::array();
     for (auto &included_file : std::ranges::drop_view{included_files,1}) {
-        a.push_back(included_file->path);
+        a.push_back(included_file.path);
     }
     j["included_config_file_names"] = a;
 
@@ -751,7 +751,7 @@ static void handle_get_bar_config(ipc_client *client, uint8_t *message, int size
  */
 static void handle_get_binding_modes(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     auto a = nlohmann::json::array();
-    std::ranges::transform(modes, std::back_inserter(a), [](auto &mode) { return mode->name; });
+    std::ranges::transform(modes, std::back_inserter(a), [](auto &mode) { return mode.name; });
 
     auto payload = a.dump();
 
@@ -825,11 +825,11 @@ static void handle_get_config(ipc_client *client, uint8_t *message, int size, ui
     auto a = nlohmann::json::array();
 
     for (auto &included_file : std::ranges::drop_view{included_files,1}) {
-        a.emplace_back(included_file->raw_contents);
+        a.emplace_back(included_file.raw_contents);
     }
 
     nlohmann::json j = {
-        { "config", std::string(included_files[0]->raw_contents) },
+        { "config", std::string(included_files[0].raw_contents) },
         { "included_configs", a }
     };
 

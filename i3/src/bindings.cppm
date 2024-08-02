@@ -31,7 +31,7 @@ export {
      * The name of the default mode.
      *
      */
-    const char *DEFAULT_BINDING_MODE = "default";
+    const std::string DEFAULT_BINDING_MODE = "default";
 
     /**
      * Stores a resolved keycode (from a keysym), including the modifier mask. Will
@@ -45,13 +45,8 @@ export {
         Binding_Keycode(xcb_keycode_t keycode, i3_event_state_mask_t modifiers)
             : keycode(keycode), modifiers(modifiers) {
         }
-
-        Binding_Keycode(const Binding_Keycode &bind_keycode) {
-            keycode = bind_keycode.keycode;
-            modifiers = bind_keycode.modifiers;
-        }
-
-        Binding_Keycode &operator=(const Binding_Keycode &bind_keycode) = default;
+        
+        auto operator<=>(const Binding_Keycode &) const = default;
     };
 
     enum binding_upon_t {
@@ -79,7 +74,7 @@ export {
 
         /** If true, the binding should be executed upon a KeyRelease event, not a
          * KeyPress (the default). */
-        enum binding_upon_t release {};
+        binding_upon_t release{};
 
         /** If this is true for a mouse binding, the binding should be executed
          * when the button is pressed over the window border. */
@@ -110,16 +105,13 @@ export {
         /** Only in use if symbol != NULL. Contains keycodes which generate the
          * specified symbol. Useful for unbinding and checking which binding was
          * used when a key press event comes in. */
-        std::deque<Binding_Keycode> keycodes{};
+        std::vector<Binding_Keycode> keycodes{};
 
         /** Command, like in command mode */
         std::string command{};
 
-        Binding() = default;
 
-        Binding(const Binding &bind);
-
-        ~Binding() = default;
+        auto operator<=>(const Binding &) const = default;
     };
     
     class Keymap {
