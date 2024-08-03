@@ -74,9 +74,9 @@ static void start_config_error_nagbar(bool has_errors) {
  */
 static void mode_from_name(const std::string &name, bool pango_markup, Binding &binding) {
     /* Try to find the mode in the list of modes and return it */
-    auto mode_it = std::ranges::find_if(modes, [&name](auto &it) { return it.name == name; });
+    auto mode_it = std::ranges::find_if(global.config->modes, [&name](auto &it) { return it.name == name; });
 
-    if (mode_it != modes.end()) {
+    if (mode_it != global.config->modes.end()) {
         mode_it->bindings.push_back(binding);
         return;
     }
@@ -85,7 +85,7 @@ static void mode_from_name(const std::string &name, bool pango_markup, Binding &
     Mode mode{name, pango_markup};
     mode.bindings.push_back(binding);
 
-    modes.insert(modes.begin(), mode);
+    global.config->modes.insert(global.config->modes.begin(), mode);
 }
 
 /*
@@ -200,7 +200,7 @@ void ungrab_all_keys(x_connection *conn) {
  *
  */
 void grab_all_keys(x_connection *conn) {
-    for (auto &bind : current_mode->bindings) {
+    for (auto &bind : global.config->current_mode->bindings) {
         if (bind.input_type != B_KEYBOARD) {
             continue;
         }
@@ -256,7 +256,7 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
     if (!is_release) {
         /* On a press event, we first reset all B_UPON_KEYRELEASE_IGNORE_MODS
          * bindings back to B_UPON_KEYRELEASE */
-        for (auto &bind : current_mode->bindings) {
+        for (auto &bind : global.config->current_mode->bindings) {
             if (bind.input_type != input_type) {
                 continue;
             }
@@ -268,7 +268,7 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
 
     const uint32_t xkb_group_state = (state_filtered & 0xFFFF0000);
     const uint32_t modifiers_state = (state_filtered & 0x0000FFFF);
-    for (auto &bind : current_mode->bindings) {
+    for (auto &bind : global.config->current_mode->bindings) {
         if (bind.input_type != input_type) {
             continue;
         }
@@ -481,7 +481,7 @@ void translate_keysyms(Keymap const * keymap) {
         goto out;
     }
 
-    for (auto &bind : current_mode->bindings) {
+    for (auto &bind : global.config->current_mode->bindings) {
         if (bind.input_type == B_MOUSE) {
             long button;
             if (!utils::parse_long(bind.symbol.c_str() + (sizeof("button") - 1), &button, 10)) {
@@ -618,7 +618,7 @@ void translate_keysyms(Keymap const * keymap) {
             num_keycodes++;
 
             /* check for duplicate bindings */
-            for (auto &check : current_mode->bindings) {
+            for (auto &check : global.config->current_mode->bindings) {
                 if (check == bind) {
                     continue;
                 }
@@ -656,8 +656,8 @@ out:
 void switch_mode(const std::string_view &new_mode) {
     DLOG(fmt::sprintf("Switching to mode %s\n",  new_mode));
     
-    auto it = std::ranges::find_if(modes, [&new_mode](auto &mode) { return mode.name == new_mode; });
-    if (it == modes.end()) {
+    auto it = std::ranges::find_if(global.config->modes, [&new_mode](auto &mode) { return mode.name == new_mode; });
+    if (it == global.config->modes.end()) {
         ELOG("Mode not found\n");
         return;
     }
@@ -665,14 +665,14 @@ void switch_mode(const std::string_view &new_mode) {
     auto &mode = *it;
 
     ungrab_all_keys(*global.x);
-    current_mode = &mode;
+    global.config->current_mode = &mode;
     translate_keysyms(global.keymap);
     grab_all_keys(*global.x);
     regrab_all_buttons(*global.x);
 
     /* Reset all B_UPON_KEYRELEASE_IGNORE_MODS bindings to avoid possibly
      * activating one of them. */
-    for (auto &bind : current_mode->bindings) {
+    for (auto &bind : global.config->current_mode->bindings) {
         if (bind.release == B_UPON_KEYRELEASE_IGNORE_MODS) {
             bind.release = B_UPON_KEYRELEASE;
         }
@@ -697,7 +697,7 @@ void switch_mode(const std::string_view &new_mode) {
  *
  */
 void reorder_bindings() {
-    std::ranges::for_each(modes, [](auto &mode) {
+    std::ranges::for_each(global.config->modes, [](auto &mode) {
         std::ranges::sort(mode.bindings, [](const auto &first, const auto &second) {
             if (first.event_state_mask < second.event_state_mask) {
                 return 1;
@@ -752,8 +752,8 @@ static bool binding_same_key(Binding *a, Binding *b) {
  */
 bool has_duplicate_bindings() {
     bool has_errors = false;
-    for (auto &current : current_mode->bindings) {
-        for (auto &bind : current_mode->bindings) {
+    for (auto &current : global.config->current_mode->bindings) {
+        for (auto &bind : global.config->current_mode->bindings) {
             /* Abort when we reach the current keybinding, only check the
              * bindings before */
             if (bind == current) {
@@ -799,7 +799,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
 
     /* The "mode" command might change the current mode, so back it up to
      * correctly produce an event later. */
-    std::string &modename = current_mode->name;
+    std::string &modename = global.config->current_mode->name;
 
     Binding bind_cp = *bind;
     auto commandsApplier = CommandsApplier{};
@@ -936,7 +936,7 @@ std::set<int> bindings_get_buttons_to_grab() {
     /* We always return buttons 1 through 3. */
     std::set<int> buffer = { 1, 2, 3 };
 
-    for (auto &bind : current_mode->bindings) {
+    for (auto &bind : global.config->current_mode->bindings) {
         /* We are only interested in whole window mouse bindings. */
         if (bind.input_type != B_MOUSE || !bind.whole_window) {
             continue;

@@ -112,34 +112,6 @@ static std::string get_config_path(const std::string *override_configpath, bool 
     return "";
 }
 
-void free_configuration() {
-    /* If we are currently in a binding mode, we first revert to the default
-     * since we have no guarantee that the current mode will even still exist
-     * after parsing the config again. See #2228. */
-    switch_mode("default");
-
-    /* First ungrab the keys */
-    ungrab_all_keys(*global.x);
-
-    modes.clear();
-    global.assignmentManager->clear();
-    global.workspaceManager->clear();
-
-    for (const auto &con : global.all_cons) {
-        /* Assignments changed, previously ran assignments are invalid. */
-        if (con->window) {
-            con->window->ran_assignments.clear();
-        }
-        /* Invalidate pixmap caches in case font or colors changed. */
-        con->deco_render_params.reset();
-    }
-
-    /* Get rid of the current font */
-    global.config->font.reset();
-
-    included_files.clear();
-}
-
 void INIT_COLOR(Colortriple &x, const char *cborder, const char *cbackground, const char *ctext, const char *cindicator) {
     x.border = draw_util_hex_to_color(**global.x, global.x->root_screen, cborder);
     x.background = draw_util_hex_to_color(**global.x, global.x->root_screen, cbackground);
@@ -160,7 +132,6 @@ static void start_config_error_nagbar(Config *config, bool has_errors) {
     start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type, false);
 }
 
-
 /*
  * Extracts workspace names from keybindings (e.g. “web” from “bindsym $mod+1
  * workspace web”), so that when an output needs a workspace, i3 can start with
@@ -170,7 +141,7 @@ static void start_config_error_nagbar(Config *config, bool has_errors) {
  */
 static void extract_workspace_names_from_bindings(Config *config) {
     config->binding_workspace_names.clear();
-    for (auto &bind : current_mode->bindings) {
+    for (auto &bind : config->current_mode->bindings) {
         DLOG(fmt::sprintf("binding with command %s\n",  bind.command));
         if (bind.command.length() < strlen("workspace ") ||
             strncasecmp(bind.command.c_str(), "workspace", strlen("workspace")) != 0) {
@@ -221,6 +192,35 @@ static void extract_workspace_names_from_bindings(Config *config) {
     }
 }
 
+
+static void free_configuration() {
+    /* First ungrab the keys */
+    ungrab_all_keys(*global.x);
+
+    global.assignmentManager->clear();
+    global.workspaceManager->clear();
+
+    for (const auto &con : global.all_cons) {
+        /* Assignments changed, previously ran assignments are invalid. */
+        if (con->window) {
+            con->window->ran_assignments.clear();
+        }
+        /* Invalidate pixmap caches in case font or colors changed. */
+        con->deco_render_params.reset();
+    }
+}
+
+static void config_reload() {
+    translate_keysyms(global.keymap);
+    grab_all_keys(*global.x);
+    regrab_all_buttons(*global.x);
+    gaps_reapply_workspace_assignments();
+
+    /* Redraw the currently visible decorations on reload, so that the
+     * possibly new drawing parameters changed. */
+    tree_render();
+}
+
 /*
  * (Re-)loads the configuration file (sets useful defaults before).
  *
@@ -234,18 +234,16 @@ static void extract_workspace_names_from_bindings(Config *config) {
  *
  */
 std::unique_ptr<Config> load_configuration(const std::string *override_configpath, config_load_t load_type) {
-    //if (load_type == config_load_t::C_RELOAD) {
-    //    free_configuration();
-    //}
-
-    // TODO: don't set mode to default if reloading
-    Mode default_mode{"default"};
-    modes.push_back(default_mode);
-    current_mode = &modes.back();
-
-
-    /* Clear the old config or initialize the data structure */
+    
+    if (load_type == config_load_t::C_RELOAD) {
+        free_configuration();
+    }
+    
     auto config = std::make_unique<Config>();
+
+    Mode default_mode{"default"};
+    config->modes.push_back(default_mode);
+    config->current_mode = &config->modes.back();
 
     /* Initialize default colors */
     config->client.background = draw_util_hex_to_color(**global.x, global.x->root_screen, "#000000");
@@ -285,16 +283,16 @@ std::unique_ptr<Config> load_configuration(const std::string *override_configpat
 
     config->tiling_drag = TILING_DRAG_MODIFIER;
 
-    current_configpath = get_config_path(override_configpath, true);
-    if (current_configpath.empty()) {
+    config->current_configpath = get_config_path(override_configpath, true);
+    if (config->current_configpath.empty()) {
         throw std::runtime_error("Unable to find the configuration file (looked at $XDG_CONFIG_HOME/i3/config, ~/.i3/config, $XDG_CONFIG_DIRS/i3/config and /usr/local/etc/i3/config)");
     }
 
-    included_files.clear();
+    config->included_files.clear();
 
     char resolved_path[PATH_MAX] = {'\0'};
-    if (realpath(current_configpath.c_str(), resolved_path) == nullptr) {
-        throw std::runtime_error(std::format("realpath({}): {}", current_configpath.c_str(), strerror((*__errno_location()))));
+    if (realpath(config->current_configpath.c_str(), resolved_path) == nullptr) {
+        throw std::runtime_error(std::format("realpath({}): {}", config->current_configpath.c_str(), strerror((*__errno_location()))));
     }
 
     LOG(fmt::sprintf("Parsing configfile %s\n",  resolved_path));
@@ -310,7 +308,7 @@ std::unique_ptr<Config> load_configuration(const std::string *override_configpat
         } else {
             OldParser op{ resolved_path, stream, resourceDatabase, load_type, configApplier };
             op.parse_file();
-            included_files = op.included_files;
+            config->included_files = op.included_files;
         }
         
         if (has_duplicate_bindings()) {
@@ -337,18 +335,11 @@ std::unique_ptr<Config> load_configuration(const std::string *override_configpat
         config->font = load_font(**global.x, global.x->root_screen, "fixed"s, true);
     }
 
+    if (load_type == config_load_t::C_RELOAD) {
+        config_reload();
+    }
+
     return config;
-}
-
-void config_reload() {
-    translate_keysyms(global.keymap);
-    grab_all_keys(*global.x);
-    regrab_all_buttons(*global.x);
-    gaps_reapply_workspace_assignments();
-
-    /* Redraw the currently visible decorations on reload, so that the
-     * possibly new drawing parameters changed. */
-    tree_render();
 }
 
 

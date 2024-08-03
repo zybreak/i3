@@ -1420,7 +1420,7 @@ void x_set_i3_atoms() {
                         global.current_socketpath.c_str());
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_PID], XCB_ATOM_CARDINAL, 32, 1, &pid);
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_CONFIG_PATH], i3::atoms[i3::Atom::UTF8_STRING], 8,
-                        current_configpath.length(), current_configpath.c_str());
+                        global.config->current_configpath.length(), global.config->current_configpath.c_str());
 }
 
 /*

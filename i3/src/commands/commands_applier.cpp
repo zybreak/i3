@@ -1607,9 +1607,7 @@ void CommandsApplier::reload(struct criteria_state *criteria_state, CommandsResu
      * See #4104. */
     global.config_error_nagbar_pid = global.command_error_nagbar_pid = -1;
 
-    free_configuration();
     load_configuration(nullptr, config_load_t::C_RELOAD);
-    config_reload();
     x_set_i3_atoms();
     /* Send an IPC event just in case the ws names have changed */
     ipc_send_workspace_event("reload", nullptr, nullptr);

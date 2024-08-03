@@ -81,7 +81,7 @@ void ConfigApplier::enter_mode(bool pango_markup, const std::string &modename) {
         return;
     }
 
-    for (auto &mode : modes) {
+    for (auto &mode : global.config->modes) {
         if (mode.name == modename) {
              ELOG(fmt::sprintf("The binding mode with name \"%s\" is defined at least twice.\n", modename));
         }

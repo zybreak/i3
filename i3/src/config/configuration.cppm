@@ -140,7 +140,8 @@ export {
      * Holds part of the configuration
      *
      */
-    struct Config {
+    class Config {
+    public:
 
         /* NULL-terminated list of workspace names (in order) extracted from
          * keybindings. */
@@ -260,13 +261,13 @@ export {
 
         /* Disable gaps if there is only one container on the workspace */
         smart_gaps_t smart_gaps;
-    };
 
-    std::string current_configpath{};
-    std::vector<Mode> modes{};
-    std::vector<IncludedFile> included_files{};
-    /* The list of key bindings */
-    Mode *current_mode{};
+        std::string current_configpath{};
+        std::vector<Mode> modes{};
+        std::vector<IncludedFile> included_files{};
+        /* The list of key bindings */
+        Mode *current_mode{};
+    };
 
     /**
      * (Re-)loads the configuration file (sets useful defaults before).
@@ -280,6 +281,4 @@ export {
      * also clear the previous config.
      */
     std::unique_ptr<Config> load_configuration(const std::string *override_configfile, config_load_t load_type);
-    void free_configuration();
-    void config_reload();
 }
