@@ -332,7 +332,7 @@ public:
 
 };
 
-NewParser::NewParser(std::string, std::istream &stream, BaseResourceDatabase &rd, BaseConfigApplier &applier) : BaseParser(applier, rd), stream(stream)  {
+NewParser::NewParser(std::filesystem::path, std::istream &stream, BaseResourceDatabase &rd, BaseConfigApplier &applier) : BaseParser(applier, rd), stream(stream)  {
 }
 
 class ErrorListener : public BaseErrorListener {

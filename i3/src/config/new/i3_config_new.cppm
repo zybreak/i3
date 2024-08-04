@@ -7,6 +7,6 @@ export class NewParser : public BaseParser {
 public:
     std::istream &stream;
     
-    NewParser(std::string file, std::istream &stream, BaseResourceDatabase &resourceDatabase, BaseConfigApplier &applier);
+    NewParser(std::filesystem::path file, std::istream &stream, BaseResourceDatabase &resourceDatabase, BaseConfigApplier &applier);
     void parse_file() override;
 };

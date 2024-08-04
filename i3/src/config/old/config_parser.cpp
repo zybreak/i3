@@ -132,7 +132,7 @@ static std::string get_possible_tokens(const std::vector<cmdp_token> &ptr) {
 
 /* Figure out how much memory we will need to fill in the names of
  * all tokens afterwards. */
-void OldParser::unhandled_token(const std::string &input, const char *filename, int linecnt, const std::vector<cmdp_token> &ptr, parser_ctx &ctx, bool &has_errors, std::string::const_iterator &walk, std::ostream &err_output) {
+void OldParser::unhandled_token(const std::string &input, int linecnt, const std::vector<cmdp_token> &ptr, bool &has_errors, std::string::const_iterator &walk, std::ostream &err_output) {
     /* Build up a decent error message. We include the problem, the
      * full input, and underline the position where the parser
      * currently is. */
@@ -154,7 +154,7 @@ void OldParser::unhandled_token(const std::string &input, const char *filename, 
     }
 
     err_output << fmt::sprintf("CONFIG: Expected one of these tokens: %s\n", possible_tokens);
-    err_output << fmt::sprintf("CONFIG: (in file %s)\n", filename);
+    err_output << fmt::sprintf("CONFIG: (in file %s)\n", filename.native());
     std::string_view error_copy = single_line(error_line, input_end);
 
     /* Print context lines *before* the error, if any. */
@@ -221,7 +221,7 @@ static void log_config(const std::string &input) {
     }
 }
 
-bool OldParser::handle_literal(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx) {
+bool OldParser::handle_literal(std::string::const_iterator &walk, const cmdp_token &token) {
     if (strncasecmp(std::to_address(walk), token.name.substr(1).c_str(), token.name.size() - 1) == 0) {
         if (token.identifier) {
             push_string_append(ctx.stack, token.identifier->c_str(), token.name.c_str() + 1);
@@ -234,7 +234,7 @@ bool OldParser::handle_literal(std::string::const_iterator &walk, const cmdp_tok
     return false;
 }
 
-bool OldParser::handle_number(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx) {
+bool OldParser::handle_number(std::string::const_iterator &walk, const cmdp_token &token) {
     char *end = nullptr;
     errno = 0;
     long int num = std::strtol(std::to_address(walk), &end, 10);
@@ -259,7 +259,7 @@ bool OldParser::handle_number(std::string::const_iterator &walk, const cmdp_toke
     return true;
 }
 
-bool OldParser::handle_word(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx) {
+bool OldParser::handle_word(std::string::const_iterator &walk, const cmdp_token &token) {
     std::string::const_iterator beginning = walk;
     /* Handle quoted strings (or words). */
     if (*walk == '"') {
@@ -316,7 +316,7 @@ bool OldParser::handle_word(std::string::const_iterator &walk, const cmdp_token 
     return false;
 }
 
-bool OldParser::handle_line(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx) {
+bool OldParser::handle_line(std::string::const_iterator &walk, const cmdp_token &token) {
     while (*walk != '\0' && *walk != '\n' && *walk != '\r') {
         walk++;
     }
@@ -325,7 +325,7 @@ bool OldParser::handle_line(std::string::const_iterator &walk, const cmdp_token 
     return true;
 }
 
-bool OldParser::handle_end(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx, ConfigResultIR &subcommand_output, int *linecnt) {
+bool OldParser::handle_end(std::string::const_iterator &walk, const cmdp_token &token, ConfigResultIR &subcommand_output, int *linecnt) {
     if (*walk == '\0' || *walk == '\n' || *walk == '\r') {
         next_state(token, ctx, *this);
         /* To make sure we start with an appropriate matching
@@ -350,7 +350,7 @@ static void reset_statelist(parser_ctx &ctx) {
     ctx.statelist_idx = 1;
 }
 
-bool OldParser::parse_config(parser_ctx &ctx, const std::string &input, const char *filename, std::ostream &err_output) {
+bool OldParser::parse_config(const std::string &input, std::ostream &err_output) {
     bool has_errors = false;
     std::string::const_iterator walk = input.begin();
     int linecnt = 1;
@@ -383,22 +383,22 @@ bool OldParser::parse_config(parser_ctx &ctx, const std::string &input, const ch
 
             /* A literal. */
             if (token.name[0] == '\'') {
-                token_handled = handle_literal(walk, token, ctx);
+                token_handled = handle_literal(walk, token);
             } else if (token.name == "number") {
                 /* Handle numbers. We only accept decimal numbers for now. */
-                token_handled = handle_number(walk, token, ctx);
+                token_handled = handle_number(walk, token);
             } else if (token.name == "string" || token.name == "word") {
-                token_handled = handle_word(walk, token, ctx);
+                token_handled = handle_word(walk, token);
             } else if (token.name == "line") {
-                token_handled = handle_line(walk, token, ctx);
+                token_handled = handle_line(walk, token);
                 linecnt++;
             } else if (token.name == "end") {
-               token_handled = handle_end(walk, token, ctx, subcommand_output, &linecnt);
+               token_handled = handle_end(walk, token, subcommand_output, &linecnt);
             }
         }
 
         if (!token_handled) {
-            unhandled_token(input, filename, linecnt, ptr, ctx, has_errors, walk, err_output);
+            unhandled_token(input, linecnt, ptr, has_errors, walk, err_output);
         }
     }
 
@@ -560,12 +560,12 @@ static std::string replace_variables(std::string &buf, parser_ctx &ctx) {
     return destwalk;
 }
 
-OldParser::OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, stream, resourceDatabase, applier) {
+OldParser::OldParser(const std::filesystem::path filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, stream, resourceDatabase, applier) {
     this->parent_ctx = &parent_ctx;
     this->ctx.variables = parent_ctx.variables;
 }
 
-OldParser::OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), stream(stream), ctx(this) {
+OldParser::OldParser(const std::filesystem::path filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), stream(stream), ctx(this) {
     this->old_dir = getcwd(nullptr, 0);
 
     std::filesystem::path f(filename);
@@ -613,7 +613,7 @@ void OldParser::parse_file() {
     std::stringbuf err_output_buf;
     std::ostream err_output{&err_output_buf};
 
-    bool has_errors = parse_config(ctx, n, filename, err_output);
+    bool has_errors = parse_config(n, err_output);
     if (ctx.has_errors) {
         has_errors = true;
     }

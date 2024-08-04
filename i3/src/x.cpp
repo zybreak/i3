@@ -1415,12 +1415,14 @@ void x_set_name(Con *con, const std::string &name) {
  */
 void x_set_i3_atoms() {
     pid_t pid = getpid();
+    std::string current_configpath = global.configManager->config->current_configpath;
+    
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_SOCKET_PATH], i3::atoms[i3::Atom::UTF8_STRING], 8,
                         global.current_socketpath.length(),
                         global.current_socketpath.c_str());
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_PID], XCB_ATOM_CARDINAL, 32, 1, &pid);
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_CONFIG_PATH], i3::atoms[i3::Atom::UTF8_STRING], 8,
-                        global.configManager->config->current_configpath.length(), global.configManager->config->current_configpath.c_str());
+                        current_configpath.length(), current_configpath.c_str());
 }
 
 /*

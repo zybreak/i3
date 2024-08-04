@@ -35,10 +35,10 @@ using namespace std::literals;
  * $XDG_CONFIG_DIRS).
  *
  */
-static std::optional<std::string> get_config_path(const std::optional<std::string> override_configpath, bool use_system_paths) {
+static std::optional<std::filesystem::path> get_config_path(const std::optional<std::filesystem::path> override_configpath, bool use_system_paths) {
     std::string xdg_config_home;
 
-    static std::optional<std::string> saved_configpath{};
+    static std::optional<std::filesystem::path> saved_configpath{};
 
     if (override_configpath) {
         saved_configpath = *override_configpath;
@@ -279,7 +279,7 @@ Config::Config() {
  * also clear the previous config.
  *
  */
-std::unique_ptr<Config> load_configuration(const std::optional<std::string> override_configpath) {
+std::unique_ptr<Config> load_configuration(const std::optional<std::filesystem::path> override_configpath) {
     
     auto config = std::make_unique<Config>();
 
@@ -290,12 +290,14 @@ std::unique_ptr<Config> load_configuration(const std::optional<std::string> over
         throw std::runtime_error("Unable to find the configuration file (looked at $XDG_CONFIG_HOME/i3/config, ~/.i3/config, $XDG_CONFIG_DIRS/i3/config and /usr/local/etc/i3/config)");
     }
 
-    char resolved_path[PATH_MAX] = {'\0'};
-    if (realpath(config->current_configpath.c_str(), resolved_path) == nullptr) {
-        throw std::runtime_error(std::format("realpath({}): {}", config->current_configpath.c_str(), strerror((*__errno_location()))));
+    std::filesystem::path resolved_path;
+    try {
+        resolved_path = std::filesystem::canonical(config->current_configpath);
+    } catch (const std::filesystem::filesystem_error& e) {
+        throw std::runtime_error(std::format("realpath({}): {}", config->current_configpath.native(), e.what()));
     }
 
-    LOG(fmt::sprintf("Parsing configfile %s\n",  resolved_path));
+    LOG(fmt::sprintf("Parsing configfile %s\n",  resolved_path.native()));
 
     ResourceDatabase resourceDatabase{*global.x->conn};
     try {

@@ -262,7 +262,7 @@ export {
         /* Disable gaps if there is only one container on the workspace */
         smart_gaps_t smart_gaps{smart_gaps_t::SMART_GAPS_OFF};
 
-        std::string current_configpath{};
+        std::filesystem::path current_configpath{};
         std::map<std::string, Mode> modes{};
         std::vector<IncludedFile> included_files{};
         std::string _current_mode{"default"};
@@ -292,5 +292,5 @@ export {
      * the config for normal use and display errors in the nagbar. C_RELOAD will
      * also clear the previous config.
      */
-    std::unique_ptr<Config> load_configuration(const std::optional<std::string> configfile = std::nullopt);
+    std::unique_ptr<Config> load_configuration(const std::optional<std::filesystem::path> configfile = std::nullopt);
 }

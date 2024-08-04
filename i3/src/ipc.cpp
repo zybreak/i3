@@ -724,7 +724,7 @@ static void handle_get_version(ipc_client *client, uint8_t *message, int size, u
     j["minor"] = MINOR_VERSION;
     j["patch"] = PATCH_VERSION;
     j["human_readable"] = I3_VERSION;
-    j["loaded_config_file_name"] = global.configManager->config->current_configpath;
+    j["loaded_config_file_name"] = global.configManager->config->current_configpath.native();
 
     auto a = nlohmann::json::array();
     for (auto &included_file : std::ranges::drop_view{global.configManager->config->included_files,1}) {

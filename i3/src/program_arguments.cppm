@@ -13,7 +13,7 @@ import i3;
 export {
     // program arguments
     struct program_arguments {
-        std::optional<std::string> override_configpath{};
+        std::optional<std::filesystem::path> override_configpath{};
         bool autostart{true};
         bool new_parser{false};
         std::string layout_path{};
