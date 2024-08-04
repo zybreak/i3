@@ -654,7 +654,7 @@ int main(int argc, char *argv[]) {
 
     ewmh_setup_hints();
 
-    global.keysyms = new Keysyms(x);
+    global.keysyms = Keysyms{x};
 
     x.xcb_numlock_mask = global.keysyms->get_numlock_mask();
 

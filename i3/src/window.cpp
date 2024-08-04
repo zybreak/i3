@@ -601,7 +601,7 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
 
     for (uint64_t i = 0; i < stride * height; i++) {
         uint8_t r, g, b, a;
-        const uint32_t pixel = data[2 + i];
+        const uint32_t pixel = data[2 + i]; // TODO: index out of bounds?
         a = (pixel >> 24) & 0xff;
         r = (pixel >> 16) & 0xff;
         g = (pixel >> 8) & 0xff;

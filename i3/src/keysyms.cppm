@@ -16,6 +16,18 @@ export class Keysyms {
 
     Keysyms() = delete;
     explicit Keysyms(X &x);
+    Keysyms(Keysyms &&other) : x(other.x) {
+        auto tmp = other.keysyms;
+        other.keysyms = keysyms;
+        keysyms = tmp;
+    }
+    
+    void operator=(const Keysyms &) = delete;
+    void operator=(Keysyms && other) {
+        auto tmp = other.keysyms;
+        other.keysyms = keysyms;
+        keysyms = tmp;
+    }
     ~Keysyms();
 
     unsigned int get_numlock_mask() const;
@@ -91,8 +103,7 @@ static uint32_t aio_get_mod_mask_for(X &x, uint32_t keysym, xcb_key_symbols_t *s
 }
 
 
-Keysyms::Keysyms(X &x)
-    : x(x) {
+Keysyms::Keysyms(X &x) : x(x) {
     keysyms = xcb_key_symbols_alloc(*x);
 }
 

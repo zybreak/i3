@@ -80,7 +80,7 @@ public:
     pid_t config_error_nagbar_pid = -1;
     pid_t command_error_nagbar_pid = -1;
 
-    Keysyms *keysyms;
+    std::optional<Keysyms> keysyms{};
     std::optional<Keymap> keymap{};
     X *x;
     RandR *randr;
