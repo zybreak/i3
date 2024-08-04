@@ -595,13 +595,13 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
 
     this->name_x_changed = true; /* trigger a redraw */
 
-    int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width);
+    //int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width); stride not really working for chromium?
 
-    auto *icon_data = new uint32_t[stride * height];
+    auto *icon_data = new uint32_t[len*4];
 
-    for (uint64_t i = 0; i < stride * height; i++) {
+    for (uint64_t i = 0; i < len; i++) {
         uint8_t r, g, b, a;
-        const uint32_t pixel = data[2 + i]; // TODO: index out of bounds?
+        const uint32_t pixel = data[2 + i];
         a = (pixel >> 24) & 0xff;
         r = (pixel >> 16) & 0xff;
         g = (pixel >> 8) & 0xff;
@@ -623,7 +623,7 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
         CAIRO_FORMAT_ARGB32,
         width,
         height,
-        stride);
+        width * 4);
     static cairo_user_data_key_t free_data;
     cairo_surface_set_user_data(this->icon, &free_data, icon_data, [](void *icon_data) {
         delete[] reinterpret_cast<uint32_t*>(icon_data);
