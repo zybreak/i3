@@ -663,9 +663,9 @@ int main(int argc, char *argv[]) {
         errx(EXIT_FAILURE, "Could not load keymap\n");
     }
     
-    global.keymap = &keymap.value();
+    global.keymap = std::move(keymap);
 
-    translate_keysyms(global.keymap);
+    translate_keysyms(&global.keymap.value());
     grab_all_keys(&*x);
 
     do_tree_init(args, greply.get());

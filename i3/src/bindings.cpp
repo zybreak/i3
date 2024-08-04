@@ -666,7 +666,7 @@ void switch_mode(const std::string new_mode) {
 
     ungrab_all_keys(*global.x);
     global.configManager->config->_current_mode = it->first;
-    translate_keysyms(global.keymap);
+    translate_keysyms(&global.keymap.value());
     grab_all_keys(*global.x);
     regrab_all_buttons(*global.x);
 

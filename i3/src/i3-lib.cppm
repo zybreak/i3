@@ -81,7 +81,7 @@ public:
     pid_t command_error_nagbar_pid = -1;
 
     Keysyms *keysyms;
-    Keymap *keymap;
+    std::optional<Keymap> keymap{};
     X *x;
     RandR *randr;
     Shape *shape;
