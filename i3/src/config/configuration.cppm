@@ -101,7 +101,7 @@ export {
     };
 
     enum hide_edge_borders_mode_t : unsigned int {
-        HEBM_NONE = adjacent_t::ADJ_NONE,
+        HEBM_NONE = 0,
         HEBM_VERTICAL = adjacent_t::ADJ_LEFT_SCREEN_EDGE | adjacent_t::ADJ_RIGHT_SCREEN_EDGE,
         HEBM_HORIZONTAL = ADJ_UPPER_SCREEN_EDGE | adjacent_t::ADJ_LOWER_SCREEN_EDGE,
         HEBM_BOTH = HEBM_VERTICAL | HEBM_HORIZONTAL,
@@ -123,7 +123,7 @@ export {
         Colortriple unfocused;
         Colortriple urgent;
         Colortriple placeholder;
-        bool got_focused_tab_title;
+        bool got_focused_tab_title{false};
         
         auto operator<=>(const config_client &r) const = default;
     };
@@ -152,14 +152,14 @@ export {
         std::optional<std::string> ipc_socket_path{};
         std::optional<std::string> restart_state_path{};
 
-        layout_t default_layout;
+        layout_t default_layout{layout_t::L_DEFAULT};
         int container_stack_limit;
         int container_stack_limit_value;
         int default_border_width;
         int default_floating_border_width;
 
         /** Default orientation for new containers */
-        int default_orientation;
+        orientation_t default_orientation{orientation_t::NO_ORIENTATION};
 
         /** By default, focus follows mouse. If the user explicitly wants to
          * turn this off (and instead rely only on the keyboard for changing
@@ -175,19 +175,19 @@ export {
          * With the mouse_warping option, you can control when the mouse cursor
          * should be warped. "none" disables warping entirely, whereas "output"
          * is the default behavior described above. */
-        warping_t mouse_warping;
+        warping_t mouse_warping{warping_t::POINTER_WARPING_OUTPUT};
 
         /** Remove borders if they are adjacent to the screen edge.
          * This is useful if you are reaching scrollbar on the edge of the
          * screen or do not want to waste a single pixel of displayspace.
          * By default, this is disabled. */
-        hide_edge_borders_mode_t hide_edge_borders;
+        hide_edge_borders_mode_t hide_edge_borders{hide_edge_borders_mode_t::HEBM_NONE};
 
         /** By default, a workspace bar is drawn at the bottom of the screen.
          * If you want to have a more fancy bar, it is recommended to replace
          * the whole bar by dzen2, for example using the i3-wsbar script which
          * comes with i3. Thus, you can turn it off entirely. */
-        bool disable_workspace_bar;
+        bool disable_workspace_bar; // TODO: remove
 
         /** When focus wrapping is enabled (the default), attempting to
          * move focus past the edge of the screen (in other words, in a
@@ -206,7 +206,7 @@ export {
          * wrap. Setting focus_wrapping to FOCUS_WRAPPING_FORCE forces i3
          * to always wrap, which will result in you having to use "focus
          * parent" more often. */
-        focus_wrapping_t focus_wrapping;
+        focus_wrapping_t focus_wrapping{focus_wrapping_t::FOCUS_WRAPPING_ON};
 
         /** Automatic workspace back and forth switching. If this is set, a
          * switch to the currently active workspace will switch to the
@@ -219,7 +219,7 @@ export {
          * multiple windows on that workspace, the user needs to guess which
          * application raised the event. To prevent this, the reset of the urgency
          * flag can be delayed using an urgency timer. */
-        float workspace_urgency_timer;
+        float workspace_urgency_timer{0.5};
 
         /** Behavior when a window sends a NET_ACTIVE_WINDOW message. */
         conf_fowa_t focus_on_window_activation;
@@ -228,10 +228,10 @@ export {
         title_align_t title_align;
 
         /** The default border style for new windows. */
-        border_style_t default_border;
+        border_style_t default_border{border_style_t::BS_NORMAL};
 
         /** The default border style for new floating windows. */
-        border_style_t default_floating_border;
+        border_style_t default_floating_border{border_style_t::BS_NORMAL};
 
         /** The modifier which needs to be pressed in combination with your mouse
          * buttons to do things with floating windows (move, resize) */
@@ -244,29 +244,41 @@ export {
         int32_t floating_minimum_height;
 
         /* Color codes are stored here */
-        config_client client;
+        config_client client{};
         
-        config_bar bar;
+        config_bar bar; // TODO: remove
 
         /** What should happen when a new popup is opened during fullscreen mode */
         conf_pdf_t popup_during_fullscreen;
 
-        tiling_drag_t tiling_drag;
+        tiling_drag_t tiling_drag{tiling_drag_t::TILING_DRAG_MODIFIER};
 
         /* Gap sizes */
-        gaps_t gaps;
+        gaps_t gaps{};
 
         /* Should single containers on a workspace receive a border? */
-        smart_borders_t smart_borders;
+        smart_borders_t smart_borders{smart_borders_t::SMART_BORDERS_OFF};
 
         /* Disable gaps if there is only one container on the workspace */
-        smart_gaps_t smart_gaps;
+        smart_gaps_t smart_gaps{smart_gaps_t::SMART_GAPS_OFF};
 
         std::string current_configpath{};
-        std::vector<Mode> modes{};
+        std::map<std::string, Mode> modes{};
         std::vector<IncludedFile> included_files{};
-        /* The list of key bindings */
-        Mode *current_mode{};
+        std::string _current_mode{"default"};
+        
+        Mode* current_mode() {
+            return &modes.at(_current_mode);
+        };
+        
+        Config();
+    };
+    
+    class ConfigurationManager {
+    public:
+        std::unique_ptr<Config> config{};
+        
+        void set_config(std::unique_ptr<Config> _config);
     };
 
     /**
@@ -280,5 +292,5 @@ export {
      * the config for normal use and display errors in the nagbar. C_RELOAD will
      * also clear the previous config.
      */
-    std::unique_ptr<Config> load_configuration(const std::string *override_configfile, config_load_t load_type);
+    std::unique_ptr<Config> load_configuration(const std::optional<std::string> configfile = std::nullopt);
 }

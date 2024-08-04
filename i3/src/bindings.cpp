@@ -59,7 +59,7 @@ struct resolve {
  * Launch nagbar to indicate errors in the configuration file.
  */
 static void start_config_error_nagbar(bool has_errors) {
-    std::string font_pattern = global.config->font->pattern;
+    std::string font_pattern = global.configManager->config->font->pattern;
     auto type = has_errors ? bar_type_t::TYPE_ERROR : bar_type_t::TYPE_WARNING;
     std::string text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
 
@@ -72,12 +72,12 @@ static void start_config_error_nagbar(bool has_errors) {
  * the list of modes.
  *
  */
-static void mode_from_name(const std::string &name, bool pango_markup, Binding &binding) {
+static void mode_from_name(Config *config, const std::string &name, bool pango_markup, Binding &binding) {
     /* Try to find the mode in the list of modes and return it */
-    auto mode_it = std::ranges::find_if(global.config->modes, [&name](auto &it) { return it.name == name; });
+    auto mode_it = config->modes.find(name);
 
-    if (mode_it != global.config->modes.end()) {
-        mode_it->bindings.push_back(binding);
+    if (mode_it != config->modes.end()) {
+        mode_it->second.bindings.push_back(binding);
         return;
     }
 
@@ -85,7 +85,7 @@ static void mode_from_name(const std::string &name, bool pango_markup, Binding &
     Mode mode{name, pango_markup};
     mode.bindings.push_back(binding);
 
-    global.config->modes.insert(global.config->modes.begin(), mode);
+    config->modes.insert_or_assign(name, mode);
 }
 
 /*
@@ -94,7 +94,7 @@ static void mode_from_name(const std::string &name, bool pango_markup, Binding &
  * be parsed.
  *
  */
-void configure_binding(const std::string_view bindtype, const std::string_view modifiers, const std::string_view input_code,
+void configure_binding(Config *config, const std::string_view bindtype, const std::string_view modifiers, const std::string_view input_code,
                            bool release, bool border, bool whole_window,
                            bool exclude_titlebar, const std::string_view command, const std::string_view modename,
                            bool pango_markup) {
@@ -140,7 +140,7 @@ void configure_binding(const std::string_view bindtype, const std::string_view m
         ELOG("Keybinding has more than one Group specified, but your X server is always in precisely one group. The keybinding can never trigger.\n");
     }
 
-    mode_from_name(modename.data(), pango_markup, new_binding);
+    mode_from_name(config, modename.data(), pango_markup, new_binding);
 }
 
 static bool binding_in_current_group(const Binding &bind) {
@@ -200,7 +200,7 @@ void ungrab_all_keys(x_connection *conn) {
  *
  */
 void grab_all_keys(x_connection *conn) {
-    for (auto &bind : global.config->current_mode->bindings) {
+    for (auto &bind : global.configManager->config->current_mode()->bindings) {
         if (bind.input_type != B_KEYBOARD) {
             continue;
         }
@@ -256,7 +256,7 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
     if (!is_release) {
         /* On a press event, we first reset all B_UPON_KEYRELEASE_IGNORE_MODS
          * bindings back to B_UPON_KEYRELEASE */
-        for (auto &bind : global.config->current_mode->bindings) {
+        for (auto &bind : global.configManager->config->current_mode()->bindings) {
             if (bind.input_type != input_type) {
                 continue;
             }
@@ -268,7 +268,7 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
 
     const uint32_t xkb_group_state = (state_filtered & 0xFFFF0000);
     const uint32_t modifiers_state = (state_filtered & 0x0000FFFF);
-    for (auto &bind : global.config->current_mode->bindings) {
+    for (auto &bind : global.configManager->config->current_mode()->bindings) {
         if (bind.input_type != input_type) {
             continue;
         }
@@ -481,7 +481,7 @@ void translate_keysyms(Keymap const * keymap) {
         goto out;
     }
 
-    for (auto &bind : global.config->current_mode->bindings) {
+    for (auto &bind : global.configManager->config->current_mode()->bindings) {
         if (bind.input_type == B_MOUSE) {
             long button;
             if (!utils::parse_long(bind.symbol.c_str() + (sizeof("button") - 1), &button, 10)) {
@@ -618,7 +618,7 @@ void translate_keysyms(Keymap const * keymap) {
             num_keycodes++;
 
             /* check for duplicate bindings */
-            for (auto &check : global.config->current_mode->bindings) {
+            for (auto &check : global.configManager->config->current_mode()->bindings) {
                 if (check == bind) {
                     continue;
                 }
@@ -653,32 +653,32 @@ out:
  * Switches the key bindings to the given mode, if the mode exists
  *
  */
-void switch_mode(const std::string_view &new_mode) {
+void switch_mode(const std::string new_mode) {
     DLOG(fmt::sprintf("Switching to mode %s\n",  new_mode));
-    
-    auto it = std::ranges::find_if(global.config->modes, [&new_mode](auto &mode) { return mode.name == new_mode; });
-    if (it == global.config->modes.end()) {
+   
+    auto it = global.configManager->config->modes.find(new_mode);
+    if (it == global.configManager->config->modes.end()) {
         ELOG("Mode not found\n");
         return;
     }
     
-    auto &mode = *it;
+    auto &mode = it->second;
 
     ungrab_all_keys(*global.x);
-    global.config->current_mode = &mode;
+    global.configManager->config->_current_mode = it->first;
     translate_keysyms(global.keymap);
     grab_all_keys(*global.x);
     regrab_all_buttons(*global.x);
 
     /* Reset all B_UPON_KEYRELEASE_IGNORE_MODS bindings to avoid possibly
      * activating one of them. */
-    for (auto &bind : global.config->current_mode->bindings) {
+    for (auto &bind : global.configManager->config->current_mode()->bindings) {
         if (bind.release == B_UPON_KEYRELEASE_IGNORE_MODS) {
             bind.release = B_UPON_KEYRELEASE;
         }
     }
 
-    std::string event_msg = fmt::sprintf(R"({"change":"%s", "pango_markup":%s})", mode.name, (mode.pango_markup ? "true" : "false"));
+    std::string event_msg = fmt::sprintf(R"({"change":"%s", "pango_markup":%s})", it->first, (mode.pango_markup ? "true" : "false"));
 
     ipc_send_event("mode", i3ipc::EVENT_MODE, event_msg);
 }
@@ -696,9 +696,9 @@ void switch_mode(const std::string_view &new_mode) {
  * keybinding.
  *
  */
-void reorder_bindings() {
-    std::ranges::for_each(global.config->modes, [](auto &mode) {
-        std::ranges::sort(mode.bindings, [](const auto &first, const auto &second) {
+void reorder_bindings(Config *config) {
+    std::ranges::for_each(config->modes, [](auto &mode) {
+        std::ranges::sort(mode.second.bindings, [](const auto &first, const auto &second) {
             if (first.event_state_mask < second.event_state_mask) {
                 return 1;
             } else if (first.event_state_mask == second.event_state_mask) {
@@ -750,10 +750,10 @@ static bool binding_same_key(Binding *a, Binding *b) {
  * i3-nagbar.
  *
  */
-bool has_duplicate_bindings() {
+bool has_duplicate_bindings(Config *config) {
     bool has_errors = false;
-    for (auto &current : global.config->current_mode->bindings) {
-        for (auto &bind : global.config->current_mode->bindings) {
+    for (auto &current : config->current_mode()->bindings) {
+        for (auto &bind : config->current_mode()->bindings) {
             /* Abort when we reach the current keybinding, only check the
              * bindings before */
             if (bind == current) {
@@ -799,7 +799,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
 
     /* The "mode" command might change the current mode, so back it up to
      * correctly produce an event later. */
-    std::string &modename = global.config->current_mode->name;
+    std::string &modename = global.configManager->config->current_mode()->name;
 
     Binding bind_cp = *bind;
     auto commandsApplier = CommandsApplier{};
@@ -812,7 +812,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
     if (result.parse_error) {
         std::vector<button_t> buttons{};
         auto prompt = std::string("The configured command for this shortcut could not be run successfully.");
-        start_nagbar(&global.command_error_nagbar_pid, buttons, prompt, global.config->font->pattern, bar_type_t::TYPE_ERROR, false);
+        start_nagbar(&global.command_error_nagbar_pid, buttons, prompt, global.configManager->config->font->pattern, bar_type_t::TYPE_ERROR, false);
     }
 
     ipc_send_binding_event("run", &bind_cp, modename.c_str());
@@ -936,7 +936,7 @@ std::set<int> bindings_get_buttons_to_grab() {
     /* We always return buttons 1 through 3. */
     std::set<int> buffer = { 1, 2, 3 };
 
-    for (auto &bind : global.config->current_mode->bindings) {
+    for (auto &bind : global.configManager->config->current_mode()->bindings) {
         /* We are only interested in whole window mouse bindings. */
         if (bind.input_type != B_MOUSE || !bind.whole_window) {
             continue;

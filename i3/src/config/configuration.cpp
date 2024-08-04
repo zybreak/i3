@@ -35,18 +35,18 @@ using namespace std::literals;
  * $XDG_CONFIG_DIRS).
  *
  */
-static std::string get_config_path(const std::string *override_configpath, bool use_system_paths) {
+static std::optional<std::string> get_config_path(const std::optional<std::string> override_configpath, bool use_system_paths) {
     std::string xdg_config_home;
 
-    static const std::string *saved_configpath = nullptr;
+    static std::optional<std::string> saved_configpath{};
 
-    if (override_configpath != nullptr) {
-        saved_configpath = override_configpath;
-        return *saved_configpath;
+    if (override_configpath) {
+        saved_configpath = *override_configpath;
+        return saved_configpath;
     }
 
-    if (saved_configpath != nullptr) {
-        return *saved_configpath;
+    if (saved_configpath) {
+        return saved_configpath;
     }
 
     /* 1: check for $XDG_CONFIG_HOME/i3/config */
@@ -74,7 +74,7 @@ static std::string get_config_path(const std::string *override_configpath, bool 
     /* The below paths are considered system-level, and can be skipped if the
      * caller only wants user-level configs. */
     if (!use_system_paths) {
-        return "";
+        return std::nullopt;
     }
 
     std::string xdg_config_dirs;
@@ -109,7 +109,7 @@ static std::string get_config_path(const std::string *override_configpath, bool 
         return config_path;
     }
 
-    return "";
+    return std::nullopt;
 }
 
 void INIT_COLOR(Colortriple &x, const char *cborder, const char *cbackground, const char *ctext, const char *cindicator) {
@@ -141,7 +141,7 @@ static void start_config_error_nagbar(Config *config, bool has_errors) {
  */
 static void extract_workspace_names_from_bindings(Config *config) {
     config->binding_workspace_names.clear();
-    for (auto &bind : config->current_mode->bindings) {
+    for (auto &bind : config->current_mode()->bindings) {
         DLOG(fmt::sprintf("binding with command %s\n",  bind.command));
         if (bind.command.length() < strlen("workspace ") ||
             strncasecmp(bind.command.c_str(), "workspace", strlen("workspace")) != 0) {
@@ -221,29 +221,31 @@ static void config_reload() {
     tree_render();
 }
 
-/*
- * (Re-)loads the configuration file (sets useful defaults before).
- *
- * If you specify override_configpath, only this path is used to look for a
- * configuration file.
- *
- * load_type specifies the type of loading: C_VALIDATE is used to only verify
- * the correctness of the config file (used with the flag -C). C_LOAD will load
- * the config for normal use and display errors in the nagbar. C_RELOAD will
- * also clear the previous config.
- *
- */
-std::unique_ptr<Config> load_configuration(const std::string *override_configpath, config_load_t load_type) {
-    
-    if (load_type == config_load_t::C_RELOAD) {
+void ConfigurationManager::set_config(std::unique_ptr<Config> _config) {
+    bool reload = config ? true : false;
+    if (reload) {
         free_configuration();
     }
     
-    auto config = std::make_unique<Config>();
+    config = std::move(_config);
 
+    if (!config->font) {
+        ELOG("You did not specify required configuration option \"font\"\n");
+        using namespace std::literals;
+        config->font = load_font(**global.x, global.x->root_screen, "fixed"s, true);
+    }
+    
+    // TODO: decide if we should call set_mode or no?
+
+    if (reload) {
+        config_reload();
+    }
+}
+
+Config::Config() {
+    auto config = this;
     Mode default_mode{"default"};
-    config->modes.push_back(default_mode);
-    config->current_mode = &config->modes.back();
+    config->modes.insert_or_assign("default", default_mode);
 
     /* Initialize default colors */
     config->client.background = draw_util_hex_to_color(**global.x, global.x->root_screen, "#000000");
@@ -261,34 +263,32 @@ std::unique_ptr<Config> load_configuration(const std::string *override_configpat
     INIT_COLOR(config->bar.unfocused, "#333333", "#222222", "#888888", "#000000");
     INIT_COLOR(config->bar.urgent, "#2f343a", "#900000", "#ffffff", "#000000");
 
-    config->default_border = BS_NORMAL;
-    config->default_floating_border = BS_NORMAL;
     config->default_border_width = logical_px(global.x->root_screen, 2);
     config->default_floating_border_width = logical_px(global.x->root_screen, 2);
-    /* Set default_orientation to NO_ORIENTATION for auto orientation. */
-    config->default_orientation = NO_ORIENTATION;
+}
 
-    config->gaps.inner = 0;
-    config->gaps.top = 0;
-    config->gaps.right = 0;
-    config->gaps.bottom = 0;
-    config->gaps.left = 0;
+/*
+ * (Re-)loads the configuration file (sets useful defaults before).
+ *
+ * If you specify override_configpath, only this path is used to look for a
+ * configuration file.
+ *
+ * load_type specifies the type of loading: C_VALIDATE is used to only verify
+ * the correctness of the config file (used with the flag -C). C_LOAD will load
+ * the config for normal use and display errors in the nagbar. C_RELOAD will
+ * also clear the previous config.
+ *
+ */
+std::unique_ptr<Config> load_configuration(const std::optional<std::string> override_configpath) {
+    
+    auto config = std::make_unique<Config>();
 
-    /* Set default urgency reset delay to 500ms */
-    if (config->workspace_urgency_timer == 0) {
-        config->workspace_urgency_timer = 0.5;
-    }
-
-    config->focus_wrapping = FOCUS_WRAPPING_ON;
-
-    config->tiling_drag = TILING_DRAG_MODIFIER;
-
-    config->current_configpath = get_config_path(override_configpath, true);
-    if (config->current_configpath.empty()) {
+    auto config_path = get_config_path(override_configpath, true);
+    if (config_path) {
+        config->current_configpath = *config_path;
+    } else {
         throw std::runtime_error("Unable to find the configuration file (looked at $XDG_CONFIG_HOME/i3/config, ~/.i3/config, $XDG_CONFIG_DIRS/i3/config and /usr/local/etc/i3/config)");
     }
-
-    config->included_files.clear();
 
     char resolved_path[PATH_MAX] = {'\0'};
     if (realpath(config->current_configpath.c_str(), resolved_path) == nullptr) {
@@ -303,41 +303,23 @@ std::unique_ptr<Config> load_configuration(const std::string *override_configpat
         std::ifstream stream{resolved_path};
 
         if (global.new_parser) {
-            NewParser np{ resolved_path, stream, resourceDatabase, load_type, configApplier };
+            NewParser np{ resolved_path, stream, resourceDatabase, configApplier };
             np.parse_file();
         } else {
-            OldParser op{ resolved_path, stream, resourceDatabase, load_type, configApplier };
+            OldParser op{ resolved_path, stream, resourceDatabase, configApplier };
             op.parse_file();
             config->included_files = op.included_files;
         }
         
-        if (has_duplicate_bindings()) {
-            throw std::runtime_error(std::format("Duplicate bindings in configuration file: {}", strerror((*__errno_location()))));
+        if (has_duplicate_bindings(config.get())) {
+            throw std::domain_error(std::format("Duplicate bindings in configuration file: {}", strerror((*__errno_location()))));
         }
     } catch (const std::domain_error &e) {
-        auto use_nagbar = (load_type != config_load_t::C_VALIDATE);
-
-        if (use_nagbar) {
-            ELOG(fmt::sprintf("FYI: You are using i3 version %s\n", I3_VERSION));
-
-            start_config_error_nagbar(config.get(), true);
-        } else {
-            throw e;
-        }
+        throw e;
     }
 
     extract_workspace_names_from_bindings(config.get());
-    reorder_bindings();
-
-    if (!config->font && load_type != config_load_t::C_VALIDATE) {
-        ELOG("You did not specify required configuration option \"font\"\n");
-        using namespace std::literals;
-        config->font = load_font(**global.x, global.x->root_screen, "fixed"s, true);
-    }
-
-    if (load_type == config_load_t::C_RELOAD) {
-        config_reload();
-    }
+    reorder_bindings(config.get());
 
     return config;
 }

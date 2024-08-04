@@ -332,7 +332,7 @@ public:
 
 };
 
-NewParser::NewParser(std::string, std::istream &stream, BaseResourceDatabase &rd, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, rd), stream(stream), load_type(load_type)  {
+NewParser::NewParser(std::string, std::istream &stream, BaseResourceDatabase &rd, BaseConfigApplier &applier) : BaseParser(applier, rd), stream(stream)  {
 }
 
 class ErrorListener : public BaseErrorListener {

@@ -47,7 +47,7 @@ cfg::mode_binding(bindsym, (null), button3, (null), (null), (null), --exclude-ti
 cfg::mode_binding(bindsym, (null), button3, (null), --border, --whole-window, --exclude-titlebar, nop)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -76,7 +76,7 @@ cfg::exec(exec_always, (null), firefox)
 cfg::exec(exec_always, --no-startup-id, /tmp/bar.sh)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -113,7 +113,7 @@ cfg::criteria_add(class, ==Class==)
 cfg::for_window(nop floating)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -145,7 +145,7 @@ CONFIG: Line   2: for_window [tiling_from="typo"] nop typo
 CONFIG:                                    ^^^^^^^^^^^^^^^
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -180,7 +180,7 @@ cfg::criteria_add(class, ^Chrome)
 cfg::assign(quoted named workspace, 0)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -207,7 +207,7 @@ cfg::floating_minimum_size(80, 55)
 cfg::floating_maximum_size(73, 10)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -234,7 +234,7 @@ cfg::popup_during_fullscreen(leave_fullscreen)
 cfg::popup_during_fullscreen(smart)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -259,7 +259,7 @@ floating_modifier mOd1
 cfg::floating_modifier(Mod1)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -286,7 +286,7 @@ cfg::default_orientation(vertical)
 cfg::default_orientation(auto)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -315,7 +315,7 @@ cfg::workspace_layout(stacking)
 cfg::workspace_layout(tabbed)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -340,7 +340,7 @@ workspace "3" output     	VGA-1
 cfg::workspace(3, VGA-1)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -385,7 +385,7 @@ cfg::default_border(default_floating_border, normal, 2)
 cfg::default_border(default_floating_border, none, -1)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -416,7 +416,7 @@ cfg::hide_edge_borders(both)
 cfg::hide_edge_borders(smart)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -441,7 +441,7 @@ focus_follows_mouse no
 cfg::focus_follows_mouse(no)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -466,7 +466,7 @@ mouse_warping none
 cfg::mouse_warping(none)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -484,7 +484,7 @@ static std::string parser_calls(std::string str) {
     MockedResourceDatabase resourceDatabase{};
     std::istringstream in{str};
     
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
     
     try {
         p.parse_file();
@@ -522,7 +522,7 @@ cfg::force_display_urgency_hint(700)
 cfg::force_display_urgency_hint(700)
 )"""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
     
     try {
         p.parse_file();
@@ -555,7 +555,7 @@ cfg::workspace((null), c)
 cfg::workspace((null), a b c)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -580,7 +580,7 @@ ipc_socket ~/.i3/i3.sock
 cfg::ipc_socket(~/.i3/i3.sock)
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -611,7 +611,7 @@ cfg::color(client.urgent, #2f343a, #900000, #ffffff, #900000, #c00000)
 cfg::color(client.placeholder, #000000, #0c0c0c, #ffffff, #000000, (null))
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -638,7 +638,7 @@ CONFIG:           ^^^^^^^^^^^^^^^^^^^^^
 CONFIG: Line   2: client.focused          #4c7899 #285577 #ffffff #2e9ef4
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -666,7 +666,7 @@ CONFIG:                             ^^^^^^
 CONFIG: Line   2: client.focused          #4c7899 #285577 #ffffff #2e9ef4
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -688,7 +688,7 @@ TEST(ConfigOldTest, test_semicolon_does_not_end_a_comment_line) {
 
     std::string expected{""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -724,7 +724,7 @@ CONFIG: Line   6:
 CONFIG: Line   7: # yay
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -749,7 +749,7 @@ CONFIG: Line   1: unknown qux
 CONFIG:           ^^^^^^^^^^^
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -776,7 +776,7 @@ CONFIG: Line   2: unknown qux
 CONFIG:           ^^^^^^^^^^^
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -803,7 +803,7 @@ CONFIG:           ^^^^^^^^^^^
 CONFIG: Line   2: # context after
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -832,7 +832,7 @@ CONFIG: Line   2: # context after
 CONFIG: Line   3: # context 2 after
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -863,7 +863,7 @@ CONFIG:               ^^^^^^^^^^^
 CONFIG: Line   4: }
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();
@@ -895,7 +895,7 @@ CONFIG:               ^^^^^^^^^^^
 CONFIG: Line   4: }
 )""""};
 
-    OldParser p("/tmp/foo", in, resourceDatabase, config_load_t::C_LOAD, applier);
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
 
     try {
         p.parse_file();

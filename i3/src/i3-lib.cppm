@@ -86,7 +86,7 @@ public:
     RandR *randr;
     Shape *shape;
     Xkb *xkb;
-    std::unique_ptr<Config> config{};
+    ConfigurationManager *configManager;
 
     /* The original value of RLIMIT_CORE when i3 was started. We need to restore
      * this before starting any other process, since we set RLIMIT_CORE to

@@ -58,7 +58,7 @@ void ConfigApplier::font(const std::string &font) {
 void ConfigApplier::binding(const std::string &bindtype, const std::string &modifiers,
                  const std::string &key, bool release, bool border, bool whole_window,
                  bool exclude_titlebar, const std::string &command) {
-    configure_binding(bindtype, modifiers, key, release, border, whole_window, exclude_titlebar, command, DEFAULT_BINDING_MODE, false);
+    configure_binding(config, bindtype, modifiers, key, release, border, whole_window, exclude_titlebar, command, DEFAULT_BINDING_MODE, false);
 }
 
 /*******************************************************************************
@@ -72,7 +72,7 @@ void ConfigApplier::mode_binding(const std::string &bindtype, const std::string 
         /* When using an invalid mode name, e.g. “default” */
         return;
     }
-    configure_binding(bindtype, modifiers, key, release, border, whole_window, exclude_titlebar, command, current_mode, current_mode_pango_markup);
+    configure_binding(config, bindtype, modifiers, key, release, border, whole_window, exclude_titlebar, command, current_mode, current_mode_pango_markup);
 }
 
 void ConfigApplier::enter_mode(bool pango_markup, const std::string &modename) {
@@ -81,10 +81,8 @@ void ConfigApplier::enter_mode(bool pango_markup, const std::string &modename) {
         return;
     }
 
-    for (auto &mode : global.config->modes) {
-        if (mode.name == modename) {
-             ELOG(fmt::sprintf("The binding mode with name \"%s\" is defined at least twice.\n", modename));
-        }
+    if (config->modes.contains(modename)) {
+         ELOG(fmt::sprintf("The binding mode with name \"%s\" is defined at least twice.\n", modename));
     }
 
     DLOG(fmt::sprintf("\t now in mode %s\n", modename));

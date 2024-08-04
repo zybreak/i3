@@ -84,14 +84,14 @@ WorkspaceCon *get_existing_workspace_by_num(int num) {
 static void _workspace_apply_default_orientation(Con *ws) {
     /* If default_orientation is set to NO_ORIENTATION we determine
      * orientation depending on output resolution. */
-    if (global.config->default_orientation == NO_ORIENTATION) {
+    if (global.configManager->config->default_orientation == NO_ORIENTATION) {
         Con *output = ws->con_get_output();
         ws->layout = (output->rect.height > output->rect.width) ? L_SPLITV : L_SPLITH;
         ws->rect = output->rect;
         DLOG(fmt::sprintf("Auto orientation. Workspace size set to (%d,%d), setting layout to %d.\n",
              output->rect.width, output->rect.height, std::to_underlying(ws->layout)));
     } else {
-        ws->layout = (global.config->default_orientation == HORIZ) ? L_SPLITH : L_SPLITV;
+        ws->layout = (global.configManager->config->default_orientation == HORIZ) ? L_SPLITH : L_SPLITV;
     }
 }
 
@@ -228,7 +228,7 @@ WorkspaceCon *workspace_get_or_create(const std::string &num) {
     x_set_name(workspace, fmt::format("[i3 con] workspace {}", num));
 
     workspace->name = num;
-    workspace->workspace_layout = global.config->default_layout;
+    workspace->workspace_layout = global.configManager->config->default_layout;
     workspace->num = parsed_num;
     workspace->gaps = gaps_for_workspace(workspace);
 
@@ -253,7 +253,7 @@ WorkspaceCon *create_workspace_on_output(Output *output, Con *content) {
     auto *ws = new WorkspaceCon();
 
     /* try the configured workspace bindings first to find a free name */
-    for (const auto &target_name : global.config->binding_workspace_names) {
+    for (const auto &target_name : global.configManager->config->binding_workspace_names) {
         /* Ensure that this workspace is not assigned to a different output —
          * otherwise we would create it, then move it over to its output, then
          * find a new workspace, etc… */
@@ -299,7 +299,7 @@ WorkspaceCon *create_workspace_on_output(Output *output, Con *content) {
 
     ws->fullscreen_mode = CF_OUTPUT;
 
-    ws->workspace_layout = global.config->default_layout;
+    ws->workspace_layout = global.configManager->config->default_layout;
     _workspace_apply_default_orientation(ws);
 
     ipc_send_workspace_event("init", ws, nullptr);
@@ -483,7 +483,7 @@ void workspace_show(Con *workspace) {
 
     /* Display urgency hint for a while if the newly visible workspace would
      * focus and thereby immediately destroy it */
-    if (next->urgent && static_cast<int>(global.config->workspace_urgency_timer * 1000) > 0) {
+    if (next->urgent && static_cast<int>(global.configManager->config->workspace_urgency_timer * 1000) > 0) {
         /* focus for now… */
         next->urgent = false;
         next->con_focus();
@@ -500,7 +500,7 @@ void workspace_show(Con *workspace) {
             global.focused->urgency_timer = new ev_timer{};
             /* use a repeating timer to allow for easy resets */
             ev_timer_init(global.focused->urgency_timer, workspace_defer_update_urgent_hint_cb,
-                          global.config->workspace_urgency_timer, global.config->workspace_urgency_timer);
+                          global.configManager->config->workspace_urgency_timer, global.configManager->config->workspace_urgency_timer);
             global.focused->urgency_timer->data = global.focused;
             ev_timer_start(global.eventHandler->main_loop, global.focused->urgency_timer);
         } else {

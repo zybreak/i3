@@ -7,11 +7,6 @@ import :base_resource_database;
 import :base_config_applier;
 
 export {
-    enum class config_load_t {
-        C_VALIDATE,
-        C_LOAD,
-        C_RELOAD,
-    };
 
     /**
      * List entry struct for an included file.

@@ -112,11 +112,11 @@ export {
     };
 
     struct gaps_t {
-        int inner;
-        int top;
-        int right;
-        int bottom;
-        int left;
+        int inner{0};
+        int top{0};
+        int right{0};
+        int bottom{0};
+        int left{0};
         
         auto operator<=>(const gaps_t&) const = default;
     };

@@ -28,21 +28,21 @@ gaps_t calculate_effective_gaps(Con *con) {
                       (con::first(workspace->nodes)->layout == L_TABBED ||
                        con::first(workspace->nodes)->layout == L_STACKED));
 
-    if (global.config->smart_gaps == SMART_GAPS_ON && one_child)
+    if (global.configManager->config->smart_gaps == SMART_GAPS_ON && one_child)
         return (gaps_t){0, 0, 0, 0, 0};
 
     gaps_t gaps = {
-        .inner = (workspace->gaps.inner + global.config->gaps.inner),
+        .inner = (workspace->gaps.inner + global.configManager->config->gaps.inner),
         .top = 0,
         .right = 0,
         .bottom = 0,
         .left = 0};
 
-    if (global.config->smart_gaps != SMART_GAPS_INVERSE_OUTER || one_child) {
-        gaps.top = workspace->gaps.top + global.config->gaps.top;
-        gaps.right = workspace->gaps.right + global.config->gaps.right;
-        gaps.bottom = workspace->gaps.bottom + global.config->gaps.bottom;
-        gaps.left = workspace->gaps.left + global.config->gaps.left;
+    if (global.configManager->config->smart_gaps != SMART_GAPS_INVERSE_OUTER || one_child) {
+        gaps.top = workspace->gaps.top + global.configManager->config->gaps.top;
+        gaps.right = workspace->gaps.right + global.configManager->config->gaps.right;
+        gaps.bottom = workspace->gaps.bottom + global.configManager->config->gaps.bottom;
+        gaps.left = workspace->gaps.left + global.configManager->config->gaps.left;
     }
 
     return gaps;
@@ -134,19 +134,19 @@ gaps_t gaps_for_workspace(WorkspaceCon *ws) {
     }
 
     if (mask & GAPS_INNER) {
-        gaps.inner -= global.config->gaps.inner;
+        gaps.inner -= global.configManager->config->gaps.inner;
     }
     if (mask & GAPS_TOP) {
-        gaps.top -= global.config->gaps.top;
+        gaps.top -= global.configManager->config->gaps.top;
     }
     if (mask & GAPS_RIGHT) {
-        gaps.right -= global.config->gaps.right;
+        gaps.right -= global.configManager->config->gaps.right;
     }
     if (mask & GAPS_BOTTOM) {
-        gaps.bottom -= global.config->gaps.bottom;
+        gaps.bottom -= global.configManager->config->gaps.bottom;
     }
     if (mask & GAPS_LEFT) {
-        gaps.left -= global.config->gaps.left;
+        gaps.left -= global.configManager->config->gaps.left;
     }
 
     return gaps;

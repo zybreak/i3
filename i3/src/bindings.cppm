@@ -18,7 +18,9 @@ import :x;
 import :util;
 import i3_commands_base;
 
+
 export {
+    class Config;
     /**
      * Binding input types. See Binding::input_type.
      */
@@ -158,7 +160,7 @@ export {
      * be parsed.
      *
      */
-    void configure_binding(std::string_view bindtype, std::string_view modifiers, std::string_view input_code,
+    void configure_binding(Config *config, std::string_view bindtype, std::string_view modifiers, std::string_view input_code,
                            bool release, bool border, bool whole_window,
                            bool exclude_titlebar, std::string_view command, std::string_view modename,
                            bool pango_markup);
@@ -200,7 +202,7 @@ export {
      * Switches the key bindings to the given mode, if the mode exists
      *
      */
-    void switch_mode(const std::string_view &new_mode);
+    void switch_mode(const std::string new_mode);
 
     /**
      * Reorders bindings by event_state_mask descendingly so that get_binding()
@@ -215,7 +217,7 @@ export {
      * keybinding.
      *
      */
-    void reorder_bindings();
+    void reorder_bindings(Config* config);
 
     /**
      * Checks for duplicate key bindings (the same keycode or keysym is configured
@@ -224,7 +226,7 @@ export {
      * i3-nagbar.
      *
      */
-    bool has_duplicate_bindings();
+    bool has_duplicate_bindings(Config *config);
 
     /**
      * Runs the given binding and handles parse errors. If con is passed, it will

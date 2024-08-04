@@ -42,11 +42,10 @@ export {
         bool handle_end(std::string::const_iterator &walk, const cmdp_token &token, parser_ctx &ctx, ConfigResultIR &subcommand_output, int *linecnt);
 
        public:
-        config_load_t load_type;
         parser_ctx *parent_ctx = nullptr;
         parser_ctx ctx;
         OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier);
-        OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier);
+        OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, BaseConfigApplier &applier);
         ~OldParser() override;
         void parse_file() override;
     };

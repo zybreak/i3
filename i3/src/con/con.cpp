@@ -51,7 +51,7 @@ Con::Con(i3Window *window, bool skeleton) {
 
     this->type = CT_CON;
     this->window = window;
-    this->border_style = this->max_user_border_style = global.config->default_border;
+    this->border_style = this->max_user_border_style = global.configManager->config->default_border;
     this->current_border_width = -1;
     this->window_icon_padding = -1;
     if (window) {

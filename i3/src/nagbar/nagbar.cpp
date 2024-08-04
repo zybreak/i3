@@ -527,9 +527,9 @@ static void draw_nagbar(std::string prompt,
  *
  */
 void start_nagbar(pid_t *nagbar_pid,
-                  std::vector<button_t> &buttons,
-                  std::string &prompt,
-                  std::string &pattern,
+                  std::vector<button_t> buttons,
+                  std::string prompt,
+                  std::string pattern,
                   bar_type_t bar_type,
                   bool position_on_primary) {
     auto nagbar_thread = std::thread(draw_nagbar, prompt, buttons, bar_type, position_on_primary, pattern);

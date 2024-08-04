@@ -113,7 +113,7 @@ static bool maybe_back_and_forth(CommandsResultIR &cmd_output, const char *name)
         return false;
 
     DLOG("This workspace is already focused.\n");
-    if (global.config->workspace_auto_back_and_forth) {
+    if (global.configManager->config->workspace_auto_back_and_forth) {
         workspace_back_and_forth();
         cmd_output.needs_tree_render = true;
     }
@@ -127,7 +127,7 @@ static bool maybe_back_and_forth(CommandsResultIR &cmd_output, const char *name)
 static WorkspaceCon *maybe_auto_back_and_forth_workspace(WorkspaceCon *workspace) {
     WorkspaceCon *current, *baf;
 
-    if (!global.config->workspace_auto_back_and_forth)
+    if (!global.configManager->config->workspace_auto_back_and_forth)
         return workspace;
 
     current = global.focused->con_get_workspace();
@@ -771,10 +771,10 @@ static int border_width_from_style(border_style_t border_style, long border_widt
 
     const bool is_floating = con->con_inside_floating() != nullptr;
     /* Load the configured defaults. */
-    if (is_floating && border_style == global.config->default_floating_border) {
-        return global.config->default_floating_border_width;
-    } else if (!is_floating && border_style == global.config->default_border) {
-        return global.config->default_border_width;
+    if (is_floating && border_style == global.configManager->config->default_floating_border) {
+        return global.configManager->config->default_floating_border_width;
+    } else if (!is_floating && border_style == global.configManager->config->default_border) {
+        return global.configManager->config->default_border_width;
     } else {
         /* Use some hardcoded values. */
         return logical_px(global.x->root_screen, border_style == BS_NORMAL ? 2 : 1);
@@ -1607,7 +1607,16 @@ void CommandsApplier::reload(struct criteria_state *criteria_state, CommandsResu
      * See #4104. */
     global.config_error_nagbar_pid = global.command_error_nagbar_pid = -1;
 
-    load_configuration(nullptr, config_load_t::C_RELOAD);
+    try {
+        global.configManager->set_config(load_configuration());
+    } catch (std::domain_error &e) {
+        using namespace std::literals;
+        std::vector<button_t> buttons{};
+        std::string prompt = e.what();
+        std::string font = "fixed"s;
+        start_nagbar(&global.config_error_nagbar_pid, buttons, prompt, font, bar_type_t::TYPE_ERROR, false);
+    }
+    
     x_set_i3_atoms();
     /* Send an IPC event just in case the ws names have changed */
     ipc_send_workspace_event("reload", nullptr, nullptr);
@@ -1640,8 +1649,8 @@ void CommandsApplier::restart(struct criteria_state *criteria_state, CommandsRes
         setenv("_I3_RESTART_FD", fdstr.c_str(), 1);
     }
     ipc_shutdown(SHUTDOWN_REASON_RESTART, exempt_fd);
-    if (global.config->ipc_socket_path) {
-        unlink(global.config->ipc_socket_path->c_str());
+    if (global.configManager->config->ipc_socket_path) {
+        unlink(global.configManager->config->ipc_socket_path->c_str());
     }
     i3_restart(false);
     /* unreached */
@@ -2078,7 +2087,7 @@ static bool gaps_update(gap_accessor get, const char *scope, const char *mode, i
     DLOG(fmt::sprintf("gaps_update(scope=%s, mode=%s, pixels=%d)\n", scope, mode, pixels));
     WorkspaceCon *workspace = global.focused->con_get_workspace();
 
-    const int global_gap_size = *get(&(global.config->gaps));
+    const int global_gap_size = *get(&(global.configManager->config->gaps));
     int current_value = global_gap_size;
     if (strcmp(scope, "current") == 0) {
         current_value += *get(&(workspace->gaps));
@@ -2103,13 +2112,13 @@ static bool gaps_update(gap_accessor get, const char *scope, const char *mode, i
 
     /* See https://github.com/Airblader/i3/issues/262 */
     int min_value = 0;
-    const bool is_outer = get(&(global.config->gaps)) != gaps_inner(&(global.config->gaps));
+    const bool is_outer = get(&(global.configManager->config->gaps)) != gaps_inner(&(global.configManager->config->gaps));
     if (is_outer) {
         /* Outer gaps can compensate inner gaps. */
         if (strcmp(scope, "all") == 0) {
-            min_value = -global.config->gaps.inner;
+            min_value = -global.configManager->config->gaps.inner;
         } else {
-            min_value = -global.config->gaps.inner - workspace->gaps.inner;
+            min_value = -global.configManager->config->gaps.inner - workspace->gaps.inner;
         }
     }
 
@@ -2129,7 +2138,7 @@ static bool gaps_update(gap_accessor get, const char *scope, const char *mode, i
                 } else {
                     int max_compensate = 0;
                     if (is_outer) {
-                        max_compensate = global.config->gaps.inner;
+                        max_compensate = global.configManager->config->gaps.inner;
                     }
                     if (*gaps_value + current_value + max_compensate < 0) {
                         /* Enforce new per-workspace gap size minimum value (in case
@@ -2142,8 +2151,8 @@ static bool gaps_update(gap_accessor get, const char *scope, const char *mode, i
             }
         }
 
-        *get(&(global.config->gaps)) = current_value;
-        DLOG(fmt::sprintf("global gaps value after fix = %d\n", *get(&(global.config->gaps))));
+        *get(&(global.configManager->config->gaps)) = current_value;
+        DLOG(fmt::sprintf("global gaps value after fix = %d\n", *get(&(global.configManager->config->gaps))));
     } else {
         int *gaps_value = get(&(workspace->gaps));
         *gaps_value = current_value - global_gap_size;

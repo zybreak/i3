@@ -307,7 +307,7 @@ static xcb_window_t create_drop_indicator(Rect rect) {
     uint32_t values[2];
 
     mask = XCB_CW_BACK_PIXEL;
-    values[0] = global.config->client.focused.indicator.colorpixel;
+    values[0] = global.configManager->config->client.focused.indicator.colorpixel;
 
     mask |= XCB_CW_OVERRIDE_REDIRECT;
     values[1] = 1;

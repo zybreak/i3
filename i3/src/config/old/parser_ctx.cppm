@@ -23,7 +23,6 @@ export {
        public:
         int state;
         criteria_state *criteria_state;
-        config_load_t load_type;
 
         /* A list which contains the states that lead to the current state, e.g.
          * INITIAL, WORKSPACE_LAYOUT.

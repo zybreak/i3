@@ -527,7 +527,7 @@ static Con *get_tree_next(Con *con, direction_t direction) {
 
             Con *const wrap = previous ? con::last(parent->nodes)
                                        : con::first(parent->nodes);
-            switch (global.config->focus_wrapping) {
+            switch (global.configManager->config->focus_wrapping) {
                 case FOCUS_WRAPPING_OFF:
                     break;
                 case FOCUS_WRAPPING_WORKSPACE:
@@ -550,7 +550,7 @@ static Con *get_tree_next(Con *con, direction_t direction) {
     }
 
     assert(con->type == CT_WORKSPACE);
-    if (global.config->focus_wrapping == FOCUS_WRAPPING_WORKSPACE) {
+    if (global.configManager->config->focus_wrapping == FOCUS_WRAPPING_WORKSPACE) {
         return first_wrap;
     }
 

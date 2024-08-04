@@ -560,12 +560,12 @@ static std::string replace_variables(std::string &buf, parser_ctx &ctx) {
     return destwalk;
 }
 
-OldParser::OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, stream, resourceDatabase, parent_ctx.load_type, applier) {
+OldParser::OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, stream, resourceDatabase, applier) {
     this->parent_ctx = &parent_ctx;
     this->ctx.variables = parent_ctx.variables;
 }
 
-OldParser::OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, config_load_t load_type, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), stream(stream), load_type(load_type), ctx(this) {
+OldParser::OldParser(const char *filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), stream(stream), ctx(this) {
     this->old_dir = getcwd(nullptr, 0);
 
     std::filesystem::path f(filename);

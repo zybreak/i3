@@ -132,10 +132,10 @@ static void handle_active_window(xcb_client_message_event_t *event) {
         con->con_activate_unblock();
     } else {
         /* Request is from an application. */
-        if (global.config->focus_on_window_activation == FOWA_FOCUS || (global.config->focus_on_window_activation == FOWA_SMART && workspace_is_visible(ws))) {
+        if (global.configManager->config->focus_on_window_activation == FOWA_FOCUS || (global.configManager->config->focus_on_window_activation == FOWA_SMART && workspace_is_visible(ws))) {
             DLOG(fmt::sprintf("Focusing con = %p\n", fmt::ptr(con)));
             con->con_activate_unblock();
-        } else if (global.config->focus_on_window_activation == FOWA_URGENT || (global.config->focus_on_window_activation == FOWA_SMART && !workspace_is_visible(ws))) {
+        } else if (global.configManager->config->focus_on_window_activation == FOWA_URGENT || (global.configManager->config->focus_on_window_activation == FOWA_SMART && !workspace_is_visible(ws))) {
             DLOG(fmt::sprintf("Marking con = %p urgent\n", fmt::ptr(con)));
             con->con_set_urgency(true);
         } else
@@ -162,10 +162,10 @@ static void handle_frame_extents(xcb_client_message_event_t *event) {
 
     /* The reply data: approximate frame size */
     Rect r = {
-            static_cast<uint32_t>(global.config->default_border_width), /* left */
-            static_cast<uint32_t>(global.config->default_border_width), /* right */
+            static_cast<uint32_t>(global.configManager->config->default_border_width), /* left */
+            static_cast<uint32_t>(global.configManager->config->default_border_width), /* right */
             static_cast<uint32_t>(render_deco_height()),        /* top */
-            static_cast<uint32_t>(global.config->default_border_width)  /* bottom */
+            static_cast<uint32_t>(global.configManager->config->default_border_width)  /* bottom */
     };
     xcb_change_property(
             **global.x,

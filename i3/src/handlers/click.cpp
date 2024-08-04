@@ -261,8 +261,8 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
 
     /* 2: floating modifier pressed, initiate a drag */
     if (mod_pressed && is_left_click && !floatingcon &&
-        (global.config->tiling_drag == TILING_DRAG_MODIFIER ||
-        global.config->tiling_drag == TILING_DRAG_MODIFIER_OR_TITLEBAR) &&
+        (global.configManager->config->tiling_drag == TILING_DRAG_MODIFIER ||
+        global.configManager->config->tiling_drag == TILING_DRAG_MODIFIER_OR_TITLEBAR) &&
         has_drop_targets()) {
         const bool use_threshold = !mod_pressed;
         tiling_drag(con, event, use_threshold);
@@ -342,8 +342,8 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
 
     /* 8: floating modifier pressed, or click in titlebar, initiate a drag */
     if (is_left_click &&
-        ((global.config->tiling_drag == TILING_DRAG_TITLEBAR && dest == CLICK_DECORATION) ||
-         (global.config->tiling_drag == TILING_DRAG_MODIFIER_OR_TITLEBAR &&
+        ((global.configManager->config->tiling_drag == TILING_DRAG_TITLEBAR && dest == CLICK_DECORATION) ||
+         (global.configManager->config->tiling_drag == TILING_DRAG_MODIFIER_OR_TITLEBAR &&
           (mod_pressed || dest == CLICK_DECORATION))) &&
         has_drop_targets()) {
         allow_replay_pointer(event->time);
@@ -390,7 +390,7 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
 
     global.last_timestamp = event->time;
 
-    const uint32_t mod = (global.config->floating_modifier & 0xFFFF);
+    const uint32_t mod = (global.configManager->config->floating_modifier & 0xFFFF);
     const bool mod_pressed = (mod != 0 && (event->state & mod) == mod);
     DLOG(fmt::sprintf("floating_mod = %d, detail = %d\n", mod_pressed, event->detail));
     if ((con = con_by_window_id(event->event))) {

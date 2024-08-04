@@ -94,8 +94,8 @@ static bool is_debug_build() {
  */
 static void i3_exit() {
     ipc_shutdown(SHUTDOWN_REASON_EXIT, -1);
-    if (global.config->ipc_socket_path) {
-        unlink(global.config->ipc_socket_path->c_str());
+    if (global.configManager->config->ipc_socket_path) {
+        unlink(global.configManager->config->ipc_socket_path->c_str());
     }
     xcb_disconnect(**global.x);
 
@@ -421,7 +421,7 @@ int main(int argc, char *argv[]) {
 
     if (args.only_check_config) {
         try {
-            load_configuration(&args.override_configpath, config_load_t::C_VALIDATE);
+            load_configuration(args.override_configpath);
             exit(EXIT_SUCCESS);
         } catch (std::exception &e) {
             exit(EXIT_FAILURE);
@@ -445,6 +445,7 @@ int main(int argc, char *argv[]) {
     
     global.assignmentManager = new AssignmentManager();
     global.workspaceManager = new WorkspaceManager();
+    global.configManager = new ConfigurationManager();
 
     /* Prefetch X11 extensions that we are interested in. */
     X x{};
@@ -483,28 +484,36 @@ int main(int argc, char *argv[]) {
 
     init_dpi(*x, x.root_screen);
 
-    global.config = load_configuration(&args.override_configpath, config_load_t::C_LOAD);
+    try {
+        global.configManager->set_config(load_configuration(args.override_configpath));
+    } catch (std::domain_error &e) {
+        using namespace std::literals;
+        std::vector<button_t> buttons{};
+        std::string prompt = e.what();
+        std::string font = "fixed"s;
+        start_nagbar(&global.config_error_nagbar_pid, buttons, prompt, font, bar_type_t::TYPE_ERROR, false);
+    }
 
-    if (!global.config->ipc_socket_path) {
+    if (!global.configManager->config->ipc_socket_path) {
         /* Fall back to a file name in /tmp/ based on the PID */
         if (char *i3sock = getenv("I3SOCK")) {
-            global.config->ipc_socket_path = i3sock;
+            global.configManager->config->ipc_socket_path = i3sock;
         } else {
             auto process_filename = get_process_filename("ipc-socket");
             if (process_filename) {
-                global.config->ipc_socket_path = *process_filename;
+                global.configManager->config->ipc_socket_path = *process_filename;
             } else {
-                global.config->ipc_socket_path = std::nullopt;
+                global.configManager->config->ipc_socket_path = std::nullopt;
             }
         }
     }
     
     /* Create the UNIX domain socket for IPC */
     int ipc_socket;
-    if (global.config->ipc_socket_path) {
-        std::tie(global.current_socketpath, ipc_socket) = create_socket(*global.config->ipc_socket_path);
+    if (global.configManager->config->ipc_socket_path) {
+        std::tie(global.current_socketpath, ipc_socket) = create_socket(*global.configManager->config->ipc_socket_path);
         if (ipc_socket == -1) {
-            errx(EXIT_FAILURE, "Could not create the IPC socket: %s", global.config->ipc_socket_path->c_str());
+            errx(EXIT_FAILURE, "Could not create the IPC socket: %s", global.configManager->config->ipc_socket_path->c_str());
         }
     } else {
         errx(EXIT_FAILURE, "Could not create the IPC socket since socket path wasnt specified");

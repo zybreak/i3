@@ -724,10 +724,10 @@ static void handle_get_version(ipc_client *client, uint8_t *message, int size, u
     j["minor"] = MINOR_VERSION;
     j["patch"] = PATCH_VERSION;
     j["human_readable"] = I3_VERSION;
-    j["loaded_config_file_name"] = global.config->current_configpath;
+    j["loaded_config_file_name"] = global.configManager->config->current_configpath;
 
     auto a = nlohmann::json::array();
-    for (auto &included_file : std::ranges::drop_view{global.config->included_files,1}) {
+    for (auto &included_file : std::ranges::drop_view{global.configManager->config->included_files,1}) {
         a.push_back(included_file.path);
     }
     j["included_config_file_names"] = a;
@@ -751,7 +751,7 @@ static void handle_get_bar_config(ipc_client *client, uint8_t *message, int size
  */
 static void handle_get_binding_modes(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     auto a = nlohmann::json::array();
-    std::ranges::transform(global.config->modes, std::back_inserter(a), [](auto &mode) { return mode.name; });
+    std::ranges::transform(global.configManager->config->modes, std::back_inserter(a), [](auto &mode) { return mode.first; });
 
     auto payload = a.dump();
 
@@ -824,12 +824,12 @@ static void handle_subscribe(ipc_client *client, uint8_t *message, int size, uin
 static void handle_get_config(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     auto a = nlohmann::json::array();
 
-    for (auto &included_file : std::ranges::drop_view{global.config->included_files,1}) {
+    for (auto &included_file : std::ranges::drop_view{global.configManager->config->included_files,1}) {
         a.emplace_back(included_file.raw_contents);
     }
 
     nlohmann::json j = {
-        { "config", std::string(global.config->included_files[0].raw_contents) },
+        { "config", std::string(global.configManager->config->included_files[0].raw_contents) },
         { "included_configs", a }
     };
 
@@ -907,7 +907,7 @@ static void handle_sync(ipc_client *client, uint8_t *message, int size, uint32_t
 
 static void handle_get_binding_state(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     nlohmann::json j = {
-        { "name",  global.config->current_mode->name}
+        { "name",  global.configManager->config->current_mode()->name}
     };
 
     auto payload = j.dump();
