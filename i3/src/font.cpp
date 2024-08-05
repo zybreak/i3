@@ -15,12 +15,6 @@ module i3;
 import utils;
 import log;
 
-static xcb_visualtype_t *root_visual_type;
-static double pango_font_red;
-static double pango_font_green;
-static double pango_font_blue;
-static double pango_font_alpha;
-
 static PangoLayout *create_layout_with_dpi(cairo_t *cr) {
     PangoLayout *layout;
     PangoContext *context;
@@ -33,116 +27,41 @@ static PangoLayout *create_layout_with_dpi(cairo_t *cr) {
     return layout;
 }
 
-/*
- * Loads a Pango font description into an i3Font structure. Returns true
- * on success, false otherwise.
- *
- */
-static bool load_pango_font(xcb_connection_t *conn, xcb_screen_t *root_screen, i3Font *font, const std::string desc) {
+void freeFontDesc(PangoFontDescription *desc) {
+    if (desc != nullptr) {
+        pango_font_description_free(desc);
+    }
+}
+
+i3Font::i3Font(xcb_connection_t *conn, xcb_screen_t *root_screen, const std::string pattern) : conn(conn), root_screen(root_screen), pattern(pattern), pango_desc(pango_font_description_from_string(pattern.c_str()), &freeFontDesc) {
     /* Load the font description */
-    font->pango_desc = pango_font_description_from_string(desc.c_str());
-    if (!font->pango_desc) {
-        ELOG(fmt::sprintf("Could not open font %s with Pango, fallback to X font.\n",  desc));
-        return false;
+    //this->pango_desc = std::make_unique<PangoFontDescription, &freeFontDesc>(pango_font_description_from_string(pattern.c_str()));
+    if (!this->pango_desc) {
+        throw std::runtime_error(fmt::format("Could not open font {} with Pango", pattern));
     }
 
     LOG(fmt::sprintf("Using Pango font %s, size %d\n",
-        pango_font_description_get_family(font->pango_desc),
-        pango_font_description_get_size(font->pango_desc) / PANGO_SCALE));
+            pango_font_description_get_family(this->pango_desc.get()),
+            pango_font_description_get_size(this->pango_desc.get()) / PANGO_SCALE));
 
     /* We cache root_visual_type here, since you must call
      * load_pango_font before any other pango function
      * that would need root_visual_type */
-    root_visual_type = get_visualtype(root_screen);
+    this->root_visual_type = get_visualtype(root_screen);
 
     /* Create a dummy Pango layout to compute the font height */
-    cairo_surface_t *surface = cairo_xcb_surface_create(conn, root_screen->root, root_visual_type, 1, 1);
+    cairo_surface_t *surface = cairo_xcb_surface_create(conn, root_screen->root, this->root_visual_type, 1, 1);
     cairo_t *cr = cairo_create(surface);
     PangoLayout *layout = create_layout_with_dpi(cr);
-    pango_layout_set_font_description(layout, font->pango_desc);
+    pango_layout_set_font_description(layout, pango_desc.get());
 
     /* Get the font height */
-    gint height;
-    pango_layout_get_pixel_size(layout, nullptr, &height);
-    font->height = height;
+    pango_layout_get_pixel_size(layout, nullptr, &this->height);
 
     /* Free resources */
     g_object_unref(layout);
     cairo_destroy(cr);
     cairo_surface_destroy(surface);
-
-    return true;
-}
-
-/*
- * Draws text using Pango rendering.
- *
- */
-static void draw_text_pango(i3Font *savedFont, const char *text, size_t text_len,
-                            xcb_drawable_t drawable, cairo_surface_t *surface,
-                            int x, int y, int max_width, bool pango_markup) {
-    /* Create the Pango layout */
-    /* root_visual_type is cached in load_pango_font */
-    cairo_t *cr = cairo_create(surface);
-    PangoLayout *layout = create_layout_with_dpi(cr);
-    gint height;
-
-    pango_layout_set_font_description(layout, savedFont->pango_desc);
-    pango_layout_set_width(layout, max_width * PANGO_SCALE);
-    pango_layout_set_wrap(layout, PANGO_WRAP_CHAR);
-    pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
-
-    if (pango_markup) {
-        pango_layout_set_markup(layout, text, text_len);
-    } else {
-        pango_layout_set_text(layout, text, text_len);
-    }
-
-    /* Do the drawing */
-    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-    cairo_set_source_rgba(cr, pango_font_red, pango_font_green, pango_font_blue, pango_font_alpha);
-    pango_cairo_update_layout(cr, layout);
-    pango_layout_get_pixel_size(layout, nullptr, &height);
-    /* Center the piece of text vertically. */
-    int yoffset = (height - savedFont->height) / 2;
-    cairo_move_to(cr, x, y - yoffset);
-    pango_cairo_show_layout(cr, layout);
-
-    /* Free resources */
-    g_object_unref(layout);
-    cairo_destroy(cr);
-}
-
-/*
- * Calculate the text width using Pango rendering.
- *
- */
-static int predict_text_width_pango(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *root_screen, const char *text, size_t text_len, bool pango_markup) {
-    /* Create a dummy Pango layout */
-    /* root_visual_type is cached in load_pango_font */
-    cairo_surface_t *surface = cairo_xcb_surface_create(conn, root_screen->root, root_visual_type, 1, 1);
-    cairo_t *cr = cairo_create(surface);
-    PangoLayout *layout = create_layout_with_dpi(cr);
-
-    /* Get the font width */
-    gint width;
-    pango_layout_set_font_description(layout, savedFont->pango_desc);
-
-    if (pango_markup) {
-        pango_layout_set_markup(layout, text, text_len);
-    } else {
-        pango_layout_set_text(layout, text, text_len);
-    }
-
-    pango_cairo_update_layout(cr, layout);
-    pango_layout_get_pixel_size(layout, &width, nullptr);
-
-    /* Free resources */
-    g_object_unref(layout);
-    cairo_destroy(cr);
-    cairo_surface_destroy(surface);
-
-    return width;
 }
 
 /*
@@ -151,38 +70,15 @@ static int predict_text_width_pango(i3Font *savedFont, xcb_connection_t *conn, x
  * font was previously loaded, it will be freed.
  *
  */
-std::unique_ptr<i3Font> load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const std::string pattern, const bool fallback) {
-    auto font = std::make_unique<i3Font>();
-
-    /* No XCB connection, return early because we're just validating the
-     * configuration file. */
-    if (conn == nullptr) {
-        return font;
-    }
-
-    std::string font_pattern{};
-
-    /* Try to load a pango font if specified */
-    if (pattern.starts_with("pango:")) {
-        font_pattern = pattern.substr(strlen("pango:"));
-    } else if (pattern.starts_with("xft:")) {
-        font_pattern = pattern.substr(strlen("xft:"));
-    } else {
-        font_pattern = pattern;
-    }
-
-    if (load_pango_font(conn, root_screen, font.get(), font_pattern)) {
-        font->pattern = pattern;
-    }
-
-    return font;
+std::unique_ptr<i3Font> load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const std::string pattern) {
+    return std::make_unique<i3Font>(conn, root_screen, pattern);
 }
 
 /*
  * Defines the colors to be used for the forthcoming draw_text calls.
  *
  */
-void set_font_colors(xcb_connection_t *conn, xcb_gcontext_t gc, color_t foreground, color_t background) {
+void i3Font::set_font_colors(xcb_gcontext_t gc, color_t foreground, color_t background) {
     /* Save the foreground font */
     pango_font_red = foreground.red;
     pango_font_green = foreground.green;
@@ -198,11 +94,36 @@ void set_font_colors(xcb_connection_t *conn, xcb_gcontext_t gc, color_t foregrou
  * Text must be specified as an i3String.
  *
  */
-void draw_text(i3Font *savedFont, xcb_connection_t *conn, std::string &text, xcb_drawable_t drawable, xcb_gcontext_t gc,
-               cairo_surface_t *surface, int x, int y, int max_width) {
+void i3Font::draw_text(const std::string &text, xcb_drawable_t drawable, xcb_gcontext_t gc,
+               cairo_surface_t *surface, int x, int y, int max_width) const {
+    size_t text_len = text.length();
     /* Render the text using Pango */
-    draw_text_pango(savedFont, text.c_str(), text.size(),
-                    drawable, surface, x, y, max_width, false);
+    /* Create the Pango layout */
+    /* root_visual_type is cached in load_pango_font */
+    cairo_t *cr = cairo_create(surface);
+    PangoLayout *layout = create_layout_with_dpi(cr);
+    gint height;
+
+    pango_layout_set_font_description(layout, this->pango_desc.get());
+    pango_layout_set_width(layout, max_width * PANGO_SCALE);
+    pango_layout_set_wrap(layout, PANGO_WRAP_CHAR);
+    pango_layout_set_ellipsize(layout, PANGO_ELLIPSIZE_END);
+
+    pango_layout_set_text(layout, text.c_str(), text_len);
+
+    /* Do the drawing */
+    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+    cairo_set_source_rgba(cr, pango_font_red, pango_font_green, pango_font_blue, pango_font_alpha);
+    pango_cairo_update_layout(cr, layout);
+    pango_layout_get_pixel_size(layout, nullptr, &height);
+    /* Center the piece of text vertically. */
+    int yoffset = (height - this->height) / 2;
+    cairo_move_to(cr, x, y - yoffset);
+    pango_cairo_show_layout(cr, layout);
+
+    /* Free resources */
+    g_object_unref(layout);
+    cairo_destroy(cr);
 }
 
 /*
@@ -210,7 +131,28 @@ void draw_text(i3Font *savedFont, xcb_connection_t *conn, std::string &text, xcb
  * specified as an i3String.
  *
  */
-int predict_text_width(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *root_screen, std::string &text) {
-    /* Calculate extents using Pango */
-    return predict_text_width_pango(savedFont, conn, root_screen, text.c_str(), text.length(), false);
+int i3Font::predict_text_width(const std::string &text) const {
+    size_t text_len = text.length();
+    
+    /* Create a dummy Pango layout */
+    /* root_visual_type is cached in load_pango_font */
+    cairo_surface_t *surface = cairo_xcb_surface_create(conn, root_screen->root, root_visual_type, 1, 1);
+    cairo_t *cr = cairo_create(surface);
+    PangoLayout *layout = create_layout_with_dpi(cr);
+
+    /* Get the font width */
+    int width;
+    pango_layout_set_font_description(layout, this->pango_desc.get());
+
+    pango_layout_set_text(layout, text.c_str(), text_len);
+
+    pango_cairo_update_layout(cr, layout);
+    pango_layout_get_pixel_size(layout, &width, nullptr);
+
+    /* Free resources */
+    g_object_unref(layout);
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
+
+    return width;
 }

@@ -187,7 +187,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
 
     // TODO: render the watch symbol in a bigger font
     std::string line{"⌚"};
-    int text_width = predict_text_width(global.configManager->config->font.get(), *conn, global.x->root_screen, line);
+    int text_width = global.configManager->config->font->predict_text_width(line);
     int x = (state->rect.width / 2) - (text_width / 2);
     int y = (state->rect.height / 2) - (global.configManager->config->font->height / 2);
     draw_util_text(*conn, global.configManager->config->font.get(), line, &(state->surface), foreground, background, x, y, text_width);

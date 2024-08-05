@@ -120,18 +120,6 @@ void INIT_COLOR(Colortriple &x, const char *cborder, const char *cbackground, co
     x.child_border = draw_util_hex_to_color(**global.x, global.x->root_screen, cbackground);
 }
 
-/**
- * Launch nagbar to indicate errors in the configuration file.
- */
-static void start_config_error_nagbar(Config *config, bool has_errors) {
-    std::string font_pattern = config->font->pattern;
-    auto type = has_errors ? bar_type_t::TYPE_ERROR : bar_type_t::TYPE_WARNING;
-    std::string text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
-
-    std::vector<button_t> buttons{};
-    start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type, false);
-}
-
 /*
  * Extracts workspace names from keybindings (e.g. “web” from “bindsym $mod+1
  * workspace web”), so that when an output needs a workspace, i3 can start with
@@ -232,7 +220,7 @@ void ConfigurationManager::set_config(std::unique_ptr<Config> _config) {
     if (!config->font) {
         ELOG("You did not specify required configuration option \"font\"\n");
         using namespace std::literals;
-        config->font = load_font(**global.x, global.x->root_screen, "fixed"s, true);
+        config->font = load_font(**global.x, global.x->root_screen, "fixed"s);
     }
     
     // TODO: decide if we should call set_mode or no?

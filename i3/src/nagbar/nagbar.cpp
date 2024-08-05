@@ -159,7 +159,7 @@ class Nagbar {
      *
      */
     int button_draw(button_t *button, int position) {
-        int text_width = predict_text_width(font.get(), conn, root_screen, button->label);
+        int text_width = font->predict_text_width(button->label);
         button->width = text_width + 2 * BTN_PADDING + 2 * BTN_BORDER;
         button->x = position - button->width;
 
@@ -316,7 +316,7 @@ class Nagbar {
         }
 
         init_dpi(conn, root_screen);
-        font = load_font(conn, root_screen, pattern, true);
+        font = load_font(conn, root_screen, pattern);
 
         /* Place requests for the atoms we need as soon as possible */
         ATOM_cookie = xcb_intern_atom(conn, 0, strlen("ATOM"), "ATOM");

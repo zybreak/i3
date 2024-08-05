@@ -52,7 +52,11 @@ void ConfigApplier::criteria_add(criteria_state *cs, const char *ctype, const ch
 }
 
 void ConfigApplier::font(const std::string &font) {
-    this->config->font = load_font(**global.x, global.x->root_screen, font, true);
+    try {
+        this->config->font = load_font(**global.x, global.x->root_screen, font);
+    } catch (std::exception &e) {
+        ELOG(e.what());
+    }
 }
 
 void ConfigApplier::binding(const std::string &bindtype, const std::string &modifiers,

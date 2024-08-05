@@ -8,6 +8,8 @@ import std;
 
 struct color_t;
 
+void freeFontDesc(PangoFontDescription *desc);
+
 export {
     /**
      * Data structure for cached font information:
@@ -16,41 +18,54 @@ export {
      *
      */
     class i3Font {
-       public:
+       private: 
+        xcb_visualtype_t *root_visual_type;
+        xcb_connection_t *conn;
+        xcb_screen_t *root_screen;
+
+        double pango_font_red;
+        double pango_font_green;
+        double pango_font_blue;
+        double pango_font_alpha;
+
+    public:
         /** The height of the font, built from font_ascent + font_descent */
-        int height;
+        int height{};
 
         /** The pattern/name used to load the font. */
-        std::string pattern;
+        std::string pattern{};
 
         /** The pango font description */
-        PangoFontDescription *pango_desc;
+        std::unique_ptr<PangoFontDescription, decltype(&freeFontDesc)> pango_desc{nullptr, &freeFontDesc};
 
-        i3Font() {
-            pattern = "fixed";
-            pango_desc = nullptr;
-        }
+        i3Font(xcb_connection_t *conn, xcb_screen_t *root_screen, const std::string pattern);
 
-        ~i3Font() {
-            if (pango_desc != nullptr) {
-                pango_font_description_free(pango_desc);
-            }
-        }
+        /**
+         * Predict the text width in pixels for the given text. Text must be
+         * specified as an i3String.
+         *
+         */
+        int predict_text_width(const std::string &text) const;
+
+        /**
+         * Draws text onto the specified X drawable (normally a pixmap) at the
+         * specified coordinates (from the top left corner of the leftmost, uppermost
+         * glyph) and using the provided gc.
+         *
+         * The given cairo surface must refer to the specified X drawable.
+         *
+         * Text must be specified as an i3String.
+         *
+         */
+        void draw_text(const std::string &text, xcb_drawable_t drawable, xcb_gcontext_t gc,
+                       cairo_surface_t *surface, int x, int y, int max_width) const;
+
+        /**
+         * Defines the colors to be used for the forthcoming draw_text calls.
+         *
+         */
+        void set_font_colors(xcb_gcontext_t gc, color_t foreground, color_t background);
     };
-
-
-    /**
-     * Predict the text width in pixels for the given text. Text must be
-     * specified as an i3String.
-     *
-     */
-    int predict_text_width(i3Font *savedFont, xcb_connection_t *conn, xcb_screen_t *root_screen, std::string &text);
-
-    /**
-     * Defines the colors to be used for the forthcoming draw_text calls.
-     *
-     */
-    void set_font_colors(xcb_connection_t *conn, xcb_gcontext_t gc, color_t foreground, color_t background);
 
     /**
      * Loads a font for usage, also getting its height. If fallback is true,
@@ -58,18 +73,6 @@ export {
      * font was previously loaded, it will be freed.
      *
      */
-    std::unique_ptr<i3Font> load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const std::string pattern, bool fallback);
-
-    /**
-     * Draws text onto the specified X drawable (normally a pixmap) at the
-     * specified coordinates (from the top left corner of the leftmost, uppermost
-     * glyph) and using the provided gc.
-     *
-     * The given cairo surface must refer to the specified X drawable.
-     *
-     * Text must be specified as an i3String.
-     *
-     */
-    void draw_text(i3Font *savedFont, xcb_connection_t *conn, std::string &text, xcb_drawable_t drawable, xcb_gcontext_t gc,
-                   cairo_surface_t *surface, int x, int y, int max_width);
+    std::unique_ptr<i3Font> load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const std::string pattern);
+    
 }
