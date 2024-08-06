@@ -125,6 +125,7 @@ export {
         xcb_window_t root;
 
         explicit X();
+        virtual ~X() = default;
 
         operator x_connection *() {
             return conn;

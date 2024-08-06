@@ -87,6 +87,35 @@ export {
          */
         void draw_util_surface_set_size(int width, int height);
 
+        /**
+         * Draw the given text using libi3.
+         * This function also marks the surface dirty which is needed if other means of
+         * drawing are used. This will be the case when using XCB to draw text.
+         *
+         */
+        void draw_util_text(i3Font *font, std::string &text, color_t fg_color, color_t bg_color, int x, int y, int max_width);
+
+        /**
+         * Clears a surface with the given color.
+         *
+         */
+        void draw_util_clear_surface(color_t color);
+
+        /**
+         * This function is a convenience wrapper and takes care of flushing the
+         * surface as well as restoring the cairo state.
+         *
+         */
+        void draw_util_image(cairo_surface_t *image, int x, int y, int width, int height);
+
+        /**
+         * Draws a filled rectangle.
+         * This function is a convenience wrapper and takes care of flushing the
+         * surface as well as restoring the cairo state.
+         *
+         */
+        void draw_util_rectangle(color_t color, double x, double y, double w, double h);
+
     };
 
     /**
@@ -96,28 +125,6 @@ export {
      */
     color_t draw_util_hex_to_color(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *color);
 
-    /**
-     * Draw the given text using libi3.
-     * This function also marks the surface dirty which is needed if other means of
-     * drawing are used. This will be the case when using XCB to draw text.
-     *
-     */
-    void draw_util_text(xcb_connection_t *conn, i3Font *font, std::string &text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width);
-
-
-    /**
-     * Draws a filled rectangle.
-     * This function is a convenience wrapper and takes care of flushing the
-     * surface as well as restoring the cairo state.
-     *
-     */
-    void draw_util_rectangle(surface_t *surface, color_t color, double x, double y, double w, double h);
-
-    /**
-     * Clears a surface with the given color.
-     *
-     */
-    void draw_util_clear_surface(surface_t *surface, color_t color);
 
     /**
      * Copies a surface onto another surface.
@@ -126,10 +133,4 @@ export {
     void draw_util_copy_surface(surface_t *src, surface_t *dest, double src_x, double src_y,
                                 double dest_x, double dest_y, double width, double height);
 
-    /**
-     * This function is a convenience wrapper and takes care of flushing the
-     * surface as well as restoring the cairo state.
-     *
-     */
-    void draw_util_image(cairo_surface_t *image, surface_t *surface, int x, int y, int width, int height);
 }

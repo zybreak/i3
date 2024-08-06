@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <xcb/xcb.h>
 
 import i3;
 
@@ -9,7 +10,7 @@ class MockX : public X {
         root_depth = 32;
     };
 
-    MOCK_METHOD(void, con_init, (Con *con), (override));
+    MOCK_METHOD(void, con_init, (Con *con, std::optional<xcb_drawable_t> id), (override));
 };
 
 TEST(ConTest, Floating) {

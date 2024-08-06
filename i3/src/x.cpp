@@ -349,19 +349,19 @@ static void x_draw_title_border(Con *con, surface_t *dest_surface) {
     Rect *dr = &(con->deco_rect);
 
     /* Left */
-    draw_util_rectangle(dest_surface, p->color->border,
+    dest_surface->draw_util_rectangle(p->color->border,
                         dr->x, dr->y, 1, dr->height);
 
     /* Right */
-    draw_util_rectangle(dest_surface, p->color->border,
+    dest_surface->draw_util_rectangle(p->color->border,
                         dr->x + dr->width - 1, dr->y, 1, dr->height);
 
     /* Top */
-    draw_util_rectangle(dest_surface, p->color->border,
+    dest_surface->draw_util_rectangle(p->color->border,
                         dr->x, dr->y, dr->width, 1);
 
     /* Bottom */
-    draw_util_rectangle(dest_surface, p->color->border,
+    dest_surface->draw_util_rectangle(p->color->border,
                         dr->x, dr->y + dr->height - 1, dr->width, 1);
 }
 
@@ -511,21 +511,21 @@ void x_draw_decoration(Con *con) {
     con->pixmap_recreated = false;
 
     /* 2: draw the client.background, but only for the parts around the window_rect */
-    if (con->window != nullptr) {
+    if (con->window != nullptr && con->frame_buffer) {
         /* Clear visible windows before beginning to draw */
-        draw_util_clear_surface(con->frame_buffer.get(), (color_t){.red = 0.0, .green = 0.0, .blue = 0.0});
+        con->frame_buffer->draw_util_clear_surface((color_t){.red = 0.0, .green = 0.0, .blue = 0.0});
 
         /* top area */
-        draw_util_rectangle(con->frame_buffer.get(), global.configManager->config->client.background,
+        con->frame_buffer->draw_util_rectangle(global.configManager->config->client.background,
                             0, 0, r->width, w->y);
         /* bottom area */
-        draw_util_rectangle(con->frame_buffer.get(), global.configManager->config->client.background,
+        con->frame_buffer->draw_util_rectangle(global.configManager->config->client.background,
                             0, w->y + w->height, r->width, r->height - (w->y + w->height));
         /* left area */
-        draw_util_rectangle(con->frame_buffer.get(), global.configManager->config->client.background,
+        con->frame_buffer->draw_util_rectangle(global.configManager->config->client.background,
                             0, 0, w->x, r->height);
         /* right area */
-        draw_util_rectangle(con->frame_buffer.get(), global.configManager->config->client.background,
+        con->frame_buffer->draw_util_rectangle(global.configManager->config->client.background,
                             w->x + w->width, 0, r->width - (w->x + w->width), r->height);
     }
 
@@ -537,7 +537,7 @@ void x_draw_decoration(Con *con) {
         xcb_rectangle_t rectangles[4];
         size_t rectangles_count = x_get_border_rectangles(con, rectangles);
         for (size_t i = 0; i < rectangles_count; i++) {
-            draw_util_rectangle(con->frame_buffer.get(), con->deco_render_params.value()->color->child_border,
+            con->frame_buffer->draw_util_rectangle(con->deco_render_params.value()->color->child_border,
                                 rectangles[i].x,
                                 rectangles[i].y,
                                 rectangles[i].width,
@@ -553,10 +553,10 @@ void x_draw_decoration(Con *con) {
             con::previous(con, con->parent->nodes) == nullptr &&
             con->parent->type != CT_FLOATING_CON) {
             if (con->deco_render_params.value()->parent_layout == L_SPLITH) {
-                draw_util_rectangle(con->frame_buffer.get(), con->deco_render_params.value()->color->indicator,
+                con->frame_buffer->draw_util_rectangle(con->deco_render_params.value()->color->indicator,
                                     r->width + (br.width + br.x), br.y, -(br.width + br.x), r->height + br.height);
             } else if (con->deco_render_params.value()->parent_layout == L_SPLITV) {
-                draw_util_rectangle(con->frame_buffer.get(), con->deco_render_params.value()->color->indicator,
+                con->frame_buffer->draw_util_rectangle(con->deco_render_params.value()->color->indicator,
                                     br.x, r->height + (br.height + br.y), r->width + br.width, -(br.height + br.y));
             }
         }
@@ -597,7 +597,7 @@ void x_draw_decoration(Con *con) {
     /* 4: paint the bar */
     DLOG(fmt::sprintf("con->deco_rect = (x=%d, y=%d, w=%d, h=%d) for con->name=%s\n",
          con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height, con->name));
-    draw_util_rectangle(dest_surface, con->deco_render_params.value()->color->background,
+    dest_surface->draw_util_rectangle(con->deco_render_params.value()->color->background,
                         con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height);
 
     /* 5: draw title border */
@@ -673,15 +673,14 @@ void x_draw_decoration(Con *con) {
             return;
     }
 
-    draw_util_text(**global.x, global.configManager->config->font.get(), title, dest_surface,
+    dest_surface->draw_util_text(global.configManager->config->font.get(), title,
                    con->deco_render_params.value()->color->text, con->deco_render_params.value()->color->background,
                    con->deco_rect.x + title_offset_x,
                    con->deco_rect.y + text_offset_y,
                    deco_width - mark_width - 2 * title_padding - total_icon_space);
     if (has_icon) {
-        draw_util_image(
+        dest_surface->draw_util_image(
             win->icon,
-            dest_surface,
             con->deco_rect.x + icon_offset_x,
             con->deco_rect.y + logical_px(global.x->root_screen, 1),
             icon_size,
@@ -1001,7 +1000,7 @@ void x_push_node(Con *con) {
             xcb_create_pixmap(**global.x, win_depth, id, con->frame->id, width, height);
             con->frame_buffer = std::make_unique<surface_t>(**global.x, id,
                                    get_visualtype_by_id(get_visualid_by_depth(win_depth)), width, height);
-            draw_util_clear_surface(con->frame_buffer.get(), (color_t){.red = 0.0, .green = 0.0, .blue = 0.0});
+            con->frame_buffer->draw_util_clear_surface((color_t){.red = 0.0, .green = 0.0, .blue = 0.0});
 
             /* For the graphics context, we disable GraphicsExposure events.
              * Those will be sent when a CopyArea request cannot be fulfilled

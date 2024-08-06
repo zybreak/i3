@@ -164,19 +164,19 @@ class Nagbar {
         button->x = position - button->width;
 
         /* draw border */
-        draw_util_rectangle(bar.get(), color_border,
+        bar->draw_util_rectangle(color_border,
                             position - button->width,
                             MSG_PADDING - BTN_PADDING - BTN_BORDER,
                             button->width,
                             font->height + 2 * BTN_PADDING + 2 * BTN_BORDER);
         /* draw background */
-        draw_util_rectangle(bar.get(), color_button_background,
+        bar->draw_util_rectangle(color_button_background,
                             position - button->width + BTN_BORDER,
                             MSG_PADDING - BTN_PADDING,
                             text_width + 2 * BTN_PADDING,
                             font->height + 2 * BTN_PADDING);
         /* draw label */
-        draw_util_text(conn, font.get(), button->label, bar.get(), color_text, color_button_background,
+        bar->draw_util_text(font.get(), button->label, color_text, color_button_background,
                        position - button->width + BTN_BORDER + BTN_PADDING,
                        MSG_PADDING,
                        200);
@@ -252,9 +252,9 @@ class Nagbar {
      */
     int handle_expose(xcb_expose_event_t *event) {
         /* draw background */
-        draw_util_clear_surface(bar.get(), color_background);
+        bar->draw_util_clear_surface(color_background);
         /* draw message */
-        draw_util_text(conn, font.get(), prompt, bar.get(), color_text, color_background,
+        bar->draw_util_text(font.get(), prompt, color_text, color_background,
                        MSG_PADDING, MSG_PADDING,
                        bar->width - 2 * MSG_PADDING);
 
@@ -271,7 +271,7 @@ class Nagbar {
         }
 
         /* border line at the bottom */
-        draw_util_rectangle(bar.get(), color_border_bottom, 0, bar->height - BAR_BORDER, bar->width, BAR_BORDER);
+        bar->draw_util_rectangle(color_border_bottom, 0, bar->height - BAR_BORDER, bar->width, BAR_BORDER);
 
         xcb_flush(conn);
         return 1;

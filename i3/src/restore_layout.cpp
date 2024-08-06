@@ -146,7 +146,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
     const color_t foreground = global.configManager->config->client.placeholder.text;
     const color_t background = global.configManager->config->client.placeholder.background;
 
-    draw_util_clear_surface(state->surface.get(), background);
+    state->surface->draw_util_clear_surface(background);
 
     // TODO: make i3font functions per-connection, at least these two for now…?
     xcb_aux_sync(restore_conn);
@@ -177,7 +177,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
         DLOG(fmt::sprintf("con %p (placeholder 0x%08x) line %d: %s\n", fmt::ptr(state->con), state->window, n, serialized));
 
         std::string str{serialized};
-        draw_util_text(*conn, global.configManager->config->font.get(), str, state->surface.get(), foreground, background,
+        state->surface->draw_util_text(global.configManager->config->font.get(), str, foreground, background,
                        logical_px(global.x->root_screen, 2),
                        (n * (global.configManager->config->font->height + logical_px(global.x->root_screen, 2))) + logical_px(global.x->root_screen, 2),
                        state->rect.width - 2 * logical_px(global.x->root_screen, 2));
@@ -190,7 +190,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
     int text_width = global.configManager->config->font->predict_text_width(line);
     int x = (state->rect.width / 2) - (text_width / 2);
     int y = (state->rect.height / 2) - (global.configManager->config->font->height / 2);
-    draw_util_text(*conn, global.configManager->config->font.get(), line, state->surface.get(), foreground, background, x, y, text_width);
+    state->surface->draw_util_text(global.configManager->config->font.get(), line, foreground, background, x, y, text_width);
     xcb_aux_sync(restore_conn);
 }
 

@@ -241,18 +241,18 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     const color_t red = draw_util_hex_to_color(**global.x, global.x->root_screen, "#FF0000");
 
     /* Start with a clean slate and draw a red border. */
-    draw_util_clear_surface(dialog->surface.get(), red);
-    draw_util_rectangle(dialog->surface.get(), black, border_width, border_width,
+    dialog->surface->draw_util_clear_surface(red);
+    dialog->surface->draw_util_rectangle(black, border_width, border_width,
                         dialog->dims.width - 2 * border_width, dialog->dims.height - 2 * border_width);
 
     int y = border_width + margin;
     const int x = border_width + margin;
     const int max_width = dialog->dims.width - 2 * x;
 
-    draw_util_text(**global.x, global.configManager->config->font.get(), message_intro, dialog->surface.get(), white, black, x, y, max_width);
+    dialog->surface->draw_util_text(global.configManager->config->font.get(), message_intro, white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 
-    draw_util_text(**global.x, global.configManager->config->font.get(), message_intro2, dialog->surface.get(), white, black, x, y, max_width);
+    dialog->surface->draw_util_text(global.configManager->config->font.get(), message_intro2, white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 
     char *bt_color = (char*)"#FFFFFF";
@@ -261,13 +261,13 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     } else if (backtrace_done > 0) {
         bt_color = (char*)"#00AA00";
     }
-    draw_util_text(**global.x, global.configManager->config->font.get(), message_option_backtrace, dialog->surface.get(), draw_util_hex_to_color(**global.x, global.x->root_screen, bt_color), black, x, y, max_width);
+    dialog->surface->draw_util_text(global.configManager->config->font.get(), message_option_backtrace, draw_util_hex_to_color(**global.x, global.x->root_screen, bt_color), black, x, y, max_width);
     y += global.configManager->config->font->height;
 
-    draw_util_text(**global.x, global.configManager->config->font.get(), message_option_restart, dialog->surface.get(), white, black, x, y, max_width);
+    dialog->surface->draw_util_text(global.configManager->config->font.get(), message_option_restart, white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 
-    draw_util_text(**global.x, global.configManager->config->font.get(), message_option_forget, dialog->surface.get(), white, black, x, y, max_width);
+    dialog->surface->draw_util_text(global.configManager->config->font.get(), message_option_forget, white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 }
 

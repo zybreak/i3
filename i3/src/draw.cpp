@@ -108,7 +108,7 @@ uint16_t get_visual_depth(xcb_visualid_t visual_id) {
     return 0;
 }
 
-surface_t::surface_t(xcb_connection_t *conn, xcb_drawable_t drawable, xcb_visualtype_t *_visual, int width, int height) : width(width), height(height), id(drawable), conn(conn) {
+surface_t::surface_t(xcb_connection_t *conn, xcb_drawable_t drawable, xcb_visualtype_t *_visual, int width, int height) : conn(conn), id(drawable), width(width), height(height) {
     xcb_visualtype_t *visual;
     if (_visual == nullptr) {
         visual = global.x->visual_type;
@@ -205,19 +205,15 @@ static void draw_util_set_source_color(surface_t *surface, color_t color) {
  * drawing are used. This will be the case when using XCB to draw text.
  *
  */
-void draw_util_text(xcb_connection_t *conn, i3Font *font, std::string &text, surface_t *surface, color_t fg_color, color_t bg_color, int x, int y, int max_width) {
-    if (!surface_initialized(surface)) {
-        return;
-    }
-
+void surface_t::draw_util_text(i3Font *font, std::string &text, color_t fg_color, color_t bg_color, int x, int y, int max_width) {
     /* Flush any changes before we draw the text as this might use XCB directly. */
-    CAIRO_SURFACE_FLUSH(surface->surface);
+    CAIRO_SURFACE_FLUSH(this->surface);
 
-    font->set_font_colors(surface->gc, fg_color, bg_color);
-    font->draw_text(text, surface->id, surface->gc, surface->surface, x, y, max_width);
+    font->set_font_colors(this->gc, fg_color, bg_color);
+    font->draw_text(text, this->id, this->gc, this->surface, x, y, max_width);
 
     /* Notify cairo that we (possibly) used another way to draw on the surface. */
-    cairo_surface_mark_dirty(surface->surface);
+    cairo_surface_mark_dirty(this->surface);
 }
 
 /**
@@ -226,10 +222,8 @@ void draw_util_text(xcb_connection_t *conn, i3Font *font, std::string &text, sur
  * surface as well as restoring the cairo state.
  *
  */
-void draw_util_image(cairo_surface_t *image, surface_t *surface, int x, int y, int width, int height) {
-    if (!surface_initialized(surface)) {
-        return;
-    }
+void surface_t::draw_util_image(cairo_surface_t *image, int x, int y, int width, int height) {
+    surface_t *surface = this;
 
     cairo_save(surface->cr);
 
@@ -252,10 +246,8 @@ void draw_util_image(cairo_surface_t *image, surface_t *surface, int x, int y, i
  * surface as well as restoring the cairo state.
  *
  */
-void draw_util_rectangle(surface_t *surface, color_t color, double x, double y, double w, double h) {
-    if (!surface_initialized(surface)) {
-        return;
-    }
+void surface_t::draw_util_rectangle(color_t color, double x, double y, double w, double h) {
+    surface_t *surface = this;
 
     cairo_save(surface->cr);
 
@@ -279,10 +271,8 @@ void draw_util_rectangle(surface_t *surface, color_t color, double x, double y, 
  * Clears a surface with the given color.
  *
  */
-void draw_util_clear_surface(surface_t *surface, color_t color) {
-    if (!surface_initialized(surface)) {
-        return;
-    }
+void surface_t::draw_util_clear_surface(color_t color) {
+    surface_t *surface = this;
 
     cairo_save(surface->cr);
 
