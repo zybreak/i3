@@ -14,21 +14,21 @@ export {
      * and the corresponding cairo objects representing it. */
     struct surface_t {
         /* The drawable which is being represented. */
-        xcb_drawable_t id;
+        xcb_drawable_t id{};
 
         /* A classic XCB graphics context. */
-        xcb_gcontext_t gc;
+        xcb_gcontext_t gc{};
         bool owns_gc;
 
         int width;
         int height;
 
         /* A cairo surface representing the drawable. */
-        cairo_surface_t *surface;
+        cairo_surface_t *surface{};
 
         /* The cairo object representing the drawable. In general,
          * this is what one should use for any drawing operation. */
-        cairo_t *cr;
+        cairo_t *cr{};
     };
 
     /**
