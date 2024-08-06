@@ -85,7 +85,7 @@ export {
          * Resize the surface to the given size.
          *
          */
-        void draw_util_surface_set_size(int width, int height);
+        surface_t* draw_util_surface_set_size(int width, int height);
 
         /**
          * Draw the given text using libi3.
@@ -93,20 +93,20 @@ export {
          * drawing are used. This will be the case when using XCB to draw text.
          *
          */
-        void draw_util_text(i3Font *font, std::string &text, color_t fg_color, color_t bg_color, int x, int y, int max_width);
+        surface_t* draw_util_text(i3Font *font, std::string &text, color_t fg_color, color_t bg_color, int x, int y, int max_width);
 
         /**
          * Clears a surface with the given color.
          *
          */
-        void draw_util_clear_surface(color_t color);
+        surface_t* draw_util_clear_surface(color_t color);
 
         /**
          * This function is a convenience wrapper and takes care of flushing the
          * surface as well as restoring the cairo state.
          *
          */
-        void draw_util_image(cairo_surface_t *image, int x, int y, int width, int height);
+        surface_t* draw_util_image(cairo_surface_t *image, int x, int y, int width, int height);
 
         /**
          * Draws a filled rectangle.
@@ -114,7 +114,7 @@ export {
          * surface as well as restoring the cairo state.
          *
          */
-        void draw_util_rectangle(color_t color, double x, double y, double w, double h);
+        surface_t* draw_util_rectangle(color_t color, double x, double y, double w, double h);
 
     };
 
