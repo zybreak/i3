@@ -268,7 +268,7 @@ static bool con_has_urgent_child(Con *con) {
  *
  */
 static void con_raise(Con *con) {
-    Con *floating = con->con_inside_floating();
+    FloatingCon *floating = con->con_inside_floating();
     if (floating) {
         floating_raise_con(floating);
     }
@@ -289,7 +289,7 @@ void Con::con_activate() {
  *
  */
 void Con::con_activate_unblock() {
-    Con *ws = this->con_get_workspace();
+    WorkspaceCon *ws = this->con_get_workspace();
     Con *previous_focus = global.focused;
     Con *fullscreen_on_ws = (ws) ? ws->con_get_fullscreen_covering_ws() : nullptr;
 
@@ -367,7 +367,15 @@ bool Con::con_has_managed_window() {
  *
  */
 bool Con::con_has_children() {
-    return (!this->con_is_leaf() || (dynamic_cast<WorkspaceCon*>(this) != nullptr && !dynamic_cast<WorkspaceCon*>(this)->floating_windows.empty()));
+    return !this->con_is_leaf();
+}
+
+/*
+ * Returns true if this node has regular or floating children.
+ *
+ */
+bool WorkspaceCon::con_has_children() {
+    return (!this->con_is_leaf() || !this->floating_windows.empty());
 }
 
 /*

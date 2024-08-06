@@ -224,7 +224,7 @@ void X::con_init(Con *con, std::optional<xcb_drawable_t> id) {
  *
  */
 void x_reparent_child(Con *con, Con *old) {
-    struct con_state *state;
+    con_state *state;
     if ((state = state_for_frame(con->frame->id)) == nullptr) {
         ELOG("window state for con not found\n");
         return;
@@ -787,7 +787,7 @@ static void set_shape_state(Con *con, bool need_reshape) {
         return;
     }
 
-    struct con_state *state;
+    con_state *state;
     if ((state = state_for_frame(con->frame->id)) == nullptr) {
         ELOG(fmt::sprintf("window state for con %p not found\n", fmt::ptr(con)));
         return;
@@ -819,7 +819,8 @@ static void set_shape_state(Con *con, bool need_reshape) {
  *
  */
 void x_move_win(Con *src, Con *dest) {
-    struct con_state *state_src, *state_dest;
+    con_state *state_src;
+    con_state *state_dest;
 
     if ((state_src = state_for_frame(src->frame->id)) == nullptr) {
         ELOG("window state for src not found\n");
@@ -834,8 +835,8 @@ void x_move_win(Con *src, Con *dest) {
     state_dest->con = state_src->con;
     state_src->con = nullptr;
 
-    if (state_dest->window_rect == (Rect){0, 0, 0, 0}) {
-        memcpy(&(state_dest->window_rect), &(state_src->window_rect), sizeof(Rect));
+    if (state_dest->window_rect == Rect{0, 0, 0, 0}) {
+        state_dest->window_rect = state_src->window_rect;
         DLOG("COPYING RECT\n");
     }
 }
@@ -1038,7 +1039,7 @@ void x_push_node(Con *con) {
         }
         xcb_flush(**global.x);
 
-        memcpy(&(state->rect), &rect, sizeof(Rect));
+        state->rect = rect;
         fake_notify = true;
     }
 
@@ -1048,7 +1049,7 @@ void x_push_node(Con *con) {
         DLOG(fmt::sprintf("setting window rect (%d, %d, %d, %d)\n",
              con->window_rect.x, con->window_rect.y, con->window_rect.width, con->window_rect.height));
         xcb_set_window_rect(**global.x, con->window->id, con->window_rect);
-        memcpy(&(state->window_rect), &(con->window_rect), sizeof(Rect));
+        state->window_rect = con->window_rect;
         fake_notify = true;
     }
 
@@ -1411,7 +1412,7 @@ void x_raise_con(Con *con) {
  *
  */
 void x_set_name(Con *con, const std::string &name) {
-    struct con_state *state;
+    con_state *state;
 
     if ((state = state_for_frame(con->frame->id)) == nullptr) {
         ELOG("window state not found\n");

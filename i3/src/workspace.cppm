@@ -162,7 +162,7 @@ export {
      * Switches to the given workspace
      *
      */
-    void workspace_show(Con * ws);
+    void workspace_show(WorkspaceCon * ws);
 
     /**
      * Looks up the workspace by name and switches to it.

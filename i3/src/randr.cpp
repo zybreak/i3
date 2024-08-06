@@ -421,7 +421,7 @@ void output_init_con(Output *output) {
  */
 void init_ws_for_output(Output *output) {
     Con *content = output->con->output_get_content();
-    Con *previous_focus = global.focused != nullptr ? global.focused->con_get_workspace() : nullptr;
+    WorkspaceCon *previous_focus = global.focused != nullptr ? global.focused->con_get_workspace() : nullptr;
 
     /* Iterate over all workspaces and check if any of them should be assigned
      * to this output.
@@ -462,7 +462,7 @@ void init_ws_for_output(Output *output) {
         auto visible = std::ranges::find_if(content->nodes, [](auto &child) { return child->fullscreen_mode == CF_OUTPUT; });
         if (visible == content->nodes.end()) {
             visible = content->nodes.begin();
-            workspace_show(*visible);
+            workspace_show(dynamic_cast<WorkspaceCon*>(*visible));
         }
         goto restore_focus;
     }
@@ -990,7 +990,7 @@ void RandR::randr_query_outputs() {
         DLOG(fmt::sprintf("Focusing primary output %s\n",  output->output_primary_name()));
         Con *content = output->con->output_get_content();
         Con *ws = con::first(content->focused);
-        workspace_show(ws);
+        workspace_show(dynamic_cast<WorkspaceCon*>(ws));
     }
 
     /* render_layout flushes */

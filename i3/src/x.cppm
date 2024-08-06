@@ -62,8 +62,8 @@ export {
          * longer floating. */
         bool was_floating{};
 
-        Rect rect;
-        Rect window_rect;
+        Rect rect{};
+        Rect window_rect{};
 
         bool initial{};
 

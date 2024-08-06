@@ -15,6 +15,7 @@ export module i3:floating;
 import rect;
 
 class Con;
+class FloatingCon;
 
 export {
     /** On which border was the dragging initiated? */
@@ -55,7 +56,7 @@ export {
      * Raises the given container in the list of floating containers
      *
      */
-    void floating_raise_con(Con * con);
+    void floating_raise_con(FloatingCon * con);
 
     /**
      * Checks if con’s coordinates are within its workspace and re-assigns it to
@@ -127,5 +128,5 @@ export {
      * reassigned to a different output (or when the output’s rect changes).
      *
      */
-    void floating_fix_coordinates(Con * con, const Rect &old_rect, const Rect &new_rect);
+    void floating_fix_coordinates(FloatingCon * con, const Rect &old_rect, const Rect &new_rect);
 }

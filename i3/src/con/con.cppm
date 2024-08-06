@@ -256,7 +256,7 @@ export {
          * Returns true if this node has regular or floating children.
          *
          */
-        bool con_has_children();
+        virtual bool con_has_children();
 
         /**
          * Returns true if this node accepts a window (if the node swallows windows,
@@ -516,7 +516,7 @@ export {
         void con_update_parents_urgency() override;
        public:
         /* Only workspace-containers can have floating clients */
-        std::deque<Con *> floating_windows{};
+        std::deque<FloatingCon *> floating_windows{};
         /* workspace_layout is only for type == CT_WORKSPACE cons. When you change
          * the layout of a workspace without any children, i3 cannot just set the
          * layout (because workspaces need to be splitv/splith to allow focus
@@ -545,6 +545,8 @@ export {
         void con_set_layout(layout_t layout) override;
         
         void on_remove_child() override;
+
+        bool con_has_children() override;
     };
 
     namespace con {

@@ -481,7 +481,7 @@ static Con *get_tree_next(Con *con, direction_t direction) {
         Con *const parent = con->parent;
         if (con->type == CT_FLOATING_CON) {
             auto floating_parent = dynamic_cast<WorkspaceCon*>(parent);
-            std::deque<Con*> floating_windows{};
+            std::deque<FloatingCon*> floating_windows{};
             if (floating_parent) {
                 floating_windows = floating_parent->floating_windows;
             }
@@ -582,7 +582,7 @@ void tree_next(Con *con, direction_t direction) {
             }
         }
 
-        workspace_show(next);
+        workspace_show(dynamic_cast<WorkspaceCon*>(next));
         focus->con_activate();
         x_set_warp_to(focus->rect);
         return;
@@ -591,7 +591,7 @@ void tree_next(Con *con, direction_t direction) {
          * stack order */
         WorkspaceCon *parent = dynamic_cast<WorkspaceCon*>(next->parent);
         while (parent->floating_windows.back() != next) {
-            Con *last = parent->floating_windows.back();
+            FloatingCon *last = parent->floating_windows.back();
             parent->floating_windows.pop_back();
             parent->floating_windows.push_front(last);
         }

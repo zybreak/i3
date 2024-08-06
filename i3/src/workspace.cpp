@@ -380,7 +380,7 @@ static void workspace_reassign_sticky(Con *con) {
 
         LOG(fmt::sprintf("Ah, this one is sticky: %s / %p\n",  current->name, fmt::ptr(current)));
         /* 2: find a window which we can re-assign */
-        Con *output = current->con_get_output();
+        OutputCon *output = current->con_get_output();
         Con *src = _get_sticky(output, current->sticky_group, current);
 
         if (src == nullptr) {
@@ -433,7 +433,7 @@ static void workspace_defer_update_urgent_hint_cb(EV_P_ ev_timer *w, int revents
  * Switches to the given workspace
  *
  */
-void workspace_show(Con *workspace) {
+void workspace_show(WorkspaceCon *workspace) {
     Con *current, *old = nullptr;
 
     /* disable fullscreen for the other workspaces and get the workspace we are
@@ -1087,7 +1087,7 @@ void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
     if (workspace_was_visible) {
         /* The workspace which we just detached was visible, so focus the next
          * one in the focus-stack. */
-        Con *focus_ws = con::first(old_content->focused);
+        WorkspaceCon *focus_ws = dynamic_cast<WorkspaceCon*>(con::first(old_content->focused));
         DLOG(fmt::sprintf("workspace was visible, focusing %p / %s now\n", fmt::ptr(focus_ws), focus_ws->name));
         workspace_show(focus_ws);
     }

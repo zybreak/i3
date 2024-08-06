@@ -114,7 +114,7 @@ static void handle_active_window(xcb_client_message_event_t *event) {
         return;
     }
 
-    Con *ws = con->con_get_workspace();
+    WorkspaceCon *ws = con->con_get_workspace();
     if (ws == nullptr) {
         DLOG("Window is not being managed, ignoring _NET_ACTIVE_WINDOW\n");
         return;
@@ -184,7 +184,7 @@ static void handle_current_desktop(xcb_client_message_event_t *event) {
         * https://standards.freedesktop.org/wm-spec/latest/ar01s03.html#idm140251368135008
         * */
     DLOG(fmt::sprintf("Request to change current desktop to index %d\n", event->data.data32[0]));
-    Con *ws = ewmh_get_workspace_by_index(event->data.data32[0]);
+    WorkspaceCon *ws = ewmh_get_workspace_by_index(event->data.data32[0]);
     if (ws == nullptr) {
         ELOG("Could not determine workspace for this index, ignoring request.\n");
         return;

@@ -216,11 +216,11 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
     /* Any click in a workspace should focus that workspace. If the
      * workspace is on another output we need to do a workspace_show in
      * order for i3bar (and others) to notice the change in workspace. */
-    Con *ws = con->con_get_workspace();
+    WorkspaceCon *ws = con->con_get_workspace();
     Con *focused_workspace = global.focused->con_get_workspace();
 
     if (!ws) {
-        ws = con::first(con->con_get_output()->output_get_content()->focused);
+        ws = dynamic_cast<WorkspaceCon*>(con::first(con->con_get_output()->output_get_content()->focused));
         if (!ws) {
             allow_replay_pointer(event->time);
             return;
@@ -413,13 +413,13 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
          * click coordinates and focus the output's active workspace. */
         if (event->event == global.x->root && event->response_type == XCB_BUTTON_PRESS) {
             OutputCon *output;
-            Con *ws;
+            WorkspaceCon *ws;
             for (auto &c : global.croot->nodes) {
                 output = dynamic_cast<OutputCon*>(c);
                 if (!output->rect.rect_contains(event->event_x, event->event_y))
                     continue;
 
-                ws = con::first(output->output_get_content()->focused);
+                ws = dynamic_cast<WorkspaceCon*>(con::first(output->output_get_content()->focused));
                 if (ws != global.focused->con_get_workspace()) {
                     workspace_show(ws);
                     tree_render();

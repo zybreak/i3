@@ -286,7 +286,7 @@ bool floating_enable(Con *con, bool automatic) {
 
     /* 2: create a new container to render the decoration on, add
      * it as a floating window to the workspace */
-    Con *nc = new FloatingCon();
+    FloatingCon *nc = new FloatingCon();
     /* we need to set the parent afterwards instead of passing it as an
      * argument to new Con() because nc would be inserted into the tiling layer
      * otherwise. */
@@ -475,7 +475,7 @@ void toggle_floating_mode(Con *con, bool automatic) {
  * Raises the given container in the list of floating containers
  *
  */
-void floating_raise_con(Con *con) {
+void floating_raise_con(FloatingCon *con) {
     DLOG(fmt::sprintf("Raising floating con %p / %s\n", fmt::ptr(con), con->name));
     if (dynamic_cast<WorkspaceCon *>(con->parent)) {
         WorkspaceCon *workspace = dynamic_cast<WorkspaceCon *>(con->parent);
@@ -798,7 +798,7 @@ void floating_resize(Con *floating_con, uint32_t x, uint32_t y) {
  * reassigned to a different output (or when the output’s rect changes).
  *
  */
-void floating_fix_coordinates(Con *con, const Rect &old_rect, const Rect &new_rect) {
+void floating_fix_coordinates(FloatingCon *con, const Rect &old_rect, const Rect &new_rect) {
     DLOG(fmt::sprintf("Fixing coordinates of floating window %p (rect (%d, %d), %d x %d)\n",
                       fmt::ptr(con), con->rect.x, con->rect.y, con->rect.width, con->rect.height));
     DLOG(fmt::sprintf("old_rect = (%d, %d), %d x %d\n",

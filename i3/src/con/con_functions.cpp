@@ -300,7 +300,7 @@ void con_enable_fullscreen(Con *con, fullscreen_mode_t fullscreen_mode) {
         return;
     }
 
-    Con *con_ws = con->con_get_workspace();
+    WorkspaceCon *con_ws = con->con_get_workspace();
 
     /* Disable any fullscreen container that would conflict the new one. */
     Con *fullscreen = global.croot->con_get_fullscreen_con(CF_GLOBAL);
@@ -390,7 +390,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
 
     /* Save the current workspace. So we can call workspace_show() by the end
      * of this function. */
-    Con *current_ws = global.focused->con_get_workspace();
+    WorkspaceCon *current_ws = global.focused->con_get_workspace();
 
     OutputCon *source_output = con->con_get_output(),
         *dest_output = target_ws->con_get_output();
@@ -421,7 +421,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
     }
 
     if (con->type == CT_FLOATING_CON) {
-        Con *ws = target->con_get_workspace();
+        WorkspaceCon *ws = target->con_get_workspace();
         DLOG(fmt::sprintf("This is a floating window, using workspace %p / %s\n", fmt::ptr(ws), ws->name));
         target = ws;
     }
@@ -430,7 +430,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
         /* Take the relative coordinates of the current output, then add them
          * to the coordinate space of the correct output */
         if (fix_coordinates && con->type == CT_FLOATING_CON) {
-            floating_fix_coordinates(con, source_output->rect, dest_output->rect);
+            floating_fix_coordinates(dynamic_cast<FloatingCon*>(con), source_output->rect, dest_output->rect);
         } else {
             DLOG(fmt::sprintf("Not fixing coordinates, fix_coordinates flag = %d\n",  fix_coordinates));
         }

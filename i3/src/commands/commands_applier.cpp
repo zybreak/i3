@@ -942,7 +942,7 @@ void CommandsApplier::workspace_number(struct criteria_state *criteria_state, Co
         throw std::runtime_error(fmt::sprintf("Could not parse initial part of \"%s\" as a number.", which));
     }
 
-    Con *workspace = get_existing_workspace_by_num(parsed_num);
+    WorkspaceCon *workspace = get_existing_workspace_by_num(parsed_num);
     if (!workspace) {
         LOG(fmt::sprintf("There is no workspace with number %ld, creating a new one.\n",  parsed_num));
         ysuccess(cmd_output.json_gen,  true);
@@ -1300,7 +1300,7 @@ void CommandsApplier::focus_sibling(struct criteria_state *criteria_state, Comma
                  * workspace change happens properly. However, workspace_show
                  * descends focus so we also have to put focus on the workspace
                  * itself to maintain consistency. See #3997. */
-                workspace_show(next);
+                workspace_show(dynamic_cast<WorkspaceCon*>(next));
                 next->con_focus();
             } else {
                 next->con_activate();
@@ -1396,7 +1396,7 @@ void CommandsApplier::focus(struct criteria_state *criteria_state, CommandsResul
     CMD_FOCUS_WARN_CHILDREN(criteria_state);
 
     for (auto current: criteria_state->owindows) {
-        Con *ws = current->con_get_workspace();
+        WorkspaceCon *ws = current->con_get_workspace();
         /* If no workspace could be found, this was a dock window.
          * Just skip it, you cannot focus dock windows. */
         if (!ws) {
@@ -1712,7 +1712,7 @@ void CommandsApplier::focus_output(struct criteria_state *criteria_state, Comman
             throw std::runtime_error("BUG: No workspace found on output.");
         }
 
-        workspace_show(*ws);
+        workspace_show(dynamic_cast<WorkspaceCon*>(*ws));
     }
 
     cmd_output.needs_tree_render = success;

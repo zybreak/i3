@@ -121,7 +121,7 @@ static bool con_move_to_output_name(Con *con, const std::string &name, bool fix_
  * old container.
  *
  */
-void con_merge_into(Con *old, Con *new_con) {
+static void con_merge_into(Con *old, Con *new_con) {
     new_con->window = old->window;
     old->window = nullptr;
 

@@ -176,7 +176,7 @@ void PropertyHandlers::handle_enter_notify(xcb_enter_notify_event_t *event) {
     /* Get the currently focused workspace to check if the focus change also
      * involves changing workspaces. If so, we need to call workspace_show() to
      * correctly update state and send the IPC event. */
-    Con *ws = con->con_get_workspace();
+    WorkspaceCon *ws = con->con_get_workspace();
     if (ws != global.focused->con_get_workspace()) {
         workspace_show(ws);
     }
@@ -320,7 +320,7 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
 
     DLOG("Configure request!\n");
 
-    Con *workspace = con->con_get_workspace();
+    WorkspaceCon *workspace = con->con_get_workspace();
     Con *fullscreen = workspace ? workspace->con_get_fullscreen_covering_ws() : nullptr;
 
     if (fullscreen != con && con->con_is_floating() && con->con_is_leaf()) {
