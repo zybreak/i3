@@ -36,26 +36,58 @@ export {
         surface_t(xcb_connection_t *conn, xcb_drawable_t drawable,
                   xcb_visualtype_t *visual, int width, int height);
         ~surface_t();
+        
+        surface_t() = delete;
+        surface_t(const surface_t &) = delete;
+        void operator=(const surface_t &) = delete;
+        surface_t(surface_t &&other) {
+            auto tmp_owns_gc = this->owns_gc;
+            auto tmp_cr = this->cr;
+            auto tmp_gc = this->gc;
+            auto tmp_surface = this->surface;
+            
+            this->conn = other.conn;
+            this->id = other.id;
+            this->gc = other.gc;
+            this->owns_gc = other.owns_gc;
+            this->width = other.width;
+            this->height = other.height;
+            this->surface = other.surface;
+            this->cr = other.cr;
+            
+            other.surface = tmp_surface;
+            other.cr = tmp_cr;
+            other.owns_gc = tmp_owns_gc;
+            other.gc = tmp_gc;
+        }
+        void operator=(surface_t &&other) {
+            auto tmp_owns_gc = this->owns_gc;
+            auto tmp_cr = this->cr;
+            auto tmp_gc = this->gc;
+            auto tmp_surface = this->surface;
+            
+            this->conn = other.conn;
+            this->id = other.id;
+            this->gc = other.gc;
+            this->owns_gc = other.owns_gc;
+            this->width = other.width;
+            this->height = other.height;
+            this->surface = other.surface;
+            this->cr = other.cr;
+            
+            other.surface = tmp_surface;
+            other.cr = tmp_cr;
+            other.owns_gc = tmp_owns_gc;
+            other.gc = tmp_gc;
+        }
+
+        /**
+         * Resize the surface to the given size.
+         *
+         */
+        void draw_util_surface_set_size(int width, int height);
+
     };
-
-    /**
-     * Initialize the surface to represent the given drawable.
-     *
-     */
-    void draw_util_surface_init(xcb_connection_t *conn, xcb_drawable_t drawable,
-                                xcb_visualtype_t *visual, int width, int height);
-
-    /**
-     * Resize the surface to the given size.
-     *
-     */
-    void draw_util_surface_set_size(surface_t *surface, int width, int height);
-
-    /**
-     * Destroys the surface.
-     *
-     */
-    void draw_util_surface_free(xcb_connection_t *conn, surface_t *surface);
 
     /**
      * Parses the given color in hex format to an internal color representation.

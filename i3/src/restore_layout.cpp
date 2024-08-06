@@ -334,7 +334,7 @@ static void configure_notify(xcb_configure_notify_event_t *event) {
         state->rect.width = event->width;
         state->rect.height = event->height;
 
-        draw_util_surface_set_size(state->surface.get(), state->rect.width, state->rect.height);
+        state->surface->draw_util_surface_set_size(state->rect.width, state->rect.height);
 
         update_placeholder_contents(*global.x, state.get());
 

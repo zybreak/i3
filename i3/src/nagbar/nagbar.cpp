@@ -483,7 +483,7 @@ class Nagbar {
                 case XCB_CONFIGURE_NOTIFY: {
                     auto *configure_notify = (xcb_configure_notify_event_t *)event;
                     if (configure_notify->width > 0 && configure_notify->height > 0) {
-                        draw_util_surface_set_size(bar.get(), configure_notify->width, configure_notify->height);
+                        bar->draw_util_surface_set_size(configure_notify->width, configure_notify->height);
                     }
                     break;
                 }

@@ -140,65 +140,15 @@ surface_t::~surface_t() {
     }
     cairo_surface_destroy(this->surface);
     cairo_destroy(this->cr);
-
-    /* We need to explicitly set these to NULL to avoid assertion errors in
-     * cairo when calling this multiple times. This can happen, for example,
-     * when setting the border of a window to none and then closing it. */
-    this->surface = nullptr;
-    this->cr = nullptr;
-}
-
-/*
- * Initialize the surface to represent the given drawable.
- *
- */
-void draw_util_surface_init(xcb_connection_t *conn, surface_t *surface, xcb_drawable_t drawable,
-                            xcb_visualtype_t *visual, int width, int height) {
-    surface->id = drawable;
-    surface->width = width;
-    surface->height = height;
-
-    if (visual == nullptr) {
-        visual = global.x->visual_type;
-    }
-
-    surface->gc = get_gc(conn, get_visual_depth(visual->visual_id), drawable, &surface->owns_gc);
-    surface->surface = cairo_xcb_surface_create(conn, surface->id, visual, width, height);
-    surface->cr = cairo_create(surface->surface);
-}
-
-/*
- * Destroys the surface.
- *
- */
-void draw_util_surface_free(xcb_connection_t *conn, surface_t *surface) {
-    cairo_status_t status = CAIRO_STATUS_SUCCESS;
-    if (surface->cr) {
-        status = cairo_status(surface->cr);
-    }
-    if (status != CAIRO_STATUS_SUCCESS) {
-        LOG(fmt::sprintf("Found cairo context in an error status while freeing, error %d is %s",
-                         std::to_underlying(status), cairo_status_to_string(status)));
-    }
-
-    if (surface->owns_gc) {
-        xcb_free_gc(conn, surface->gc);
-    }
-    cairo_surface_destroy(surface->surface);
-    cairo_destroy(surface->cr);
-
-    /* We need to explicitly set these to NULL to avoid assertion errors in
-     * cairo when calling this multiple times. This can happen, for example,
-     * when setting the border of a window to none and then closing it. */
-    surface->surface = nullptr;
-    surface->cr = nullptr;
 }
 
 /*
  * Resize the surface to the given size.
  *
  */
-void draw_util_surface_set_size(surface_t *surface, int width, int height) {
+void surface_t::draw_util_surface_set_size(int width, int height) {
+    surface_t *surface = this;
+    
     surface->width = width;
     surface->height = height;
     cairo_xcb_surface_set_size(surface->surface, width, height);

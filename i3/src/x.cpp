@@ -1011,7 +1011,7 @@ void x_push_node(Con *con) {
             uint32_t value_list[]{0};
             xcb_change_gc(**global.x, con->frame_buffer->gc, XCB_GC_GRAPHICS_EXPOSURES, value_list);
 
-            draw_util_surface_set_size(con->frame.get(), width, height);
+            con->frame->draw_util_surface_set_size(width, height);
             con->pixmap_recreated = true;
 
             /* Don’t render the decoration for windows inside a stack which are
