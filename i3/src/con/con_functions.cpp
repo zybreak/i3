@@ -133,7 +133,7 @@ Con *con_by_window_id(xcb_window_t window) {
  */
 Con *con_by_frame_id(xcb_window_t frame) {
     for (const auto &con : global.all_cons) {
-        if (con->frame.id == frame) {
+        if (con->frame->id == frame) {
             return con;
         }
     }

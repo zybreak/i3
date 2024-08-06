@@ -42,7 +42,7 @@ static const button_t *get_button_at(const std::vector<button_t> &buttons, int16
 class Nagbar {
    private:
     xcb_connection_t *conn;
-    surface_t bar;
+    std::unique_ptr<surface_t> bar{};
     button_t btn_close;
     xcb_screen_t *root_screen;
     std::unique_ptr<i3Font> font{};
@@ -164,19 +164,19 @@ class Nagbar {
         button->x = position - button->width;
 
         /* draw border */
-        draw_util_rectangle(&bar, color_border,
+        draw_util_rectangle(bar.get(), color_border,
                             position - button->width,
                             MSG_PADDING - BTN_PADDING - BTN_BORDER,
                             button->width,
                             font->height + 2 * BTN_PADDING + 2 * BTN_BORDER);
         /* draw background */
-        draw_util_rectangle(&bar, color_button_background,
+        draw_util_rectangle(bar.get(), color_button_background,
                             position - button->width + BTN_BORDER,
                             MSG_PADDING - BTN_PADDING,
                             text_width + 2 * BTN_PADDING,
                             font->height + 2 * BTN_PADDING);
         /* draw label */
-        draw_util_text(conn, font.get(), button->label, &bar, color_text, color_button_background,
+        draw_util_text(conn, font.get(), button->label, bar.get(), color_text, color_button_background,
                        position - button->width + BTN_BORDER + BTN_PADDING,
                        MSG_PADDING,
                        200);
@@ -252,13 +252,13 @@ class Nagbar {
      */
     int handle_expose(xcb_expose_event_t *event) {
         /* draw background */
-        draw_util_clear_surface(&bar, color_background);
+        draw_util_clear_surface(bar.get(), color_background);
         /* draw message */
-        draw_util_text(conn, font.get(), prompt, &bar, color_text, color_background,
+        draw_util_text(conn, font.get(), prompt, bar.get(), color_text, color_background,
                        MSG_PADDING, MSG_PADDING,
-                       bar.width - 2 * MSG_PADDING);
+                       bar->width - 2 * MSG_PADDING);
 
-        int position = bar.width - (MSG_PADDING - BTN_BORDER - BTN_PADDING);
+        int position = bar->width - (MSG_PADDING - BTN_BORDER - BTN_PADDING);
 
         /* render close button */
         position -= button_draw(&btn_close, position);
@@ -271,7 +271,7 @@ class Nagbar {
         }
 
         /* border line at the bottom */
-        draw_util_rectangle(&bar, color_border_bottom, 0, bar.height - BAR_BORDER, bar.width, BAR_BORDER);
+        draw_util_rectangle(bar.get(), color_border_bottom, 0, bar->height - BAR_BORDER, bar->width, BAR_BORDER);
 
         xcb_flush(conn);
         return 1;
@@ -331,7 +331,6 @@ class Nagbar {
     }
 
     ~Nagbar() {
-        draw_util_surface_free(conn, &bar);
         xcb_disconnect(conn);
     }
 
@@ -442,7 +441,7 @@ class Nagbar {
                             &strut_partial);
 
         /* Initialize the drawable bar */
-        draw_util_surface_init(conn, &bar, win, get_visualtype(root_screen), win_pos.width, win_pos.height);
+        bar = std::make_unique<surface_t>(conn, win, get_visualtype(root_screen), win_pos.width, win_pos.height);
 
         /* Startup complete. */
         //if (sncontext) {
@@ -484,7 +483,7 @@ class Nagbar {
                 case XCB_CONFIGURE_NOTIFY: {
                     auto *configure_notify = (xcb_configure_notify_event_t *)event;
                     if (configure_notify->width > 0 && configure_notify->height > 0) {
-                        draw_util_surface_set_size(&bar, configure_notify->width, configure_notify->height);
+                        draw_util_surface_set_size(bar.get(), configure_notify->width, configure_notify->height);
                     }
                     break;
                 }

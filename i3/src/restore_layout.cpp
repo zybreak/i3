@@ -40,7 +40,7 @@ import utils;
 import log;
 import rect;
 
-typedef struct placeholder_state {
+struct placeholder_state {
     /** The X11 placeholder window. */
     xcb_window_t window{};
     /** The container to which this placeholder window belongs. */
@@ -50,8 +50,8 @@ typedef struct placeholder_state {
     Rect rect;
 
     /** The drawable surface */
-    surface_t surface{};
-} placeholder_state;
+    std::unique_ptr<surface_t> surface{};
+};
 
 static std::deque<std::unique_ptr<placeholder_state>> states{};
 
@@ -146,7 +146,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
     const color_t foreground = global.configManager->config->client.placeholder.text;
     const color_t background = global.configManager->config->client.placeholder.background;
 
-    draw_util_clear_surface(&(state->surface), background);
+    draw_util_clear_surface(state->surface.get(), background);
 
     // TODO: make i3font functions per-connection, at least these two for now…?
     xcb_aux_sync(restore_conn);
@@ -177,7 +177,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
         DLOG(fmt::sprintf("con %p (placeholder 0x%08x) line %d: %s\n", fmt::ptr(state->con), state->window, n, serialized));
 
         std::string str{serialized};
-        draw_util_text(*conn, global.configManager->config->font.get(), str, &(state->surface), foreground, background,
+        draw_util_text(*conn, global.configManager->config->font.get(), str, state->surface.get(), foreground, background,
                        logical_px(global.x->root_screen, 2),
                        (n * (global.configManager->config->font->height + logical_px(global.x->root_screen, 2))) + logical_px(global.x->root_screen, 2),
                        state->rect.width - 2 * logical_px(global.x->root_screen, 2));
@@ -190,7 +190,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
     int text_width = global.configManager->config->font->predict_text_width(line);
     int x = (state->rect.width / 2) - (text_width / 2);
     int y = (state->rect.height / 2) - (global.configManager->config->font->height / 2);
-    draw_util_text(*conn, global.configManager->config->font.get(), line, &(state->surface), foreground, background, x, y, text_width);
+    draw_util_text(*conn, global.configManager->config->font.get(), line, state->surface.get(), foreground, background, x, y, text_width);
     xcb_aux_sync(restore_conn);
 }
 
@@ -234,7 +234,7 @@ static void open_placeholder_window(x_connection *conn, Con *con) {
         state->con = con;
         state->rect = con->rect;
 
-        draw_util_surface_init(restore_conn, &(state->surface), placeholder, get_visualtype(global.x->root_screen), state->rect.width, state->rect.height);
+        state->surface = std::make_unique<surface_t>(restore_conn, placeholder, get_visualtype(global.x->root_screen), state->rect.width, state->rect.height);
         update_placeholder_contents(conn, state.get());
         states.push_back(std::move(state));
 
@@ -290,7 +290,7 @@ bool restore_kill_placeholder(xcb_window_t placeholder) {
         }
 
         xcb_destroy_window(restore_conn, state->window);
-        draw_util_surface_free(restore_conn, &(state->surface));
+        state->surface.reset();
         state_ptr = states.erase(state_ptr);
         DLOG(fmt::sprintf("placeholder window 0x%08x destroyed.\n",  placeholder));
         return true;
@@ -334,7 +334,7 @@ static void configure_notify(xcb_configure_notify_event_t *event) {
         state->rect.width = event->width;
         state->rect.height = event->height;
 
-        draw_util_surface_set_size(&(state->surface), state->rect.width, state->rect.height);
+        draw_util_surface_set_size(state->surface.get(), state->rect.width, state->rect.height);
 
         update_placeholder_contents(*global.x, state.get());
 

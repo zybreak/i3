@@ -151,7 +151,7 @@ export {
          * every container from con_new().
          *
          */
-        virtual void con_init(Con *con);
+        virtual void con_init(Con *con, std::optional<xcb_drawable_t> id = std::nullopt);
     };
 
     /*

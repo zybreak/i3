@@ -31,10 +31,9 @@ class dialog_t {
     xcb_window_t id{};
     xcb_colormap_t colormap{};
     Rect dims{};
-    surface_t surface{};
+    std::unique_ptr<surface_t> surface{};
     ~dialog_t() {
         xcb_free_colormap(**global.x, colormap);
-        draw_util_surface_free(**global.x, &surface);
         xcb_destroy_window(**global.x, id);
     }
 };
@@ -206,7 +205,7 @@ static void sighandler_create_dialogs() {
                                    XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER,
                                    true, mask, values);
 
-        draw_util_surface_init(**global.x, &(dialog->surface), dialog->id, get_visualtype_by_id(visual),
+        dialog->surface = std::make_unique<surface_t>(**global.x, dialog->id, get_visualtype_by_id(visual),
                                dialog->dims.width, dialog->dims.height);
 
         xcb_grab_keyboard(**global.x, false, dialog->id, XCB_CURRENT_TIME, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
@@ -242,18 +241,18 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     const color_t red = draw_util_hex_to_color(**global.x, global.x->root_screen, "#FF0000");
 
     /* Start with a clean slate and draw a red border. */
-    draw_util_clear_surface(&(dialog->surface), red);
-    draw_util_rectangle(&(dialog->surface), black, border_width, border_width,
+    draw_util_clear_surface(dialog->surface.get(), red);
+    draw_util_rectangle(dialog->surface.get(), black, border_width, border_width,
                         dialog->dims.width - 2 * border_width, dialog->dims.height - 2 * border_width);
 
     int y = border_width + margin;
     const int x = border_width + margin;
     const int max_width = dialog->dims.width - 2 * x;
 
-    draw_util_text(**global.x, global.configManager->config->font.get(), message_intro, &(dialog->surface), white, black, x, y, max_width);
+    draw_util_text(**global.x, global.configManager->config->font.get(), message_intro, dialog->surface.get(), white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 
-    draw_util_text(**global.x, global.configManager->config->font.get(), message_intro2, &(dialog->surface), white, black, x, y, max_width);
+    draw_util_text(**global.x, global.configManager->config->font.get(), message_intro2, dialog->surface.get(), white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 
     char *bt_color = (char*)"#FFFFFF";
@@ -262,13 +261,13 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     } else if (backtrace_done > 0) {
         bt_color = (char*)"#00AA00";
     }
-    draw_util_text(**global.x, global.configManager->config->font.get(), message_option_backtrace, &(dialog->surface), draw_util_hex_to_color(**global.x, global.x->root_screen, bt_color), black, x, y, max_width);
+    draw_util_text(**global.x, global.configManager->config->font.get(), message_option_backtrace, dialog->surface.get(), draw_util_hex_to_color(**global.x, global.x->root_screen, bt_color), black, x, y, max_width);
     y += global.configManager->config->font->height;
 
-    draw_util_text(**global.x, global.configManager->config->font.get(), message_option_restart, &(dialog->surface), white, black, x, y, max_width);
+    draw_util_text(**global.x, global.configManager->config->font.get(), message_option_restart, dialog->surface.get(), white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 
-    draw_util_text(**global.x, global.configManager->config->font.get(), message_option_forget, &(dialog->surface), white, black, x, y, max_width);
+    draw_util_text(**global.x, global.configManager->config->font.get(), message_option_forget, dialog->surface.get(), white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 }
 

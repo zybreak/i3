@@ -100,8 +100,8 @@ export {
         uint8_t ignore_unmap{};
 
         /* The surface used for the frame window. */
-        surface_t frame{};
-        surface_t frame_buffer{};
+        std::unique_ptr<surface_t> frame{};
+        std::unique_ptr<surface_t> frame_buffer{};
         bool pixmap_recreated{};
 
         con_type_t type;

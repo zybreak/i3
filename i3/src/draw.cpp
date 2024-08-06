@@ -29,7 +29,7 @@ static inline void CAIRO_SURFACE_FLUSH(cairo_surface_t *surface) {
 }
 
 static bool surface_initialized(surface_t *surface) {
-    if (surface->id == XCB_NONE) {
+    if (surface == nullptr || surface->id == XCB_NONE) {
         ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", fmt::ptr(surface)));
         return false;
     }
@@ -106,6 +106,46 @@ uint16_t get_visual_depth(xcb_visualid_t visual_id) {
         }
     }
     return 0;
+}
+
+surface_t::surface_t(xcb_connection_t *conn, xcb_drawable_t drawable, xcb_visualtype_t *_visual, int width, int height) : width(width), height(height), id(drawable), conn(conn) {
+    xcb_visualtype_t *visual;
+    if (_visual == nullptr) {
+        visual = global.x->visual_type;
+    } else {
+        visual = _visual;
+    }
+    
+    gc = get_gc(conn, get_visual_depth(visual->visual_id), drawable, &owns_gc);
+    surface = cairo_xcb_surface_create(conn, id, visual, width, height);
+    cr = cairo_create(surface);
+}
+
+/*
+ * Destroys the surface.
+ *
+ */
+surface_t::~surface_t() {
+    cairo_status_t status = CAIRO_STATUS_SUCCESS;
+    if (this->cr) {
+        status = cairo_status(this->cr);
+    }
+    if (status != CAIRO_STATUS_SUCCESS) {
+        LOG(fmt::sprintf("Found cairo context in an error status while freeing, error %d is %s",
+                std::to_underlying(status), cairo_status_to_string(status)));
+    }
+
+    if (this->owns_gc) {
+        xcb_free_gc(conn, this->gc);
+    }
+    cairo_surface_destroy(this->surface);
+    cairo_destroy(this->cr);
+
+    /* We need to explicitly set these to NULL to avoid assertion errors in
+     * cairo when calling this multiple times. This can happen, for example,
+     * when setting the border of a window to none and then closing it. */
+    this->surface = nullptr;
+    this->cr = nullptr;
 }
 
 /*

@@ -31,7 +31,7 @@ import rect;
 static xcb_window_t _match_depth(i3Window *win, Con *con) {
     xcb_window_t old_frame = XCB_NONE;
     if (con->depth != win->depth) {
-        old_frame = con->frame.id;
+        old_frame = con->frame->id;
         con->depth = win->depth;
         x_con_reframe(con);
     }
@@ -565,7 +565,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     values[0] = XCB_NONE;
     xcb_change_window_attributes(**global.x, window, XCB_CW_EVENT_MASK, values);
 
-    xcb_void_cookie_t rcookie = xcb_reparent_window_checked(**global.x, window, nc->frame.id, 0, 0);
+    xcb_void_cookie_t rcookie = xcb_reparent_window_checked(**global.x, window, nc->frame->id, 0, 0);
     if (xcb_request_check(**global.x, rcookie) != nullptr) {
         LOG("Could not reparent the window, aborting\n");
         return;

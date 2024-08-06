@@ -12,7 +12,11 @@ export {
 
     /* A wrapper grouping an XCB drawable and both a graphics context
      * and the corresponding cairo objects representing it. */
-    struct surface_t {
+    class surface_t {
+    private:
+        /* The connection to the X server. */
+        xcb_connection_t *conn;
+    public:
         /* The drawable which is being represented. */
         xcb_drawable_t id{};
 
@@ -29,13 +33,16 @@ export {
         /* The cairo object representing the drawable. In general,
          * this is what one should use for any drawing operation. */
         cairo_t *cr{};
+        surface_t(xcb_connection_t *conn, xcb_drawable_t drawable,
+                  xcb_visualtype_t *visual, int width, int height);
+        ~surface_t();
     };
 
     /**
      * Initialize the surface to represent the given drawable.
      *
      */
-    void draw_util_surface_init(xcb_connection_t *conn, surface_t *surface, xcb_drawable_t drawable,
+    void draw_util_surface_init(xcb_connection_t *conn, xcb_drawable_t drawable,
                                 xcb_visualtype_t *visual, int width, int height);
 
     /**
