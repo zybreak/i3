@@ -176,7 +176,7 @@ class Nagbar {
                             text_width + 2 * BTN_PADDING,
                             font->height + 2 * BTN_PADDING);
         /* draw label */
-        bar->draw_util_text(font.get(), button->label, color_text, color_button_background,
+        bar->draw_util_text(*font, button->label, color_text, color_button_background,
                        position - button->width + BTN_BORDER + BTN_PADDING,
                        MSG_PADDING,
                        200);
@@ -254,7 +254,7 @@ class Nagbar {
         /* draw background */
         bar->draw_util_clear_surface(color_background);
         /* draw message */
-        bar->draw_util_text(font.get(), prompt, color_text, color_background,
+        bar->draw_util_text(*font, prompt, color_text, color_background,
                        MSG_PADDING, MSG_PADDING,
                        bar->width - 2 * MSG_PADDING);
 

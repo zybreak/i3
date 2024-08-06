@@ -249,10 +249,10 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     const int x = border_width + margin;
     const int max_width = dialog->dims.width - 2 * x;
 
-    dialog->surface->draw_util_text(global.configManager->config->font.get(), message_intro, white, black, x, y, max_width);
+    dialog->surface->draw_util_text(*global.configManager->config->font, message_intro, white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 
-    dialog->surface->draw_util_text(global.configManager->config->font.get(), message_intro2, white, black, x, y, max_width);
+    dialog->surface->draw_util_text(*global.configManager->config->font, message_intro2, white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 
     char *bt_color = (char*)"#FFFFFF";
@@ -261,13 +261,13 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     } else if (backtrace_done > 0) {
         bt_color = (char*)"#00AA00";
     }
-    dialog->surface->draw_util_text(global.configManager->config->font.get(), message_option_backtrace, draw_util_hex_to_color(**global.x, global.x->root_screen, bt_color), black, x, y, max_width);
+    dialog->surface->draw_util_text(*global.configManager->config->font, message_option_backtrace, draw_util_hex_to_color(**global.x, global.x->root_screen, bt_color), black, x, y, max_width);
     y += global.configManager->config->font->height;
 
-    dialog->surface->draw_util_text(global.configManager->config->font.get(), message_option_restart, white, black, x, y, max_width);
+    dialog->surface->draw_util_text(*global.configManager->config->font, message_option_restart, white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 
-    dialog->surface->draw_util_text(global.configManager->config->font.get(), message_option_forget, white, black, x, y, max_width);
+    dialog->surface->draw_util_text(*global.configManager->config->font, message_option_forget, white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 }
 

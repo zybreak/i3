@@ -673,7 +673,7 @@ void x_draw_decoration(Con *con) {
             return;
     }
 
-    dest_surface->draw_util_text(global.configManager->config->font.get(), title,
+    dest_surface->draw_util_text(*global.configManager->config->font, title,
                    con->deco_render_params.value()->color->text, con->deco_render_params.value()->color->background,
                    con->deco_rect.x + title_offset_x,
                    con->deco_rect.y + text_offset_y,

@@ -207,12 +207,12 @@ static void draw_util_set_source_color(surface_t *surface, color_t color) {
  * drawing are used. This will be the case when using XCB to draw text.
  *
  */
-surface_t* surface_t::draw_util_text(i3Font *font, std::string &text, color_t fg_color, color_t bg_color, int x, int y, int max_width) {
+surface_t* surface_t::draw_util_text(i3Font &font, std::string &text, color_t fg_color, color_t bg_color, int x, int y, int max_width) {
     /* Flush any changes before we draw the text as this might use XCB directly. */
     CAIRO_SURFACE_FLUSH(this->surface);
 
-    font->set_font_colors(this->gc, fg_color, bg_color);
-    font->draw_text(text, this->id, this->gc, this->surface, x, y, max_width);
+    font.set_font_colors(this->gc, fg_color, bg_color);
+    font.draw_text(text, this->id, this->gc, this->surface, x, y, max_width);
 
     /* Notify cairo that we (possibly) used another way to draw on the surface. */
     cairo_surface_mark_dirty(this->surface);

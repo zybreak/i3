@@ -93,7 +93,7 @@ export {
          * drawing are used. This will be the case when using XCB to draw text.
          *
          */
-        surface_t* draw_util_text(i3Font *font, std::string &text, color_t fg_color, color_t bg_color, int x, int y, int max_width);
+        surface_t* draw_util_text(i3Font &font, std::string &text, color_t fg_color, color_t bg_color, int x, int y, int max_width);
 
         /**
          * Clears a surface with the given color.
