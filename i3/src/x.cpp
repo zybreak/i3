@@ -474,7 +474,7 @@ void x_draw_decoration(Con *con) {
     }
 
     Rect *r = &(con->rect);
-    Rect *w = &(con->window_rect);
+    Rect *w = &(con->get_window_rect());
     
     /* 1: build deco_params and compare with cache */
     auto p = std::make_unique<deco_render_params>();
@@ -489,7 +489,7 @@ void x_draw_decoration(Con *con) {
     p->parent_layout = con->parent->layout;
 
     if (con->deco_render_params &&
-        (con->window == nullptr || !con->window->name_x_changed) &&
+        (con->get_window() == nullptr || !con->get_window()->name_x_changed) &&
         !parent->pixmap_recreated &&
         !con->pixmap_recreated &&
         *p == *con->deco_render_params.value().get()) {
@@ -503,15 +503,15 @@ void x_draw_decoration(Con *con) {
 
     con->deco_render_params = std::move(p);
 
-    if (con->window != nullptr && con->window->name_x_changed) {
-        con->window->name_x_changed = false;
+    if (con->get_window() != nullptr && con->get_window()->name_x_changed) {
+        con->get_window()->name_x_changed = false;
     }
 
     parent->pixmap_recreated = false;
     con->pixmap_recreated = false;
 
     /* 2: draw the client.background, but only for the parts around the window_rect */
-    if (con->window != nullptr && con->frame_buffer) {
+    if (con->get_window() != nullptr && con->frame_buffer) {
         /* Clear visible windows before beginning to draw */
         con->frame_buffer->draw_util_clear_surface((color_t){.red = 0.0, .green = 0.0, .blue = 0.0});
 
@@ -606,7 +606,7 @@ void x_draw_decoration(Con *con) {
     /* 6: draw the icon and title */
     int text_offset_y = (con->deco_rect.height - global.configManager->config->font->height) / 2;
 
-    i3Window *win = con->window;
+    i3Window *win = con->get_window();
 
     const int deco_width = static_cast<int>(con->deco_rect.width);
     const int title_padding = logical_px(global.x->root_screen, 2);
@@ -631,9 +631,9 @@ void x_draw_decoration(Con *con) {
     /* icon_padding is applied horizontally only, the icon will always use all
      * available vertical space. */
     int icon_size = std::max(0, static_cast<int>(con->deco_rect.height - logical_px(global.x->root_screen, 2)));
-    int icon_padding = logical_px(global.x->root_screen, std::max(1, con->window_icon_padding));
+    int icon_padding = logical_px(global.x->root_screen, std::max(1, con->get_window_icon_padding()));
     int total_icon_space = icon_size + 2 * icon_padding;
-    const bool has_icon = (con->window_icon_padding > -1) && win && win->icon && (total_icon_space < deco_width);
+    const bool has_icon = (con->get_window_icon_padding() > -1) && win && win->icon && (total_icon_space < deco_width);
     if (!has_icon) {
         icon_size = icon_padding = total_icon_space = 0;
     }
@@ -728,7 +728,7 @@ void x_deco_recurse(Con *con) {
  *
  */
 static void set_hidden_state(Con *con) {
-    if (con->window == nullptr) {
+    if (con->get_window() == nullptr) {
         return;
     }
 
@@ -740,10 +740,10 @@ static void set_hidden_state(Con *con) {
 
     if (should_be_hidden) {
         DLOG(fmt::sprintf("setting _NET_WM_STATE_HIDDEN for con = %p\n", fmt::ptr(con)));
-        xcb_add_property_atom(**global.x, con->window->id, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_HIDDEN]);
+        xcb_add_property_atom(**global.x, con->get_window()->id, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_HIDDEN]);
     } else {
         DLOG(fmt::sprintf("removing _NET_WM_STATE_HIDDEN for con = %p\n", fmt::ptr(con)));
-        xcb_remove_property_atom(**global.x, con->window->id, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_HIDDEN]);
+        xcb_remove_property_atom(**global.x, con->get_window()->id, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_HIDDEN]);
     }
 
     state->is_hidden = should_be_hidden;
@@ -753,8 +753,7 @@ static void set_hidden_state(Con *con) {
  * Set the container frame shape as the union of the window shape and the
  * shape of the frame borders.
  */
-static void x_shape_frame(Con *con, xcb_shape_sk_t shape_kind) {
-    assert(con->window);
+static void x_shape_frame(ConCon *con, xcb_shape_sk_t shape_kind) {
 
     xcb_shape_combine(**global.x, XCB_SHAPE_SO_SET, shape_kind, shape_kind,
                       con->frame->id,
@@ -773,17 +772,15 @@ static void x_shape_frame(Con *con, xcb_shape_sk_t shape_kind) {
 /*
  * Reset the container frame shape.
  */
-static void x_unshape_frame(Con *con, xcb_shape_sk_t shape_kind) {
-    assert(con->window);
-
+static void x_unshape_frame(ConCon *con, xcb_shape_sk_t shape_kind) {
     xcb_shape_mask(**global.x, XCB_SHAPE_SO_SET, shape_kind, con->frame->id, 0, 0, XCB_PIXMAP_NONE);
 }
 
 /*
  * Shape or unshape container frame based on the con state.
  */
-static void set_shape_state(Con *con, bool need_reshape) {
-    if (!global.shape->shape_supported || con->window == nullptr) {
+static void set_shape_state(ConCon *con, bool need_reshape) {
+    if (!global.shape->shape_supported) {
         return;
     }
 
@@ -882,7 +879,7 @@ void x_push_node(Con *con) {
         state->name.clear();
     }
 
-    if (con->window == nullptr && (con->layout == L_STACKED || con->layout == L_TABBED)) {
+    if (con->get_window() == nullptr && (con->layout == L_STACKED || con->layout == L_TABBED)) {
         /* Calculate the height of all window decorations which will be drawn on to
          * this frame. */
         uint32_t max_y = 0, max_height = 0;
@@ -897,7 +894,7 @@ void x_push_node(Con *con) {
         if (rect.height == 0) {
             con->mapped = false;
         }
-    } else if (con->window == nullptr) {
+    } else if (con->get_window() == nullptr) {
         /* not a stacked or tabbed split container */
         con->mapped = false;
     }
@@ -906,7 +903,7 @@ void x_push_node(Con *con) {
 
     /* reparent the child window (when the window was moved due to a sticky
      * container) */
-    if (state->need_reparent && con->window != nullptr) {
+    if (state->need_reparent && con->get_window() != nullptr) {
         DLOG("Reparenting child window\n");
 
         /* Temporarily set the event masks to XCB_NONE so that we won’t get
@@ -914,21 +911,21 @@ void x_push_node(Con *con) {
          * These events are generated automatically when reparenting. */
         uint32_t values[] = {XCB_NONE};
         xcb_change_window_attributes(**global.x, state->old_frame, XCB_CW_EVENT_MASK, values);
-        xcb_change_window_attributes(**global.x, con->window->id, XCB_CW_EVENT_MASK, values);
+        xcb_change_window_attributes(**global.x, con->get_window()->id, XCB_CW_EVENT_MASK, values);
 
-        xcb_reparent_window(**global.x, con->window->id, con->frame->id, 0, 0);
+        xcb_reparent_window(**global.x, con->get_window()->id, con->frame->id, 0, 0);
 
         values[0] = FRAME_EVENT_MASK;
         xcb_change_window_attributes(**global.x, state->old_frame, XCB_CW_EVENT_MASK, values);
         values[0] = CHILD_EVENT_MASK;
-        xcb_change_window_attributes(**global.x, con->window->id, XCB_CW_EVENT_MASK, values);
+        xcb_change_window_attributes(**global.x, con->get_window()->id, XCB_CW_EVENT_MASK, values);
 
         state->old_frame = XCB_NONE;
         state->need_reparent = false;
 
         con->ignore_unmap++;
         DLOG(fmt::sprintf("ignore_unmap for reparenting of con %p (win 0x%08x) is now %d\n",
-             fmt::ptr(con), con->window->id, con->ignore_unmap));
+             fmt::ptr(con), con->get_window()->id, con->ignore_unmap));
 
         need_reshape = true;
     }
@@ -936,8 +933,8 @@ void x_push_node(Con *con) {
     /* We need to update shape when window frame dimensions is updated. */
     need_reshape |= state->rect.width != rect.width ||
                     state->rect.height != rect.height ||
-                    state->window_rect.width != con->window_rect.width ||
-                    state->window_rect.height != con->window_rect.height;
+                    state->window_rect.width != con->get_window_rect().width ||
+                    state->window_rect.height != con->get_window_rect().height;
 
     /* We need to set shape when container becomes floating. */
     need_reshape |= con->con_is_floating() && !state->was_floating;
@@ -985,8 +982,8 @@ void x_push_node(Con *con) {
             }
 
             uint16_t win_depth = global.x->root_depth;
-            if (con->window) {
-                win_depth = con->window->depth;
+            if (con->get_window()) {
+                win_depth = con->get_window()->depth;
             }
 
             /* Ensure we have valid dimensions for our surface. */
@@ -1044,40 +1041,42 @@ void x_push_node(Con *con) {
     }
 
     /* dito, but for child windows */
-    if (con->window != nullptr &&
-        state->window_rect != con->window_rect) {
+    if (con->get_window() != nullptr &&
+        state->window_rect != con->get_window_rect()) {
         DLOG(fmt::sprintf("setting window rect (%d, %d, %d, %d)\n",
-             con->window_rect.x, con->window_rect.y, con->window_rect.width, con->window_rect.height));
-        xcb_set_window_rect(**global.x, con->window->id, con->window_rect);
-        state->window_rect = con->window_rect;
+             con->get_window_rect().x, con->get_window_rect().y, con->get_window_rect().width, con->get_window_rect().height));
+        xcb_set_window_rect(**global.x, con->get_window()->id, con->get_window_rect());
+        state->window_rect = con->get_window_rect();
         fake_notify = true;
     }
 
-    set_shape_state(con, need_reshape);
+    if (auto concon = dynamic_cast<ConCon*>(con); concon != nullptr) {
+        set_shape_state(concon, need_reshape);
+    }
 
     /* Map if map state changed, also ensure that the child window
      * is changed if we are mapped and there is a new, unmapped child window.
      * Unmaps are handled in x_push_node_unmaps(). */
-    if ((state->mapped != con->mapped || (con->window != nullptr && !state->child_mapped)) &&
+    if ((state->mapped != con->mapped || (con->get_window() != nullptr && !state->child_mapped)) &&
         con->mapped) {
         xcb_void_cookie_t cookie;
 
-        if (con->window != nullptr) {
+        if (con->get_window() != nullptr) {
             /* Set WM_STATE_NORMAL because GTK applications don’t want to
              * drag & drop if we don’t. Also, xprop(1) needs it. */
             long data[] = {XCB_ICCCM_WM_STATE_NORMAL, XCB_NONE};
-            xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->window->id,
+            xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->get_window()->id,
                                 i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], 32, 2, data);
         }
 
         uint32_t values[1];
-        if (!state->child_mapped && con->window != nullptr) {
-            cookie = xcb_map_window(**global.x, con->window->id);
+        if (!state->child_mapped && con->get_window() != nullptr) {
+            cookie = xcb_map_window(**global.x, con->get_window()->id);
 
             /* We are interested in EnterNotifys as soon as the window is
              * mapped */
             values[0] = CHILD_EVENT_MASK;
-            xcb_change_window_attributes(**global.x, con->window->id, XCB_CW_EVENT_MASK, values);
+            xcb_change_window_attributes(**global.x, con->get_window()->id, XCB_CW_EVENT_MASK, values);
             DLOG(fmt::sprintf("mapping child window (serial %d)\n",  cookie.sequence));
             state->child_mapped = true;
         }
@@ -1132,10 +1131,10 @@ static void x_push_node_unmaps(Con *con) {
      * container was empty before, but now got a child) */
     if (state->unmap_now) {
         xcb_void_cookie_t cookie;
-        if (con->window != nullptr) {
+        if (con->get_window() != nullptr) {
             /* Set WM_STATE_WITHDRAWN, it seems like Java apps need it */
             long data[] = {XCB_ICCCM_WM_STATE_WITHDRAWN, XCB_NONE};
-            xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->window->id,
+            xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->get_window()->id,
                                 i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], 32, 2, data);
         }
 
@@ -1144,7 +1143,7 @@ static void x_push_node_unmaps(Con *con) {
         /* we need to increase ignore_unmap for this container (if it
          * contains a window) and for every window "under" this one which
          * contains a window */
-        if (con->window != nullptr) {
+        if (con->get_window() != nullptr) {
             con->ignore_unmap++;
             DLOG(fmt::sprintf("ignore_unmap for con %p (frame 0x%08x) now %d\n", fmt::ptr(con), con->frame->id, con->ignore_unmap));
         }
@@ -1225,7 +1224,7 @@ void x_push_changes(Con *con) {
     for (auto it = global.x->state_head.rbegin(); it != global.x->state_head.rend(); ++it) {
         auto &state = *it;
         if ((state->con) && state->con->con_has_managed_window()) {
-            client_list_windows.push_back(state->con->window->id);
+            client_list_windows.push_back(state->con->get_window()->id);
         }
 
         auto prev = std::next(it);
@@ -1260,7 +1259,7 @@ void x_push_changes(Con *con) {
         /* reorder by initial mapping */
         for (auto &s : global.x->initial_mapping_head) {
             if (s->con && s->con->con_has_managed_window()) {
-                *walk = s->con->window->id;
+                *walk = s->con->get_window()->id;
                 walk++;
             }
         }
@@ -1304,8 +1303,8 @@ void x_push_changes(Con *con) {
     x_deco_recurse(con);
 
     xcb_window_t to_focus = global.focused->frame->id;
-    if (global.focused->window != nullptr) {
-        to_focus = global.focused->window->id;
+    if (global.focused->get_window() != nullptr) {
+        to_focus = global.focused->get_window()->id;
     }
 
     if (global.x->focused_id != to_focus) {
@@ -1314,14 +1313,14 @@ void x_push_changes(Con *con) {
             /* Invalidate focused_id to correctly focus new windows with the same ID */
             global.x->focused_id = XCB_NONE;
         } else {
-            if (global.focused->window != nullptr &&
-                global.focused->window->needs_take_focus &&
-                global.focused->window->doesnt_accept_focus) {
+            if (global.focused->get_window() != nullptr &&
+                global.focused->get_window()->needs_take_focus &&
+                global.focused->get_window()->doesnt_accept_focus) {
                 DLOG(fmt::sprintf("Updating focus by sending WM_TAKE_FOCUS to window 0x%08x (focused: %p / %s)\n",
                      to_focus, fmt::ptr(global.focused), global.focused->name));
                 send_take_focus(to_focus, global.last_timestamp);
 
-                change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->window->id : XCB_WINDOW_NONE), global.x->last_focused);
+                change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->get_window()->id : XCB_WINDOW_NONE), global.x->last_focused);
 
                 if (to_focus != global.x->last_focused && is_con_attached(global.focused)) {
                     ipc_send_window_event("focus", global.focused);
@@ -1331,19 +1330,19 @@ void x_push_changes(Con *con) {
                 /* We remove XCB_EVENT_MASK_FOCUS_CHANGE from the event mask to get
                  * no focus change events for our own focus changes. We only want
                  * these generated by the clients. */
-                if (global.focused->window != nullptr) {
+                if (global.focused->get_window() != nullptr) {
                     values[0] = CHILD_EVENT_MASK & ~(XCB_EVENT_MASK_FOCUS_CHANGE);
-                    xcb_change_window_attributes(**global.x, global.focused->window->id, XCB_CW_EVENT_MASK, values);
+                    xcb_change_window_attributes(**global.x, global.focused->get_window()->id, XCB_CW_EVENT_MASK, values);
                 }
                 xcb_set_input_focus(**global.x, XCB_INPUT_FOCUS_POINTER_ROOT, to_focus, global.last_timestamp);
-                if (global.focused->window != nullptr) {
+                if (global.focused->get_window() != nullptr) {
                     values[0] = CHILD_EVENT_MASK;
-                    xcb_change_window_attributes(**global.x, global.focused->window->id, XCB_CW_EVENT_MASK, values);
+                    xcb_change_window_attributes(**global.x, global.focused->get_window()->id, XCB_CW_EVENT_MASK, values);
                 }
 
-                change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->window->id : XCB_WINDOW_NONE), global.x->last_focused);
+                change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->get_window()->id : XCB_WINDOW_NONE), global.x->last_focused);
 
-                if (to_focus != XCB_NONE && to_focus != global.x->last_focused && global.focused->window != nullptr && is_con_attached(global.focused)) {
+                if (to_focus != XCB_NONE && to_focus != global.x->last_focused && global.focused->get_window() != nullptr && is_con_attached(global.focused)) {
                     ipc_send_window_event("focus", global.focused);
                 }
             }
@@ -1467,7 +1466,7 @@ void x_mask_event_mask(uint32_t mask) {
 /*
  * Enables or disables nonrectangular shape of the container frame.
  */
-void x_set_shape(Con *con, xcb_shape_sk_t kind, bool enable) {
+void x_set_shape(ConCon *con, xcb_shape_sk_t kind, bool enable) {
     if (state_for_frame(con->frame->id) == nullptr) {
         ELOG(fmt::sprintf("window state for con %p not found\n", fmt::ptr(con)));
         return;

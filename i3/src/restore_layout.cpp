@@ -196,7 +196,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
 
 static void open_placeholder_window(x_connection *conn, Con *con) {
     if (con->con_is_leaf() &&
-        (con->window == nullptr || con->window->id == XCB_NONE) &&
+        (con->get_window() == nullptr || con->get_window()->id == XCB_NONE) &&
         !con->swallow.empty() &&
         con->type == CT_CON) {
 

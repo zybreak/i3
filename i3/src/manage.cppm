@@ -15,6 +15,7 @@ export module i3:manage;
 import :internal;
 
 class Con;
+class ConCon;
 
 export {
     /**
@@ -47,5 +48,5 @@ export {
      * Returns con for the window regardless if it updated.
      *
      */
-    Con *remanage_window(Con * con);
+    ConCon *remanage_window(ConCon * con);
 }

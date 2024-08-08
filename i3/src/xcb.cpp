@@ -71,7 +71,7 @@ xcb_window_t create_window(xcb_connection_t *conn, Rect dims,
  *
  */
 void fake_absolute_configure_notify(Con *con) {
-    if (con->window == nullptr) {
+    if (con->get_window() == nullptr) {
         return;
     }
 
@@ -80,14 +80,14 @@ void fake_absolute_configure_notify(Con *con) {
      * though we only need less for an xcb_configure_notify_event_t */
     xcb_configure_notify_event_t generatedEvent{};
 
-    generatedEvent.event = con->window->id;
-    generatedEvent.window = con->window->id;
+    generatedEvent.event = con->get_window()->id;
+    generatedEvent.window = con->get_window()->id;
     generatedEvent.response_type = XCB_CONFIGURE_NOTIFY;
 
-    generatedEvent.x = static_cast<int16_t>(con->rect.x + con->window_rect.x);
-    generatedEvent.y = static_cast<int16_t>(con->rect.y + con->window_rect.y);
-    generatedEvent.width = static_cast<uint16_t>(con->window_rect.width);
-    generatedEvent.height = static_cast<uint16_t>(con->window_rect.height);
+    generatedEvent.x = static_cast<int16_t>(con->rect.x + con->get_window_rect().x);
+    generatedEvent.y = static_cast<int16_t>(con->rect.y + con->get_window_rect().y);
+    generatedEvent.width = static_cast<uint16_t>(con->get_window_rect().width);
+    generatedEvent.height = static_cast<uint16_t>(con->get_window_rect().height);
 
     generatedEvent.border_width = con->border_width;
     generatedEvent.above_sibling = XCB_NONE;
@@ -95,7 +95,7 @@ void fake_absolute_configure_notify(Con *con) {
 
     DLOG(fmt::sprintf("fake rect = (%d, %d, %d, %d)\n", generatedEvent.x, generatedEvent.y, generatedEvent.width, generatedEvent.height));
 
-    xcb_send_event(**global.x, false, con->window->id, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *) &generatedEvent);
+    xcb_send_event(**global.x, false, con->get_window()->id, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *) &generatedEvent);
     xcb_flush(**global.x);
 }
 

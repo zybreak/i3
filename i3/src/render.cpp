@@ -117,7 +117,7 @@ void render_con(Con *con) {
     con->mapped = true;
 
     /* if this container contains a window, set the coordinates */
-    if (con->window) {
+    if (con->get_window()) {
         /* depending on the border style, the rect of the child window
          * needs to be smaller */
         Rect inset = (Rect){
@@ -140,7 +140,7 @@ void render_con(Con *con) {
         inset.height -= (2 * con->border_width);
 
         inset.rect_sanitize_dimensions();
-        con->window_rect = inset;
+        con->get_window_rect() = inset;
 
         /* NB: We used to respect resize increment size hints for tiling
          * windows up until commit 0db93d9 here. However, since all terminal
@@ -307,15 +307,15 @@ static void render_root(RootCon *con, Con *fullscreen) {
                      * fullscreen work correctly (ticket #564). Exception to the
                      * above rule: smart popup_during_fullscreen handling (popups
                      * belonging to the fullscreen app will be rendered). */
-                    if (global.configManager->config->popup_during_fullscreen != PDF_SMART || fullscreen->window == nullptr) {
+                    if (global.configManager->config->popup_during_fullscreen != PDF_SMART || fullscreen->get_window() == nullptr) {
                         continue;
                     }
 
                     Con *floating_child = con_descend_focused(child);
-                    if (con_find_transient_for_window(floating_child, fullscreen->window->id)) {
+                    if (con_find_transient_for_window(floating_child, fullscreen->get_window()->id)) {
                         DLOG(fmt::sprintf("Rendering floating child even though in fullscreen mode: "
                              "floating->transient_for (0x%08x) --> fullscreen->id (0x%08x)\n",
-                             floating_child->window->transient_for, fullscreen->window->id));
+                             floating_child->get_window()->transient_for, fullscreen->get_window()->id));
                     } else {
                         continue;
                     }
@@ -385,7 +385,7 @@ static void render_output(Con *con) {
 
         child->rect.height = 0;
         for (auto &dockchild : child->nodes) {
-            child->rect.height += dockchild->geometry.height;
+            child->rect.height += dockchild->get_geometry().height;
         }
 
         height -= child->rect.height;
@@ -505,7 +505,7 @@ static void render_con_dockarea(Con *con, Con *child, render_params *p) {
     child->rect.x = p->x;
     child->rect.y = p->y;
     child->rect.width = p->rect.width;
-    child->rect.height = child->geometry.height;
+    child->rect.height = child->get_geometry().height;
 
     child->deco_rect.x = 0;
     child->deco_rect.y = 0;

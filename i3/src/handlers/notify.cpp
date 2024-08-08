@@ -42,7 +42,7 @@ static bool window_name_changed(const i3Window *window, std::string &old_name) {
  * Called when a window changes its title
  *
  */
-static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
+static bool handle_windowname_change(ConCon *con, xcb_get_property_reply_t *prop) {
     std::string old_name = con->window->name;
 
     con->window->window_update_name(prop);
@@ -62,7 +62,7 @@ static bool handle_windowname_change(Con *con, xcb_get_property_reply_t *prop) {
  * Handles the WM_HINTS property for extracting the urgency state of the window.
  *
  */
-static bool handle_hints(Con *con, xcb_get_property_reply_t *reply) {
+static bool handle_hints(ConCon *con, xcb_get_property_reply_t *reply) {
     bool urgency_hint;
     con->window->window_update_hints(reply, &urgency_hint);
     con->con_set_urgency(urgency_hint);
@@ -76,7 +76,7 @@ static bool handle_hints(Con *con, xcb_get_property_reply_t *reply) {
  * window_update_name_legacy().
  *
  */
-static bool handle_windowname_change_legacy(Con *con, xcb_get_property_reply_t *prop) {
+static bool handle_windowname_change_legacy(ConCon *con, xcb_get_property_reply_t *prop) {
     std::string old_name = con->window->name;
 
     con->window->window_update_name_legacy(prop);
@@ -99,7 +99,7 @@ static bool handle_windowname_change_legacy(Con *con, xcb_get_property_reply_t *
  * See ICCCM 4.1.2.3 for more details
  *
  */
-static bool handle_normal_hints(Con *con, xcb_get_property_reply_t *reply) {
+static bool handle_normal_hints(ConCon *con, xcb_get_property_reply_t *reply) {
     bool changed = con->window->window_update_normal_hints(reply, nullptr);
 
     if (changed) {
@@ -118,7 +118,7 @@ static bool handle_normal_hints(Con *con, xcb_get_property_reply_t *reply) {
  * toolwindow (or similar) and to which window it belongs (logical parent).
  *
  */
-static bool handle_clientleader_change(Con *con, xcb_get_property_reply_t *prop) {
+static bool handle_clientleader_change(ConCon *con, xcb_get_property_reply_t *prop) {
     con->window->window_update_leader(prop);
     return true;
 }
@@ -130,7 +130,7 @@ static bool handle_clientleader_change(Con *con, xcb_get_property_reply_t *prop)
  * See ICCCM 4.1.2.6 for more details
  *
  */
-static bool handle_transient_for(Con *con, xcb_get_property_reply_t *prop) {
+static bool handle_transient_for(ConCon *con, xcb_get_property_reply_t *prop) {
     con->window->window_update_transient_for(prop);
     return true;
 }
@@ -139,7 +139,7 @@ static bool handle_transient_for(Con *con, xcb_get_property_reply_t *prop) {
  * Called when a window changes its WM_WINDOW_ROLE.
  *
  */
-static bool handle_windowrole_change(Con *con, xcb_get_property_reply_t *prop) {
+static bool handle_windowrole_change(ConCon *con, xcb_get_property_reply_t *prop) {
     con->window->window_update_role(prop);
 
     con = remanage_window(con);
@@ -151,7 +151,7 @@ static bool handle_windowrole_change(Con *con, xcb_get_property_reply_t *prop) {
  * Handles the WM_CLASS property for assignments and criteria selection.
  *
  */
-static bool handle_class_change(Con *con, xcb_get_property_reply_t *prop) {
+static bool handle_class_change(ConCon *con, xcb_get_property_reply_t *prop) {
     con->window->window_update_class(prop);
     con = remanage_window(con);
     return true;
@@ -161,7 +161,7 @@ static bool handle_class_change(Con *con, xcb_get_property_reply_t *prop) {
  * Handles the _NET_WM_STRUT_PARTIAL property for allocating space for dock clients.
  *
  */
-static bool handle_strut_partial_change(Con *con, xcb_get_property_reply_t *prop) {
+static bool handle_strut_partial_change(ConCon *con, xcb_get_property_reply_t *prop) {
     con->window->window_update_strut_partial(prop);
 
     /* we only handle this change for dock clients */
@@ -199,7 +199,7 @@ static bool handle_strut_partial_change(Con *con, xcb_get_property_reply_t *prop
     /* find the dockarea */
     Con *dockarea = con_for_window(search_at, con->window, nullptr);
     if (dockarea == nullptr) {
-        std::terminate();
+        throw std::runtime_error("Could not find a dockarea for the dock client");
     }
 
     /* attach the dock to the dock area */
@@ -211,7 +211,7 @@ static bool handle_strut_partial_change(Con *con, xcb_get_property_reply_t *prop
     return true;
 }
 
-static bool handle_window_type(Con *con, xcb_get_property_reply_t *reply) {
+static bool handle_window_type(ConCon *con, xcb_get_property_reply_t *reply) {
     if (con->window->window_update_type(reply)) {
         global.assignmentManager->run_assignments(con->window);
     }
@@ -229,7 +229,7 @@ static bool handle_window_type(Con *con, xcb_get_property_reply_t *reply) {
  * state for the original command.
  *
  */
-static bool handle_i3_floating(Con *con, xcb_get_property_reply_t *prop) {
+static bool handle_i3_floating(ConCon *con, xcb_get_property_reply_t *prop) {
     DLOG(fmt::sprintf("floating change for con %p\n", fmt::ptr(con)));
 
     remanage_window(con);
@@ -241,7 +241,7 @@ static bool handle_i3_floating(Con *con, xcb_get_property_reply_t *prop) {
  * Handles the WM_CLIENT_MACHINE property for assignments and criteria selection.
  *
  */
-static bool handle_machine_change(Con *con, xcb_get_property_reply_t *prop) {
+static bool handle_machine_change(ConCon *con, xcb_get_property_reply_t *prop) {
     if (auto opt_machine = handle_property::window_update_machine(prop)) {
         con->window->window_update_machine(*opt_machine);
     }
@@ -253,7 +253,7 @@ static bool handle_machine_change(Con *con, xcb_get_property_reply_t *prop) {
  * Handles the _MOTIF_WM_HINTS property of specifyng window decoration settings.
  *
  */
-static bool handle_motif_hints_change(Con *con, xcb_get_property_reply_t *prop) {
+static bool handle_motif_hints_change(ConCon *con, xcb_get_property_reply_t *prop) {
     border_style_t motif_border_style;
     bool has_mwm_hints = con->window->window_update_motif_hints(prop, &motif_border_style);
 
@@ -267,7 +267,7 @@ static bool handle_motif_hints_change(Con *con, xcb_get_property_reply_t *prop) 
     return true;
 }
 
-static bool handle_windowicon_change(Con *con, xcb_get_property_reply_t *prop) {
+static bool handle_windowicon_change(ConCon *con, xcb_get_property_reply_t *prop) {
     con->window->window_update_icon(prop);
 
     x_push_changes(global.croot);
@@ -277,7 +277,7 @@ static bool handle_windowicon_change(Con *con, xcb_get_property_reply_t *prop) {
 
 /* Returns false if the event could not be processed (e.g. the window could not
      * be found), true otherwise */
-using cb_property_handler_t = bool (*)(Con *con, xcb_get_property_reply_t *property);
+using cb_property_handler_t = bool (*)(ConCon *con, xcb_get_property_reply_t *property);
 
 struct property_handler_t {
     xcb_atom_t atom;
@@ -293,8 +293,6 @@ struct property_handler_t {
 };
 
 void PropertyHandlers::property_notify(xcb_property_notify_event_t *event) {
-    Con *con;
-
     global.last_timestamp = event->time;
 
     uint8_t state = event->state;
@@ -327,7 +325,9 @@ void PropertyHandlers::property_notify(xcb_property_notify_event_t *event) {
 
     auto &handler = it->second;
 
-    if ((con = con_by_window_id(window)) == nullptr || con->window == nullptr) {
+    ConCon *con = con_by_window_id(window);
+
+    if (con == nullptr || con->window == nullptr) {
         DLOG(fmt::sprintf("Received property for atom %d for unknown client\n", atom));
         return;
     }

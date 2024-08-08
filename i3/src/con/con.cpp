@@ -43,22 +43,16 @@ import i3ipc;
  * This function only initializes the data structures.
  *
  */
-Con::Con(i3Window *window, bool skeleton) {
+Con::Con(bool skeleton) {
     this->fullscreen_mode = CF_NONE;
     this->layout = L_DEFAULT;
     this->last_split_layout = L_DEFAULT;
     this->floating = FLOATING_AUTO_OFF;
 
     this->type = CT_CON;
-    this->window = window;
     this->border_style = this->max_user_border_style = global.configManager->config->default_border;
     this->current_border_width = -1;
-    this->window_icon_padding = -1;
-    if (window) {
-        this->depth = window->depth;
-    } else {
-        this->depth = global.x->root_depth;
-    }
+    this->depth = global.x->root_depth;
 
     global.all_cons.push_back(this);
 
@@ -125,9 +119,9 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
          * their declaration order in the config file. See #3491. */
         current = nullptr;
         for (auto &loop : nodes) {
-            int result = strcasecmp_nullable(this->window->class_class.c_str(), loop->window->class_class.c_str());
+            int result = strcasecmp_nullable(dynamic_cast<ConCon*>(this)->window->class_class.c_str(), dynamic_cast<ConCon*>(loop)->window->class_class.c_str());
             if (result == 0) {
-                result = strcasecmp_nullable(this->window->class_instance.c_str(), loop->window->class_instance.c_str());
+                result = strcasecmp_nullable(dynamic_cast<ConCon*>(this)->window->class_instance.c_str(), dynamic_cast<ConCon*>(loop)->window->class_instance.c_str());
             }
             if (result < 0) {
                 current = loop;
@@ -160,7 +154,7 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
      * workspace or a new split container with the configured
      * workspace_layout).
      */
-    if (this->window != nullptr &&
+    if (this->get_window() != nullptr &&
         parent->type == CT_WORKSPACE &&
         dynamic_cast<WorkspaceCon*>(parent)->workspace_layout != L_DEFAULT) {
         DLOG("Parent is a workspace. Applying default layout...\n");
@@ -878,11 +872,11 @@ void Con::con_set_urgency(bool urgent) {
         DLOG("Discarding urgency WM_HINT because timer is running\n");
     }
 
-    if (con->window) {
+    if (con->get_window()) {
         if (con->urgent) {
-            con->window->urgent = std::chrono::system_clock::now();
+            con->get_window()->urgent = std::chrono::system_clock::now();
         } else {
-            con->window->urgent = std::nullopt;
+            con->get_window()->urgent = std::nullopt;
         }
     }
 

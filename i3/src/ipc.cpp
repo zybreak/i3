@@ -429,28 +429,28 @@ static std::string border_style(Con *con) {
     }
 }
 
-static std::string window_type(Con *con) {
-    if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NORMAL]) {
+static std::string window_type(i3Window *window) {
+    if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NORMAL]) {
         return "normal";
-    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK]) {
+    } else if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK]) {
         return "dock";
-    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DIALOG]) {
+    } else if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DIALOG]) {
         return "dialog";
-    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_UTILITY]) {
+    } else if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_UTILITY]) {
         return "utility";
-    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLBAR]) {
+    } else if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLBAR]) {
         return "toolbar";
-    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_SPLASH]) {
+    } else if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_SPLASH]) {
         return "splash";
-    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_MENU]) {
+    } else if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_MENU]) {
         return "menu";
-    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DROPDOWN_MENU]) {
+    } else if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DROPDOWN_MENU]) {
         return "dropdown_menu";
-    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_POPUP_MENU]) {
+    } else if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_POPUP_MENU]) {
         return "popup_menu";
-    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLTIP]) {
+    } else if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLTIP]) {
         return "tooltip";
-    } else if (con->window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NOTIFICATION]) {
+    } else if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NOTIFICATION]) {
         return "notification";
     } else {
         return "unknown";
@@ -510,11 +510,11 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
     } else {
         j["deco_rect"] = dump_rect(con->deco_rect);
     }
-    j["window_rect"] = dump_rect(con->window_rect);
-    j["geometry"] = dump_rect(con->geometry);
+    j["window_rect"] = dump_rect(con->get_window_rect());
+    j["geometry"] = dump_rect(con->get_geometry());
 
-    if (con->window && !con->window->name.empty()) {
-        j["name"] = con->window->name;
+    if (con->get_window() && !con->get_window()->name.empty()) {
+        j["name"] = con->get_window()->name;
     } else if (!con->name.empty()) {
         j["name"] = con->name;
     }
@@ -523,7 +523,7 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
         j["title_format"] = con->title_format;
     }
 
-    j["window_icon_padding"] = con->window_icon_padding;
+    j["window_icon_padding"] = con->get_window_icon_padding();
 
     if (con->type == CT_WORKSPACE) {
         WorkspaceCon *ws = dynamic_cast<WorkspaceCon*>(con);
@@ -531,37 +531,37 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
         j["gaps"] = dump_gaps(ws->gaps);
     }
 
-    if (con->window) {
-        j["window"] = con->window->id;
-        j["window_type"] = window_type(con);
+    if (auto window = con->get_window(); window != nullptr) {
+        j["window"] = window->id;
+        j["window_type"] = window_type(window);
     }
 
 
-    if (con->window && !inplace_restart) {
+    if (con->get_window() && !inplace_restart) {
         /* Window properties are useless to preserve when restarting because
          * they will be queried again anyway. However, for i3-save-tree(1),
          * they are very useful and save i3-save-tree dealing with X11. */
         auto map = nlohmann::json::object();
 
-        if (!con->window->class_class.empty()) {
-            map["class"] = con->window->class_class;
+        if (!con->get_window()->class_class.empty()) {
+            map["class"] = con->get_window()->class_class;
         }
-        if (!con->window->class_instance.empty()) {
-            map["instance"] = con->window->class_instance;
+        if (!con->get_window()->class_instance.empty()) {
+            map["instance"] = con->get_window()->class_instance;
         }
-        if (!con->window->role.empty()) {
-            map["window_role"] = con->window->role;
+        if (!con->get_window()->role.empty()) {
+            map["window_role"] = con->get_window()->role;
         }
-        if (!con->window->machine.empty()) {
-            map["machine"] = con->window->machine;
-        }
-
-        if (!con->window->name.empty()) {
-            map["title"] = con->window->name.c_str();
+        if (!con->get_window()->machine.empty()) {
+            map["machine"] = con->get_window()->machine;
         }
 
-        if (con->window->transient_for != XCB_NONE) {
-            j["transient_for"] = con->window->transient_for;
+        if (!con->get_window()->name.empty()) {
+            map["title"] = con->get_window()->name.c_str();
+        }
+
+        if (con->get_window()->transient_for != XCB_NONE) {
+            j["transient_for"] = con->get_window()->transient_for;
         }
 
         j["window_properties"] = map;
@@ -622,16 +622,16 @@ nlohmann::json dump_node(Con *con, bool inplace_restart) {
     }
 
     if (inplace_restart) {
-        if (con->window != nullptr) {
+        if (con->get_window() != nullptr) {
             swallows.push_back({
-               {"id", con->window->id},
+               {"id", con->get_window()->id},
                {"restart_mode", true},
            });
         }
     }
     j["swallows"] = swallows;
 
-    if (inplace_restart && con->window != nullptr) {
+    if (inplace_restart && con->get_window() != nullptr) {
         j["depth"] = con->depth;
     }
 
@@ -1122,7 +1122,7 @@ void ipc_send_workspace_event(const char *change, Con *current, Con *old) {
  */
 void ipc_send_window_event(const char *property, Con *con) {
     DLOG(fmt::sprintf("Issue IPC window %s event (con = %p, window = 0x%08x)\n",
-         property, fmt::ptr(con), (con->window ? con->window->id : XCB_WINDOW_NONE)));
+         property, fmt::ptr(con), (con->get_window() ? con->get_window()->id : XCB_WINDOW_NONE)));
 
     setlocale(LC_NUMERIC, "C");
     nlohmann::json j;

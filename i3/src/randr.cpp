@@ -340,8 +340,9 @@ void output_init_con(Output *output) {
     /* Search for a Con with that name directly below the root node. There
      * might be one from a restored layout. */
     for (auto &current : global.croot->nodes) {
-        if (strcmp(current->name.c_str(), output->output_primary_name().c_str()) != 0)
+        if (current->name != output->output_primary_name()) {
             continue;
+        }
 
         con = dynamic_cast<OutputCon*>(current);
         reused = true;
@@ -366,7 +367,7 @@ void output_init_con(Output *output) {
     }
 
     DLOG("Changing layout, adding top/bottom dockarea\n");
-    Con *topdock = new DockCon();
+    DockCon *topdock = new DockCon();
     /* this container swallows dock clients */
     auto match = std::make_unique<Match>();
     match->dock = M_DOCK_TOP;
@@ -382,7 +383,7 @@ void output_init_con(Output *output) {
     /* content container */
 
     DLOG("adding main content container\n");
-    Con *content = new ConCon();
+    ConCon *content = new ConCon();
     content->type = CT_CON;
     content->layout = L_SPLITH;
     content->name.assign("content");
@@ -391,7 +392,7 @@ void output_init_con(Output *output) {
     content->con_attach(con, false);
 
     /* bottom dock container */
-    Con *bottomdock = new DockCon();
+    DockCon *bottomdock = new DockCon();
     /* this container swallows dock clients */
     auto match2 = std::make_unique<Match>();
     match2->dock = M_DOCK_BOTTOM;
@@ -847,8 +848,9 @@ static void move_content(Con *con) {
     }
 
     /* 3: move the dock clients to the first output */
-    for (auto &child : con->nodes) {
-        if (child->type != CT_DOCKAREA) {
+    for (auto &c : con->nodes) {
+        auto child = dynamic_cast<DockCon*>(c);
+        if (!child) {
             continue;
         }
         DLOG(fmt::sprintf("Handling dock con %p\n", fmt::ptr(child)));
@@ -857,7 +859,7 @@ static void move_content(Con *con) {
             dock = con::first(child->nodes);
             Con *nc;
             Match *match;
-            nc = con_for_window(first, dock->window, &match);
+            nc = con_for_window(first, dock->get_window(), &match);
             DLOG(fmt::sprintf("Moving dock client %p to nc %p\n", fmt::ptr(dock), fmt::ptr(nc)));
             dock->con_detach();
             DLOG("Re-attaching\n");

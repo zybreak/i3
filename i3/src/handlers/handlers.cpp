@@ -200,25 +200,28 @@ void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
     if (event->child != XCB_NONE)
         return;
 
-    Con *con;
-    if ((con = con_by_frame_id(event->event)) == nullptr) {
+    Con *con = con_by_frame_id(event->event);
+    if (con == nullptr) {
         DLOG("MotionNotify for an unknown container, checking if it crosses screen boundaries.\n");
         check_crossing_screen_boundary(event->root_x, event->root_y);
         return;
     }
 
-    if (global.configManager->config->disable_focus_follows_mouse)
+    if (global.configManager->config->disable_focus_follows_mouse) {
         return;
+    }
 
-    if (con->layout != L_DEFAULT && con->layout != L_SPLITV && con->layout != L_SPLITH)
+    if (con->layout != L_DEFAULT && con->layout != L_SPLITV && con->layout != L_SPLITH) {
         return;
+    }
 
     /* see over which rect the user is */
-    if (con->window != nullptr) {
+    if (con->get_window() != nullptr) {
         if (con->deco_rect.rect_contains(event->event_x, event->event_y)) {
             /* We found the rect, let’s see if this window is focused */
-            if (con::first(con->parent->focused) == con)
+            if (con::first(con->parent->focused) == con) {
                 return;
+            }
 
             con->con_focus();
             x_push_changes(global.croot);
@@ -226,12 +229,14 @@ void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
         }
     } else {
         for (auto &current : con->nodes | std::views::reverse) {
-            if (!current->deco_rect.rect_contains(event->event_x, event->event_y))
+            if (!current->deco_rect.rect_contains(event->event_x, event->event_y)) {
                 continue;
+            }
 
             /* We found the rect, let’s see if this window is focused */
-            if (con::first(con->focused) == current)
+            if (con::first(con->focused) == current) {
                 return;
+            }
 
             current->con_focus();
             x_push_changes(global.croot);
@@ -283,14 +288,14 @@ void PropertyHandlers::handle_map_request(xcb_map_request_event_t *event) {
  *
  */
 void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *event) {
-    Con *con;
-
     DLOG(fmt::sprintf("window 0x%08x wants to be at %dx%d with %dx%d\n",
                       event->window, event->x, event->y, event->width, event->height));
 
+    ConCon *con = con_by_window_id(event->window);
+
     /* For unmanaged windows, we just execute the configure request. As soon as
      * it gets mapped, we will take over anyways. */
-    if ((con = con_by_window_id(event->window)) == nullptr) {
+    if (con == nullptr) {
         DLOG("Configure request for unmanaged window, can do that.\n");
 
         uint32_t mask = 0;
@@ -461,11 +466,11 @@ void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
 void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event) {
     DLOG(fmt::sprintf("UnmapNotify for 0x%08x (received from 0x%08x), serial %d\n", event->window, event->event, event->sequence));
     xcb_get_input_focus_cookie_t cookie;
-    Con *con = con_by_window_id(event->window);
+    ConCon *con = con_by_window_id(event->window);
     if (con == nullptr) {
         /* This could also be an UnmapNotify for the frame. We need to
          * decrement the ignore_unmap counter. */
-        con = con_by_frame_id(event->window);
+        Con *con = con_by_frame_id(event->window);
         if (con == nullptr) {
             LOG("Not a managed window, ignoring UnmapNotify event\n");
             return;
@@ -599,9 +604,10 @@ void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
         x_push_changes(global.croot);
     }
 
-    Con *con;
-    if ((con = con_by_window_id(event->event)) == nullptr || con->window == nullptr)
+    ConCon *con = con_by_window_id(event->event);
+    if (con == nullptr || con->window == nullptr) {
         return;
+    }
     DLOG(fmt::sprintf("That is con %p / %s\n", fmt::ptr(con), con->name));
 
     if (event->mode == XCB_NOTIFY_MODE_GRAB ||
@@ -642,7 +648,7 @@ void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
  *
  */
 void PropertyHandlers::handle_focus_out(xcb_focus_in_event_t *event) {
-    Con *con = con_by_window_id(event->event);
+    ConCon *con = con_by_window_id(event->event);
     const char *window_name, *mode, *detail;
 
     if (con != nullptr) {
@@ -832,7 +838,7 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
         DLOG(fmt::sprintf("shape_notify_event for window 0x%08x, shape_kind = %d, shaped = %d\n",
                           shape->affected_window, shape->shape_kind, shape->shaped));
 
-        Con *con = con_by_window_id(shape->affected_window);
+        ConCon *con = con_by_window_id(shape->affected_window);
         if (con == nullptr) {
             LOG(fmt::sprintf("Not a managed window 0x%08x, ignoring shape_notify_event\n",
                              shape->affected_window));

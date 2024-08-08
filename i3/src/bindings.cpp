@@ -234,12 +234,12 @@ void regrab_all_buttons(x_connection *conn) {
     conn->grab_server();
 
     for (const auto &con : global.all_cons) {
-        if (con->window == nullptr) {
+        if (con->get_window() == nullptr) {
             continue;
         }
 
-        conn->ungrab_button(XCB_BUTTON_INDEX_ANY, con->window->id, XCB_BUTTON_MASK_ANY);
-        xcb_grab_buttons(con->window->id, buttons);
+        conn->ungrab_button(XCB_BUTTON_INDEX_ANY, con->get_window()->id, XCB_BUTTON_MASK_ANY);
+        xcb_grab_buttons(con->get_window()->id, buttons);
     }
 
     conn->ungrab_server();

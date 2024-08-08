@@ -128,21 +128,24 @@ void ewmh_update_desktop_properties() {
     ewmh_update_wm_desktop();
 }
 
-static void ewmh_update_wm_desktop_recursively(Con *con, const uint32_t desktop) {
+static void ewmh_update_wm_desktop_recursively(Con *c, const uint32_t desktop) {
     /* Recursively call this to descend through the entire subtree. */
-    for (auto &child : con->nodes) {
+    for (auto &child : c->nodes) {
         ewmh_update_wm_desktop_recursively(child, desktop);
     }
 
     /* If con is a workspace, we also need to go through the floating windows on it. */
-    if (con->type == CT_WORKSPACE) {
-        for (auto &child : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
+    if (c->type == CT_WORKSPACE) {
+        for (auto &child : dynamic_cast<WorkspaceCon *>(c)->floating_windows) {
             ewmh_update_wm_desktop_recursively(child, desktop);
         }
     }
 
-    if (!con->con_has_managed_window())
+    if (!c->con_has_managed_window()) {
         return;
+    }
+    
+    auto con = dynamic_cast<ConCon*>(c);
 
     uint32_t wm_desktop = desktop;
     /* Sticky windows are only actually sticky when they are floating or inside
@@ -155,7 +158,7 @@ static void ewmh_update_wm_desktop_recursively(Con *con, const uint32_t desktop)
     }
 
     /* If this is the cached value, we don't need to do anything. */
-    if (con->window->wm_desktop == wm_desktop) {
+    if (con && con->window->wm_desktop == wm_desktop) {
         return;
     }
     con->window->wm_desktop = wm_desktop;

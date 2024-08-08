@@ -159,8 +159,8 @@ static void checkWindowField(const Regex *match_field, const i3Window *window, c
     if (is_initialized(match_field)) {
         const char *window_field_str = window_field(window) == nullptr ? "" : window_field(window);
         if (strcmp(match_field->pattern, "__focused__") == 0 &&
-            global.focused && global.focused->window && window_field(global.focused->window) &&
-            strcmp(window_field_str, window_field(global.focused->window)) == 0) {
+            global.focused && global.focused->get_window() && window_field(global.focused->get_window()) &&
+            strcmp(window_field_str, window_field(global.focused->get_window())) == 0) {
             LOG("window match_field matches focused window\n");
         } else if (match_field->regex_matches(window_field_str)) {
              LOG(fmt::sprintf("window match_field matches (%s)\n", window_field_str));
@@ -215,7 +215,7 @@ bool Match::match_matches_window(const i3Window *window) const {
         /* if we find a window that is newer than this one, bail */
         for (const auto &c : global.all_cons) {
             con = c;
-            if ((con->window != nullptr) && i3_timercmp(con->window->urgent, window->urgent, std::ranges::greater())) {
+            if ((con->get_window() != nullptr) && i3_timercmp(con->get_window()->urgent, window->urgent, std::ranges::greater())) {
                 return false;
             }
         }
@@ -230,9 +230,9 @@ bool Match::match_matches_window(const i3Window *window) const {
         /* if we find a window that is older than this one (and not 0), bail */
         for (const auto &c : global.all_cons) {
             con = c;
-            if ((con->window != nullptr) &&
-                con->window->urgent &&
-                i3_timercmp(con->window->urgent, window->urgent, std::ranges::less())) {
+            if ((con->get_window() != nullptr) &&
+                con->get_window()->urgent &&
+                i3_timercmp(con->get_window()->urgent, window->urgent, std::ranges::less())) {
                 return false;
             }
         }

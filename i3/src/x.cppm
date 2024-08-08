@@ -29,6 +29,7 @@ import rect;
 import :internal;
 
 class Con;
+class ConCon;
 
 export {
     using x_connection = xpp::connection<xpp::xkb::extension, xpp::shape::extension, xpp::big_requests::extension, xpp::randr::extension>;
@@ -268,5 +269,5 @@ export {
     /**
      * Enables or disables nonrectangular shape of the container frame.
      */
-    void x_set_shape(Con * con, xcb_shape_sk_t kind, bool enable);
+    void x_set_shape(ConCon * con, xcb_shape_sk_t kind, bool enable);
 }

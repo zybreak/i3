@@ -302,8 +302,8 @@ void CommandsApplier::criteria_match_windows(struct criteria_state *criteria_sta
             }
         }
 
-        if (current->window != nullptr) {
-            if (criteria_state->current_match.match_matches_window(current->window)) {
+        if (current->get_window() != nullptr) {
+            if (criteria_state->current_match.match_matches_window(current->get_window())) {
                 DLOG("matches window!\n");
                 accept_match = true;
             } else {
@@ -508,7 +508,7 @@ static void resize_floating(struct criteria_state *criteria_state, CommandsResul
     /* ensure that resize will take place even if pixel increment is smaller than
      * height increment or width increment.
      * fixes #1011 */
-    const i3Window *window = focused_con->window;
+    const i3Window *window = focused_con->get_window();
     if (window != nullptr) {
         if (orientation == VERT) {
             if (px < 0) {
@@ -648,7 +648,7 @@ void CommandsApplier::resize(struct criteria_state *criteria_state, CommandsResu
 
     for (auto current: criteria_state->owindows) {
         /* Don't handle dock windows (issue #1201) */
-        if (current->window && current->window->dock) {
+        if (current->get_window() && current->get_window()->dock) {
             DLOG(fmt::sprintf("This is a dock window. Not resizing (con = %p)\n)", fmt::ptr(current)));
             continue;
         }
@@ -739,7 +739,7 @@ void CommandsApplier::resize_set(struct criteria_state *criteria_state, Commands
             }
             floating_resize(floating_con, cwidth, cheight);
         } else {
-            if (current->window && current->window->dock) {
+            if (current->get_window() && current->get_window()->dock) {
                 DLOG(fmt::sprintf("This is a dock window. Not resizing (con = %p)\n)", fmt::ptr(current)));
                 continue;
             }
@@ -1123,13 +1123,13 @@ void CommandsApplier::floating(struct criteria_state *criteria_state, CommandsRe
         DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
         if (strcmp(floating_mode, "toggle") == 0) {
             DLOG("should toggle mode\n");
-            toggle_floating_mode(current, false);
+            toggle_floating_mode(dynamic_cast<ConCon*>(current), false);
         } else {
             DLOG(fmt::sprintf("should switch mode to %s\n",  floating_mode));
             if (strcmp(floating_mode, "enable") == 0) {
-                floating_enable(current, false);
+                floating_enable(dynamic_cast<ConCon*>(current), false);
             } else {
-                floating_disable(current);
+                floating_disable(dynamic_cast<ConCon*>(current));
             }
         }
     }
@@ -1454,7 +1454,7 @@ void CommandsApplier::sticky(struct criteria_state *criteria_state, CommandsResu
     HANDLE_EMPTY_MATCH(criteria_state);
 
     for (auto current: criteria_state->owindows) {
-        if (current->window == nullptr) {
+        if (current->get_window() == nullptr) {
             ELOG(fmt::sprintf("only containers holding a window can be made sticky, skipping con = %p\n", fmt::ptr(current)));
             continue;
         }
@@ -1469,7 +1469,7 @@ void CommandsApplier::sticky(struct criteria_state *criteria_state, CommandsResu
             sticky = !current->sticky;
 
         current->sticky = sticky;
-        ewmh_update_sticky(current->window->id, sticky);
+        ewmh_update_sticky(current->get_window()->id, sticky);
     }
 
     /* A window we made sticky might not be on a visible workspace right now, so we need to make
@@ -1663,7 +1663,7 @@ void CommandsApplier::restart(struct criteria_state *criteria_state, CommandsRes
  */
 void CommandsApplier::open(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
     LOG("opening new container\n");
-    Con *con = tree_open_con(nullptr, nullptr);
+    ConCon *con = tree_open_con(nullptr, nullptr);
     con->layout = L_SPLITH;
     con->con_activate();
     if (cmd_output.json_gen != nullptr) {
@@ -1844,20 +1844,20 @@ void CommandsApplier::title_format(struct criteria_state *criteria_state, Comman
         if (strcasecmp(format, "%title") != 0) {
             current->title_format = format;
 
-            if (current->window != nullptr) {
+            if (current->get_window() != nullptr) {
                 std::string formatted_title = con_parse_title_format(current);
-                ewmh_update_visible_name(current->window->id, formatted_title.c_str());
+                ewmh_update_visible_name(current->get_window()->id, formatted_title.c_str());
             }
         } else {
-            if (current->window != nullptr) {
+            if (current->get_window() != nullptr) {
                 /* We can remove _NET_WM_VISIBLE_NAME since we don't display a custom title. */
-                ewmh_update_visible_name(current->window->id, nullptr);
+                ewmh_update_visible_name(current->get_window()->id, nullptr);
             }
         }
 
-        if (current->window != nullptr) {
+        if (current->get_window() != nullptr) {
             /* Make sure the window title is redrawn immediately. */
-            current->window->name_x_changed = true;
+            current->get_window()->name_x_changed = true;
         } else {
             /* For windowless containers we also need to force the redrawing. */
             current->deco_render_params.reset();
@@ -1884,9 +1884,10 @@ void CommandsApplier::title_window_icon(struct criteria_state *criteria_state, C
     DLOG(fmt::sprintf("setting window_icon=%d\n",  padding));
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    for (auto &current: criteria_state->owindows) {
+    for (auto &c: criteria_state->owindows) {
+        auto current = dynamic_cast<ConCon*>(c); // TODO: bad
         if (is_toggle) {
-            const int current_padding = current->window_icon_padding;
+            const int current_padding = current->get_window_icon_padding();
             if (padding > 0) {
                 if (current_padding < 0) {
                     current->window_icon_padding = padding;
@@ -1901,11 +1902,11 @@ void CommandsApplier::title_window_icon(struct criteria_state *criteria_state, C
         } else {
             current->window_icon_padding = padding;
         }
-        DLOG(fmt::sprintf("Set window_icon for %p / %s to %d\n", fmt::ptr(current), current->name, current->window_icon_padding));
+        DLOG(fmt::sprintf("Set window_icon for %p / %s to %d\n", fmt::ptr(current), current->name, current->get_window_icon_padding()));
 
-        if (current->window != nullptr) {
+        if (current->get_window() != nullptr) {
             /* Make sure the window title is redrawn immediately. */
-            current->window->name_x_changed = true;
+            current->get_window()->name_x_changed = true;
         } else {
             /* For windowless containers we also need to force the redrawing. */
             current->deco_render_params.reset();

@@ -51,16 +51,16 @@ static void floating_set_hint_atom(Con *con, bool floating) {
         }
     }
 
-    if (con->window == nullptr) {
+    if (con->get_window() == nullptr) {
         return;
     }
 
     if (floating) {
         uint32_t val = 1;
-        xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->window->id,
+        xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->get_window()->id,
                             i3::atoms[i3::Atom::I3_FLOATING_WINDOW], XCB_ATOM_CARDINAL, 32, 1, &val);
     } else {
-        xcb_delete_property(**global.x, con->window->id, i3::atoms[i3::Atom::I3_FLOATING_WINDOW]);
+        xcb_delete_property(**global.x, con->get_window()->id, i3::atoms[i3::Atom::I3_FLOATING_WINDOW]);
     }
 
     xcb_flush(**global.x);
@@ -101,8 +101,7 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
          border_rect.width,
          border_rect.height));
 
-    i3Window *window = focused_con->window;
-    if (window != nullptr) {
+    if (i3Window *window = focused_con->get_window(); window != nullptr) {
         /* ICCCM says: If a base size is not provided, the minimum size is to be used in its place
          * and vice versa. */
         uint32_t min_width = (window->min_width ? window->min_width : window->base_width);
@@ -234,7 +233,7 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
     }
 }
 
-bool floating_enable(Con *con, bool automatic) {
+bool floating_enable(ConCon *con, bool automatic) {
     bool set_focus = (con == global.focused);
 
     if (con->con_is_docked()) {
@@ -331,16 +330,21 @@ bool floating_enable(Con *con, bool automatic) {
     x_set_name(nc, fmt::format("[i3 con] floatingcon around {}", fmt::ptr(con)));
 
     DLOG(fmt::sprintf("Original rect: (%d, %d) with %d x %d\n", con->rect.x, con->rect.y, con->rect.width, con->rect.height));
-    DLOG(fmt::sprintf("Geometry = (%d, %d) with %d x %d\n", con->geometry.x, con->geometry.y, con->geometry.width, con->geometry.height));
+    //DLOG(fmt::sprintf("Geometry = (%d, %d) with %d x %d\n", con->geometry.x, con->geometry.y, con->geometry.width, con->geometry.height));
     nc->rect = con->geometry;
     /* If the geometry was not set (split containers), we need to determine a
      * sensible one by combining the geometry of all children */
     if (nc->rect == (Rect){0, 0, 0, 0}) {
         DLOG("Geometry not set, combining children\n");
         for (auto &child : con->nodes) {
-            DLOG(fmt::sprintf("child geometry: %d x %d\n", child->geometry.width, child->geometry.height));
-            nc->rect.width += child->geometry.width;
-            nc->rect.height = std::max(nc->rect.height, child->geometry.height);
+            uint32_t height = 0, width = 0;
+            if (auto cc = dynamic_cast<ConCon*>(child); cc) {
+                height = cc->geometry.height;
+                width = cc->geometry.width;
+            }
+            DLOG(fmt::sprintf("child geometry: %d x %d\n", width, height));
+            nc->rect.width += width;
+            nc->rect.height = std::max(nc->rect.height, height);
         }
     }
 
@@ -420,7 +424,7 @@ bool floating_enable(Con *con, bool automatic) {
     return true;
 }
 
-void floating_disable(Con *con) {
+void floating_disable(ConCon *con) {
     if (!con->con_is_floating()) {
         LOG("Container isn't floating, not doing anything.\n");
         return;
@@ -453,7 +457,7 @@ void floating_disable(Con *con) {
  * window class from the application which can be overwritten by the user.
  *
  */
-void toggle_floating_mode(Con *con, bool automatic) {
+void toggle_floating_mode(ConCon *con, bool automatic) {
     /* forbid the command to toggle floating on a CT_FLOATING_CON */
     if (con->type == CT_FLOATING_CON) {
         ELOG(fmt::sprintf("Cannot toggle floating mode on con = %p because it is of type CT_FLOATING_CON.\n", fmt::ptr(con)));
@@ -774,12 +778,12 @@ void floating_resize(Con *floating_con, uint32_t x, uint32_t y) {
     DLOG(fmt::sprintf("floating resize to %dx%d px\n", x, y));
     Rect &rect = floating_con->rect;
     Con *focused_con = con_descend_focused(floating_con);
-    if (focused_con->window == nullptr) {
+    if (focused_con->get_window() == nullptr) {
         DLOG("No window is focused. Not resizing.\n");
         return;
     }
-    int wi = focused_con->window->width_increment;
-    int hi = focused_con->window->height_increment;
+    int wi = focused_con->get_window()->width_increment;
+    int hi = focused_con->get_window()->height_increment;
     bool prefer_height = (rect.width == x);
     rect.width = x;
     rect.height = y;

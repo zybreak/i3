@@ -86,7 +86,7 @@ static bool drain_drag_events(EV_P_ struct drag_x11_cb *dragloop) {
 
             case XCB_UNMAP_NOTIFY: {
                 auto *unmap_event = (xcb_unmap_notify_event_t *)event;
-                Con *con = con_by_window_id(unmap_event->window);
+                ConCon *con = con_by_window_id(unmap_event->window);
 
                 if (con != nullptr) {
                     DLOG(fmt::sprintf("UnmapNotify for window 0x%08x (container %p)\n",  unmap_event->window, fmt::ptr(con)));

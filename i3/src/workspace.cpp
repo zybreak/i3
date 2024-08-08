@@ -329,7 +329,7 @@ static Con *_get_sticky(Con *con, const std::string &sticky_group, Con *exclude)
     for (auto &current : con->nodes) {
         if (current != exclude &&
             !current->sticky_group.empty() &&
-            current->window != nullptr &&
+            current->get_window() != nullptr &&
             current->sticky_group == sticky_group) {
             return current;
         }
@@ -344,7 +344,7 @@ static Con *_get_sticky(Con *con, const std::string &sticky_group, Con *exclude)
         for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
             if (current != exclude &&
                 !current->sticky_group.empty() &&
-                current->window != nullptr &&
+                current->get_window() != nullptr &&
                 current->sticky_group == sticky_group) {
                 return current;
             }
@@ -389,15 +389,24 @@ static void workspace_reassign_sticky(Con *con) {
             continue;
         }
 
-        x_move_win(src, current);
-        current->window = src->window;
-        current->mapped = true;
-        src->window = nullptr;
-        src->mapped = false;
+        {
+            ConCon *src2 = dynamic_cast<ConCon *>(src);
+            ConCon *current2 = dynamic_cast<ConCon *>(current);
+            if (src2 != nullptr && current2 != nullptr) {
+                x_move_win(src2, current2);
+                current2->window = src2->window;
+                current2->mapped = true;
+                src2->window = nullptr;
+                src2->mapped = false;
 
-        x_reparent_child(current, src);
+                x_reparent_child(current2, src2);
 
-        LOG(fmt::sprintf("re-assigned window from src %p to dest %p\n", fmt::ptr(src), fmt::ptr(current)));
+                LOG(fmt::sprintf("re-assigned window from src %p to dest %p\n", fmt::ptr(src), fmt::ptr(current)));
+            } else {
+                throw std::runtime_error("reassigning sticky window failed");
+            }
+        }
+        
     }
 
     if (dynamic_cast<WorkspaceCon*>(con)) {

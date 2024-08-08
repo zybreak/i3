@@ -76,7 +76,7 @@ void i3Window::window_update_name(xcb_get_property_reply_t *prop) {
     this->name = prop_name;
     free(prop_name);
 
-    Con *con = con_by_window_id(id);
+    ConCon *con = con_by_window_id(id);
     if (con != nullptr && !con->title_format.empty()) {
         std::string title = con_parse_title_format(con);
         ewmh_update_visible_name(id, title.c_str());
@@ -110,7 +110,7 @@ void i3Window::window_update_name_legacy(xcb_get_property_reply_t *prop) {
     this->name = prop_name;
     free(prop_name);
 
-    Con *con = con_by_window_id(id);
+    ConCon *con = con_by_window_id(id);
     if (con != nullptr && !con->title_format.empty()) {
         std::string title = con_parse_title_format(con);
         ewmh_update_visible_name(id, title.c_str());

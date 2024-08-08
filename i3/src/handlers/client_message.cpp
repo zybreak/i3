@@ -59,7 +59,7 @@ static void handle_state(xcb_client_message_event_t *event) {
         return;
     }
 
-    Con *con = con_by_window_id(event->window);
+    ConCon *con = con_by_window_id(event->window);
     if (con == nullptr) {
         DLOG("Could not get window for client message\n");
         return;
@@ -108,7 +108,7 @@ static void handle_active_window(xcb_client_message_event_t *event) {
 
     DLOG(fmt::sprintf("_NET_ACTIVE_WINDOW: Window 0x%08x should be activated\n", event->window));
 
-    Con *con = con_by_window_id(event->window);
+    ConCon *con = con_by_window_id(event->window);
     if (con == nullptr) {
         DLOG("Could not get window for client message\n");
         return;
@@ -213,7 +213,7 @@ static void handle_desktop(xcb_client_message_event_t *event) {
     uint32_t index = event->data.data32[0];
     DLOG(fmt::sprintf("Request to move window %d to EWMH desktop index %d\n", event->window, index));
 
-    Con *con = con_by_window_id(event->window);
+    ConCon *con = con_by_window_id(event->window);
     if (con == nullptr) {
         DLOG(fmt::sprintf("Couldn't find con for window %d, ignoring the request.\n", event->window));
         return;
@@ -251,7 +251,7 @@ static void handle_close_window(xcb_client_message_event_t *event) {
         * client message request to the root window.
         * https://standards.freedesktop.org/wm-spec/wm-spec-latest.html#idm140200472668896
         */
-    Con *con = con_by_window_id(event->window);
+    ConCon *con = con_by_window_id(event->window);
     if (con) {
         DLOG(fmt::sprintf("Handling _NET_CLOSE_WINDOW request (con = %p)\n", fmt::ptr(con)));
 
@@ -270,7 +270,7 @@ static void handle_move_resize(xcb_client_message_event_t *event) {
         * Client-side decorated Gtk3 windows emit this signal when being
         * dragged by their GtkHeaderBar
         */
-    Con *con = con_by_window_id(event->window);
+    ConCon *con = con_by_window_id(event->window);
     if (!con || !con->con_is_floating()) {
         DLOG(fmt::sprintf("Couldn't find con for _NET_WM_MOVERESIZE request, or con not floating (window = %08x)\n", event->window));
         return;

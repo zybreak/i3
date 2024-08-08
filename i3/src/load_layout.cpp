@@ -134,9 +134,9 @@ static void json_end_map(tree_append_ctx &ctx) {
             if (ctx.json_node->rect == (Rect){0, 0, 0, 0}) {
                 DLOG("Geometry not set, combining children\n");
                 for (auto &child : ctx.json_node->nodes) {
-                    DLOG(fmt::sprintf("child geometry: %d x %d\n",  child->geometry.width, child->geometry.height));
-                    ctx.json_node->rect.width += child->geometry.width;
-                    ctx.json_node->rect.height = std::max(ctx.json_node->rect.height, child->geometry.height);
+                    DLOG(fmt::sprintf("child geometry: %d x %d\n",  child->get_geometry().width, child->get_geometry().height));
+                    ctx.json_node->rect.width += child->get_geometry().width;
+                    ctx.json_node->rect.height = std::max(ctx.json_node->rect.height, child->get_geometry().height);
                 }
             }
 
@@ -156,7 +156,7 @@ static void json_end_map(tree_append_ctx &ctx) {
 
             /* Force floating_enable to work */
             ctx.json_node->floating = FLOATING_AUTO_OFF;
-            floating_enable(ctx.json_node, false);
+            floating_enable(dynamic_cast<ConCon*>(ctx.json_node), false);
             ctx.json_node->floating = static_cast<con_floating_t>(old_floating_mode);
         }
 
@@ -398,7 +398,7 @@ static void json_int(tree_append_ctx &ctx, long long val) {
         ctx.json_node->current_border_width = val;
 
     if (ctx.last_key == "window_icon_padding") {
-        ctx.json_node->window_icon_padding = val;
+        dynamic_cast<ConCon*>(ctx.json_node)->window_icon_padding = val;
     }
 
     if (ctx.last_key == "depth")
@@ -416,9 +416,9 @@ static void json_int(tree_append_ctx &ctx, long long val) {
         if (ctx.parsing_rect)
             r = &(ctx.json_node->rect);
         else if (ctx.parsing_window_rect)
-            r = &(ctx.json_node->window_rect);
+            r = &(ctx.json_node->get_window_rect());
         else
-            r = &(ctx.json_node->geometry);
+            r = &(ctx.json_node->get_geometry());
         if (ctx.last_key == "x")
             r->x = val;
         else if (ctx.last_key == "y")

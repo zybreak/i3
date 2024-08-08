@@ -117,9 +117,10 @@ static bool con_has_urgent_child(Con *con) {
  * container exists.
  *
  */
-Con *con_by_window_id(xcb_window_t window) {
-    for (const auto &con : global.all_cons) {
-        if (con->window != nullptr && con->window->id == window) {
+ConCon *con_by_window_id(xcb_window_t window) {
+    for (const auto &c : global.all_cons) {
+        auto con = dynamic_cast<ConCon*>(c);
+        if (con && con->window != nullptr && con->window->id == window) {
             return con;
         }
     }
@@ -150,14 +151,14 @@ bool con_find_transient_for_window(Con *start, xcb_window_t target) {
     Con *transient_con = start;
     int count = global.croot->con_num_windows();
     while (transient_con != nullptr &&
-           transient_con->window != nullptr &&
-           transient_con->window->transient_for != XCB_NONE) {
+           transient_con->get_window() != nullptr &&
+           transient_con->get_window()->transient_for != XCB_NONE) {
         DLOG(fmt::sprintf("transient_con = 0x%08x, transient_con->window->transient_for = 0x%08x, target = 0x%08x\n",
-             transient_con->window->id, transient_con->window->transient_for, target));
-        if (transient_con->window->transient_for == target) {
+             transient_con->get_window()->id, transient_con->get_window()->transient_for, target));
+        if (transient_con->get_window()->transient_for == target) {
             return true;
         }
-        Con *next_transient = con_by_window_id(transient_con->window->transient_for);
+        auto next_transient = con_by_window_id(transient_con->get_window()->transient_for);
         if (next_transient == nullptr) {
             break;
         }
@@ -257,16 +258,16 @@ static void con_set_fullscreen_mode(xcb_connection_t *conn, Con *con, fullscreen
     /* update _NET_WM_STATE if this container has a window */
     /* TODO: when a window is assigned to a container which is already
      * fullscreened, this state needs to be pushed to the client, too */
-    if (con->window == nullptr) {
+    if (con->get_window() == nullptr) {
         return;
     }
 
     if (con->fullscreen_mode != CF_NONE) {
-        DLOG(fmt::sprintf("Setting _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n", fmt::ptr(con), con->window->id));
-        xcb_add_property_atom(conn, con->window->id, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN]);
+        DLOG(fmt::sprintf("Setting _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n", fmt::ptr(con), con->get_window()->id));
+        xcb_add_property_atom(conn, con->get_window()->id, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN]);
     } else {
-        DLOG(fmt::sprintf("Removing _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n", fmt::ptr(con), con->window->id));
-        xcb_remove_property_atom(conn, con->window->id, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN]);
+        DLOG(fmt::sprintf("Removing _NET_WM_STATE_FULLSCREEN for con = %p / window = %d.\n", fmt::ptr(con), con->get_window()->id));
+        xcb_remove_property_atom(conn, con->get_window()->id, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN]);
     }
 }
 
@@ -508,15 +509,15 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
      * delete it so child windows won't be created on the old workspace. */
     if (!con->con_is_leaf()) {
         for (auto &child : con->nodes) {
-            if (!child->window) {
+            if (child->get_window() == nullptr) {
                 continue;
             }
-            startup_sequence_delete_by_window(child->window);
+            startup_sequence_delete_by_window(child->get_window());
         }
     }
 
-    if (con->window) {
-        startup_sequence_delete_by_window(con->window);
+    if (con->get_window()) {
+        startup_sequence_delete_by_window(con->get_window());
     }
 
     /* 9. If the container was marked urgent, move the urgency hint. */
@@ -1060,15 +1061,15 @@ std::string con_get_tree_representation(Con *con) {
 
     /* end of recursion */
     if (con->con_is_leaf()) {
-        if (!con->window) {
+        if (!con->get_window()) {
             return "nowin";
         }
 
-        if (con->window->class_instance.empty()) {
+        if (con->get_window()->class_instance.empty()) {
             return "noinstance";
         }
 
-        return con->window->class_instance;
+        return con->get_window()->class_instance;
     }
 
     std::string buf{};
@@ -1107,7 +1108,7 @@ std::string con_get_tree_representation(Con *con) {
 std::string con_parse_title_format(Con *con) {
     assert(!con->title_format.empty());
 
-    i3Window *win = con->window;
+    i3Window *win = con->get_window();
 
     std::string title;
     std::string window_class;

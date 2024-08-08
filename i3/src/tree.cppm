@@ -15,6 +15,7 @@ import std;
 import :internal;
 
 class Con;
+class ConCon;
 class i3Window;
 
 export {
@@ -3319,7 +3320,7 @@ typename Tree<T, tree_node_allocator>::leaf_iterator& Tree<T, tree_node_allocato
      * Opens an empty container in the current container
      *
      */
-    Con *tree_open_con(Con * con, i3Window * window);
+    ConCon *tree_open_con(Con * con, i3Window * window);
 
     /**
      * Splits (horizontally or vertically) the given container by creating a new

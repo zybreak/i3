@@ -15,6 +15,7 @@ export module i3:floating;
 import rect;
 
 class Con;
+class ConCon;
 class FloatingCon;
 
 export {
@@ -32,14 +33,14 @@ export {
      * floating_windows list of the workspace.
      *
      */
-    bool floating_enable(Con * con, bool automatic);
+    bool floating_enable(ConCon * con, bool automatic);
 
     /**
      * Disables floating mode for the given container by re-attaching the container
      * to its old parent.
      *
      */
-    void floating_disable(Con * con);
+    void floating_disable(ConCon * con);
 
     /**
      * Calls floating_enable() for tiling containers and floating_disable() for
@@ -50,7 +51,7 @@ export {
      * the user.
      *
      */
-    void toggle_floating_mode(Con * con, bool automatic);
+    void toggle_floating_mode(ConCon * con, bool automatic);
 
     /**
      * Raises the given container in the list of floating containers

@@ -190,8 +190,8 @@ static void free_configuration() {
 
     for (const auto &con : global.all_cons) {
         /* Assignments changed, previously ran assignments are invalid. */
-        if (con->window) {
-            con->window->ran_assignments.clear();
+        if (con->get_window()) {
+            con->get_window()->ran_assignments.clear();
         }
         /* Invalidate pixmap caches in case font or colors changed. */
         con->deco_render_params.reset();

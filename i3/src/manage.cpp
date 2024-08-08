@@ -75,8 +75,8 @@ void manage_existing_windows(xcb_window_t root) {
 void restore_geometry() {
     DLOG("Restoring geometry\n");
 
-    for (const auto &con : global.all_cons) {
-        if (con->window) {
+    for (const auto &c : global.all_cons) {
+        if (auto con = dynamic_cast<ConCon*>(c); con) {
             DLOG(fmt::sprintf("Re-adding X11 border of %d px\n", con->border_width));
             con->window_rect.width += (2 * con->border_width);
             con->window_rect.height += (2 * con->border_width);
@@ -121,7 +121,7 @@ static bool con_move_to_output_name(Con *con, const std::string &name, bool fix_
  * old container.
  *
  */
-static void con_merge_into(Con *old, Con *new_con) {
+static void con_merge_into(ConCon *old, ConCon *new_con) {
     new_con->window = old->window;
     old->window = nullptr;
 
@@ -304,9 +304,10 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     /* See if any container swallows this new window */
     cwindow->swallowed = false;
     Match *match = nullptr;
-    Con *nc = con_for_window(search_at, cwindow, &match);
+    Con *nc_for_window = con_for_window(search_at, cwindow, &match);
+    ConCon *nc = nullptr;
     const bool match_from_restart_mode = (match && match->restart_mode);
-    if (nc == nullptr) {
+    if (nc_for_window == nullptr) {
         Con *wm_desktop_ws = nullptr;
         auto assignmentOpt = global.assignmentManager->assignment_for<WorkspaceAssignment>(cwindow);
 
@@ -326,12 +327,12 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
                 assigned_ws = workspace_get_or_create(assignmentOpt->get().workspace);
             }
 
-            nc = con_descend_tiling_focused(assigned_ws);
-            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", assigned_ws->name, fmt::ptr(nc), nc->name));
-            if (nc->type == CT_WORKSPACE) {
-                nc = tree_open_con(nc, cwindow);
+            auto descend_nc = con_descend_tiling_focused(assigned_ws);
+            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", assigned_ws->name, fmt::ptr(descend_nc), descend_nc->name));
+            if (descend_nc->type == CT_WORKSPACE) {
+                nc = tree_open_con(descend_nc, cwindow);
             } else {
-                nc = tree_open_con(nc->parent, cwindow);
+                nc = tree_open_con(descend_nc->parent, cwindow);
             }
 
             /* set the urgency hint on the window if the workspace is not visible */
@@ -348,41 +349,43 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             DLOG(fmt::sprintf("Using workspace %p / %s because _NET_WM_DESKTOP = %d.\n",
                               fmt::ptr(wm_desktop_ws), wm_desktop_ws->name, cwindow->wm_desktop));
 
-            nc = con_descend_tiling_focused(wm_desktop_ws);
-            if (nc->type == CT_WORKSPACE) {
-                nc = tree_open_con(nc, cwindow);
+            auto descend_nc = con_descend_tiling_focused(wm_desktop_ws);
+            if (descend_nc->type == CT_WORKSPACE) {
+                nc = tree_open_con(descend_nc, cwindow);
             } else {
-                nc = tree_open_con(nc->parent, cwindow);
+                nc = tree_open_con(descend_nc->parent, cwindow);
             }
         } else if (startup_ws) {
             /* If it was started on a specific workspace, we want to open it there. */
             DLOG(fmt::sprintf("Using workspace on which this application was started (%s)\n", startup_ws));
-            nc = con_descend_tiling_focused(workspace_get_or_create(startup_ws));
-            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", startup_ws, fmt::ptr(nc), nc->name));
-            if (nc->type == CT_WORKSPACE) {
-                nc = tree_open_con(nc, cwindow);
+            auto descend_nc = con_descend_tiling_focused(workspace_get_or_create(startup_ws));
+            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", startup_ws, fmt::ptr(descend_nc), descend_nc->name));
+            if (descend_nc->type == CT_WORKSPACE) {
+                nc = tree_open_con(descend_nc, cwindow);
             } else {
-                nc = tree_open_con(nc->parent, cwindow);
+                nc = tree_open_con(descend_nc->parent, cwindow);
             }
         } else {
             /* If not, insert it at the currently focused position */
             if (global.focused->type == CT_CON && global.focused->con_accepts_window()) {
                 LOG(fmt::sprintf("using current container, focused = %p, focused->name = %s\n",
                                  fmt::ptr(global.focused), global.focused->name));
-                nc = global.focused;
+                nc = dynamic_cast<ConCon*>(global.focused);
             } else {
                 nc = tree_open_con(nullptr, cwindow);
             }
         }
         auto outputAssignmentOpt = global.assignmentManager->assignment_for<OutputAssignment>(cwindow);
         if (outputAssignmentOpt) {
-            con_move_to_output_name(nc, outputAssignmentOpt->get().output, true);
+            con_move_to_output_name(nc_for_window, outputAssignmentOpt->get().output, true);
         }
     } else {
         /* M_BELOW inserts the new window as a child of the one which was
          * matched (e.g. dock areas) */
         if (match != nullptr && match->insert_where == M_BELOW) {
-            nc = tree_open_con(nc, cwindow);
+            nc = tree_open_con(nc_for_window, cwindow);
+        } else {
+            nc = dynamic_cast<ConCon*>(nc_for_window); // TODO: bad?
         }
 
         /* If M_BELOW is not used, the container is replaced. This happens with
@@ -400,8 +403,8 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     }
 
     DLOG(fmt::sprintf("new container = %p\n", fmt::ptr(nc)));
-    if (nc->window != nullptr && nc->window != cwindow) {
-        if (!restore_kill_placeholder(nc->window->id)) {
+    if (nc->get_window() != nullptr && nc->get_window() != cwindow) {
+        if (!restore_kill_placeholder(nc->get_window()->id)) {
             DLOG("Uh?! Container without a placeholder, but with a window, has swallowed this to-be-managed window?!\n");
         } else {
             /* Remove remaining criteria, the first swallowed window wins. */
@@ -520,8 +523,8 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
             con_toggle_fullscreen(fs, CF_OUTPUT);
         } else if (global.configManager->config->popup_during_fullscreen == PDF_SMART &&
                    fs != nullptr &&
-                   fs->window != nullptr) {
-            set_focus = con_find_transient_for_window(nc, fs->window->id);
+                   fs->get_window() != nullptr) {
+            set_focus = con_find_transient_for_window(nc, fs->get_window()->id);
         }
     }
 
@@ -700,23 +703,31 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     output_push_sticky_windows(global.focused);
 }
 
-static Con *placeholder_for_con(Con *con) {
+static ConCon *placeholder_for_con(ConCon *con) {
     /* Make sure this windows hasn't already been swallowed. */
     if (con->window->swallowed) {
         return nullptr;
     }
     Match *match;
     Con *nc = con_for_window(global.croot, con->window, &match);
-    if (nc == nullptr || nc->window == nullptr || nc->window == con->window) {
+    if (nc == nullptr || nc->get_window() == nullptr || nc->get_window() == con->window) {
         return nullptr;
     }
     /* Make sure the placeholder that wants to swallow this window didn't spawn
      * after the window to follow current behavior: adding a placeholder won't
      * swallow windows currently managed. */
-    if (nc->window->managed_since > con->window->managed_since) {
+    if (nc->get_window()->managed_since > con->window->managed_since) {
         return nullptr;
     }
-    return nc;
+    
+    auto concon = dynamic_cast<ConCon*>(nc);
+    
+    if (concon == nullptr) {
+        ELOG("Placeholder is not a container! This is because of a erroneous assumption on my part\n");
+        return nullptr;
+    }
+    
+    return concon;
 }
 
 /*
@@ -724,8 +735,8 @@ static Con *placeholder_for_con(Con *con) {
  * Returns con for the window regardless if it updated.
  *
  */
-Con *remanage_window(Con *con) {
-    Con *nc = placeholder_for_con(con);
+ConCon *remanage_window(ConCon *con) {
+    ConCon *nc = placeholder_for_con(con);
     if (!nc) {
         /* The con is not updated, just run assignments */
         global.assignmentManager->run_assignments(con->window);

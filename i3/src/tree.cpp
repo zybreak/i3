@@ -101,7 +101,7 @@ void tree_init(const xcb_get_geometry_reply_t *geometry) {
  * Opens an empty container in the current container
  *
  */
-Con *tree_open_con(Con *con, i3Window *window) {
+ConCon *tree_open_con(Con *con, i3Window *window) {
     if (con == nullptr) {
         /* every focusable Con has a parent (outputs have parent root) */
         con = global.focused->parent;
@@ -125,7 +125,7 @@ Con *tree_open_con(Con *con, i3Window *window) {
     assert(con != nullptr);
 
     /* 3. create the container and attach it to its parent */
-    Con *new_con = new ConCon(window);
+    ConCon *new_con = new ConCon(window);
     new_con->con_attach(con, false);
 
     new_con->layout = L_SPLITH;
@@ -170,9 +170,9 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
         return false;
     }
 
-    if (con->window != nullptr) {
+    if (ConCon *con2 = dynamic_cast<ConCon*>(con); con2 != nullptr) {
         if (kill_window != kill_window_t::DONT_KILL_WINDOW) {
-            x_window_kill(**global.x, con->window->id, kill_window);
+            x_window_kill(**global.x, con2->window->id, kill_window);
             return false;
         } else {
             xcb_void_cookie_t cookie;
@@ -180,10 +180,10 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
              * unmap the window,
              * then reparent it to the root window. */
             uint32_t value_list[]{XCB_NONE};
-            xcb_change_window_attributes(**global.x, con->window->id,
+            xcb_change_window_attributes(**global.x, con2->window->id,
                                          XCB_CW_EVENT_MASK, value_list);
-            xcb_unmap_window(**global.x, con->window->id);
-            cookie = xcb_reparent_window(**global.x, con->window->id, global.x->root, con->rect.x, con->rect.y);
+            xcb_unmap_window(**global.x, con2->window->id);
+            cookie = xcb_reparent_window(**global.x, con2->window->id, global.x->root, con2->rect.x, con2->rect.y);
 
             /* Ignore X11 errors for the ReparentWindow request.
              * X11 Errors are returned when the window was already destroyed */
@@ -193,27 +193,27 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
              * WM_STATE_WITHDRAWN (see ICCCM 4.1.3.1) */
             long data[] = {XCB_ICCCM_WM_STATE_WITHDRAWN, XCB_NONE};
             cookie = xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE,
-                                         con->window->id, i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], 32, 2, data);
+                                         con2->window->id, i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], 32, 2, data);
 
             /* Remove the window from the save set. All windows in the save set
              * will be mapped when i3 closes its connection (e.g. when
              * restarting). This is not what we want, since some apps keep
              * unmapped windows around and don’t expect them to suddenly be
              * mapped. See https://bugs.i3wm.org/1617 */
-            xcb_change_save_set(**global.x, XCB_SET_MODE_DELETE, con->window->id);
+            xcb_change_save_set(**global.x, XCB_SET_MODE_DELETE, con2->window->id);
 
             /* Stop receiving ShapeNotify events. */
             if (global.shape->shape_supported) {
-                xcb_shape_select_input(**global.x, con->window->id, false);
+                xcb_shape_select_input(**global.x, con2->window->id, false);
             }
 
             /* Ignore X11 errors for the ReparentWindow request.
              * X11 Errors are returned when the window was already destroyed */
             global.handlers->add_ignore_event(cookie.sequence, 0);
         }
-        ipc_send_window_event("close", con);
-        delete con->window;
-        con->window = nullptr;
+        ipc_send_window_event("close", con2);
+        delete con2->window;
+        con2->window = nullptr;
     }
 
     Con *ws = con->con_get_workspace();
@@ -633,7 +633,7 @@ void tree_flatten(Con *con) {
     /* We only consider normal containers without windows */
     if (con->type != CT_CON ||
         parent->layout == L_OUTPUT || /* con == "content" */
-        con->window != nullptr) {
+        con->get_window() != nullptr) {
         /* We cannot use normal foreach here because tree_flatten might close the current container. */
         for (auto &current : con->nodes) {
             tree_flatten(current);

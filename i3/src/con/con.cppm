@@ -11,6 +11,7 @@
  */
 module;
 #include <xcb/xproto.h>
+#include <ev.h>
 export module i3:con;
 
 import std;
@@ -111,24 +112,14 @@ export {
         /* The position and size for this con. These coordinates are absolute. Note
          * that the rect of a container does not include the decoration. */
         Rect rect{};
-        /* The position and size of the actual client window. These coordinates are
-         * relative to the container's rect. */
-        Rect window_rect{};
         /* The position and size of the container's decoration. These coordinates
          * are relative to the container's parent's rect. */
         Rect deco_rect{};
-        /** the geometry this window requested when getting mapped */
-        Rect geometry{};
 
         std::string name{};
 
         /** The format with which the window's name should be displayed. */
         std::string title_format{};
-
-        /** Whether the window icon should be displayed, and with what padding. -1
-         * means display no window icon (default behavior), 0 means display without
-         * any padding, 1 means display with 1 pixel of padding and so on. */
-        int window_icon_padding;
 
         /* a sticky-group is an identifier which bundles several containers to a
          * group. The contents are shared between all of them, that is they are
@@ -141,10 +132,8 @@ export {
         int border_width{};
         int current_border_width;
 
-        i3Window *window;
-
         /* timer used for disabling urgency */
-        struct ev_timer *urgency_timer{};
+        ev_timer *urgency_timer{};
 
         /** Cache for the decoration rendering */
         std::optional<std::unique_ptr<deco_render_params>> deco_render_params{};
@@ -421,25 +410,47 @@ export {
          *
          */
         void con_set_urgency(bool urgent);
-
-        /**
-         * Create a new container (and attach it to the given parent, if not NULL).
-         * This function only initializes the data structures.
-         *
-         */
-        Con(i3Window *window = nullptr, bool skeleton = false);
+        
+        virtual i3Window* get_window() {
+            return nullptr;
+        }
+        
+        virtual Rect& get_geometry() {
+            static Rect r{};
+            return r;
+        }
+        
+        virtual Rect& get_window_rect() {
+            static Rect r{};
+            return r;
+        }
+        
+        virtual int get_window_icon_padding() {
+            return -1;
+        }
+        
+        Con() = delete;
 
         /**
          * Frees the specified container.
          *
          */
         virtual ~Con();
+
+    protected:
+        /**
+         * Create a new container (and attach it to the given parent, if not NULL).
+         * This function only initializes the data structures.
+         *
+         */
+        explicit Con(bool skeleton);
+
     };
 
     class RootCon : public Con {
        public:
         RootCon()
-            : Con(nullptr, false) {
+            : Con(false) {
             this->type = CT_ROOT;
             this->name = "root";
         }
@@ -454,7 +465,7 @@ export {
     class OutputCon : public Con {
        public:
         OutputCon()
-            : Con(nullptr, false) {
+            : Con(false) {
             this->type = CT_OUTPUT;
             this->layout = L_OUTPUT;
         }
@@ -474,19 +485,32 @@ export {
 
     class ConCon : public Con {
        public:
-        ConCon(i3Window *window = nullptr, bool skeleton = false)
-            : Con(window, skeleton) {
-            this->type = CT_CON;
-        }
+        /** The position and size of the actual client window. These coordinates are
+         * relative to the container's rect. */
+        Rect window_rect{};
+        /** the geometry this window requested when getting mapped */
+        Rect geometry{};
+        /** Whether the window icon should be displayed, and with what padding. -1
+         * means display no window icon (default behavior), 0 means display without
+         * any padding, 1 means display with 1 pixel of padding and so on. */
+        int window_icon_padding;
+        i3Window *window;
+        
         bool con_has_managed_window() override;
         bool con_accepts_window() override;
+        i3Window* get_window() override;
+        Rect& get_geometry() override;
+        Rect& get_window_rect() override;
+        int get_window_icon_padding() override;
+        
+        ConCon(i3Window *window = nullptr, bool skeleton = false);
     };
 
     /* Wrap a floating ConCon in a FloatingCon. */
     class FloatingCon : public Con {
        public:
         FloatingCon()
-            : Con(nullptr, false) {
+            : Con(false) {
             this->type = CT_FLOATING_CON;
         }
         void con_attach(Con *parent, bool ignore_focus, Con *previous = nullptr) override;
@@ -497,7 +521,7 @@ export {
     class DockCon : public Con {
        public:
         DockCon()
-            : Con(nullptr, false) {
+            : Con(false) {
             this->type = CT_DOCKAREA;
             this->layout = L_DOCKAREA;
         }
@@ -533,7 +557,7 @@ export {
         int num{};
 
         WorkspaceCon()
-            : Con(nullptr, false) {
+            : Con(false) {
             this->type = CT_WORKSPACE;
             this->workspace_layout = L_DEFAULT;
         }
@@ -564,7 +588,7 @@ export {
      * container exists.
      *
      */
-    Con *con_by_window_id(xcb_window_t window);
+    ConCon *con_by_window_id(xcb_window_t window);
 
     /**
      * Returns the container with the given frame ID or NULL if no such container

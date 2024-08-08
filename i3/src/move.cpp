@@ -300,7 +300,7 @@ void tree_move(Con *con, direction_t direction) {
         if (!same_orientation) {
             if (con->con_is_floating()) {
                 /* this is a floating con, we just disable floating */
-                floating_disable(con);
+                floating_disable(dynamic_cast<ConCon*>(con));
                 return;
             }
             if (con->con_inside_floating()) {
