@@ -119,9 +119,9 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
          * their declaration order in the config file. See #3491. */
         current = nullptr;
         for (auto &loop : nodes) {
-            int result = strcasecmp_nullable(dynamic_cast<ConCon*>(this)->window->class_class.c_str(), dynamic_cast<ConCon*>(loop)->window->class_class.c_str());
+            int result = strcasecmp_nullable(dynamic_cast<ConCon*>(this)->get_window()->class_class.c_str(), dynamic_cast<ConCon*>(loop)->get_window()->class_class.c_str());
             if (result == 0) {
-                result = strcasecmp_nullable(dynamic_cast<ConCon*>(this)->window->class_instance.c_str(), dynamic_cast<ConCon*>(loop)->window->class_instance.c_str());
+                result = strcasecmp_nullable(dynamic_cast<ConCon*>(this)->get_window()->class_instance.c_str(), dynamic_cast<ConCon*>(loop)->get_window()->class_instance.c_str());
             }
             if (result < 0) {
                 current = loop;

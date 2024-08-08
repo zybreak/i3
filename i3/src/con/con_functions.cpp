@@ -120,7 +120,7 @@ static bool con_has_urgent_child(Con *con) {
 ConCon *con_by_window_id(xcb_window_t window) {
     for (const auto &c : global.all_cons) {
         auto con = dynamic_cast<ConCon*>(c);
-        if (con && con->window != nullptr && con->window->id == window) {
+        if (con && con->get_window() != nullptr && con->get_window()->id == window) {
             return con;
         }
     }

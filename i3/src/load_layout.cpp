@@ -398,7 +398,7 @@ static void json_int(tree_append_ctx &ctx, long long val) {
         ctx.json_node->current_border_width = val;
 
     if (ctx.last_key == "window_icon_padding") {
-        dynamic_cast<ConCon*>(ctx.json_node)->window_icon_padding = val;
+        dynamic_cast<ConCon*>(ctx.json_node)->set_window_icon_padding(val);
     }
 
     if (ctx.last_key == "depth")

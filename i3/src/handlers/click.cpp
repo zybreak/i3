@@ -148,7 +148,7 @@ static bool tiling_resize(Con *con, xcb_button_press_event_t *event, const click
     Rect bsr = con_border_style_rect(con);
     DLOG(fmt::sprintf("BORDER x = %d, y = %d for con %p, window 0x%08x\n",
                       event->event_x, event->event_y, fmt::ptr(con), event->event));
-    //DLOG(fmt::sprintf("checks for right >= %d\n", con->window_rect.x + con->window_rect.width));
+    //DLOG(fmt::sprintf("checks for right >= %d\n", con->get_window_rect().x + con->get_window_rect().width));
     if (dest == CLICK_DECORATION) {
         return tiling_resize_for_border(con, BORDER_TOP, event, use_threshold);
     } else if (dest == CLICK_BORDER) {
@@ -163,13 +163,13 @@ static bool tiling_resize(Con *con, xcb_button_press_event_t *event, const click
     auto concon = dynamic_cast<ConCon*>(con);
    
     if (concon) {
-        if (event->event_x >= static_cast<int32_t>(concon->window_rect.x + concon->window_rect.width) &&
+        if (event->event_x >= static_cast<int32_t>(concon->get_window_rect().x + concon->get_window_rect().width) &&
             event->event_y >= static_cast<int32_t>(bsr.y) &&
             event->event_y <= static_cast<int32_t>(concon->rect.height + bsr.height)) {
             return tiling_resize_for_border(con, BORDER_RIGHT, event, false);
         }
 
-        if (event->event_y >= static_cast<int32_t>(concon->window_rect.y + concon->window_rect.height)) {
+        if (event->event_y >= static_cast<int32_t>(concon->get_window_rect().y + concon->get_window_rect().height)) {
             return tiling_resize_for_border(con, BORDER_BOTTOM, event, false);
         }
     }

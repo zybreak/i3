@@ -78,11 +78,11 @@ void restore_geometry() {
     for (const auto &c : global.all_cons) {
         if (auto con = dynamic_cast<ConCon*>(c); con) {
             DLOG(fmt::sprintf("Re-adding X11 border of %d px\n", con->border_width));
-            con->window_rect.width += (2 * con->border_width);
-            con->window_rect.height += (2 * con->border_width);
-            xcb_set_window_rect(**global.x, con->window->id, con->window_rect);
-            DLOG(fmt::sprintf("placing window %08x at %d %d\n", con->window->id, con->rect.x, con->rect.y));
-            xcb_reparent_window(**global.x, con->window->id, global.x->root,
+            con->get_window_rect().width += (2 * con->border_width);
+            con->get_window_rect().height += (2 * con->border_width);
+            xcb_set_window_rect(**global.x, con->get_window()->id, con->get_window_rect());
+            DLOG(fmt::sprintf("placing window %08x at %d %d\n", con->get_window()->id, con->rect.x, con->rect.y));
+            xcb_reparent_window(**global.x, con->get_window()->id, global.x->root,
                                 con->rect.x, con->rect.y);
         }
     }
@@ -122,8 +122,8 @@ static bool con_move_to_output_name(Con *con, const std::string &name, bool fix_
  *
  */
 static void con_merge_into(ConCon *old, ConCon *new_con) {
-    new_con->window = old->window;
-    old->window = nullptr;
+    new_con->set_window(old->get_window());
+    old->set_window(nullptr);
 
     if (!old->title_format.empty()) {
         new_con->title_format = old->title_format;
@@ -412,12 +412,12 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
         }
     }
     xcb_window_t old_frame = XCB_NONE;
-    if (nc->window != cwindow && nc->window != nullptr) {
-        delete nc->window;
-        nc->window = nullptr;
+    if (nc->get_window() != cwindow && nc->get_window() != nullptr) {
+        delete nc->get_window();
+        nc->set_window(nullptr);
         old_frame = _match_depth(cwindow, nc);
     }
-    nc->window = cwindow;
+    nc->set_window(cwindow);
     x_reinit(nc);
 
     nc->border_width = geom->border_width;
@@ -538,12 +538,12 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
      * window to be useful (smaller windows are usually overlays/toolbars/…
      * which are not managed by the wm anyways). We store the original geometry
      * here because it’s used for dock clients. */
-    if (nc->geometry.width == 0) {
-        nc->geometry = (Rect){static_cast<uint32_t>(geom->x), static_cast<uint32_t>(geom->y), geom->width, geom->height};
+    if (nc->get_geometry().width == 0) {
+        nc->set_geometry((Rect){static_cast<uint32_t>(geom->x), static_cast<uint32_t>(geom->y), geom->width, geom->height});
     }
 
     if (want_floating) {
-        DLOG(fmt::sprintf("geometry = %d x %d\n", nc->geometry.width, nc->geometry.height));
+        DLOG(fmt::sprintf("geometry = %d x %d\n", nc->get_geometry().width, nc->get_geometry().height));
         if (floating_enable(nc, true)) {
             nc->floating = FLOATING_AUTO_ON;
         }
@@ -669,7 +669,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
          * take care of not setting the input focus. However, one exception to
          * this are clients using the globally active input model which we
          * don't want to focus at all. */
-        if (nc->window->doesnt_accept_focus && !nc->window->needs_take_focus) {
+        if (nc->get_window()->doesnt_accept_focus && !nc->get_window()->needs_take_focus) {
             set_focus = false;
         }
     }
@@ -705,18 +705,18 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
 
 static ConCon *placeholder_for_con(ConCon *con) {
     /* Make sure this windows hasn't already been swallowed. */
-    if (con->window->swallowed) {
+    if (con->get_window()->swallowed) {
         return nullptr;
     }
     Match *match;
-    Con *nc = con_for_window(global.croot, con->window, &match);
-    if (nc == nullptr || nc->get_window() == nullptr || nc->get_window() == con->window) {
+    Con *nc = con_for_window(global.croot, con->get_window(), &match);
+    if (nc == nullptr || nc->get_window() == nullptr || nc->get_window() == con->get_window()) {
         return nullptr;
     }
     /* Make sure the placeholder that wants to swallow this window didn't spawn
      * after the window to follow current behavior: adding a placeholder won't
      * swallow windows currently managed. */
-    if (nc->get_window()->managed_since > con->window->managed_since) {
+    if (nc->get_window()->managed_since > con->get_window()->managed_since) {
         return nullptr;
     }
     
@@ -739,19 +739,19 @@ ConCon *remanage_window(ConCon *con) {
     ConCon *nc = placeholder_for_con(con);
     if (!nc) {
         /* The con is not updated, just run assignments */
-        global.assignmentManager->run_assignments(con->window);
+        global.assignmentManager->run_assignments(con->get_window());
         return con;
     }
 
-    if (!restore_kill_placeholder(nc->window->id)) {
+    if (!restore_kill_placeholder(nc->get_window()->id)) {
         DLOG("Uh?! Container without a placeholder, but with a window, has swallowed this managed window?!\n");
     } else {
         _remove_matches(nc);
     }
-    delete nc->window;
-    nc->window = nullptr;
+    delete nc->get_window();
+    nc->set_window(nullptr);
 
-    xcb_window_t old_frame = _match_depth(con->window, nc);
+    xcb_window_t old_frame = _match_depth(con->get_window(), nc);
 
     x_reparent_child(nc, con);
 
@@ -765,16 +765,16 @@ ConCon *remanage_window(ConCon *con) {
         xcb_destroy_window(**global.x, old_frame);
     }
 
-    global.assignmentManager->run_assignments(nc->window);
+    global.assignmentManager->run_assignments(nc->get_window());
 
     if (moved_workpaces) {
         /* If the window is associated with a startup sequence, delete it so
          * child windows won't be created on the old workspace. */
-        startup_sequence_delete_by_window(nc->window);
+        startup_sequence_delete_by_window(nc->get_window());
 
         ewmh_update_wm_desktop();
     }
 
-    nc->window->swallowed = true;
+    nc->get_window()->swallowed = true;
     return nc;
 }

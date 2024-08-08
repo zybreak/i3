@@ -367,20 +367,20 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
         if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
             DLOG(fmt::sprintf("Dock client wants to change height to %d, we can do that.\n", event->height));
 
-            con->geometry.height = event->height;
+            con->get_geometry().height = event->height;
             tree_render();
         }
 
         if (event->value_mask & XCB_CONFIG_WINDOW_X || event->value_mask & XCB_CONFIG_WINDOW_Y) {
-            int16_t x = event->value_mask & XCB_CONFIG_WINDOW_X ? event->x : static_cast<int16_t>(con->geometry.x);
-            int16_t y = event->value_mask & XCB_CONFIG_WINDOW_Y ? event->y : static_cast<int16_t>(con->geometry.y);
+            int16_t x = event->value_mask & XCB_CONFIG_WINDOW_X ? event->x : static_cast<int16_t>(con->get_geometry().x);
+            int16_t y = event->value_mask & XCB_CONFIG_WINDOW_Y ? event->y : static_cast<int16_t>(con->get_geometry().y);
 
             Con *current_output = con->con_get_output();
             Output *target = global.randr->get_output_containing(x, y);
             if (target != nullptr && current_output != target->con) {
                 DLOG(fmt::sprintf("Dock client is requested to be moved to output %s, moving it there.\n", target->output_primary_name()));
                 Match *match;
-                Con *nc = con_for_window(target->con, con->window, &match);
+                Con *nc = con_for_window(target->con, con->get_window(), &match);
                 DLOG(fmt::sprintf("Dock client will be moved to container %p.\n", fmt::ptr(nc)));
                 con->con_detach();
                 con->con_attach(nc, false);
@@ -605,7 +605,7 @@ void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
     }
 
     ConCon *con = con_by_window_id(event->event);
-    if (con == nullptr || con->window == nullptr) {
+    if (con == nullptr || con->get_window() == nullptr) {
         return;
     }
     DLOG(fmt::sprintf("That is con %p / %s\n", fmt::ptr(con), con->name));

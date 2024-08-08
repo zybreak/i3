@@ -331,7 +331,7 @@ bool floating_enable(ConCon *con, bool automatic) {
 
     DLOG(fmt::sprintf("Original rect: (%d, %d) with %d x %d\n", con->rect.x, con->rect.y, con->rect.width, con->rect.height));
     //DLOG(fmt::sprintf("Geometry = (%d, %d) with %d x %d\n", con->geometry.x, con->geometry.y, con->geometry.width, con->geometry.height));
-    nc->rect = con->geometry;
+    nc->rect = con->get_geometry();
     /* If the geometry was not set (split containers), we need to determine a
      * sensible one by combining the geometry of all children */
     if (nc->rect == (Rect){0, 0, 0, 0}) {
@@ -339,8 +339,8 @@ bool floating_enable(ConCon *con, bool automatic) {
         for (auto &child : con->nodes) {
             uint32_t height = 0, width = 0;
             if (auto cc = dynamic_cast<ConCon*>(child); cc) {
-                height = cc->geometry.height;
-                width = cc->geometry.width;
+                height = cc->get_geometry().height;
+                width = cc->get_geometry().width;
             }
             DLOG(fmt::sprintf("child geometry: %d x %d\n", width, height));
             nc->rect.width += width;
@@ -379,9 +379,9 @@ bool floating_enable(ConCon *con, bool automatic) {
      * (centered over their leader) */
     if (nc->rect.x == 0 && nc->rect.y == 0) {
         Con *leader;
-        if (con->window && con->window->leader != XCB_NONE &&
-            con->window->id != con->window->leader &&
-            (leader = con_by_window_id(con->window->leader)) != nullptr) {
+        if (con->get_window() && con->get_window()->leader != XCB_NONE &&
+            con->get_window()->id != con->get_window()->leader &&
+            (leader = con_by_window_id(con->get_window()->leader)) != nullptr) {
             DLOG("Centering above leader\n");
             floating_center(nc, leader->rect);
         } else {

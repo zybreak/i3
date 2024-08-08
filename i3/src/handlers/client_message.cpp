@@ -94,7 +94,7 @@ static void handle_state(xcb_client_message_event_t *event) {
             con->sticky = !con->sticky;
 
         DLOG(fmt::sprintf("New sticky status for con = %p is %i.\n", fmt::ptr(con), con->sticky));
-        ewmh_update_sticky(con->window->id, con->sticky);
+        ewmh_update_sticky(con->get_window()->id, con->sticky);
         output_push_sticky_windows(global.focused);
         ewmh_update_wm_desktop();
     }
@@ -228,7 +228,7 @@ static void handle_desktop(xcb_client_message_event_t *event) {
             con->floating = FLOATING_AUTO_ON;
 
             con->sticky = true;
-            ewmh_update_sticky(con->window->id, true);
+            ewmh_update_sticky(con->get_window()->id, true);
             output_push_sticky_windows(global.focused);
         }
     } else {

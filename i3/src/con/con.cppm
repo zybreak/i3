@@ -484,7 +484,7 @@ export {
     };
 
     class ConCon : public Con {
-       public:
+    private:
         /** The position and size of the actual client window. These coordinates are
          * relative to the container's rect. */
         Rect window_rect{};
@@ -495,6 +495,8 @@ export {
          * any padding, 1 means display with 1 pixel of padding and so on. */
         int window_icon_padding;
         i3Window *window;
+
+    public:
         
         bool con_has_managed_window() override;
         bool con_accepts_window() override;
@@ -502,6 +504,19 @@ export {
         Rect& get_geometry() override;
         Rect& get_window_rect() override;
         int get_window_icon_padding() override;
+        void set_window_icon_padding(int padding) {
+            this->window_icon_padding = padding;
+        };
+        
+        void set_window(i3Window *window) {
+            this->window = window;
+        }
+        void set_geometry(Rect geometry) {
+            this->geometry = geometry;
+        }
+        void set_window_rect(Rect window_rect) {
+            this->window_rect = window_rect;
+        }
         
         ConCon(i3Window *window = nullptr, bool skeleton = false);
     };

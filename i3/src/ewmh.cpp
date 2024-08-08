@@ -158,12 +158,12 @@ static void ewmh_update_wm_desktop_recursively(Con *c, const uint32_t desktop) {
     }
 
     /* If this is the cached value, we don't need to do anything. */
-    if (con && con->window->wm_desktop == wm_desktop) {
+    if (con && con->get_window()->wm_desktop == wm_desktop) {
         return;
     }
-    con->window->wm_desktop = wm_desktop;
+    con->get_window()->wm_desktop = wm_desktop;
 
-    const xcb_window_t window = con->window->id;
+    const xcb_window_t window = con->get_window()->id;
     if (wm_desktop != NET_WM_DESKTOP_NONE) {
         DLOG(fmt::sprintf("Setting _NET_WM_DESKTOP = %d for window 0x%08x.\n", wm_desktop, window));
         xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_ATOM_CARDINAL, 32, 1, &wm_desktop);

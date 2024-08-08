@@ -1890,17 +1890,17 @@ void CommandsApplier::title_window_icon(struct criteria_state *criteria_state, C
             const int current_padding = current->get_window_icon_padding();
             if (padding > 0) {
                 if (current_padding < 0) {
-                    current->window_icon_padding = padding;
+                    current->set_window_icon_padding(padding);
                 } else {
                     /* toggle off, but store padding given */
-                    current->window_icon_padding = -(padding + 1);
+                    current->set_window_icon_padding(-(padding + 1));
                 }
             } else {
                 /* Set to negative of (current value+1) to keep old padding when toggling */
-                current->window_icon_padding = -(current_padding + 1);
+                current->set_window_icon_padding(-(current_padding + 1));
             }
         } else {
-            current->window_icon_padding = padding;
+            current->set_window_icon_padding(padding);
         }
         DLOG(fmt::sprintf("Set window_icon for %p / %s to %d\n", fmt::ptr(current), current->name, current->get_window_icon_padding()));
 

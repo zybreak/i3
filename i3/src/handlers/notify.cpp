@@ -43,15 +43,15 @@ static bool window_name_changed(const i3Window *window, std::string &old_name) {
  *
  */
 static bool handle_windowname_change(ConCon *con, xcb_get_property_reply_t *prop) {
-    std::string old_name = con->window->name;
+    std::string old_name = con->get_window()->name;
 
-    con->window->window_update_name(prop);
+    con->get_window()->window_update_name(prop);
 
     con = remanage_window(con);
 
     x_push_changes(global.croot);
 
-    if (window_name_changed(con->window, old_name)) {
+    if (window_name_changed(con->get_window(), old_name)) {
         ipc_send_window_event("title", con);
     }
 
@@ -64,7 +64,7 @@ static bool handle_windowname_change(ConCon *con, xcb_get_property_reply_t *prop
  */
 static bool handle_hints(ConCon *con, xcb_get_property_reply_t *reply) {
     bool urgency_hint;
-    con->window->window_update_hints(reply, &urgency_hint);
+    con->get_window()->window_update_hints(reply, &urgency_hint);
     con->con_set_urgency(urgency_hint);
     remanage_window(con);
     tree_render();
@@ -77,15 +77,15 @@ static bool handle_hints(ConCon *con, xcb_get_property_reply_t *reply) {
  *
  */
 static bool handle_windowname_change_legacy(ConCon *con, xcb_get_property_reply_t *prop) {
-    std::string old_name = con->window->name;
+    std::string old_name = con->get_window()->name;
 
-    con->window->window_update_name_legacy(prop);
+    con->get_window()->window_update_name_legacy(prop);
 
     con = remanage_window(con);
 
     x_push_changes(global.croot);
 
-    if (window_name_changed(con->window, old_name)) {
+    if (window_name_changed(con->get_window(), old_name)) {
         ipc_send_window_event("title", con);
     }
 
@@ -100,7 +100,7 @@ static bool handle_windowname_change_legacy(ConCon *con, xcb_get_property_reply_
  *
  */
 static bool handle_normal_hints(ConCon *con, xcb_get_property_reply_t *reply) {
-    bool changed = con->window->window_update_normal_hints(reply, nullptr);
+    bool changed = con->get_window()->window_update_normal_hints(reply, nullptr);
 
     if (changed) {
         Con *floating = con->con_inside_floating();
@@ -119,7 +119,7 @@ static bool handle_normal_hints(ConCon *con, xcb_get_property_reply_t *reply) {
  *
  */
 static bool handle_clientleader_change(ConCon *con, xcb_get_property_reply_t *prop) {
-    con->window->window_update_leader(prop);
+    con->get_window()->window_update_leader(prop);
     return true;
 }
 
@@ -131,7 +131,7 @@ static bool handle_clientleader_change(ConCon *con, xcb_get_property_reply_t *pr
  *
  */
 static bool handle_transient_for(ConCon *con, xcb_get_property_reply_t *prop) {
-    con->window->window_update_transient_for(prop);
+    con->get_window()->window_update_transient_for(prop);
     return true;
 }
 
@@ -140,7 +140,7 @@ static bool handle_transient_for(ConCon *con, xcb_get_property_reply_t *prop) {
  *
  */
 static bool handle_windowrole_change(ConCon *con, xcb_get_property_reply_t *prop) {
-    con->window->window_update_role(prop);
+    con->get_window()->window_update_role(prop);
 
     con = remanage_window(con);
 
@@ -152,7 +152,7 @@ static bool handle_windowrole_change(ConCon *con, xcb_get_property_reply_t *prop
  *
  */
 static bool handle_class_change(ConCon *con, xcb_get_property_reply_t *prop) {
-    con->window->window_update_class(prop);
+    con->get_window()->window_update_class(prop);
     con = remanage_window(con);
     return true;
 }
@@ -162,7 +162,7 @@ static bool handle_class_change(ConCon *con, xcb_get_property_reply_t *prop) {
  *
  */
 static bool handle_strut_partial_change(ConCon *con, xcb_get_property_reply_t *prop) {
-    con->window->window_update_strut_partial(prop);
+    con->get_window()->window_update_strut_partial(prop);
 
     /* we only handle this change for dock clients */
     if (con->parent == nullptr || con->parent->type != CT_DOCKAREA) {
@@ -177,27 +177,27 @@ static bool handle_strut_partial_change(ConCon *con, xcb_get_property_reply_t *p
     }
 
     /* find out the desired position of this dock window */
-    if (con->window->reserved.top > 0 && con->window->reserved.bottom == 0) {
+    if (con->get_window()->reserved.top > 0 && con->get_window()->reserved.bottom == 0) {
         DLOG("Top dock client\n");
-        con->window->dock = i3Window::W_DOCK_TOP;
-    } else if (con->window->reserved.top == 0 && con->window->reserved.bottom > 0) {
+        con->get_window()->dock = i3Window::W_DOCK_TOP;
+    } else if (con->get_window()->reserved.top == 0 && con->get_window()->reserved.bottom > 0) {
         DLOG("Bottom dock client\n");
-        con->window->dock = i3Window::W_DOCK_BOTTOM;
+        con->get_window()->dock = i3Window::W_DOCK_BOTTOM;
     } else {
         DLOG("Ignoring invalid reserved edges (_NET_WM_STRUT_PARTIAL), using position as fallback:\n");
-        if (con->geometry.y < (search_at->rect.height / 2)) {
+        if (con->get_geometry().y < (search_at->rect.height / 2)) {
             DLOG(fmt::sprintf("geom->y = %d < rect.height / 2 = %d, it is a top dock client\n",
-                              con->geometry.y, (search_at->rect.height / 2)));
-            con->window->dock = i3Window::W_DOCK_TOP;
+                              con->get_geometry().y, (search_at->rect.height / 2)));
+            con->get_window()->dock = i3Window::W_DOCK_TOP;
         } else {
             DLOG(fmt::sprintf("geom->y = %d >= rect.height / 2 = %d, it is a bottom dock client\n",
-                              con->geometry.y, (search_at->rect.height / 2)));
-            con->window->dock = i3Window::W_DOCK_BOTTOM;
+                              con->get_geometry().y, (search_at->rect.height / 2)));
+            con->get_window()->dock = i3Window::W_DOCK_BOTTOM;
         }
     }
 
     /* find the dockarea */
-    Con *dockarea = con_for_window(search_at, con->window, nullptr);
+    Con *dockarea = con_for_window(search_at, con->get_window(), nullptr);
     if (dockarea == nullptr) {
         throw std::runtime_error("Could not find a dockarea for the dock client");
     }
@@ -212,8 +212,8 @@ static bool handle_strut_partial_change(ConCon *con, xcb_get_property_reply_t *p
 }
 
 static bool handle_window_type(ConCon *con, xcb_get_property_reply_t *reply) {
-    if (con->window->window_update_type(reply)) {
-        global.assignmentManager->run_assignments(con->window);
+    if (con->get_window()->window_update_type(reply)) {
+        global.assignmentManager->run_assignments(con->get_window());
     }
     return true;
 }
@@ -243,7 +243,7 @@ static bool handle_i3_floating(ConCon *con, xcb_get_property_reply_t *prop) {
  */
 static bool handle_machine_change(ConCon *con, xcb_get_property_reply_t *prop) {
     if (auto opt_machine = handle_property::window_update_machine(prop)) {
-        con->window->window_update_machine(*opt_machine);
+        con->get_window()->window_update_machine(*opt_machine);
     }
     con = remanage_window(con);
     return true;
@@ -255,7 +255,7 @@ static bool handle_machine_change(ConCon *con, xcb_get_property_reply_t *prop) {
  */
 static bool handle_motif_hints_change(ConCon *con, xcb_get_property_reply_t *prop) {
     border_style_t motif_border_style;
-    bool has_mwm_hints = con->window->window_update_motif_hints(prop, &motif_border_style);
+    bool has_mwm_hints = con->get_window()->window_update_motif_hints(prop, &motif_border_style);
 
     if (has_mwm_hints && motif_border_style != con->border_style) {
         DLOG(fmt::sprintf("Update border style of con %p to %d\n", fmt::ptr(con), std::to_underlying(motif_border_style)));
@@ -268,7 +268,7 @@ static bool handle_motif_hints_change(ConCon *con, xcb_get_property_reply_t *pro
 }
 
 static bool handle_windowicon_change(ConCon *con, xcb_get_property_reply_t *prop) {
-    con->window->window_update_icon(prop);
+    con->get_window()->window_update_icon(prop);
 
     x_push_changes(global.croot);
 
@@ -327,7 +327,7 @@ void PropertyHandlers::property_notify(xcb_property_notify_event_t *event) {
 
     ConCon *con = con_by_window_id(window);
 
-    if (con == nullptr || con->window == nullptr) {
+    if (con == nullptr || con->get_window() == nullptr) {
         DLOG(fmt::sprintf("Received property for atom %d for unknown client\n", atom));
         return;
     }

@@ -757,9 +757,9 @@ static void x_shape_frame(ConCon *con, xcb_shape_sk_t shape_kind) {
 
     xcb_shape_combine(**global.x, XCB_SHAPE_SO_SET, shape_kind, shape_kind,
                       con->frame->id,
-                      con->window_rect.x + con->border_width,
-                      con->window_rect.y + con->border_width,
-                      con->window->id);
+                      con->get_window_rect().x + con->border_width,
+                      con->get_window_rect().y + con->border_width,
+                      con->get_window()->id);
     xcb_rectangle_t rectangles[4];
     size_t rectangles_count = x_get_border_rectangles(con, rectangles);
     if (rectangles_count) {
@@ -792,20 +792,20 @@ static void set_shape_state(ConCon *con, bool need_reshape) {
 
     if (need_reshape && con->con_is_floating()) {
         /* We need to reshape the window frame only if it already has shape. */
-        if (con->window->shaped) {
+        if (con->get_window()->shaped) {
             x_shape_frame(con, XCB_SHAPE_SK_BOUNDING);
         }
-        if (con->window->input_shaped) {
+        if (con->get_window()->input_shaped) {
             x_shape_frame(con, XCB_SHAPE_SK_INPUT);
         }
     }
 
     if (state->was_floating && !con->con_is_floating()) {
         /* Remove the shape when container is no longer floating. */
-        if (con->window->shaped) {
+        if (con->get_window()->shaped) {
             x_unshape_frame(con, XCB_SHAPE_SK_BOUNDING);
         }
-        if (con->window->input_shaped) {
+        if (con->get_window()->input_shaped) {
             x_unshape_frame(con, XCB_SHAPE_SK_INPUT);
         }
     }
@@ -1474,10 +1474,10 @@ void x_set_shape(ConCon *con, xcb_shape_sk_t kind, bool enable) {
 
     switch (kind) {
         case XCB_SHAPE_SK_BOUNDING:
-            con->window->shaped = enable;
+            con->get_window()->shaped = enable;
             break;
         case XCB_SHAPE_SK_INPUT:
-            con->window->input_shaped = enable;
+            con->get_window()->input_shaped = enable;
             break;
         default:
             ELOG(fmt::sprintf("Received unknown shape event kind for con %p. This is a bug.\n",
