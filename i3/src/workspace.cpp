@@ -394,9 +394,8 @@ static void workspace_reassign_sticky(Con *con) {
             ConCon *current2 = dynamic_cast<ConCon *>(current);
             if (src2 != nullptr && current2 != nullptr) {
                 x_move_win(src2, current2);
-                current2->set_window(src2->get_window());
+                current2->set_window(src2->release_window());
                 current2->mapped = true;
-                src2->set_window(nullptr);
                 src2->mapped = false;
 
                 x_reparent_child(current2, src2);

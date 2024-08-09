@@ -19,9 +19,9 @@ import rect;
 import utils;
 import :draw;
 import :internal;
+import :window;
 
 class Output;
-class i3Window;
 class Match;
 
 export {
@@ -493,32 +493,26 @@ export {
         /** Whether the window icon should be displayed, and with what padding. -1
          * means display no window icon (default behavior), 0 means display without
          * any padding, 1 means display with 1 pixel of padding and so on. */
-        int window_icon_padding;
-        i3Window *window;
+        int window_icon_padding{-1};
+        std::unique_ptr<i3Window> window{};
 
     public:
-        
+
         bool con_has_managed_window() override;
         bool con_accepts_window() override;
-        i3Window* get_window() override;
-        Rect& get_geometry() override;
-        Rect& get_window_rect() override;
         int get_window_icon_padding() override;
-        void set_window_icon_padding(int padding) {
-            this->window_icon_padding = padding;
-        };
-        
-        void set_window(i3Window *window) {
-            this->window = window;
-        }
-        void set_geometry(Rect geometry) {
-            this->geometry = geometry;
-        }
-        void set_window_rect(Rect window_rect) {
-            this->window_rect = window_rect;
-        }
-        
-        ConCon(i3Window *window = nullptr, bool skeleton = false);
+        void set_window_icon_padding(int padding);
+        i3Window* get_window() override;
+        i3Window* release_window();
+        void set_window(i3Window* _window);
+        void set_geometry(Rect _geometry);
+        Rect& get_geometry() override;
+        void set_window_rect(Rect _window_rect);
+        Rect& get_window_rect() override;
+
+        ConCon();
+        explicit ConCon(i3Window *window);
+        ConCon(i3Window *window, bool skeleton);
     };
 
     /* Wrap a floating ConCon in a FloatingCon. */

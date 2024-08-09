@@ -122,8 +122,7 @@ static bool con_move_to_output_name(Con *con, const std::string &name, bool fix_
  *
  */
 static void con_merge_into(ConCon *old, ConCon *new_con) {
-    new_con->set_window(old->get_window());
-    old->set_window(nullptr);
+    new_con->set_window(old->release_window());
 
     if (!old->title_format.empty()) {
         new_con->title_format = old->title_format;
@@ -413,11 +412,9 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     }
     xcb_window_t old_frame = XCB_NONE;
     if (nc->get_window() != cwindow && nc->get_window() != nullptr) {
-        delete nc->get_window();
-        nc->set_window(nullptr);
         old_frame = _match_depth(cwindow, nc);
+        nc->set_window(cwindow);
     }
-    nc->set_window(cwindow);
     x_reinit(nc);
 
     nc->border_width = geom->border_width;
@@ -748,7 +745,6 @@ ConCon *remanage_window(ConCon *con) {
     } else {
         _remove_matches(nc);
     }
-    delete nc->get_window();
     nc->set_window(nullptr);
 
     xcb_window_t old_frame = _match_depth(con->get_window(), nc);

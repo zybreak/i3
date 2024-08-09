@@ -212,7 +212,6 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
             global.handlers->add_ignore_event(cookie.sequence, 0);
         }
         ipc_send_window_event("close", con2);
-        delete con2->get_window();
         con2->set_window(nullptr);
     }
 

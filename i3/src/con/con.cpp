@@ -74,8 +74,6 @@ Con::~Con() {
         global.all_cons.erase(it);
     }
 
-    this->swallow.clear();
-
     DLOG(fmt::sprintf("con %p freed\n", fmt::ptr(this)));
 }
 

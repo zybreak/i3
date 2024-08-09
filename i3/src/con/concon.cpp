@@ -18,17 +18,22 @@ import std;
 import log;
 import rect;
 
+ConCon::ConCon() : ConCon(nullptr, false) {
+}
+
+ConCon::ConCon(i3Window *window) : ConCon(window, false) {
+}
+
 ConCon::ConCon(i3Window *window, bool skeleton) : Con(skeleton) {
     this->type = CT_CON;
-    this->window = window;
-    this->window_icon_padding = -1;
     if (window) {
+        this->window.reset(window);
         this->depth = window->depth;
     }
 }
 
 bool ConCon::con_has_managed_window() {
-    return (this->window != nullptr && this->window->id != XCB_WINDOW_NONE && this->con_get_workspace() != nullptr);
+    return (this->window && this->window->id != XCB_WINDOW_NONE && this->con_get_workspace() != nullptr);
 }
 
 bool ConCon::con_accepts_window() {
@@ -38,11 +43,25 @@ bool ConCon::con_accepts_window() {
     }
 
     /* TODO: if this is a swallowing container, we need to check its max_clients */
-    return (this->window == nullptr);
+    return (!this->window);
 }
 
 i3Window* ConCon::get_window() {
-    return this->window;
+    return this->window.get();
+}
+
+i3Window* ConCon::release_window() {
+    return this->window.release();
+}
+
+void ConCon::set_window(i3Window* _window) {
+    this->window.reset(_window);
+}
+void ConCon::set_geometry(Rect _geometry) {
+    this->geometry = _geometry;
+}
+void ConCon::set_window_rect(Rect _window_rect) {
+    this->window_rect = _window_rect;
 }
 
 Rect& ConCon::get_geometry() {
@@ -56,3 +75,7 @@ Rect& ConCon::get_window_rect() {
 int ConCon::get_window_icon_padding() {
     return this->window_icon_padding;
 }
+
+void ConCon::set_window_icon_padding(int padding) {
+    this->window_icon_padding = padding;
+};
