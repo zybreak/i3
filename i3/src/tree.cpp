@@ -225,13 +225,8 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
     con->con_detach();
 
     /* disable urgency timer, if needed */
-    if (con->urgency_timer != nullptr) {
-        DLOG(fmt::sprintf("Removing urgency timer of con %p\n", fmt::ptr(con)));
-        workspace_update_urgent_flag(ws);
-        ev_timer_stop(global.eventHandler->main_loop, con->urgency_timer);
-        delete con->urgency_timer;
-        con->urgency_timer = nullptr;
-    }
+    con->stop_urgency_timer();
+    workspace_update_urgent_flag(ws);
 
     if (con->type != CT_FLOATING_CON) {
         /* If the container is *not* floating, we might need to re-distribute

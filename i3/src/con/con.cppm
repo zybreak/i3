@@ -86,7 +86,10 @@ export {
          */
         virtual void con_update_parents_urgency();
 
-       public:
+        /* timer used for disabling urgency */
+        ev_timer *urgency_timer{};
+
+    public:
         bool mapped{};
 
         /* Should this container be marked urgent? This gets set when the window
@@ -131,9 +134,6 @@ export {
         /* the x11 border pixel attribute */
         int border_width{};
         int current_border_width;
-
-        /* timer used for disabling urgency */
-        ev_timer *urgency_timer{};
 
         /** Cache for the decoration rendering */
         std::optional<std::unique_ptr<deco_render_params>> deco_render_params{};
@@ -186,6 +186,9 @@ export {
 
         /* The colormap for this con if a custom one is used. */
         xcb_colormap_t colormap{};
+        
+        void stop_urgency_timer();
+        void start_urgency_timer(float after, float repeat, void (*cb)(EV_P_ ev_timer *w, int revents));
 
         /** callbacks */
         virtual void on_remove_child();

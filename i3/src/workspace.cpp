@@ -424,9 +424,7 @@ static void workspace_reassign_sticky(Con *con) {
 static void workspace_defer_update_urgent_hint_cb(EV_P_ ev_timer *w, int revents) {
     Con *con = (Con*)w->data;
 
-    ev_timer_stop(global.eventHandler->main_loop, con->urgency_timer);
-    delete con->urgency_timer;
-    con->urgency_timer = nullptr;
+    con->stop_urgency_timer();
 
     if (con->urgent) {
         DLOG(fmt::sprintf("Resetting urgency flag of con %p by timer\n", fmt::ptr(con)));
@@ -502,20 +500,7 @@ void workspace_show(WorkspaceCon *workspace) {
         global.focused->urgent = true;
         workspace->urgent = true;
 
-        if (global.focused->urgency_timer == nullptr) {
-            DLOG(fmt::sprintf("Deferring reset of urgency flag of con %p on newly shown workspace %p\n",
-                              fmt::ptr(global.focused), fmt::ptr(workspace)));
-            global.focused->urgency_timer = new ev_timer{};
-            /* use a repeating timer to allow for easy resets */
-            ev_timer_init(global.focused->urgency_timer, workspace_defer_update_urgent_hint_cb,
-                          global.configManager->config->workspace_urgency_timer, global.configManager->config->workspace_urgency_timer);
-            global.focused->urgency_timer->data = global.focused;
-            ev_timer_start(global.eventHandler->main_loop, global.focused->urgency_timer);
-        } else {
-            DLOG(fmt::sprintf("Resetting urgency timer of con %p on workspace %p\n",
-                              fmt::ptr(global.focused), fmt::ptr(workspace)));
-            ev_timer_again(global.eventHandler->main_loop, global.focused->urgency_timer);
-        }
+        global.focused->start_urgency_timer(global.configManager->config->workspace_urgency_timer, global.configManager->config->workspace_urgency_timer, workspace_defer_update_urgent_hint_cb);
     } else {
         next->con_focus();
     }

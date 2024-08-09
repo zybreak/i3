@@ -850,6 +850,33 @@ void Con::con_update_parents_urgency() {
     }
 }
 
+void Con::stop_urgency_timer() {
+    if (this->urgency_timer == nullptr) {
+        return;
+    }
+    
+    DLOG(fmt::sprintf("Removing urgency timer of con %p\n", fmt::ptr(this)));
+    ev_timer_stop(global.eventHandler->main_loop, this->urgency_timer);
+    delete this->urgency_timer;
+    this->urgency_timer = nullptr;
+}
+
+void Con::start_urgency_timer(float after, float repeat, void (*cb)(EV_P_ ev_timer *w, int revents)) {
+    if (this->urgency_timer == nullptr) {
+        DLOG(fmt::sprintf("Deferring reset of urgency flag of con %p on newly shown workspace %p\n",
+                fmt::ptr(this), fmt::ptr(con_get_workspace())));
+        this->urgency_timer = new ev_timer{};
+        /* use a repeating timer to allow for easy resets */
+        ev_timer_init(this->urgency_timer, cb, after, repeat);
+        this->urgency_timer->data = this;
+        ev_timer_start(global.eventHandler->main_loop, this->urgency_timer);
+    } else {
+        DLOG(fmt::sprintf("Resetting urgency timer of con %p on workspace %p\n",
+                fmt::ptr(this), fmt::ptr(con_get_workspace())));
+        ev_timer_again(global.eventHandler->main_loop, this->urgency_timer);
+    }
+}
+
 /*
  * Set urgency flag to the container, all the parent containers and the workspace.
  *
