@@ -68,7 +68,7 @@ Con::Con(bool skeleton) {
  *
  */
 Con::~Con() {
-    con->stop_urgency_timer();
+    this->stop_urgency_timer();
     
     auto it = std::ranges::find(global.all_cons, this);
 
@@ -853,6 +853,10 @@ void Con::stop_urgency_timer() {
     ev_timer_stop(global.eventHandler->main_loop, this->urgency_timer);
     delete this->urgency_timer;
     this->urgency_timer = nullptr;
+}
+
+static void foo() {
+    
 }
 
 void Con::start_urgency_timer(float after, float repeat, void (*cb)(EV_P_ ev_timer *w, int revents)) {
