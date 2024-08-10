@@ -68,6 +68,8 @@ Con::Con(bool skeleton) {
  *
  */
 Con::~Con() {
+    con->stop_urgency_timer();
+    
     auto it = std::ranges::find(global.all_cons, this);
 
     if (it != global.all_cons.end()) {
@@ -360,14 +362,6 @@ bool Con::con_has_managed_window() {
  */
 bool Con::con_has_children() {
     return !this->con_is_leaf();
-}
-
-/*
- * Returns true if this node has regular or floating children.
- *
- */
-bool WorkspaceCon::con_has_children() {
-    return (!this->con_is_leaf() || !this->floating_windows.empty());
 }
 
 /*
