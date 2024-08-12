@@ -15,11 +15,11 @@ module;
 export module i3:window;
 
 import std;
+import :internal;
 
 class Assignment;
 
 export {
-    enum border_style_t : unsigned int;
 
     /**
      * Stores the reserved pixels on each screen edge read from a

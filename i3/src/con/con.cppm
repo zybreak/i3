@@ -45,7 +45,7 @@ export {
      */
     struct deco_render_params {
         Colortriple *color;
-        int border_style;
+        border_style_t border_style;
         width_height con_rect;
         width_height con_window_rect;
         Rect con_deco_rect;
@@ -752,7 +752,7 @@ export {
      * For children of a CT_DOCKAREA, the border style is always none.
      *
      */
-    int con_border_style(Con * con);
+    border_style_t con_border_style(Con * con);
 
     /**
      * Sets the given border style on con, correctly keeping the position/size of a

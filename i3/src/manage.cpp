@@ -241,7 +241,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     cwindow->window_update_role((role_cookie.get() != nullptr ? role_cookie.get().get() : nullptr));
     bool urgency_hint;
     cwindow->window_update_hints((wm_hints_cookie.get() != nullptr) ? wm_hints_cookie.get().get() : nullptr, &urgency_hint);
-    border_style_t motif_border_style = BS_NORMAL;
+    border_style_t motif_border_style = border_style_t::BS_NORMAL;
     bool has_mwm_hints = cwindow->window_update_motif_hints((motif_wm_hints_cookie.get() != nullptr ? motif_wm_hints_cookie.get().get() : nullptr), &motif_border_style);
     cwindow->window_update_normal_hints((wm_normal_hints_cookie.get() != nullptr) ? wm_normal_hints_cookie.get().get() : nullptr, geom.get().get());
     cwindow->window_update_machine((wm_machine_cookie.get() != nullptr ? wm_machine_cookie.get().get() : nullptr));

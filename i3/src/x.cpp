@@ -373,9 +373,9 @@ static void x_draw_title_border(Con *con, surface_t *dest_surface) {
  */
 static size_t x_get_border_rectangles(Con *con, xcb_rectangle_t rectangles[4]) {
     size_t count = 0;
-    int border_style = con_border_style(con);
+    border_style_t border_style = con_border_style(con);
 
-    if (border_style != BS_NONE && con->con_is_leaf()) {
+    if (border_style != border_style_t::BS_NONE && con->con_is_leaf()) {
         auto borders_to_hide = static_cast<adjacent_t>(std::to_underlying(con_adjacent_borders(con)) & std::to_underlying(global.configManager->config->hide_edge_borders));
         Rect br = con_border_style_rect(con);
 
@@ -404,7 +404,7 @@ static size_t x_get_border_rectangles(Con *con, xcb_rectangle_t rectangles[4]) {
             };
         }
         /* pixel border have an additional line at the top */
-        if (border_style == BS_PIXEL && !(borders_to_hide & ADJ_UPPER_SCREEN_EDGE)) {
+        if (border_style == border_style_t::BS_PIXEL && !(borders_to_hide & ADJ_UPPER_SCREEN_EDGE)) {
             rectangles[count++] = (xcb_rectangle_t){
                 .x = static_cast<int16_t>(br.x),
                 .y = 0,
@@ -530,7 +530,7 @@ void x_draw_decoration(Con *con) {
     }
 
     /* 3: draw a rectangle in border color around the client */
-    if (con->deco_render_params.value()->border_style != BS_NONE && con->deco_render_params.value()->con_is_leaf) {
+    if (con->deco_render_params.value()->border_style != border_style_t::BS_NONE && con->deco_render_params.value()->con_is_leaf) {
         /* Fill the border. We don’t just fill the whole rectangle because some
          * children are not freely resizable and we want their background color
          * to "shine through". */
@@ -589,7 +589,7 @@ void x_draw_decoration(Con *con) {
 
     /* if this is a borderless/1pixel window, we don’t need to render the
      * decoration. */
-    if (con->deco_render_params.value()->border_style != BS_NORMAL) {
+    if (con->deco_render_params.value()->border_style != border_style_t::BS_NORMAL) {
         draw_util_copy_surface(con->frame_buffer.get(), con->frame.get(), 0, 0, 0, 0, con->rect.width, con->rect.height);
         return;
     }
@@ -941,7 +941,7 @@ void x_push_node(Con *con) {
 
     /* The pixmap of a borderless leaf container will not be used except
      * for the titlebar in a stack or tabs (issue #1013). */
-    bool is_pixmap_needed = ((con->con_is_leaf() && con->border_style != BS_NONE) ||
+    bool is_pixmap_needed = ((con->con_is_leaf() && con->border_style != border_style_t::BS_NONE) ||
                              con->layout == L_STACKED ||
                              con->layout == L_TABBED);
     DLOG(fmt::sprintf("Con %p (layout %d), is_pixmap_needed = %s, rect.height = %d\n",

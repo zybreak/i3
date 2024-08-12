@@ -208,7 +208,7 @@ void render_con(Con *con) {
              * applying gaps, so we need to update deco_rect. */
             if (con->layout == L_SPLITH || con->layout == L_SPLITV) {
                 if (child->con_is_leaf()) {
-                    if (child->border_style == BS_NORMAL) {
+                    if (child->border_style == border_style_t::BS_NORMAL) {
                         child->deco_rect.width = child->rect.width;
                     }
                 }
@@ -437,7 +437,7 @@ static void render_con_split(Con *con, Con *child, render_params *p, int i) {
 
     /* first we have the decoration, if this is a leaf node */
     if (child->con_is_leaf()) {
-        if (child->border_style == BS_NORMAL) {
+        if (child->border_style == border_style_t::BS_NORMAL) {
             /* TODO: make a function for relative coords? */
             child->deco_rect.x = 0;
             child->deco_rect.y = 0;
@@ -466,7 +466,7 @@ static void render_con_stacked(Con *con, Con *child, render_params *p, int i) {
     child->deco_rect.width = child->rect.width;
     child->deco_rect.height = p->deco_height;
 
-    if (p->children > 1 || (child->border_style != BS_PIXEL && child->border_style != BS_NONE)) {
+    if (p->children > 1 || (child->border_style != border_style_t::BS_PIXEL && child->border_style != border_style_t::BS_NONE)) {
         child->rect.y += (p->deco_height * p->children);
         child->rect.height -= (p->deco_height * p->children);
     }
@@ -490,12 +490,12 @@ static void render_con_tabbed(Con *con, Con *child, render_params *p, int i) {
         child->deco_rect.width = child->rect.width - child->deco_rect.x;
     }
 
-    if (p->children > 1 || (child->border_style != BS_PIXEL && child->border_style != BS_NONE)) {
+    if (p->children > 1 || (child->border_style != border_style_t::BS_PIXEL && child->border_style != border_style_t::BS_NONE)) {
         child->rect.y += p->deco_height;
         child->rect.height -= p->deco_height;
         child->deco_rect.height = p->deco_height;
     } else {
-        child->deco_rect.height = (child->border_style == BS_PIXEL ? 1 : 0);
+        child->deco_rect.height = (child->border_style == border_style_t::BS_PIXEL ? 1 : 0);
     }
 }
 

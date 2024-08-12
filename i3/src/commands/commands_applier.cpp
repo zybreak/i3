@@ -762,7 +762,7 @@ void CommandsApplier::resize_set(struct criteria_state *criteria_state, Commands
 }
 
 static int border_width_from_style(border_style_t border_style, long border_width, Con *con) {
-    if (border_style == BS_NONE) {
+    if (border_style == border_style_t::BS_NONE) {
         return 0;
     }
     if (border_width >= 0) {
@@ -777,7 +777,7 @@ static int border_width_from_style(border_style_t border_style, long border_widt
         return global.configManager->config->default_border_width;
     } else {
         /* Use some hardcoded values. */
-        return logical_px(global.x->root_screen, border_style == BS_NORMAL ? 2 : 1);
+        return logical_px(global.x->root_screen, border_style == border_style_t::BS_NORMAL ? 2 : 1);
     }
 }
 
@@ -795,13 +795,13 @@ void CommandsApplier::border(struct criteria_state *criteria_state, CommandsResu
 
         border_style_t border_style;
         if (strcmp(border_style_str, "toggle") == 0) {
-            border_style = static_cast<border_style_t>((current->border_style + 1) % 3);
+            border_style = static_cast<border_style_t>((std::to_underlying(current->border_style) + 1) % 3);
         } else if (strcmp(border_style_str, "normal") == 0) {
-            border_style = BS_NORMAL;
+            border_style = border_style_t::BS_NORMAL;
         } else if (strcmp(border_style_str, "pixel") == 0) {
-            border_style = BS_PIXEL;
+            border_style = border_style_t::BS_PIXEL;
         } else if (strcmp(border_style_str, "none") == 0) {
-            border_style = BS_NONE;
+            border_style = border_style_t::BS_NONE;
         } else {
             throw std::runtime_error(fmt::sprintf("BUG: called with border_style=%s", border_style_str));
         }

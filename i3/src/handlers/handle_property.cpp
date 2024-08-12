@@ -217,19 +217,19 @@ static border_style_t border_style_from_motif_value(uint32_t value) {
 
         if (value & MWM_DECOR_TITLE) {
             if (value & MWM_DECOR_BORDER) {
-                return BS_NONE;
+                return border_style_t::BS_NONE;
             }
 
-            return BS_PIXEL;
+            return border_style_t::BS_PIXEL;
         }
 
-        return BS_NORMAL;
+        return border_style_t::BS_NORMAL;
     } else if (value & MWM_DECOR_TITLE) {
-        return BS_NORMAL;
+        return border_style_t::BS_NORMAL;
     } else if (value & MWM_DECOR_BORDER) {
-        return BS_PIXEL;
+        return border_style_t::BS_PIXEL;
     } else {
-        return BS_NONE;
+        return border_style_t::BS_NONE;
     }
 }
 
@@ -266,7 +266,7 @@ std::optional<uint32_t> window_update_motif_hints(xcb_get_property_reply_t *prop
     uint32_t *motif_hints = reinterpret_cast<uint32_t *>(xcb_get_property_value(prop));
 
     if (motif_hints[MWM_HINTS_FLAGS_FIELD] & MWM_HINTS_DECORATIONS) {
-        return border_style_from_motif_value(motif_hints[MWM_HINTS_DECORATIONS_FIELD]);
+        return std::to_underlying(border_style_from_motif_value(motif_hints[MWM_HINTS_DECORATIONS_FIELD]));
     }
     return std::nullopt;
 }

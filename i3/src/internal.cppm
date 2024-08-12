@@ -34,7 +34,7 @@ export {
         AFTER
     };
 
-    enum border_style_t {
+    enum class border_style_t {
         BS_NONE = 0,
         BS_PIXEL = 1,
         BS_NORMAL = 2,

@@ -442,19 +442,19 @@ static border_style_t border_style_from_motif_value(uint32_t value) {
 
         if (value & MWM_DECOR_TITLE) {
             if (value & MWM_DECOR_BORDER) {
-                return BS_NONE;
+                return border_style_t::BS_NONE;
             }
 
-            return BS_PIXEL;
+            return border_style_t::BS_PIXEL;
         }
 
-        return BS_NORMAL;
+        return border_style_t::BS_NORMAL;
     } else if (value & MWM_DECOR_TITLE) {
-        return BS_NORMAL;
+        return border_style_t::BS_NORMAL;
     } else if (value & MWM_DECOR_BORDER) {
-        return BS_PIXEL;
+        return border_style_t::BS_PIXEL;
     } else {
-        return BS_NONE;
+        return border_style_t::BS_NONE;
     }
 }
 

@@ -807,7 +807,7 @@ static bool has_outer_gaps(gaps_t gaps) {
  */
 bool con_draw_decoration_into_frame(Con *con) {
     return con->con_is_leaf() &&
-           con_border_style(con) == BS_NORMAL &&
+           con_border_style(con) == border_style_t::BS_NORMAL &&
            (con->parent == nullptr ||
             (con->parent->layout != L_TABBED &&
              con->parent->layout != L_STACKED));
@@ -835,11 +835,11 @@ static Rect con_border_style_rect_without_title(Con *con) {
     }
     DLOG(fmt::sprintf("Effective border width is set to: %d\n",  border_width));
     /* Shortcut to avoid calling con_adjacent_borders() on dock containers. */
-    int border_style = con_border_style(con);
-    if (border_style == BS_NONE) {
+    border_style_t border_style = con_border_style(con);
+    if (border_style == border_style_t::BS_NONE) {
         return (Rect){0, 0, 0, 0};
     }
-    if (border_style == BS_NORMAL) {
+    if (border_style == border_style_t::BS_NORMAL) {
         result = (Rect){static_cast<uint32_t>(border_width), 0, static_cast<uint32_t>(-2 * border_width), static_cast<uint32_t>(-border_width)};
     } else {
         result = (Rect){static_cast<uint32_t>(border_width), static_cast<uint32_t>(border_width), static_cast<uint32_t>(-2 * border_width), static_cast<uint32_t>(-2 * border_width)};
@@ -859,7 +859,7 @@ static Rect con_border_style_rect_without_title(Con *con) {
     if (borders_to_hide & ADJ_RIGHT_SCREEN_EDGE) {
         result.width += border_width;
     }
-    if (borders_to_hide & ADJ_UPPER_SCREEN_EDGE && (border_style != BS_NORMAL)) {
+    if (borders_to_hide & ADJ_UPPER_SCREEN_EDGE && (border_style != border_style_t::BS_NORMAL)) {
         result.y -= border_width;
         result.height += border_width;
     }
@@ -877,7 +877,7 @@ static Rect con_border_style_rect_without_title(Con *con) {
  */
 Rect con_border_style_rect(Con *con) {
     Rect result = con_border_style_rect_without_title(con);
-    if (con_border_style(con) == BS_NORMAL &&
+    if (con_border_style(con) == border_style_t::BS_NORMAL &&
         con_draw_decoration_into_frame(con)) {
         const int deco_height = render_deco_height();
         result.y += deco_height;
@@ -924,23 +924,23 @@ adjacent_t con_adjacent_borders(Con *con) {
  * For children of a CT_DOCKAREA, the border style is always none.
  *
  */
-int con_border_style(Con *con) {
+border_style_t con_border_style(Con *con) {
     if (con->fullscreen_mode == CF_OUTPUT || con->fullscreen_mode == CF_GLOBAL) {
         DLOG("this one is fullscreen! overriding BS_NONE\n");
-        return BS_NONE;
+        return border_style_t::BS_NONE;
     }
 
     if (con->parent != nullptr) {
         if (con->parent->layout == L_STACKED) {
-            return (con->parent->con_num_children() == 1 ? con->border_style : BS_NORMAL);
+            return con->parent->con_num_children() == 1 ? con->border_style : border_style_t::BS_NORMAL;
         }
 
-        if (con->parent->layout == L_TABBED && con->border_style != BS_NORMAL) {
-            return (con->parent->con_num_children() == 1 ? con->border_style : BS_NORMAL);
+        if (con->parent->layout == L_TABBED && con->border_style != border_style_t::BS_NORMAL) {
+            return con->parent->con_num_children() == 1 ? con->border_style : border_style_t::BS_NORMAL;
         }
 
         if (con->parent->type == CT_DOCKAREA) {
-            return BS_NONE;
+            return border_style_t::BS_NONE;
         }
     }
 
@@ -953,13 +953,13 @@ int con_border_style(Con *con) {
  *
  */
 void con_set_border_style(Con *con, border_style_t border_style, int border_width) {
-    if (border_style > con->max_user_border_style) {
+    if (std::to_underlying(border_style) > std::to_underlying(con->max_user_border_style)) {
         border_style = con->max_user_border_style;
     }
 
     /* Handle the simple case: non-floating containerns */
     if (!con->con_is_floating()) {
-        con->border_style = static_cast<border_style_t>(border_style);
+        con->border_style = border_style;
         con->current_border_width = border_width;
         return;
     }
@@ -976,7 +976,7 @@ void con_set_border_style(Con *con, border_style_t border_style, int border_widt
     parent->rect += bsr;
 
     /* Change the border style, get new border/decoration values. */
-    con->border_style = static_cast<border_style_t>(border_style);
+    con->border_style = border_style;
     con->current_border_width = border_width;
     bsr = con_border_style_rect(con);
 

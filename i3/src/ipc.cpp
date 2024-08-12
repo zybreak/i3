@@ -418,11 +418,11 @@ static std::string workspace_layout(WorkspaceCon *con) {
 
 static std::string border_style(Con *con) {
     switch (con->border_style) {
-        case BS_NORMAL:
+        case border_style_t::BS_NORMAL:
             return "normal";
-        case BS_NONE:
+        case border_style_t::BS_NONE:
             return "none";
-        case BS_PIXEL:
+        case border_style_t::BS_PIXEL:
             return "pixel";
         default:
             throw std::runtime_error("unknown border_style");

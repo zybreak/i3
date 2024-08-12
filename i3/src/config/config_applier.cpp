@@ -238,32 +238,32 @@ void ConfigApplier::workspace_layout(const std::string &layout) {
 }
 
 void ConfigApplier::default_border(const std::string &windowtype, const std::string &border, const long width) {
-    int border_style;
+    border_style_t border_style;
     int border_width;
 
     if (border == "1pixel"s) {
-        border_style = BS_PIXEL;
+        border_style = border_style_t::BS_PIXEL;
         border_width = 1;
     } else if (border == "none"s) {
-        border_style = BS_NONE;
+        border_style = border_style_t::BS_NONE;
         border_width = 0;
     } else if (border == "pixel"s) {
-        border_style = BS_PIXEL;
+        border_style = border_style_t::BS_PIXEL;
         border_width = width;
     } else {
-        border_style = BS_NORMAL;
+        border_style = border_style_t::BS_NORMAL;
         border_width = width;
     }
 
     if (windowtype ==  "default_border"s || windowtype == "new_window"s) {
         DLOG(fmt::sprintf("default tiled border style = %d and border width = %d (%ld physical px)\n",
-             border_style, border_width, logical_px(global.x->root_screen, border_width)));
-        this->config->default_border = static_cast<border_style_t>(border_style);
+             std::to_underlying(border_style), border_width, logical_px(global.x->root_screen, border_width)));
+        this->config->default_border = border_style;
         this->config->default_border_width = logical_px(global.x->root_screen, border_width);
     } else {
         DLOG(fmt::sprintf("default floating border style = %d and border width = %d (%ld physical px)\n",
-             border_style, border_width, logical_px(global.x->root_screen, border_width)));
-        this->config->default_floating_border = static_cast<border_style_t>(border_style);
+             std::to_underlying(border_style), border_width, logical_px(global.x->root_screen, border_width)));
+        this->config->default_floating_border = border_style;
         this->config->default_floating_border_width = logical_px(global.x->root_screen, border_width);
     }
 }
