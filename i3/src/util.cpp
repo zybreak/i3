@@ -110,31 +110,29 @@ static std::string store_restart_layout() {
 
     /* create the directory, it could have been cleaned up before restarting or
      * may not exist at all in case it was user-specified. */
-    char *filenamecopy = sstrdup(filename.c_str());
-    char *base = dirname(filenamecopy);
-    DLOG(fmt::sprintf("Creating \"%s\" for storing the restart layout\n", base));
-    using std::filesystem::perms;
-    const perms DEFAULT_DIR_MODE = perms::owner_all | perms::group_read | perms::group_exec | perms::others_read | perms::others_exec;
-    if (mkdirp(base, DEFAULT_DIR_MODE) != 0) {
-        ELOG(fmt::sprintf("Could not create \"%s\" for storing the restart layout, layout will be lost.\n", base));
+    std::filesystem::path p = filename;
+    auto base = p.parent_path();
+    if (!std::filesystem::exists(base)) {
+        DLOG(fmt::sprintf("Creating \"%s\" for storing the restart layout\n", base.native()));
+        using std::filesystem::perms;
+        const perms DEFAULT_DIR_MODE =
+                perms::owner_all | perms::group_read | perms::group_exec | perms::others_read | perms::others_exec;
+        if (!mkdirp(base, DEFAULT_DIR_MODE)) {
+            ELOG(fmt::sprintf("Could not create \"%s\" for storing the restart layout, layout will be lost.\n",
+                    base.native()));
+            return "";
+        }
     }
-    free(filenamecopy);
-
-    int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
-    if (fd == -1) {
-        perror("open()");
+    
+    std::ofstream outFile(p, std::ios::out | std::ios::trunc);
+    if (!outFile) {
+        ELOG("could not open file");
         return "";
     }
 
     auto payload = j.dump();
-
-    if (writeall(fd, payload.c_str(), payload.length()) == -1) {
-         ELOG(fmt::sprintf("Could not write restart layout to \"%s\", layout will be lost: %s\n", filename, strerror(errno)));
-        close(fd);
-        return "";
-    }
-
-    close(fd);
+    
+    outFile << payload;
 
     if (payload.length() > 0) {
         DLOG(fmt::sprintf("layout: %.*s\n",  static_cast<int>(payload.length()), payload));

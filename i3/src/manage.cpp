@@ -75,8 +75,8 @@ void manage_existing_windows(xcb_window_t root) {
 void restore_geometry() {
     DLOG("Restoring geometry\n");
 
-    for (const auto &c : global.all_cons) {
-        if (auto con = dynamic_cast<ConCon*>(c); con) {
+    for (auto &c : global.all_cons) {
+        if (auto con = dynamic_cast<ConCon*>(c); con && con->get_window() != nullptr) {
             DLOG(fmt::sprintf("Re-adding X11 border of %d px\n", con->border_width));
             con->get_window_rect().width += (2 * con->border_width);
             con->get_window_rect().height += (2 * con->border_width);

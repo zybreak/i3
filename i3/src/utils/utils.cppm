@@ -123,7 +123,7 @@ export std::optional<std::string> get_process_filename(const char *prefix);
  * Emulates mkdir -p (creates any missing folders)
  *
  */
-export int mkdirp(const char *path, std::filesystem::perms mode);
+export bool mkdirp(const std::filesystem::path &path, std::filesystem::perms mode);
 
 /**
  * Puts the given socket file descriptor into non-blocking mode or dies if

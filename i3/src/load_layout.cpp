@@ -115,7 +115,8 @@ static void json_end_map(tree_append_ctx &ctx) {
             }
 
             /* Set num accordingly so that i3bar will properly sort it. */
-            dynamic_cast<WorkspaceCon*>(ctx.json_node)->num = utils::ws_name_to_number(ctx.json_node->name);
+            auto ws = dynamic_cast<WorkspaceCon*>(ctx.json_node);
+            ws->num = utils::ws_name_to_number(ctx.json_node->name);
         }
 
         // When appending JSON layout files that only contain the workspace
