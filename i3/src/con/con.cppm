@@ -11,7 +11,6 @@
  */
 module;
 #include <xcb/xproto.h>
-#include <ev.h>
 export module i3:con;
 
 import std;
@@ -23,6 +22,7 @@ import :window;
 
 class Output;
 class Match;
+struct ev_timer;
 
 export {
     /**
