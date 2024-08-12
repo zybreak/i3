@@ -892,7 +892,7 @@ static bool get_urgency_flag(Con *con) {
         return false;
     }
 
-    return std::ranges::any_of(dynamic_cast<WorkspaceCon*>(con)->floating_windows, [](auto &child) { return (child->urgent || get_urgency_flag(child)); });
+    return std::ranges::any_of(workspace->floating_windows, [](auto &child) { return (child->urgent || get_urgency_flag(child)); });
 }
 
 /*
@@ -900,7 +900,7 @@ static bool get_urgency_flag(Con *con) {
  * urgent flag accordingly.
  *
  */
-void workspace_update_urgent_flag(Con *ws) {
+void workspace_update_urgent_flag(WorkspaceCon *ws) {
     bool old_flag = ws->urgent;
     ws->urgent = get_urgency_flag(ws);
     DLOG(fmt::sprintf("Workspace urgency flag changed from %d to %d\n",  old_flag, ws->urgent));

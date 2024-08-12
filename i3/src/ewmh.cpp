@@ -410,7 +410,7 @@ WorkspaceCon *ewmh_get_workspace_by_index(uint32_t idx) {
 uint32_t ewmh_get_workspace_index(Con *con) {
     uint32_t index = 0;
 
-    Con *target_workspace = con->con_get_workspace();
+    WorkspaceCon *target_workspace = con->con_get_workspace();
     for (auto &output : global.croot->nodes) {
         for (auto &ws : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
             if (ws == target_workspace) {

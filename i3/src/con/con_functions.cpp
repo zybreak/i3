@@ -315,7 +315,7 @@ void con_enable_fullscreen(Con *con, fullscreen_mode_t fullscreen_mode) {
     /* Set focus to new fullscreen container. Unless in global fullscreen mode
      * and on another workspace restore focus afterwards.
      * Switch to the container’s workspace if mode is global. */
-    Con *cur_ws = global.focused->con_get_workspace();
+    WorkspaceCon *cur_ws = global.focused->con_get_workspace();
     Con *old_focused = global.focused;
     if (fullscreen_mode == CF_GLOBAL && cur_ws != con_ws) {
         workspace_show(con_ws);
@@ -364,13 +364,12 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
         con = con->parent;
     }
 
-    Con *source_ws = con->con_get_workspace();
+    WorkspaceCon *source_ws = con->con_get_workspace();
 
     if (con->type == CT_WORKSPACE) {
         /* Re-parent all of the old workspace's floating windows. */
-        Con *child;
-        while (!dynamic_cast<WorkspaceCon*>(source_ws)->floating_windows.empty()) {
-            child = dynamic_cast<WorkspaceCon*>(source_ws)->floating_windows.front();
+        while (!source_ws->floating_windows.empty()) {
+            auto *child = source_ws->floating_windows.front();
             con_move_to_workspace(child, target_ws, true, true, false);
         }
 
@@ -393,8 +392,8 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
      * of this function. */
     WorkspaceCon *current_ws = global.focused->con_get_workspace();
 
-    OutputCon *source_output = con->con_get_output(),
-        *dest_output = target_ws->con_get_output();
+    OutputCon *source_output = con->con_get_output();
+    OutputCon *dest_output = target_ws->con_get_output();
 
     /* 1: save the container which is going to be focused after the current
      * container is moved away */
@@ -899,7 +898,7 @@ adjacent_t con_adjacent_borders(Con *con) {
         return result;
     }
 
-    Con *workspace = con->con_get_workspace();
+    WorkspaceCon *workspace = con->con_get_workspace();
     if (con->rect.x == workspace->rect.x) {
         result = static_cast<adjacent_t>(result | ADJ_LEFT_SCREEN_EDGE);
     }

@@ -430,7 +430,7 @@ void floating_disable(ConCon *con) {
         return;
     }
 
-    Con *ws = con->con_get_workspace();
+    WorkspaceCon *ws = con->con_get_workspace();
     Con *tiling_focused = con_descend_tiling_focused(ws);
 
     if (tiling_focused->type == CT_WORKSPACE) {

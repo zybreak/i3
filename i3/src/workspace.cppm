@@ -211,7 +211,7 @@ export {
      * urgent flag accordingly.
      *
      */
-    void workspace_update_urgent_flag(Con * ws);
+    void workspace_update_urgent_flag(WorkspaceCon * ws);
 
     /**
      * 'Forces' workspace orientation by moving all cons into a new split-con with

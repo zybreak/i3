@@ -106,7 +106,7 @@ static void yerror(nlohmann::json *json_gen, std::string message) {
  *
  */
 static bool maybe_back_and_forth(CommandsResultIR &cmd_output, const char *name) {
-    Con *ws = global.focused->con_get_workspace();
+    WorkspaceCon *ws = global.focused->con_get_workspace();
 
     /* If we switched to a different workspace, do nothing */
     if (strcmp(ws->name.c_str(), name) != 0)
@@ -1263,7 +1263,7 @@ void CommandsApplier::focus_direction(struct criteria_state *criteria_state, Com
     }
 
     for (auto current: criteria_state->owindows) {
-        Con *ws = current->con_get_workspace();
+        WorkspaceCon *ws = current->con_get_workspace();
         if (!ws) {
             continue;
         }
@@ -1289,7 +1289,7 @@ void CommandsApplier::focus_sibling(struct criteria_state *criteria_state, Comma
 
     const position_t direction = (starts_with(direction_str, "prev")) ? BEFORE : AFTER;
     for (auto current: criteria_state->owindows) {
-        Con *ws = current->con_get_workspace();
+        WorkspaceCon *ws = current->con_get_workspace();
         if (!ws) {
             continue;
         }
@@ -1329,7 +1329,7 @@ void CommandsApplier::focus_window_mode(struct criteria_state *criteria_state, C
         to_floating = false;
     }
 
-    Con *ws = global.focused->con_get_workspace();
+    WorkspaceCon *ws = global.focused->con_get_workspace();
     bool success = false;
     for (auto &current : ws->focused) {
         if ((to_floating && current->type != CT_FLOATING_CON) ||

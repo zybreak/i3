@@ -215,7 +215,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
         con2->set_window(nullptr);
     }
 
-    Con *ws = con->con_get_workspace();
+    WorkspaceCon *ws = con->con_get_workspace();
 
     /* Figure out which container to focus next before detaching 'con'. */
     Con *next = (con == global.focused) ? con_next_focused(con) : nullptr;

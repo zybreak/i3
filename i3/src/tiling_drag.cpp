@@ -55,7 +55,7 @@ static bool is_tiling_drop_target(Con *con) {
         con->con_is_hidden()) {
         return false;
     }
-    Con *ws = con->con_get_workspace();
+    WorkspaceCon *ws = con->con_get_workspace();
     if (!workspace_is_visible(ws)) {
         return false;
     }
@@ -105,7 +105,7 @@ static Con *find_drop_target(uint32_t x, uint32_t y) {
             !is_tiling_drop_target(con)) {
             continue;
         }
-        Con *ws = con->con_get_workspace();
+        WorkspaceCon *ws = con->con_get_workspace();
         Con *fs = ws->con_get_fullscreen_covering_ws();
         return fs ? fs : con;
     }

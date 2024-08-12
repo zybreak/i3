@@ -243,7 +243,7 @@ bool Match::match_matches_window(const i3Window *window) const {
         if ((con = con_by_window_id(window->id)) == nullptr)
             return false;
 
-        Con *ws = con->con_get_workspace();
+        WorkspaceCon *ws = con->con_get_workspace();
         if (ws == nullptr)
             return false;
 

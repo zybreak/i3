@@ -422,7 +422,7 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     x_set_name(nc, fmt::format("[i3 con] container around {}", fmt::ptr(cwindow)));
 
     /* handle fullscreen containers */
-    Con *ws = nc->con_get_workspace();
+    WorkspaceCon *ws = nc->con_get_workspace();
     Con *fs = ws ? ws->con_get_fullscreen_covering_ws() : nullptr;
 
     if (xcb_reply_contains_atom(state_reply, i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN])) {

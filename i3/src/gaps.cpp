@@ -93,7 +93,7 @@ bool gaps_should_inset_con(Con *con, int children) {
  * the container is not touching the edge of the screen in that direction.
  */
 bool gaps_has_adjacent_container(Con *con, direction_t direction) {
-    Con *workspace = con->con_get_workspace();
+    WorkspaceCon *workspace = con->con_get_workspace();
     Con *fullscreen = workspace->con_get_fullscreen_con(CF_GLOBAL);
     if (fullscreen == nullptr)
         fullscreen = workspace->con_get_fullscreen_con(CF_OUTPUT);

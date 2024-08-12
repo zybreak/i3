@@ -228,7 +228,7 @@ static void move_to_output_directed(Con *con, direction_t direction) {
         return;
     }
 
-    Con *old_ws = con->con_get_workspace();
+    WorkspaceCon *old_ws = con->con_get_workspace();
     const bool moves_focus = (global.focused == con);
     attach_to_workspace(con, *ws, direction);
     if (moves_focus) {

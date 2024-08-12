@@ -660,7 +660,7 @@ static void handle_tree(ipc_client *client, uint8_t *message, int size, uint32_t
 static void handle_get_workspaces(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     auto a = nlohmann::json::array();
 
-    Con *focused_ws = global.focused->con_get_workspace();
+    WorkspaceCon *focused_ws = global.focused->con_get_workspace();
 
     for (auto &output : global.croot->nodes) {
         for (auto &ws_con : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {

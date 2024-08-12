@@ -178,7 +178,7 @@ void start_application(const std::string_view command, bool no_startup_id) {
 
         /* Save the ID and current workspace in our internal list of startup
          * sequences */
-        Con *ws = global.focused->con_get_workspace();
+        WorkspaceCon *ws = global.focused->con_get_workspace();
         auto sequence = std::make_unique<Startup_Sequence>();
         sequence->id = sstrdup(sn_launcher_context_get_startup_id(context));
         sequence->workspace = sstrdup(ws->name.c_str());

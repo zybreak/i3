@@ -908,10 +908,9 @@ void Con::con_set_urgency(bool urgent) {
 
     con->con_update_parents_urgency();
 
-    Con *ws;
     /* Set the urgency flag on the workspace, if a workspace could be found
      * (for dock clients, that is not the case). */
-    if ((ws = con->con_get_workspace()) != nullptr) {
+    if (WorkspaceCon *ws = con->con_get_workspace(); ws != nullptr) {
         workspace_update_urgent_flag(ws);
     }
 

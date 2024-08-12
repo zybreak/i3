@@ -59,7 +59,7 @@ static void json_start_map(tree_append_ctx &ctx) {
             !ctx.parsing_gaps) {
             if (ctx.last_key == "floating_nodes") {
                 DLOG("New floating_node\n");
-                Con *ws = ctx.json_node->con_get_workspace();
+                WorkspaceCon *ws = ctx.json_node->con_get_workspace();
                 ctx.json_node = new ConCon(nullptr, true);
                 ctx.json_node->name.clear();
                 ctx.json_node->parent = ws;

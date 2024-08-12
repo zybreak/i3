@@ -224,7 +224,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
      * workspace is on another output we need to do a workspace_show in
      * order for i3bar (and others) to notice the change in workspace. */
     WorkspaceCon *ws = con->con_get_workspace();
-    Con *focused_workspace = global.focused->con_get_workspace();
+    WorkspaceCon *focused_workspace = global.focused->con_get_workspace();
 
     if (!ws) {
         ws = dynamic_cast<WorkspaceCon*>(con::first(con->con_get_output()->output_get_content()->focused));
