@@ -88,6 +88,7 @@ export {
 
         /* timer used for disabling urgency */
         ev_timer *urgency_timer{};
+        std::function<void(Con *)> urgency_timer_cb{};
 
     public:
         bool mapped{};
@@ -188,7 +189,7 @@ export {
         xcb_colormap_t colormap{};
         
         void stop_urgency_timer();
-        void start_urgency_timer(float after, float repeat, void (*cb)(EV_P_ ev_timer *w, int revents));
+        void start_urgency_timer(float after, float repeat, std::function<void(Con*)> cb);
 
         /** callbacks */
         virtual void on_remove_child();

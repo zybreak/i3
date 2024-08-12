@@ -853,20 +853,23 @@ void Con::stop_urgency_timer() {
     ev_timer_stop(global.eventHandler->main_loop, this->urgency_timer);
     delete this->urgency_timer;
     this->urgency_timer = nullptr;
+    this->urgency_timer_cb = nullptr;
 }
 
-static void foo() {
-    
-}
-
-void Con::start_urgency_timer(float after, float repeat, void (*cb)(EV_P_ ev_timer *w, int revents)) {
+void Con::start_urgency_timer(float after, float repeat, std::function<void(Con *con)> cb) {
     if (this->urgency_timer == nullptr) {
         DLOG(fmt::sprintf("Deferring reset of urgency flag of con %p on newly shown workspace %p\n",
                 fmt::ptr(this), fmt::ptr(con_get_workspace())));
         this->urgency_timer = new ev_timer{};
-        /* use a repeating timer to allow for easy resets */
-        ev_timer_init(this->urgency_timer, cb, after, repeat);
+        this->urgency_timer_cb = cb;
         this->urgency_timer->data = this;
+        auto _cb = [](EV_P_ ev_timer *w, int revents) {
+            Con *con = static_cast<Con*>(w->data);
+            con->urgency_timer_cb(con);
+        };
+        
+        /* use a repeating timer to allow for easy resets */
+        ev_timer_init(this->urgency_timer, _cb, after, repeat);
         ev_timer_start(global.eventHandler->main_loop, this->urgency_timer);
     } else {
         DLOG(fmt::sprintf("Resetting urgency timer of con %p on workspace %p\n",

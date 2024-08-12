@@ -421,9 +421,7 @@ static void workspace_reassign_sticky(Con *con) {
  * focusing the con.
  *
  */
-static void workspace_defer_update_urgent_hint_cb(EV_P_ ev_timer *w, int revents) {
-    Con *con = (Con*)w->data;
-
+static void workspace_defer_update_urgent_hint_cb(Con *con) {
     con->stop_urgency_timer();
 
     if (con->urgent) {
