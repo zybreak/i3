@@ -17,6 +17,12 @@ module;
 module i3ipc;
 
 namespace i3ipc {
+
+    /**
+     * Wrapper around correct write which returns -1 (meaning that
+     * write failed) or count (meaning that all bytes were written)
+     *
+     */
     ssize_t writeall(int fd, const void *buf, size_t count) {
         size_t written = 0;
 

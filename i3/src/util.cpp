@@ -64,28 +64,6 @@ std::vector<std::string> add_argument(std::vector<std::string> &original, const 
     return result;
 }
 
-/**
- * Wrapper around correct write which returns -1 (meaning that
- * write failed) or count (meaning that all bytes were written)
- *
- */
-static ssize_t writeall(int fd, const void *buf, size_t count) {
-    size_t written = 0;
-
-    while (written < count) {
-        const ssize_t n = write(fd, ((char *)buf) + written, count - written);
-        if (n == -1) {
-            if (errno == EINTR || errno == EAGAIN) {
-                continue;
-            }
-            return n;
-        }
-        written += static_cast<size_t>(n);
-    }
-
-    return written;
-}
-
 static std::string store_restart_layout() {
     setlocale(LC_NUMERIC, "C");
 

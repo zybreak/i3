@@ -8,5 +8,5 @@ target_sources(libi3ipc PUBLIC
 #target_compile_options(libi3ipc PUBLIC "-pthread" "-fsized-deallocation")
 target_compile_options(libi3ipc PUBLIC "-Xclang" "-fno-validate-pch")
 
-find_package(libev)
+find_package(libev CONFIG REQUIRED)
 target_link_libraries(libi3ipc PUBLIC libev::libev)
