@@ -54,6 +54,7 @@ export import :commands_applier;
 export import :internal;
 export import :handle_property;
 export import :atoms;
+export import :dump_node;
 
 export namespace i3 {
 

@@ -75,6 +75,7 @@ target_sources(i3_lib PUBLIC
         src/config/configuration.cpp
         src/config/config_applier.cpp
         src/drag.cpp
+        src/dump_node.cpp
         src/ewmh.cpp
         src/floating.cpp
         src/font.cpp
@@ -121,6 +122,7 @@ target_sources(i3_lib PUBLIC
         src/commands/commands_applier.cppm
         src/handlers/handle_property.cppm
         src/con/con.cppm
+        src/dump_node.cppm
         src/gaps.cppm
         src/util.cppm
         src/x.cppm

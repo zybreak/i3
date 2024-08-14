@@ -76,8 +76,6 @@ export {
      */
     void ipc_shutdown(shutdown_reason_t reason, int exempt_fd);
 
-    nlohmann::json dump_node(Con * con, bool inplace_restart);
-
     /**
      * Generates a json workspace event. Returns a dynamically allocated yajl
      * generator. Free with yajl_gen_free().
