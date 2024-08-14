@@ -35,20 +35,18 @@ import rect;
  *
  */
 bool tree_restore(const std::string_view path, const xcb_get_geometry_reply_t *geometry) {
-    bool result = false;
     auto globbed = utils::resolve_tilde(path);
     std::string buf;
 
     if (!std::filesystem::exists(globbed)) {
         LOG(fmt::sprintf("%s does not exist, not restoring tree\n",  globbed));
-        return result;
+        return false;
     }
 
     try {
-        auto slurped = utils::slurp(globbed);
-        buf = slurped;
+        buf = utils::slurp(globbed);
     } catch (std::exception &e) {
-        return result;
+        return false;
     }
 
     /* TODO: refactor the following */
@@ -67,7 +65,7 @@ bool tree_restore(const std::string_view path, const xcb_get_geometry_reply_t *g
     global.croot = dynamic_cast<RootCon*>(con::first(global.croot->nodes));
     if (!global.croot) {
         /* tree_append_json failed. Continuing here would segfault. */
-        return result;
+        return false;
     }
     DLOG(fmt::sprintf("new root = %p\n", fmt::ptr(global.croot)));
     Con *out = con::first(global.croot->nodes);
@@ -76,9 +74,7 @@ bool tree_restore(const std::string_view path, const xcb_get_geometry_reply_t *g
     DLOG(fmt::sprintf("ws = %p\n", fmt::ptr(ws)));
 
     restore_open_placeholder_windows(global.croot);
-    result = true;
-
-    return result;
+    return true;
 }
 
 /*

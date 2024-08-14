@@ -86,6 +86,11 @@ target_link_libraries(ConfigurationTest PUBLIC i3_lib GTest::gtest_main GTest::g
 gtest_discover_tests(ConfigurationTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/configuration_test.profraw")
 target_code_coverage(ConfigurationTest ALL)
 
+add_executable(JsonTest)
+target_sources(JsonTest PUBLIC json_test.cpp)
+target_link_libraries(JsonTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+gtest_discover_tests(JsonTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/json_test.profraw")
+target_code_coverage(JsonTest ALL)
 
 #add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS RegexTest MatchTest ConTest ConfigNewTest ConfigOldTest)
 
