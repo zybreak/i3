@@ -858,21 +858,20 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
          * container must not have any children (by definition).
          * Note that we explicitly check for workspaces, since they are okay for
          * this purpose, but con_accepts_window() returns false for workspaces. */
-        while (parent->type != CT_WORKSPACE && !parent->con_accepts_window())
+        while (parent->type != CT_WORKSPACE && !parent->con_accepts_window()) {
             parent = parent->parent;
+        }
     }
     DLOG(fmt::sprintf("Appending to parent=%p instead of focused=%p\n", fmt::ptr(parent), fmt::ptr(global.focused)));
-    char *errormsg = nullptr;
-    tree_append_json(parent, buf, &errormsg);
-    if (errormsg != nullptr) {
-        yerror(cmd_output.json_gen, errormsg);
-        free(errormsg);
+    try {
+        tree_append_json(parent, buf);
+        ysuccess(cmd_output.json_gen,  true);
+    } catch (const std::exception &e) {
         /* Note that we continue executing since tree_append_json() has
          * side-effects — user-provided layouts can be partly valid, partly
          * invalid, leading to half of the placeholder containers being
          * created. */
-    } else {
-        ysuccess(cmd_output.json_gen,  true);
+        yerror(cmd_output.json_gen, e.what());
     }
 
     // XXX: This is a bit of a kludge. Theoretically, render_con(parent,
@@ -885,8 +884,9 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
 
     restore_open_placeholder_windows(parent);
 
-    if (content == JSON_CONTENT_WORKSPACE)
+    if (content == JSON_CONTENT_WORKSPACE) {
         ipc_send_workspace_event("restored", parent, nullptr);
+    }
 
     cmd_output.needs_tree_render = true;
 }

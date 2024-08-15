@@ -539,7 +539,7 @@ json_content_t json_determine_content(std::string &fb) {
     return content_result;
 }
 
-void tree_append_json(Con *con, std::string &fb, char **errormsg) {
+void tree_append_json(Con *con, std::string &fb) {
     tree_append_ctx ctx = {
         .json_node = con
     };
@@ -579,9 +579,6 @@ void tree_append_json(Con *con, std::string &fb, char **errormsg) {
     try {
         auto j = nlohmann::json::parse(fb, cb, true, true);
     } catch (std::exception &e) {
-        if (e.what() != nullptr) {
-            *errormsg = sstrdup(e.what());
-        }
         ELOG(fmt::sprintf("JSON parsing error: %s\n",  e.what()));
         while (ctx.incomplete-- > 0) {
             Con *parent = ctx.json_node->parent;
@@ -592,6 +589,7 @@ void tree_append_json(Con *con, std::string &fb, char **errormsg) {
             delete ctx.json_node;
             ctx.json_node = parent;
         }
+        throw e;
     }
 
     /* In case not all containers were restored, we need to fix the

@@ -59,7 +59,12 @@ bool tree_restore(const std::string_view path, const xcb_get_geometry_reply_t *g
     };
     global.focused = global.croot;
 
-    tree_append_json(global.focused, buf, nullptr);
+    try {
+        tree_append_json(global.focused, buf);
+    } catch (std::exception const &e) {
+        ELOG(std::format("Parsing JSON failed: {}", e.what()));
+        return false;
+    }
 
     DLOG("appended tree, using new root\n");
     global.croot = dynamic_cast<RootCon*>(con::first(global.croot->nodes));

@@ -42,5 +42,5 @@ export {
      */
     bool json_validate(std::string & fb);
 
-    void tree_append_json(Con * con, std::string & fb, char **errormsg);
+    void tree_append_json(Con * con, std::string & fb);
 }
