@@ -63,7 +63,6 @@ bool Match::match_is_empty() {
 }
 
 Match::Match(Match &&src) noexcept {
-    std::swap(this->error, src.error);
     std::swap(this->window_type, src.window_type);
     std::swap(this->urgent, src.urgent);
     std::swap(this->dock, src.dock);
@@ -83,7 +82,6 @@ Match::Match(Match &&src) noexcept {
 }
 
 Match& Match::operator=(const Match &src) noexcept {
-    this->error = src.error;
     this->window_type = src.window_type;
     this->urgent = src.urgent;
     this->dock = src.dock;
@@ -104,7 +102,6 @@ Match& Match::operator=(const Match &src) noexcept {
 }
 
 Match& Match::operator=(Match &&src) noexcept {
-    std::swap(this->error, src.error);
     std::swap(this->window_type, src.window_type);
     std::swap(this->urgent, src.urgent);
     std::swap(this->dock, src.dock);
@@ -131,7 +128,6 @@ Match& Match::operator=(Match &&src) noexcept {
  */
 Match::Match(const Match &src) {
 
-    this->error = src.error;
     this->window_type= src.window_type;
     this->urgent= src.urgent;
     this->dock= src.dock;
@@ -325,7 +321,6 @@ bool Match::match_matches_window(const i3Window *window) const {
  *
  */
 Match::~Match() {
-    free(this->error);
     delete this->title;
     delete this->application;
     delete this->window_class;
@@ -391,7 +386,7 @@ void Match::parse_property(const char *ctype, const char *cvalue) {
         long parsed;
         if (!utils::parse_long(cvalue, &parsed, 0)) {
              ELOG(fmt::sprintf("Could not parse con id \"%s\"\n", cvalue));
-            this->error = sstrdup("invalid con_id");
+            throw std::runtime_error("Invalid match: invalid con_id");
         } else {
             this->con_id = (Con *)parsed;
             DLOG(fmt::sprintf("id as int = %p\n",  fmt::ptr(this->con_id)));
@@ -403,7 +398,7 @@ void Match::parse_property(const char *ctype, const char *cvalue) {
         long parsed;
         if (!utils::parse_long(cvalue, &parsed, 0)) {
              ELOG(fmt::sprintf("Could not parse window id \"%s\"\n", cvalue));
-            this->error = sstrdup("invalid id");
+            throw std::runtime_error("Invalid match: invalid id");
         } else {
             this->id = parsed;
             DLOG(fmt::sprintf("window id as int = %d\n",  this->id));
@@ -434,7 +429,7 @@ void Match::parse_property(const char *ctype, const char *cvalue) {
             this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NOTIFICATION];
         } else {
              ELOG(fmt::sprintf("unknown window_type value \"%s\"\n", cvalue));
-            this->error = sstrdup("unknown window_type value");
+            throw std::runtime_error("Invalid match: unknown window_type value");
         }
 
         return;

@@ -88,3 +88,17 @@ TEST(MatchTest, MatchesUrgentOldest){
 
     ASSERT_TRUE(m.match_matches_window(&w));
 }
+
+
+TEST(MatchTest, ParseProperty){
+    ConfigurationManager configManager{};
+    global.configManager = &configManager;
+    global.configManager->config = std::make_unique<Config>();
+    global.x = new MockX{};
+
+    Match m{};
+   
+    EXPECT_ANY_THROW({
+        m.parse_property("con_id", "foo");
+    });
+}

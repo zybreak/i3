@@ -12,7 +12,6 @@
  *
  */
 module;
-#include <config.h>
 #include <xcb/xcb.h>
 export module i3:match;
 
@@ -60,9 +59,6 @@ export {
      */
     class Match {
        public:
-        /* Set if a criterion was specified incorrectly. */
-        char *error{nullptr};
-
         Regex *title{nullptr};
         Regex *application{nullptr};
         Regex *window_class{nullptr};
@@ -87,7 +83,7 @@ export {
          *            (dockareas)
          *
          */
-        enum match_insert_t insert_where { M_HERE };
+        match_insert_t insert_where{match_insert_t::M_HERE};
 
         /* Whether this match was generated when restarting i3 inplace.
          * Leads to not setting focus when managing a new window, because the old
@@ -117,6 +113,6 @@ export {
          * Check if a match data structure matches the given window.
          *
          */
-        bool match_matches_window(const i3Window *window) const;
+        bool match_matches_window(i3Window const *window) const;
     };
 }

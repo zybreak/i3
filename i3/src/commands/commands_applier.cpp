@@ -153,9 +153,6 @@ static WorkspaceCon *maybe_auto_back_and_forth_workspace(WorkspaceCon *workspace
  * every command.
  */
 static void HANDLE_EMPTY_MATCH(struct criteria_state *criteria_state) {
-    if (criteria_state->current_match.error != nullptr) {
-        throw std::runtime_error(fmt::sprintf("Invalid match: %s", criteria_state->current_match.error));
-    }
 
     if (criteria_state->current_match.match_is_empty()) {
         criteria_state->owindows.clear();
@@ -319,7 +316,7 @@ void CommandsApplier::criteria_match_windows(struct criteria_state *criteria_sta
         }
     }
 
-    for (auto c: criteria_state->owindows) {
+    for (auto *c: criteria_state->owindows) {
         DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(c), c->name));
     }
 }
