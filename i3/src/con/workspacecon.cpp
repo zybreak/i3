@@ -178,7 +178,7 @@ void WorkspaceCon::on_remove_child() {
  * Returns true if this node has regular or floating children.
  *
  */
-bool WorkspaceCon::con_has_children() {
+bool WorkspaceCon::con_has_children() const {
     return (!this->con_is_leaf() || !this->floating_windows.empty());
 }
 

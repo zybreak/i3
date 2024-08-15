@@ -18,25 +18,24 @@ import utils;
 /**
  * Calculates the effective gap sizes for a container.
  */
-gaps_t calculate_effective_gaps(Con *con) {
+gaps_t calculate_effective_gaps(Con const * const con) {
     WorkspaceCon *workspace = con->con_get_workspace();
-    if (workspace == nullptr)
-        return (gaps_t){0, 0, 0, 0, 0};
+    if (workspace == nullptr) {
+        return gaps_t{};
+    }
 
     bool one_child = workspace->con_num_visible_children() <= 1 ||
                      (workspace->con_num_children() == 1 &&
                       (con::first(workspace->nodes)->layout == L_TABBED ||
                        con::first(workspace->nodes)->layout == L_STACKED));
 
-    if (global.configManager->config->smart_gaps == SMART_GAPS_ON && one_child)
-        return (gaps_t){0, 0, 0, 0, 0};
+    if (global.configManager->config->smart_gaps == SMART_GAPS_ON && one_child) {
+        return gaps_t{};
+    }
 
-    gaps_t gaps = {
-        .inner = (workspace->gaps.inner + global.configManager->config->gaps.inner),
-        .top = 0,
-        .right = 0,
-        .bottom = 0,
-        .left = 0};
+    gaps_t gaps{};
+    
+    gaps.inner = (workspace->gaps.inner + global.configManager->config->gaps.inner);
 
     if (global.configManager->config->smart_gaps != SMART_GAPS_INVERSE_OUTER || one_child) {
         gaps.top = workspace->gaps.top + global.configManager->config->gaps.top;

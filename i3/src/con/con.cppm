@@ -230,7 +230,7 @@ export {
          * Returns true if a container should be considered split.
          *
          */
-        bool con_is_split();
+        bool con_is_split() const;
 
         /**
          * This will only return true for containers which have some parent with
@@ -249,7 +249,7 @@ export {
          * Returns true if this node has regular or floating children.
          *
          */
-        virtual bool con_has_children();
+        virtual bool con_has_children() const;
 
         /**
          * Returns true if this node accepts a window (if the node swallows windows,
@@ -263,13 +263,13 @@ export {
          * node is on.
          *
          */
-        OutputCon *con_get_output();
+        OutputCon *con_get_output() const;
 
         /**
          * Gets the workspace container this node is on.
          *
          */
-        WorkspaceCon *con_get_workspace();
+        WorkspaceCon *con_get_workspace() const;
 
         /**
          * Returns the fullscreen node that covers the given workspace if it exists.
@@ -453,8 +453,8 @@ export {
 
     class RootCon : public Con {
        public:
-        RootCon()
-            : Con(false) {
+        RootCon(bool skeleton = false)
+            : Con(skeleton) {
             this->type = CT_ROOT;
             this->name = "root";
         }
@@ -468,8 +468,8 @@ export {
 
     class OutputCon : public Con {
        public:
-        OutputCon()
-            : Con(false) {
+        OutputCon(bool skeleton = false)
+            : Con(skeleton) {
             this->type = CT_OUTPUT;
             this->layout = L_OUTPUT;
         }
@@ -522,8 +522,8 @@ export {
     /* Wrap a floating ConCon in a FloatingCon. */
     class FloatingCon : public Con {
        public:
-        FloatingCon()
-            : Con(false) {
+        FloatingCon(bool skeleton = false)
+            : Con(skeleton) {
             this->type = CT_FLOATING_CON;
         }
         void con_attach(Con *parent, bool ignore_focus, Con *previous = nullptr) override;
@@ -533,8 +533,8 @@ export {
 
     class DockCon : public Con {
        public:
-        DockCon()
-            : Con(false) {
+        DockCon(bool skeleton = false)
+            : Con(skeleton) {
             this->type = CT_DOCKAREA;
             this->layout = L_DOCKAREA;
         }
@@ -569,8 +569,8 @@ export {
          * workspace is not a named workspace (for named workspaces, num == -1) */
         int num{};
 
-        WorkspaceCon()
-            : Con(false) {
+        WorkspaceCon(bool skeleton = false)
+            : Con(skeleton) {
             this->type = CT_WORKSPACE;
             this->workspace_layout = L_DEFAULT;
         }
@@ -583,7 +583,7 @@ export {
         
         void on_remove_child() override;
 
-        bool con_has_children() override;
+        bool con_has_children() const override;
     };
 
     namespace con {
@@ -684,7 +684,7 @@ export {
      * container).
      *
      */
-    orientation_t con_orientation(Con * con);
+    orientation_t con_orientation(Con const * const con);
 
     /**
      * Returns the container which will be focused next when the given container
@@ -726,7 +726,7 @@ export {
      * the parent container (for stacked/tabbed containers).
      *
      */
-    bool con_draw_decoration_into_frame(Con *con);
+    bool con_draw_decoration_into_frame(Con const * const con);
 
     /**
      * Returns a "relative" Rect which contains the amount of pixels that need to
@@ -734,13 +734,13 @@ export {
      * amount of pixels for normal, 1pixel and borderless are different).
      *
      */
-    Rect con_border_style_rect(Con * con);
+    Rect con_border_style_rect(Con const * const con);
 
     /**
      * Returns adjacent borders of the window. We need this if hide_edge_borders is
      * enabled.
      */
-    adjacent_t con_adjacent_borders(Con * con);
+    adjacent_t con_adjacent_borders(Con const * const con);
 
     /**
      * Use this function to get a container’s border style. This is important
@@ -752,7 +752,7 @@ export {
      * For children of a CT_DOCKAREA, the border style is always none.
      *
      */
-    border_style_t con_border_style(Con * con);
+    border_style_t con_border_style(Con const * const con);
 
     /**
      * Sets the given border style on con, correctly keeping the position/size of a

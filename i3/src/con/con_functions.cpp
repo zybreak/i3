@@ -614,26 +614,24 @@ void con_move_to_output(Con *con, Output *output, bool fix_coordinates) {
  * container).
  *
  */
-orientation_t con_orientation(Con *con) {
+orientation_t con_orientation(Con const * const con) {
     switch (con->layout) {
-        case L_SPLITV:
+        case layout_t::L_SPLITV:
         /* stacking containers behave like they are in vertical orientation */
-        case L_STACKED:
+        case layout_t::L_STACKED:
             return VERT;
 
-        case L_SPLITH:
+        case layout_t::L_SPLITH:
         /* tabbed containers behave like they are in vertical orientation */
-        case L_TABBED:
+        case layout_t::L_TABBED:
             return HORIZ;
 
-        case L_DEFAULT:
-            ELOG("Someone called con_orientation() on a con with L_DEFAULT, this is a bug in the code.\n");
-            std::terminate();
+        case layout_t::L_DEFAULT:
+            throw std::runtime_error("Someone called con_orientation() on a con with L_DEFAULT, this is a bug in the code.");
 
-        case L_DOCKAREA:
-        case L_OUTPUT:
-            ELOG(fmt::sprintf("con_orientation() called on dockarea/output (%d) container %p\n", std::to_underlying(con->layout), fmt::ptr(con)));
-            std::terminate();
+        case layout_t::L_DOCKAREA:
+        case layout_t::L_OUTPUT:
+            throw std::runtime_error(fmt::format("con_orientation() called on dockarea/output ({}) container {}", std::to_underlying(con->layout), fmt::ptr(con)));
     }
     /* should not be reached */
     std::terminate();
@@ -805,15 +803,15 @@ static bool has_outer_gaps(gaps_t gaps) {
  * the parent container (for stacked/tabbed containers).
  *
  */
-bool con_draw_decoration_into_frame(Con *con) {
+bool con_draw_decoration_into_frame(Con const * const con) {
     return con->con_is_leaf() &&
            con_border_style(con) == border_style_t::BS_NORMAL &&
            (con->parent == nullptr ||
-            (con->parent->layout != L_TABBED &&
-             con->parent->layout != L_STACKED));
+            (con->parent->layout != layout_t::L_TABBED &&
+             con->parent->layout != layout_t::L_STACKED));
 }
 
-static Rect con_border_style_rect_without_title(Con *con) {
+static Rect con_border_style_rect_without_title(Con const * const con) {
     if ((global.configManager->config->smart_borders == SMART_BORDERS_ON && con->con_get_workspace()->con_num_visible_children() <= 1) ||
         (global.configManager->config->smart_borders == SMART_BORDERS_NO_GAPS && !has_outer_gaps(calculate_effective_gaps(con))) ||
         (global.configManager->config->hide_edge_borders == HEBM_SMART && con->con_get_workspace()->con_num_visible_children() <= 1) ||
@@ -875,7 +873,7 @@ static Rect con_border_style_rect_without_title(Con *con) {
  * amount of pixels for normal, 1pixel and borderless are different).
  *
  */
-Rect con_border_style_rect(Con *con) {
+Rect con_border_style_rect(Con const * const con) {
     Rect result = con_border_style_rect_without_title(con);
     if (con_border_style(con) == border_style_t::BS_NORMAL &&
         con_draw_decoration_into_frame(con)) {
@@ -890,8 +888,8 @@ Rect con_border_style_rect(Con *con) {
  * Returns adjacent borders of the window. We need this if hide_edge_borders is
  * enabled.
  */
-adjacent_t con_adjacent_borders(Con *con) {
-    adjacent_t result = ADJ_NONE;
+adjacent_t con_adjacent_borders(Con const * const con) {
+    adjacent_t result = adjacent_t::ADJ_NONE;
     /* Floating windows are never adjacent to any other window, so
        don’t hide their border(s). This prevents bug #998. */
     if (con->con_is_floating()) {
@@ -900,16 +898,16 @@ adjacent_t con_adjacent_borders(Con *con) {
 
     WorkspaceCon *workspace = con->con_get_workspace();
     if (con->rect.x == workspace->rect.x) {
-        result = static_cast<adjacent_t>(result | ADJ_LEFT_SCREEN_EDGE);
+        result = static_cast<adjacent_t>(result | std::to_underlying(adjacent_t::ADJ_LEFT_SCREEN_EDGE));
     }
     if (con->rect.x + con->rect.width == workspace->rect.x + workspace->rect.width) {
-        result = static_cast<adjacent_t>(result | ADJ_RIGHT_SCREEN_EDGE);
+        result = static_cast<adjacent_t>(result | std::to_underlying(adjacent_t::ADJ_RIGHT_SCREEN_EDGE));
     }
     if (con->rect.y == workspace->rect.y) {
-        result = static_cast<adjacent_t>(result | ADJ_UPPER_SCREEN_EDGE);
+        result = static_cast<adjacent_t>(result | std::to_underlying(adjacent_t::ADJ_UPPER_SCREEN_EDGE));
     }
     if (con->rect.y + con->rect.height == workspace->rect.y + workspace->rect.height) {
-        result = static_cast<adjacent_t>(result | ADJ_LOWER_SCREEN_EDGE);
+        result = static_cast<adjacent_t>(result | std::to_underlying(adjacent_t::ADJ_LOWER_SCREEN_EDGE));
     }
     return result;
 }
@@ -924,22 +922,22 @@ adjacent_t con_adjacent_borders(Con *con) {
  * For children of a CT_DOCKAREA, the border style is always none.
  *
  */
-border_style_t con_border_style(Con *con) {
-    if (con->fullscreen_mode == CF_OUTPUT || con->fullscreen_mode == CF_GLOBAL) {
+border_style_t con_border_style(Con const * const con) {
+    if (con->fullscreen_mode == fullscreen_mode_t::CF_OUTPUT || con->fullscreen_mode == fullscreen_mode_t::CF_GLOBAL) {
         DLOG("this one is fullscreen! overriding BS_NONE\n");
         return border_style_t::BS_NONE;
     }
 
     if (con->parent != nullptr) {
-        if (con->parent->layout == L_STACKED) {
+        if (con->parent->layout == layout_t::L_STACKED) {
             return con->parent->con_num_children() == 1 ? con->border_style : border_style_t::BS_NORMAL;
         }
 
-        if (con->parent->layout == L_TABBED && con->border_style != border_style_t::BS_NORMAL) {
+        if (con->parent->layout == layout_t::L_TABBED && con->border_style != border_style_t::BS_NORMAL) {
             return con->parent->con_num_children() == 1 ? con->border_style : border_style_t::BS_NORMAL;
         }
 
-        if (con->parent->type == CT_DOCKAREA) {
+        if (con->parent->type == con_type_t::CT_DOCKAREA) {
             return border_style_t::BS_NONE;
         }
     }

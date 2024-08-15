@@ -360,7 +360,7 @@ bool Con::con_has_managed_window() {
  * Returns true if this node has regular or floating children.
  *
  */
-bool Con::con_has_children() {
+bool Con::con_has_children() const {
     return !this->con_is_leaf();
 }
 
@@ -368,14 +368,14 @@ bool Con::con_has_children() {
  * Returns true if a container should be considered split.
  *
  */
-bool Con::con_is_split() {
+bool Con::con_is_split() const {
     if (this->con_is_leaf()) {
         return false;
     }
 
     switch (this->layout) {
-        case L_DOCKAREA:
-        case L_OUTPUT:
+        case layout_t::L_DOCKAREA:
+        case layout_t::L_OUTPUT:
             return false;
 
         default:
@@ -439,29 +439,28 @@ bool Con::con_accepts_window() {
  * node is on.
  *
  */
-OutputCon* Con::con_get_output() {
-    Con *result = this;
-    while (result != nullptr && result->type != CT_OUTPUT) {
+OutputCon* Con::con_get_output() const {
+    Con const *result = this;
+    while (result != nullptr && result->type != con_type_t::CT_OUTPUT) {
         result = result->parent;
     }
     /* We must be able to get an output because focus can never be set higher
      * in the tree (root node cannot be focused). */
     if (result == nullptr) {
-        ELOG("Output not found");
-        std::terminate();
+        throw std::runtime_error("Output not found");
     }
-    return dynamic_cast<OutputCon*>(result);
+    return dynamic_cast<OutputCon*>(const_cast<Con*>(result));
 }
 
 /*
  * Gets the workspace container this node is on.
  *
  */
-WorkspaceCon* Con::con_get_workspace() {
-    Con *result = this;
+WorkspaceCon* Con::con_get_workspace() const {
+    Con const *result = this;
     while (result != nullptr) {
-        if (result->type == CT_WORKSPACE) {
-            return dynamic_cast<WorkspaceCon*>(result);
+        if (result->type == con_type_t::CT_WORKSPACE) {
+            return dynamic_cast<WorkspaceCon*>(const_cast<Con*>(result));
         } else {
             result = result->parent;
         }

@@ -1,3 +1,5 @@
+module;
+#import <nlohmann/json.hpp>
 export module rect;
 
 import std;
@@ -24,7 +26,7 @@ export {
         uint32_t height{};
         bool rect_contains(uint32_t _x, uint32_t _y);
         void rect_sanitize_dimensions();
-        auto operator<=>(const Rect &r) const = default;
+        auto operator<=>(Rect const &r) const = default;
         /*friend bool operator==(const Rect &a, const Rect &b) {
             return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
         }*/
@@ -33,6 +35,16 @@ export {
         Rect operator-(const Rect &r) const;
         Rect &operator-=(const Rect &r);
     };
+
+    void to_json(nlohmann::json &j, Rect const &r) {
+        j = {
+                { "x", r.x },
+                { "y", r.y },
+                { "width", r.width },
+                { "height", r.height },
+        };
+    }
+
 }
 
 bool Rect::rect_contains(uint32_t _x, uint32_t _y) {

@@ -241,15 +241,6 @@ static void handle_run_command(ipc_client *client, uint8_t *message, int size, u
     ipc_send_client_message(client, i3ipc::REPLY_TYPE::COMMAND, gen.dump());
 }
 
-static nlohmann::json dump_rect(Rect &r) {
-    return {
-            { "x", r.x },
-            { "y", r.y },
-            { "width", r.width },
-            { "height", r.height },
-    };
-}
-
 static nlohmann::json dump_event_state_mask(Binding *bind) {
     auto a = nlohmann::json::array();
 
@@ -365,7 +356,7 @@ static void handle_get_workspaces(ipc_client *client, uint8_t *message, int size
                 { "name", ws->name },
                 { "visible", workspace_is_visible(ws) },
                 { "focused", ws == focused_ws },
-                { "rect", dump_rect(ws->rect) },
+                { "rect", ws->rect },
                 { "output", output->name },
                 {"urgent", ws->urgent }
             });
@@ -392,7 +383,7 @@ static void handle_get_outputs(ipc_client *client, uint8_t *message, int size, u
         o["name"] = output->output_primary_name();
         o["active"] = output->active;
         o["primary"] = output->primary;
-        o["rect"] = dump_rect(output->rect);
+        o["rect"] = output->rect;
         Con *ws = nullptr;
         if (output->con && (ws = output->con->con_get_fullscreen_con(CF_OUTPUT))) {
             o["current_workspace"] = ws->name;

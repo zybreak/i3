@@ -272,6 +272,8 @@ export {
         };
         
         Config();
+
+        void init_color();
     };
     
     class ConfigurationManager {

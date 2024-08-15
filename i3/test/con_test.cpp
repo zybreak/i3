@@ -15,6 +15,8 @@ class MockX : public X {
 
 TEST(ConTest, Floating) {
     global.x = new MockX{};
+    ConfigurationManager configManager{};
+    global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
     ConCon x{nullptr, true};
     FloatingCon f{};

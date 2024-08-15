@@ -17,7 +17,7 @@ export {
     /**
      * Calculates the effective gap sizes for a container.
      */
-    gaps_t calculate_effective_gaps(Con * con);
+    gaps_t calculate_effective_gaps(Con const * const con);
 
     /*
      * Decides whether the container should be inset.

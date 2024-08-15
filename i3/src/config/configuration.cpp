@@ -231,10 +231,13 @@ void ConfigurationManager::set_config(std::unique_ptr<Config> _config) {
 }
 
 Config::Config() {
-    auto config = this;
+    auto *config = this;
     Mode default_mode{"default"};
     config->modes.insert_or_assign("default", default_mode);
+}
 
+void Config::init_color() {
+    auto *config = this;
     /* Initialize default colors */
     config->client.background = draw_util_hex_to_color(**global.x, global.x->root_screen, "#000000");
     INIT_COLOR(config->client.focused, "#4c7899", "#285577", "#ffffff", "#2e9ef4");
@@ -270,6 +273,7 @@ Config::Config() {
 std::unique_ptr<Config> load_configuration(const std::optional<std::filesystem::path> override_configpath) {
     
     auto config = std::make_unique<Config>();
+    config->init_color();
 
     auto config_path = get_config_path(override_configpath, true);
     if (config_path) {

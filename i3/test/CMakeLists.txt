@@ -16,7 +16,7 @@ target_code_coverage(RegexTest ALL)
 
 add_executable(MatchTest)
 target_sources(MatchTest PUBLIC match_test.cpp)
-target_link_libraries(MatchTest PUBLIC i3_lib GTest::gtest_main)
+target_link_libraries(MatchTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
 gtest_discover_tests(MatchTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/match_test.profraw")
 target_code_coverage(MatchTest ALL)
 
@@ -86,11 +86,11 @@ target_link_libraries(ConfigurationTest PUBLIC i3_lib GTest::gtest_main GTest::g
 gtest_discover_tests(ConfigurationTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/configuration_test.profraw")
 target_code_coverage(ConfigurationTest ALL)
 
-add_executable(JsonTest)
-target_sources(JsonTest PUBLIC json_test.cpp)
-target_link_libraries(JsonTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
-gtest_discover_tests(JsonTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/json_test.profraw")
-target_code_coverage(JsonTest ALL)
+add_executable(DumpNodeTest)
+target_sources(DumpNodeTest PUBLIC dump_node_test.cpp)
+target_link_libraries(DumpNodeTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+gtest_discover_tests(DumpNodeTest PROPERTIES ENVIRONMENT "LLVM_PROFILE_FILE=${CMAKE_BINARY_DIR}/coverage/dump_node_test.profraw")
+target_code_coverage(DumpNodeTest ALL)
 
 #add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS RegexTest MatchTest ConTest ConfigNewTest ConfigOldTest)
 

@@ -1,6 +1,17 @@
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
+#include <xcb/xcb.h>
 
 import i3;
+
+class MockX : public X {
+public:
+    MockX() : X(nullptr) {
+        root_depth = 32;
+    };
+
+    MOCK_METHOD(void, con_init, (Con *con, std::optional<xcb_drawable_t> id), (override));
+};
 
 TEST(MatchTest, IsNotInitialized){
     Match m{};
@@ -31,7 +42,11 @@ TEST(MatchTest, MatchesWindowClass){
 }
 
 TEST(MatchTest, MatchesUrgentLatest){
+    ConfigurationManager configManager{};
+    global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
+    global.x = new MockX{};
+    
     Match m{};
 
     m.urgent = U_LATEST;
@@ -51,7 +66,11 @@ TEST(MatchTest, MatchesUrgentLatest){
 }
 
 TEST(MatchTest, MatchesUrgentOldest){
+    ConfigurationManager configManager{};
+    global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
+    global.x = new MockX{};
+    
     Match m{};
 
     m.urgent = U_OLDEST;
