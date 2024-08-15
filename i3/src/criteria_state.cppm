@@ -15,12 +15,6 @@ export struct criteria_state {
     criteria_state(int criteria_next_state) : criteria_next_state(criteria_next_state) {
     }
 
-    criteria_state(const criteria_state &src) {
-        this->criteria_next_state = src.criteria_next_state;
-        this->current_match = src.current_match;
-        this->owindows = src.owindows;
-    }
-
     criteria_state(criteria_state &&src) noexcept {
         std::swap(this->criteria_next_state, src.criteria_next_state);
         std::swap(this->current_match, src.current_match);

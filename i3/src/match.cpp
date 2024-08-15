@@ -33,7 +33,7 @@ static bool i3_timercmp(std::optional<std::chrono::time_point<std::chrono::syste
     return (a && b) ? cmp(a, b) : a ? cmp(a, epoch_time_point) : cmp(epoch_time_point, b);
 }
 
-static bool is_initialized(const Regex *regex) {
+static inline bool is_initialized(Regex const *regex) {
     return regex != nullptr && regex->valid;
 }
 
@@ -46,13 +46,13 @@ bool Match::match_is_empty() {
     /* we cannot simply use memcmp() because the structure is part of a
      * TAILQ and I don’t want to start with things like assuming that the
      * last member of a struct really is at the end in memory… */
-    return (!is_initialized(this->title) &&
-            !is_initialized(this->application) &&
-            !is_initialized(this->window_class) &&
-            !is_initialized(this->instance) &&
-            !is_initialized(this->window_role) &&
-            !is_initialized(this->workspace) &&
-            !is_initialized(this->machine) &&
+    return (!is_initialized(this->title.get()) &&
+            !is_initialized(this->application.get()) &&
+            !is_initialized(this->window_class.get()) &&
+            !is_initialized(this->instance.get()) &&
+            !is_initialized(this->window_role.get()) &&
+            !is_initialized(this->workspace.get()) &&
+            !is_initialized(this->machine.get()) &&
             this->urgent == U_DONTCHECK &&
             this->id == XCB_NONE &&
             this->window_type == UINT32_MAX &&
@@ -62,96 +62,7 @@ bool Match::match_is_empty() {
             this->match_all_windows == false);
 }
 
-Match::Match(Match &&src) noexcept {
-    std::swap(this->window_type, src.window_type);
-    std::swap(this->urgent, src.urgent);
-    std::swap(this->dock, src.dock);
-    std::swap(this->id, src.id);
-    std::swap(this->window_mode, src.window_mode);
-    std::swap(this->con_id, src.con_id);
-    std::swap(this->match_all_windows, src.match_all_windows);
-    std::swap(this->insert_where, src.insert_where);
-    std::swap(this->restart_mode, src.restart_mode);
-
-    std::swap(this->title, src.title);
-    std::swap(this->application, src.application);
-    std::swap(this->window_class, src.window_class);
-    std::swap(this->instance, src.instance);
-    std::swap(this->window_role, src.window_role);
-    std::swap(this->workspace, src.workspace);
-}
-
-Match& Match::operator=(const Match &src) noexcept {
-    this->window_type = src.window_type;
-    this->urgent = src.urgent;
-    this->dock = src.dock;
-    this->id = src.id;
-    this->window_mode = src.window_mode;
-    this->con_id = src.con_id;
-    this->match_all_windows = src.match_all_windows;
-    this->insert_where = src.insert_where;
-    this->restart_mode = src.restart_mode;
-    this->title = src.title;
-    this->application = src.application;
-    this->window_class = src.window_class;
-    this->instance = src.instance;
-    this->window_role = src.window_role;
-    this->workspace = src.workspace;
-
-    return *this;
-}
-
-Match& Match::operator=(Match &&src) noexcept {
-    std::swap(this->window_type, src.window_type);
-    std::swap(this->urgent, src.urgent);
-    std::swap(this->dock, src.dock);
-    std::swap(this->id, src.id);
-    std::swap(this->window_mode, src.window_mode);
-    std::swap(this->con_id, src.con_id);
-    std::swap(this->match_all_windows, src.match_all_windows);
-    std::swap(this->insert_where, src.insert_where);
-    std::swap(this->restart_mode, src.restart_mode);
-
-    std::swap(this->title, src.title);
-    std::swap(this->application, src.application);
-    std::swap(this->window_class, src.window_class);
-    std::swap(this->instance, src.instance);
-    std::swap(this->window_role, src.window_role);
-    std::swap(this->workspace, src.workspace);
-
-    return *this;
-}
-
-/*
- * Copies the data of a match from src to dest.
- *
- */
-Match::Match(const Match &src) {
-
-    this->window_type= src.window_type;
-    this->urgent= src.urgent;
-    this->dock= src.dock;
-    this->id= src.id;
-    this->window_mode= src.window_mode;
-    this->con_id = src.con_id;
-    this->match_all_windows= src.match_all_windows;
-    this->insert_where= src.insert_where;
-    this->restart_mode= src.restart_mode;
-
-/* The DUPLICATE_REGEX macro creates a new regular expression from the
- * ->pattern of the old one. It therefore does use a little more memory then
- *  with a refcounting system, but it’s easier this way. */
-
-    if (is_initialized(src.title))              this->title = new Regex(*src.title);
-    if (is_initialized(src.application))        this->application = new Regex(*src.application);
-    if (is_initialized(src.window_class))       this->window_class = new Regex(*src.window_class);
-    if (is_initialized(src.instance))           this->instance = new Regex(*src.instance);
-    if (is_initialized(src.window_role))        this->window_role = new Regex(*src.window_role);
-    if (is_initialized(src.workspace))          this->workspace = new Regex(*src.workspace);
-    if (is_initialized(src.machine))            this->workspace = new Regex(*src.machine);
-}
-
-static void checkWindowField(const Regex *match_field, const i3Window *window, char* (*window_field)(const i3Window*)) {
+static void checkWindowField(Regex const *match_field, i3Window const *window, char* (*window_field)(i3Window const *)) {
     if (is_initialized(match_field)) {
         const char *window_field_str = window_field(window) == nullptr ? "" : window_field(window);
         if (strcmp(match_field->pattern, "__focused__") == 0 &&
@@ -174,8 +85,8 @@ bool Match::match_matches_window(const i3Window *window) const {
     LOG(fmt::sprintf("Checking window 0x%08x (class %s)\n",  window->id, window->class_class));
 
     try {
-        checkWindowField(this->window_class, window, [](const i3Window *window) { return !window->class_class.empty() ? (char*)window->class_class.c_str() : nullptr; });
-        checkWindowField(this->instance, window, [](const i3Window *window) { return !window->class_instance.empty() ? (char*)window->class_instance.c_str() : nullptr; });
+        checkWindowField(this->window_class.get(), window, [](const i3Window *window) { return !window->class_class.empty() ? (char*)window->class_class.c_str() : nullptr; });
+        checkWindowField(this->instance.get(), window, [](const i3Window *window) { return !window->class_instance.empty() ? (char*)window->class_instance.c_str() : nullptr; });
 
         if (this->id != XCB_NONE) {
             if (window->id == this->id) {
@@ -186,8 +97,8 @@ bool Match::match_matches_window(const i3Window *window) const {
             }
         }
 
-        checkWindowField(this->title, window, [](const i3Window *window) { return !window->name.empty() ? (char*)window->name.c_str() : nullptr; });
-        checkWindowField(this->window_role, window, [](const i3Window *window) { return !window->role.empty() ? (char*)window->role.c_str() : nullptr; });
+        checkWindowField(this->title.get(), window, [](const i3Window *window) { return !window->name.empty() ? (char*)window->name.c_str() : nullptr; });
+        checkWindowField(this->window_role.get(), window, [](const i3Window *window) { return !window->role.empty() ? (char*)window->role.c_str() : nullptr; });
 
         if (this->window_type != UINT32_MAX) {
             if (window->window_type == this->window_type) {
@@ -197,7 +108,7 @@ bool Match::match_matches_window(const i3Window *window) const {
             }
         }
 
-        checkWindowField(this->machine, window, [](const i3Window *window) { return !window->machine.empty() ? (char*)window->machine.c_str() : nullptr; });
+        checkWindowField(this->machine.get(), window, [](const i3Window *window) { return !window->machine.empty() ? (char*)window->machine.c_str() : nullptr; });
     } catch (std::logic_error &e) {
         return false;
     }
@@ -316,18 +227,70 @@ bool Match::match_matches_window(const i3Window *window) const {
     return true;
 }
 
-/*
- * Frees the given match. It must not be used afterwards!
- *
- */
-Match::~Match() {
-    delete this->title;
-    delete this->application;
-    delete this->window_class;
-    delete this->instance;
-    delete this->window_role;
-    delete this->workspace;
-    delete this->machine;
+static Con* get_con_id(const char *cvalue) {
+    if (strcmp(cvalue, "__focused__") == 0) {
+        return global.focused;
+    }
+
+    long parsed;
+    if (!utils::parse_long(cvalue, &parsed, 0)) {
+        ELOG(fmt::sprintf("Could not parse con id \"%s\"\n", cvalue));
+        throw std::runtime_error("Invalid match: invalid con_id");
+    }
+    
+    DLOG(fmt::format("id as int = {}\n",  parsed));
+    return (Con*)parsed;
+}
+
+static int get_id(const char *cvalue) {
+    long parsed;
+    if (!utils::parse_long(cvalue, &parsed, 0)) {
+        ELOG(fmt::sprintf("Could not parse window id \"%s\"\n", cvalue));
+        throw std::runtime_error("Invalid match: invalid id");
+    }
+    
+    DLOG(fmt::sprintf("window id as int = %d\n",  parsed));
+    return parsed;
+}
+
+static xcb_atom_t get_window_type(const char *cvalue) {
+    if (strcasecmp(cvalue, "normal") == 0) {
+        return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NORMAL];
+    } else if (strcasecmp(cvalue, "dialog") == 0) {
+        return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DIALOG];
+    } else if (strcasecmp(cvalue, "utility") == 0) {
+        return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_UTILITY];
+    } else if (strcasecmp(cvalue, "toolbar") == 0) {
+        return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLBAR];
+    } else if (strcasecmp(cvalue, "splash") == 0) {
+        return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_SPLASH];
+    } else if (strcasecmp(cvalue, "menu") == 0) {
+        return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_MENU];
+    } else if (strcasecmp(cvalue, "dropdown_menu") == 0) {
+        return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DROPDOWN_MENU];
+    } else if (strcasecmp(cvalue, "popup_menu") == 0) {
+        return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_POPUP_MENU];
+    } else if (strcasecmp(cvalue, "tooltip") == 0) {
+        return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLTIP];
+    } else if (strcasecmp(cvalue, "notification") == 0) {
+        return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NOTIFICATION];
+    } else {
+        ELOG(fmt::sprintf("unknown window_type value \"%s\"\n", cvalue));
+        throw std::runtime_error("Invalid match: unknown window_type value");
+    }
+}
+
+static match_urgent_t get_urgency(const char *cvalue) {
+    if (strcasecmp(cvalue, "latest") == 0 ||
+        strcasecmp(cvalue, "newest") == 0 ||
+        strcasecmp(cvalue, "recent") == 0 ||
+        strcasecmp(cvalue, "last") == 0) {
+        return match_urgent_t::U_LATEST;
+    } else if (strcasecmp(cvalue, "oldest") == 0 ||
+               strcasecmp(cvalue, "first") == 0) {
+        return match_urgent_t::U_OLDEST;
+    }
+    throw std::runtime_error("Invalid match: unknown urgency value");
 }
 
 /*
@@ -337,166 +300,103 @@ Match::~Match() {
 void Match::parse_property(const char *ctype, const char *cvalue) {
     DLOG(fmt::sprintf("ctype=*%s*, cvalue=*%s*\n",  ctype, cvalue));
 
+    std::string type = ctype;
+    
     // REGEXES
-
-    if (strcmp(ctype, "class") == 0) {
-        delete this->window_class;
-        this->window_class = new Regex(cvalue);
+    if (type == "class") {
+        this->window_class = std::make_unique<Regex>(cvalue);
         return;
     }
 
-    if (strcmp(ctype, "instance") == 0) {
-        delete this->instance;
-        this->instance = new Regex(cvalue);
+    if (type == "instance") {
+        this->instance = std::make_unique<Regex>(cvalue);
         return;
     }
 
-    if (strcmp(ctype, "window_role") == 0) {
-        delete this->window_role;
-        this->window_role = new Regex(cvalue);
+    if (type == "window_role") {
+        this->window_role = std::make_unique<Regex>(cvalue);
+        return;
+    }
+        
+    if (type == "title") {
+        this->title = std::make_unique<Regex>(cvalue);
         return;
     }
 
-    if (strcmp(ctype, "title") == 0) {
-        delete this->title;
-        this->title = new Regex(cvalue);
+    if (type == "workspace") {
+        this->workspace = std::make_unique<Regex>(cvalue);
         return;
     }
 
-    if (strcmp(ctype, "workspace") == 0) {
-        delete this->workspace;
-        this->workspace = new Regex(cvalue);
+    if (type == "machine") {
+        this->machine = std::make_unique<Regex>(cvalue);
         return;
     }
-
-    if (strcmp(ctype, "machine") == 0) {
-        delete this->machine;
-        this->machine = new Regex(cvalue);
-        return;
-    }
-
     // END REGEXES
-
-    if (strcmp(ctype, "con_id") == 0) {
-        if (strcmp(cvalue, "__focused__") == 0) {
-            this->con_id = global.focused;
-            return;
-        }
-
-        long parsed;
-        if (!utils::parse_long(cvalue, &parsed, 0)) {
-             ELOG(fmt::sprintf("Could not parse con id \"%s\"\n", cvalue));
-            throw std::runtime_error("Invalid match: invalid con_id");
-        } else {
-            this->con_id = (Con *)parsed;
-            DLOG(fmt::sprintf("id as int = %p\n",  fmt::ptr(this->con_id)));
-        }
+    
+    if (type == "con_id") {
+        this->con_id = get_con_id(cvalue);
         return;
     }
-
-    if (strcmp(ctype, "id") == 0) {
-        long parsed;
-        if (!utils::parse_long(cvalue, &parsed, 0)) {
-             ELOG(fmt::sprintf("Could not parse window id \"%s\"\n", cvalue));
-            throw std::runtime_error("Invalid match: invalid id");
-        } else {
-            this->id = parsed;
-            DLOG(fmt::sprintf("window id as int = %d\n",  this->id));
-        }
+        
+    if (type == "id") {
+        this->id = get_id(cvalue);
         return;
     }
-
-    if (strcmp(ctype, "window_type") == 0) {
-        if (strcasecmp(cvalue, "normal") == 0) {
-            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NORMAL];
-        } else if (strcasecmp(cvalue, "dialog") == 0) {
-            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DIALOG];
-        } else if (strcasecmp(cvalue, "utility") == 0) {
-            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_UTILITY];
-        } else if (strcasecmp(cvalue, "toolbar") == 0) {
-            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLBAR];
-        } else if (strcasecmp(cvalue, "splash") == 0) {
-            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_SPLASH];
-        } else if (strcasecmp(cvalue, "menu") == 0) {
-            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_MENU];
-        } else if (strcasecmp(cvalue, "dropdown_menu") == 0) {
-            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DROPDOWN_MENU];
-        } else if (strcasecmp(cvalue, "popup_menu") == 0) {
-            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_POPUP_MENU];
-        } else if (strcasecmp(cvalue, "tooltip") == 0) {
-            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLTIP];
-        } else if (strcasecmp(cvalue, "notification") == 0) {
-            this->window_type = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NOTIFICATION];
-        } else {
-             ELOG(fmt::sprintf("unknown window_type value \"%s\"\n", cvalue));
-            throw std::runtime_error("Invalid match: unknown window_type value");
-        }
-
+        
+    if (type == "window_type") {
+        this->window_type = get_window_type(cvalue);
         return;
     }
-
-    if (strcmp(ctype, "urgent") == 0) {
-        if (strcasecmp(cvalue, "latest") == 0 ||
-            strcasecmp(cvalue, "newest") == 0 ||
-            strcasecmp(cvalue, "recent") == 0 ||
-            strcasecmp(cvalue, "last") == 0) {
-            this->urgent = U_LATEST;
-        } else if (strcasecmp(cvalue, "oldest") == 0 ||
-                   strcasecmp(cvalue, "first") == 0) {
-            this->urgent = U_OLDEST;
-        }
+        
+    if (type == "urgent") {
+        this->urgent = get_urgency(cvalue);
         return;
     }
-
+        
     // WINDOW MODE
 
-    if (strcmp(ctype, "tiling") == 0) {
+    if (type == "tiling") {
         this->window_mode = WM_TILING;
         return;
     }
 
-    if (strcmp(ctype, "tiling_from") == 0 &&
-        cvalue != nullptr &&
-        strcmp(cvalue, "auto") == 0) {
-        this->window_mode = WM_TILING_AUTO;
+    if (type == "tiling_from") {
+        if (cvalue != nullptr) {
+            if (strcmp(cvalue, "auto") == 0) {
+                this->window_mode = WM_TILING_AUTO;
+            } else if (strcmp(cvalue, "user") == 0) {
+                this->window_mode = WM_TILING_USER;
+            }
+        }
         return;
     }
 
-    if (strcmp(ctype, "tiling_from") == 0 &&
-        cvalue != nullptr &&
-        strcmp(cvalue, "user") == 0) {
-        this->window_mode = WM_TILING_USER;
-        return;
-    }
-
-    if (strcmp(ctype, "floating") == 0) {
+    if (type == "floating") {
         this->window_mode = WM_FLOATING;
         return;
     }
 
-    if (strcmp(ctype, "floating_from") == 0 &&
-        cvalue != nullptr &&
-        strcmp(cvalue, "auto") == 0) {
-        this->window_mode = WM_FLOATING_AUTO;
+    if (type == "floating_from") {
+        if (cvalue != nullptr) {
+            if (strcmp(cvalue, "auto") == 0) {
+                this->window_mode = WM_FLOATING_AUTO;
+            } else if (strcmp(cvalue, "user") == 0) {
+                this->window_mode = WM_FLOATING_USER;
+            }
+        }
         return;
     }
-
-    if (strcmp(ctype, "floating_from") == 0 &&
-        cvalue != nullptr &&
-        strcmp(cvalue, "user") == 0) {
-        this->window_mode = WM_FLOATING_USER;
-        return;
-    }
-
+        
     // END WINDOW MODE
-
-    /* match_matches_window() only checks negatively, so match_all_windows
-     * won't actually be used there, but that's OK because if no negative
-     * match is found (e.g. because of a more restrictive criterion) the
-     * return value of match_matches_window() is true.
-     * Setting it here only serves to cause match_is_empty() to return false,
-     * otherwise empty criteria rules apply, and that's not what we want. */
-    if (strcmp(ctype, "all") == 0) {
+    
+    if (type == "all") {
+        /* match_matches_window() only checks negatively, so match_all_windows
+        * won't actually be used there, but that's OK because if no negative
+        * match is found (e.g. because of a more restrictive criterion) the
+        * return value of match_matches_window() is true.
+        * Setting it here only serves to cause match_is_empty() to return false,
+        * otherwise empty criteria rules apply, and that's not what we want. */
         this->match_all_windows = true;
         return;
     }

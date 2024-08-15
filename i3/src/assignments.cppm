@@ -20,7 +20,7 @@ export {
      */
     class Assignment {
     protected:
-        Assignment(Match &&match) : match(match) {}
+        Assignment(Match &&match) : match(std::move(match)) {}
 
     public:
         /** the criteria to check if a window matches */
@@ -36,8 +36,8 @@ export {
      */
     class CommandAssignment : public Assignment {
        public:
-        std::string command;
-        CommandAssignment(Match &&match) : Assignment(std::move(match)) {}
+        std::string command{};
+        CommandAssignment(Match &&match, std::string command) : Assignment(std::move(match)), command(command) {}
     };
 
     /**
@@ -47,14 +47,14 @@ export {
        public:
         workspace_assignment_type type;
         /** destination workspace/command/output, depending on the type */
-        std::string workspace;
+        std::string workspace{};
         WorkspaceAssignment(Match &&match) : Assignment(std::move(match)) {}
     };
 
     class OutputAssignment : public Assignment {
        public:
-        std::string output;
-        OutputAssignment(Match &&match) : Assignment(std::move(match)) {}
+        std::string output{};
+        OutputAssignment(Match &&match, std::string output) : Assignment(std::move(match)), output(output) {}
     };
 
     /**

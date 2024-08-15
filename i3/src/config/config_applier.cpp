@@ -200,9 +200,7 @@ void ConfigApplier::for_window(criteria_state *criteria_state, const std::string
         return;
     }
     DLOG(fmt::sprintf("\t should execute command %s for the criteria mentioned above\n",  command));
-    auto assignment = std::make_unique<CommandAssignment>(Match(criteria_state->current_match));
-    assignment->command = command;
-    global.assignmentManager->add(std::move(assignment));
+    global.assignmentManager->add(std::make_unique<CommandAssignment>(std::move(criteria_state->current_match), command));
 }
 
 void ConfigApplier::floating_minimum_size(const long width, const long height) {
@@ -441,9 +439,7 @@ void ConfigApplier::assign_output(criteria_state *criteria_state, const std::str
     }
 
      DLOG(fmt::sprintf("New assignment, using above criteria, to output \"%s\".\n", output));
-    auto assignment = std::make_unique<OutputAssignment>(Match(criteria_state->current_match));
-    assignment->output = output;
-    global.assignmentManager->add(std::move(assignment));
+    global.assignmentManager->add(std::make_unique<OutputAssignment>(std::move(criteria_state->current_match), output));
 }
 
 void ConfigApplier::assign(criteria_state *criteria_state, const std::string &workspace, bool is_number) {
@@ -463,7 +459,7 @@ void ConfigApplier::assign(criteria_state *criteria_state, const std::string &wo
     }
 
     DLOG(fmt::sprintf("New assignment, using above criteria, to workspace \"%s\".\n", workspace));
-    auto assignment = std::make_unique<WorkspaceAssignment>(Match(criteria_state->current_match));
+    auto assignment = std::make_unique<WorkspaceAssignment>(std::move(criteria_state->current_match));
     assignment->type = is_number ? workspace_assignment_type::WORKSPACE_NUMBER : workspace_assignment_type::WORKSPACE;
     assignment->workspace = workspace;
     global.assignmentManager->add(std::move(assignment));
@@ -476,8 +472,7 @@ void ConfigApplier::no_focus(criteria_state *criteria_state) {
     }
 
     DLOG("New assignment, using above criteria, to ignore focus on manage.\n");
-    auto assignment = std::make_unique<NoFocusAssignment>(Match(criteria_state->current_match));
-    global.assignmentManager->add(std::move(assignment));
+    global.assignmentManager->add(std::make_unique<NoFocusAssignment>(std::move(criteria_state->current_match)));
 }
 
 void ConfigApplier::ipc_kill_timeout(const long timeout_ms) {

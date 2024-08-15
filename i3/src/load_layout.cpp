@@ -241,19 +241,19 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
     LOG(fmt::sprintf("string: %s for key %s\n",  val, ctx.last_key));
     if (ctx.parsing_swallows) {
         if (ctx.last_key == "class") {
-            current_swallow->window_class = new Regex(val.c_str());
+            current_swallow->window_class = std::make_unique<Regex>(val.c_str());
             ctx.swallow_is_empty = false;
         } else if (ctx.last_key == "instance") {
-            current_swallow->instance = new Regex(val.c_str());
+            current_swallow->instance = std::make_unique<Regex>(val.c_str());
             ctx.swallow_is_empty = false;
         } else if (ctx.last_key == "window_role") {
-            current_swallow->window_role = new Regex(val.c_str());
+            current_swallow->window_role = std::make_unique<Regex>(val.c_str());
             ctx.swallow_is_empty = false;
         } else if (ctx.last_key == "title") {
-            current_swallow->title = new Regex(val.c_str());
+            current_swallow->title = std::make_unique<Regex>(val.c_str());
             ctx.swallow_is_empty = false;
         } else if (ctx.last_key == "machine") {
-            current_swallow->machine = new Regex(val.c_str());
+            current_swallow->machine = std::make_unique<Regex>(val.c_str());
             ctx.swallow_is_empty = false;
         } else {
             ELOG(fmt::sprintf("swallow key %s unknown\n",  ctx.last_key));

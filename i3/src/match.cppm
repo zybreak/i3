@@ -15,6 +15,7 @@ module;
 #include <xcb/xcb.h>
 export module i3:match;
 
+import std;
 import regex;
 
 class Con;
@@ -59,18 +60,18 @@ export {
      */
     class Match {
        public:
-        Regex *title{nullptr};
-        Regex *application{nullptr};
-        Regex *window_class{nullptr};
-        Regex *instance{nullptr};
-        Regex *window_role{nullptr};
-        Regex *workspace{nullptr};
-        Regex *machine{nullptr};
+        std::unique_ptr<Regex> title{};
+        std::unique_ptr<Regex> application{};
+        std::unique_ptr<Regex> window_class{};
+        std::unique_ptr<Regex> instance{};
+        std::unique_ptr<Regex> window_role{};
+        std::unique_ptr<Regex> workspace{};
+        std::unique_ptr<Regex> machine{};
         xcb_atom_t window_type{UINT32_MAX};
-        match_urgent_t urgent{U_DONTCHECK};
-        enum match_dock_t dock { M_NODOCK };
+        match_urgent_t urgent{match_urgent_t::U_DONTCHECK};
+        match_dock_t dock {match_dock_t::M_NODOCK};
         xcb_window_t id{0};
-        match_window_mode_t window_mode{WM_ANY};
+        match_window_mode_t window_mode{match_window_mode_t::WM_ANY};
         Con *con_id{nullptr};
         bool match_all_windows{false};
 
@@ -90,12 +91,6 @@ export {
          * focus stack should be restored. */
         bool restart_mode{false};
 
-        Match() = default;
-        Match(const Match &src);
-        Match(Match &&src) noexcept;
-        Match &operator=(Match &&src) noexcept;
-        Match &operator=(const Match &src) noexcept;
-        ~Match();
         /**
          * Interprets a ctype=cvalue pair and adds it to the given match specification.
          *
