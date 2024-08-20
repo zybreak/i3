@@ -47,7 +47,7 @@ export {
      * work when handling XKB groups (see ticket #1775) and makes the code which
      * locates keybindings upon KeyPress/KeyRelease events simpler.
      */
-    typedef uint32_t i3_event_state_mask_t;
+    using i3_event_state_mask_t = uint32_t;
 
     /*
      * A utility function to convert a string containing the group and modifiers to

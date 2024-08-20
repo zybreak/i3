@@ -64,11 +64,6 @@ static void json_start_map(tree_append_ctx &ctx) {
                 ctx.json_node->name.clear();
                 ctx.json_node->parent = ws;
                 DLOG(fmt::sprintf("Parent is workspace = %p\n", fmt::ptr(ws)));
-            } else {
-                Con *parent = ctx.json_node;
-                ctx.json_node = new ConCon(nullptr, true);
-                ctx.json_node->name.clear();
-                ctx.json_node->parent = parent;
             }
             /* json_node is incomplete and should be removed if parsing fails */
             ctx.incomplete++;
@@ -144,11 +139,6 @@ static void json_end_map(tree_append_ctx &ctx) {
             floating_check_size(ctx.json_node, false);
         }
 
-        LOG("attaching\n");
-        ctx.json_node->con_attach(ctx.json_node->parent, true);
-        LOG("Creating window\n");
-        global.x->con_init(ctx.json_node);
-
         /* Fix erroneous JSON input regarding floating containers to avoid
          * crashing, see #3901. */
         const int old_floating_mode = ctx.json_node->floating;
@@ -218,20 +208,8 @@ static void json_key(tree_append_ctx &ctx, const std::string &key) {
     if (strcasecmp(ctx.last_key.c_str(), "gaps") == 0)
         ctx.parsing_gaps = true;
 
-    if (ctx.last_key == "rect")
-        ctx.parsing_rect = true;
-
     if (strcasecmp(ctx.last_key.c_str(), "actual_deco_rect") == 0)
         ctx.parsing_actual_deco_rect = true;
-
-    if (ctx.last_key == "deco_rect")
-        ctx.parsing_deco_rect = true;
-
-    if (ctx.last_key == "window_rect")
-        ctx.parsing_window_rect = true;
-
-    if (ctx.last_key == "geometry")
-        ctx.parsing_geometry = true;
 
     if (ctx.last_key == "focus")
         ctx.parsing_focus = true;
@@ -258,232 +236,6 @@ static void json_string(tree_append_ctx &ctx, std::string &val) {
         } else {
             ELOG(fmt::sprintf("swallow key %s unknown\n",  ctx.last_key));
         }
-    } else {
-        if (ctx.last_key == "name") {
-            ctx.json_node->name.assign(val);
-        } else if (ctx.last_key == "title_format") {
-            ctx.json_node->title_format.assign(val);
-        } else if (ctx.last_key == "sticky_group") {
-            ctx.json_node->sticky_group.assign(val);
-            LOG(fmt::sprintf("sticky_group of this container is %s\n",  ctx.json_node->sticky_group));
-        } else if (ctx.last_key == "orientation") {
-            /* Upgrade path from older versions of i3 (doing an inplace restart
-             * to a newer version):
-             * "orientation" is dumped before "layout". Therefore, we store
-             * whether the orientation was horizontal or vertical in the
-             * last_split_layout. When we then encounter layout == "default",
-             * we will use the last_split_layout as layout instead. */
-            char *buf = nullptr;
-            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
-            if (strcasecmp(buf, "none") == 0 ||
-                strcasecmp(buf, "horizontal") == 0)
-                ctx.json_node->last_split_layout = L_SPLITH;
-            else if (strcasecmp(buf, "vertical") == 0)
-                ctx.json_node->last_split_layout = L_SPLITV;
-            else
-                LOG(fmt::sprintf("Unhandled orientation: %s\n",  buf));
-            free(buf);
-        } else if (ctx.last_key == "border") {
-            char *buf = nullptr;
-            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
-            if (strcasecmp(buf, "none") == 0) {
-                ctx.json_node->max_user_border_style = border_style_t::BS_NONE;
-                ctx.json_node->border_style = border_style_t::BS_NONE;
-            } else if (strcasecmp(buf, "1pixel") == 0) {
-                ctx.json_node->max_user_border_style = border_style_t::BS_PIXEL;
-                ctx.json_node->border_style = border_style_t::BS_PIXEL;
-                ctx.json_node->current_border_width = 1;
-            } else if (strcasecmp(buf, "pixel") == 0) {
-                ctx.json_node->max_user_border_style = border_style_t::BS_PIXEL;
-                ctx.json_node->border_style = border_style_t::BS_PIXEL;
-            } else if (strcasecmp(buf, "normal") == 0) {
-                ctx.json_node->max_user_border_style = border_style_t::BS_NORMAL;
-                ctx.json_node->border_style = border_style_t::BS_NORMAL;
-            } else {
-                LOG(fmt::sprintf("Unhandled \"border\": %s\n", buf));
-            }
-            free(buf);
-        } else if (ctx.last_key == "type") {
-            char *buf = nullptr;
-            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
-            if (strcasecmp(buf, "root") == 0)
-                ctx.json_node->type = CT_ROOT;
-            else if (strcasecmp(buf, "output") == 0)
-                ctx.json_node->type = CT_OUTPUT;
-            else if (strcasecmp(buf, "con") == 0)
-                ctx.json_node->type = CT_CON;
-            else if (strcasecmp(buf, "floating_con") == 0)
-                ctx.json_node->type = CT_FLOATING_CON;
-            else if (strcasecmp(buf, "workspace") == 0)
-                ctx.json_node->type = CT_WORKSPACE;
-            else if (strcasecmp(buf, "dockarea") == 0)
-                ctx.json_node->type = CT_DOCKAREA;
-            else
-                 LOG(fmt::sprintf("Unhandled \"type\": %s\n", buf));
-            free(buf);
-        } else if (ctx.last_key == "layout") {
-            char *buf = nullptr;
-            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
-            if (strcasecmp(buf, "default") == 0)
-                /* This set above when we read "orientation". */
-                ctx.json_node->layout = ctx.json_node->last_split_layout;
-            else if (strcasecmp(buf, "stacked") == 0)
-                ctx.json_node->layout = L_STACKED;
-            else if (strcasecmp(buf, "tabbed") == 0)
-                ctx.json_node->layout = L_TABBED;
-            else if (strcasecmp(buf, "dockarea") == 0)
-                ctx.json_node->layout = L_DOCKAREA;
-            else if (strcasecmp(buf, "output") == 0)
-                ctx.json_node->layout = L_OUTPUT;
-            else if (strcasecmp(buf, "splith") == 0)
-                ctx.json_node->layout = L_SPLITH;
-            else if (strcasecmp(buf, "splitv") == 0)
-                ctx.json_node->layout = L_SPLITV;
-            else
-                 LOG(fmt::sprintf("Unhandled \"layout\": %s\n", buf));
-            free(buf);
-        } else if (ctx.last_key == "workspace_layout") {
-            char *buf = nullptr;
-            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
-            // TODO: needed to be commented out
-            //if (strcasecmp(buf, "default") == 0)
-            //    ctx.json_node->workspace_layout = L_DEFAULT;
-            //else if (strcasecmp(buf, "stacked") == 0)
-            //   ctx.json_node->workspace_layout = L_STACKED;
-            //else if (strcasecmp(buf, "tabbed") == 0)
-            //    ctx.json_node->workspace_layout = L_TABBED;
-            //else
-            //     LOG(fmt::sprintf("Unhandled \"workspace_layout\": %s\n", buf));
-            free(buf);
-        } else if (ctx.last_key == "last_split_layout") {
-            char *buf = nullptr;
-            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
-            if (strcasecmp(buf, "splith") == 0)
-                ctx.json_node->last_split_layout = L_SPLITH;
-            else if (strcasecmp(buf, "splitv") == 0)
-                ctx.json_node->last_split_layout = L_SPLITV;
-            else
-                 LOG(fmt::sprintf("Unhandled \"last_splitlayout\": %s\n", buf));
-            free(buf);
-        } else if (ctx.last_key == "floating") {
-            char *buf = nullptr;
-            sasprintf(&buf, "%.*s", static_cast<int>(val.length()), val.c_str());
-            if (strcasecmp(buf, "auto_off") == 0)
-                ctx.json_node->floating = FLOATING_AUTO_OFF;
-            else if (strcasecmp(buf, "auto_on") == 0)
-                ctx.json_node->floating = FLOATING_AUTO_ON;
-            else if (strcasecmp(buf, "user_off") == 0)
-                ctx.json_node->floating = FLOATING_USER_OFF;
-            else if (strcasecmp(buf, "user_on") == 0)
-                ctx.json_node->floating = FLOATING_USER_ON;
-            free(buf);
-        } else if (ctx.last_key == "previous_workspace_name") {
-            global.workspaceManager->previous_workspace_name.assign(val);
-        }
-    }
-}
-
-static void json_int(tree_append_ctx &ctx, long long val) {
-    LOG(fmt::sprintf("int %lld for key %s\n",  val, ctx.last_key));
-    /* For backwards compatibility with i3 < 4.8 */
-    if (ctx.last_key == "type")
-        ctx.json_node->type = static_cast<con_type_t>(val);
-
-    if (ctx.last_key == "fullscreen_mode")
-        ctx.json_node->fullscreen_mode = static_cast<fullscreen_mode_t>(val);
-
-    if (ctx.last_key == "num")
-        //ctx.json_node->num = val; TODO: cant really load layout like this
-
-    if (ctx.last_key == "current_border_width")
-        ctx.json_node->current_border_width = val;
-
-    if (ctx.last_key == "window_icon_padding") {
-        dynamic_cast<ConCon*>(ctx.json_node)->set_window_icon_padding(val);
-    }
-
-    if (ctx.last_key == "depth")
-        ctx.json_node->depth = val;
-
-    if (!ctx.parsing_swallows && ctx.last_key == "id")
-        ctx.json_node->old_id = val;
-
-    if (ctx.parsing_focus) {
-        ctx.focus_mappings.push_back(val);
-    }
-
-    if (ctx.parsing_rect || ctx.parsing_window_rect || ctx.parsing_geometry) {
-        Rect *r;
-        if (ctx.parsing_rect)
-            r = &(ctx.json_node->rect);
-        else if (ctx.parsing_window_rect)
-            r = &(ctx.json_node->get_window_rect());
-        else
-            r = &(ctx.json_node->get_geometry());
-        if (ctx.last_key == "x")
-            r->x = val;
-        else if (ctx.last_key == "y")
-            r->y = val;
-        else if (ctx.last_key == "width")
-            r->width = val;
-        else if (ctx.last_key == "height")
-            r->height = val;
-        else
-            ELOG(fmt::sprintf("WARNING: unknown key %s in rect\n",  ctx.last_key));
-        DLOG(fmt::sprintf("rect now: (%d, %d, %d, %d)\n",
-             r->x, r->y, r->width, r->height));
-    }
-    if (ctx.parsing_swallows) {
-        if (ctx.last_key == "id") {
-            current_swallow->id = val;
-            ctx.swallow_is_empty = false;
-        }
-        if (ctx.last_key == "dock") {
-            current_swallow->dock = (enum match_dock_t)val;
-            ctx.swallow_is_empty = false;
-        }
-        if (ctx.last_key == "insert_where") {
-            current_swallow->insert_where = static_cast<match_insert_t>(val);
-            ctx.swallow_is_empty = false;
-        }
-    }
-    if (ctx.parsing_gaps) {
-#if 0
-        if (strcasecmp(ctx.last_key.c_str(), "inner") == 0)
-            ctx.json_node->gaps.inner = val;
-        else if (strcasecmp(ctx.last_key.c_str(), "top") == 0)
-            ctx.json_node->gaps.top = val;
-        else if (strcasecmp(ctx.last_key.c_str(), "right") == 0)
-            ctx.json_node->gaps.right = val;
-        else if (strcasecmp(ctx.last_key.c_str(), "bottom") == 0)
-            ctx.json_node->gaps.bottom = val;
-        else if (strcasecmp(ctx.last_key.c_str(), "left") == 0)
-            ctx.json_node->gaps.left = val;
-#endif
-    }
-}
-
-static void json_bool(tree_append_ctx &ctx, int val) {
-    LOG(fmt::sprintf("bool %d for key %s\n",  val, ctx.last_key));
-    if (ctx.last_key == "focused" && val) {
-        ctx.to_focus = ctx.json_node;
-    }
-
-    if (ctx.last_key == "sticky")
-        ctx.json_node->sticky = val;
-
-    if (ctx.parsing_swallows) {
-        if (ctx.last_key == "restart_mode") {
-            current_swallow->restart_mode = val;
-            ctx.swallow_is_empty = false;
-        }
-    }
-}
-
-static void json_double(tree_append_ctx &ctx, double val) {
-    LOG(fmt::sprintf("double %f for key %s\n",  val, ctx.last_key));
-    if (ctx.last_key == "percent") {
-        ctx.json_node->percent = val;
     }
 }
 
@@ -507,43 +259,314 @@ bool json_validate(std::string &fb) {
 json_content_t json_determine_content(std::string &fb) {
     // We default to JSON_CONTENT_CON because it is legal to not include
     // “"type": "con"” in the JSON files for better readability.
-    json_content_t content_result = JSON_CONTENT_CON;
-    std::string last_key;
-
-    nlohmann::json::parser_callback_t cb = [&last_key, &content_result](int depth, nlohmann::json::parse_event_t event, nlohmann::json & parsed) {
-
-        if (event == nlohmann::json::parse_event_t::key) {
-            last_key = parsed.get<std::string>();
-        } else if (event == nlohmann::json::parse_event_t::value) {
-            if (last_key == "type" or depth > 1 or !parsed.is_string())
-                return true;
-
-            auto key = parsed.get<std::string>();
-
-            if (key == "workspace")
-                content_result = JSON_CONTENT_WORKSPACE;
-        }
-
-        return true;
-    };
-
-    setlocale(LC_NUMERIC, "C");
     try {
-        auto j = nlohmann::json::parse(fb, cb, true, true);
+        auto j = nlohmann::json::parse(fb, nullptr, true, true);
+        if (!j.contains("type")) {
+            return json_content_t::JSON_CONTENT_CON;
+        } else if (!j["type"].is_string()) {
+            return json_content_t::JSON_CONTENT_UNKNOWN; 
+        }
+        std::string type = j.at("type");
+        if (type == "workspace") {
+            return json_content_t::JSON_CONTENT_WORKSPACE;
+        } else {
+            return json_content_t::JSON_CONTENT_CON;
+        }
     } catch (std::exception &e) {
-        ELOG(fmt::sprintf("JSON parsing error: %s\n",  e.what()));
+        ELOG(fmt::sprintf("JSON parsing error: %s\n", e.what()));
+        return json_content_t::JSON_CONTENT_UNKNOWN;
     }
-
-    setlocale(LC_NUMERIC, "");
-
-    return content_result;
 }
 
-void tree_append_json(Con *con, std::string &fb) {
-    tree_append_ctx ctx = {
-        .json_node = con
-    };
+static Con* extract_con(nlohmann::json &j, Con *parent);
 
+static void extract_basecon(nlohmann::json &j, Con *con, Con *parent) {
+    if (j.contains("name")) j["name"].get_to(con->name);
+    if (j.contains("title_format")) j["title_format"].get_to(con->title_format);
+    if (j.contains("sticky_group")) j["sticky_group"].get_to(con->sticky_group);
+    
+    if (j.contains("orientation")) {
+        /* Upgrade path from older versions of i3 (doing an inplace restart
+         * to a newer version):
+         * "orientation" is dumped before "layout". Therefore, we store
+         * whether the orientation was horizontal or vertical in the
+         * last_split_layout. When we then encounter layout == "default",
+         * we will use the last_split_layout as layout instead. */
+        std::string orientation = j["orientation"].template get<std::string>();
+        if (orientation == "none" ||
+            orientation == "horizontal") {
+            con->last_split_layout = L_SPLITH;
+        } else if (orientation == "vertical") {
+            con->last_split_layout = L_SPLITV;
+        } else {
+            LOG(std::format("Unhandled orientation: {}", orientation));
+        }
+    }
+    
+    if (j.contains("border")) {
+        std::string buf = j["border"].get<std::string>();
+        if (buf == "none") {
+            con->max_user_border_style = border_style_t::BS_NONE;
+            con->border_style = border_style_t::BS_NONE;
+        } else if (buf == "1pixel") {
+            con->max_user_border_style = border_style_t::BS_PIXEL;
+            con->border_style = border_style_t::BS_PIXEL;
+            con->current_border_width = 1;
+        } else if (buf == "pixel") {
+            con->max_user_border_style = border_style_t::BS_PIXEL;
+            con->border_style = border_style_t::BS_PIXEL;
+        } else if (buf == "normal") {
+            con->max_user_border_style = border_style_t::BS_NORMAL;
+            con->border_style = border_style_t::BS_NORMAL;
+        } else {
+            LOG(std::format("Unhandled \"border\": {}", buf));
+        }
+    }
+    
+    if (j.contains("layout")) {
+        std::string buf = j["layout"].get<std::string>();
+        if (buf == "default") {
+            /* This set above when we read "orientation". */
+            con->layout = con->last_split_layout;
+        } else if (buf == "stacked") {
+            con->layout = L_STACKED;
+        } else if (buf == "tabbed") {
+            con->layout = L_TABBED;
+        } else if (buf == "dockarea") {
+            con->layout = L_DOCKAREA;
+        } else if (buf == "output") {
+            con->layout = L_OUTPUT;
+        } else if (buf == "splith") {
+            con->layout = L_SPLITH;
+        } else if (buf == "splitv") {
+            con->layout = L_SPLITV;
+        } else {
+            LOG(std::format("Unhandled \"layout\": {}", buf));
+        }
+    }
+   
+    if (j.contains("last_split_layout")) {
+        std::string buf = j["last_split_layout"].get<std::string>();
+        if (buf == "splith") {
+            con->last_split_layout = L_SPLITH;
+        } else if (buf == "splitv") {
+            con->last_split_layout = L_SPLITV;
+        } else {
+            LOG(std::format("Unhandled \"last_splitlayout\": {}", buf));
+        }
+    }
+   
+    if (j.contains("floating")) {
+        std::string buf = j["floating"].get<std::string>();
+        if (buf == "auto_off") {
+            con->floating = FLOATING_AUTO_OFF;
+        } else if (buf == "auto_on") {
+            con->floating = FLOATING_AUTO_ON;
+        } else if (buf == "user_off") {
+            con->floating = FLOATING_USER_OFF;
+        } else if (buf == "user_on") {
+            con->floating = FLOATING_USER_ON;
+        }
+    }
+    
+    if (j.contains("percent")) {
+        con->percent = j["percent"];
+    }
+
+    //if (ctx.last_key == "focused" && val) {
+    //    ctx.to_focus = ctx.json_node;
+    //}
+
+    if (j.contains("sticky")) {
+        con->sticky = j["sticky"];
+    }
+
+#if 0
+    if (ctx.parsing_swallows) {
+        if (ctx.last_key == "restart_mode") {
+            current_swallow->restart_mode = val;
+            ctx.swallow_is_empty = false;
+        }
+    }
+#endif
+
+    if (j.contains("fullscreen_mode")) {
+        con->fullscreen_mode = j["fullscreen_mode"];
+    }
+
+    if (j.contains("current_border_width")) {
+        con->current_border_width = j["current_border_width"];
+    }
+
+    if (j.contains("depth")) {
+        con->depth = j["depth"];
+    }
+
+    if (j.contains("id")) {
+        con->old_id = j["id"];
+    }
+
+    //if (ctx.parsing_focus) {
+    //    ctx.focus_mappings.push_back(val);
+    //}
+
+    if (j.contains("rect")) {
+        j.at("rect").get_to(con->rect);
+    }
+
+    if (j.contains("deco_rect")) {
+        j.at("deco_rect").get_to(con->deco_rect);
+    }
+
+
+#if 0
+    if (ctx.parsing_swallows) {
+        if (ctx.last_key == "id") {
+            current_swallow->id = val;
+            ctx.swallow_is_empty = false;
+        }
+        if (ctx.last_key == "dock") {
+            current_swallow->dock = (enum match_dock_t)val;
+            ctx.swallow_is_empty = false;
+        }
+        if (ctx.last_key == "insert_where") {
+            current_swallow->insert_where = static_cast<match_insert_t>(val);
+            ctx.swallow_is_empty = false;
+        }
+    }
+#endif
+    if (j.contains("gaps")) {
+#if 0
+        if (strcasecmp(ctx.last_key.c_str(), "inner") == 0)
+            ctx.json_node->gaps.inner = val;
+        else if (strcasecmp(ctx.last_key.c_str(), "top") == 0)
+            ctx.json_node->gaps.top = val;
+        else if (strcasecmp(ctx.last_key.c_str(), "right") == 0)
+            ctx.json_node->gaps.right = val;
+        else if (strcasecmp(ctx.last_key.c_str(), "bottom") == 0)
+            ctx.json_node->gaps.bottom = val;
+        else if (strcasecmp(ctx.last_key.c_str(), "left") == 0)
+            ctx.json_node->gaps.left = val;
+#endif
+    }
+    
+    if (j.contains("nodes")) {
+        for (auto &child_json : j["nodes"]) {
+            Con *child = extract_con(child_json, con);
+            con->nodes.push_back(child);
+        }
+    }
+
+#if 0
+    if (j.contains("floating_nodes")) {
+        Con *child = extract_con(j, con);
+        FloatingCon
+        j.floating_windows.push_back(child);
+    }
+#endif
+}
+
+static RootCon* extract_rootcon(nlohmann::json &j, Con *parent) {
+    auto *con = new RootCon{true};
+    extract_basecon(j, con, parent);
+
+    return con;
+}
+
+static OutputCon* extract_outputcon(nlohmann::json &j, Con *parent) {
+    auto *con = new OutputCon{true};
+    extract_basecon(j, con, parent);
+
+    return con;
+}
+
+static ConCon* extract_concon(nlohmann::json &j, Con *parent) {
+    auto *con = new ConCon{nullptr, true};
+    extract_basecon(j, con, parent);
+
+    if (j.contains("window_icon_padding")) {
+        con->set_window_icon_padding(j["window_icon_padding"].get<int>());
+    }
+
+    if (j.contains("window_rect")) {
+        con->set_window_rect(j.at("window_rect").get<Rect>());
+    }
+
+    if (j.contains("geometry")) {
+        con->set_geometry(j.at("geometry").get<Rect>());
+    }
+
+    return con;
+}
+
+static FloatingCon* extract_floatingcon(nlohmann::json &j, Con *parent) {
+    auto *con = new FloatingCon{true};
+    extract_basecon(j, con, parent);
+
+    return con;
+}
+
+static DockCon* extract_dockcon(nlohmann::json &j, Con *parent) {
+    auto *con = new DockCon{true};
+    extract_basecon(j, con, parent);
+
+    return con;
+}
+
+static WorkspaceCon* extract_workspacecon(nlohmann::json &j, Con *parent) {
+    auto *con = new WorkspaceCon{true};
+    extract_basecon(j, con, parent);
+
+    if (j.contains("workspace_layout")) {
+        std::string buf = j["workspace_layout"].get<std::string>();
+        if (buf == "default") {
+            con->workspace_layout = L_DEFAULT;
+        } else if (buf == "stacked") {
+            con->workspace_layout = L_STACKED;
+        } else if (buf == "tabbed") {
+            con->workspace_layout = L_TABBED;
+        } else {
+            LOG(std::format("Unhandled \"workspace_layout\": {}", buf));
+        }
+    }
+
+    if (j.contains("num")) con->num = j["num"];
+
+    //if (j.contains("previous_workspace_name")) j["previous_workspace_name"].get_to(con->previous_workspace_name);
+    return con;
+}
+
+static Con* extract_con(nlohmann::json &j, Con *parent) {
+   std::string type = j.value("type", "con");
+   Con *con{};
+   
+   if (type == "root") {
+       con = extract_rootcon(j, parent);
+   } else if (type == "output") {
+       con = extract_outputcon(j, parent);
+   } else if (type == "con") {
+       con = extract_concon(j, parent);
+   } else if (type == "floating_con") {
+       con = extract_floatingcon(j, parent);
+   } else if (type == "dockarea") {
+       con = extract_dockcon(j, parent);
+   } else if (type == "workspace") {
+       con = extract_workspacecon(j, parent);
+   } else {
+       LOG(std::format("Unhandled \"type\": {}", type));
+       con = extract_concon(j, parent);
+   }
+
+    LOG("attaching");
+    con->con_attach(parent, true);
+    LOG("Creating window\n");
+    global.x->con_init(con);
+
+    return con;
+}
+
+void tree_append_json(Con *parent, std::string &fb) {
+#if 0
     nlohmann::json::parser_callback_t cb = [&ctx](int depth, nlohmann::json::parse_event_t event, nlohmann::json & parsed) {
         if (event == nlohmann::json::parse_event_t::array_start) {
         } else if (event == nlohmann::json::parse_event_t::array_end) {
@@ -573,12 +596,14 @@ void tree_append_json(Con *con, std::string &fb) {
 
         return true;
     };
-
-    setlocale(LC_NUMERIC, "C");
+#endif
 
     try {
-        auto j = nlohmann::json::parse(fb, cb, true, true);
+        auto j = nlohmann::json::parse(fb, nullptr, true, true);
+        Con *con = extract_con(j, parent);
+        std::cout << j << std::endl;
     } catch (std::exception &e) {
+#if 0
         ELOG(fmt::sprintf("JSON parsing error: %s\n",  e.what()));
         while (ctx.incomplete-- > 0) {
             Con *parent = ctx.json_node->parent;
@@ -590,16 +615,15 @@ void tree_append_json(Con *con, std::string &fb) {
             ctx.json_node = parent;
         }
         throw e;
+#endif
     }
 
     /* In case not all containers were restored, we need to fix the
      * percentages, otherwise i3 will crash immediately when rendering the
      * next time. */
-    con->con_fix_percent();
+    //con->con_fix_percent();
 
-    setlocale(LC_NUMERIC, "");
-
-    if (ctx.to_focus) {
-        ctx.to_focus->con_activate();
-    }
+    //if (ctx.to_focus) {
+    //    ctx.to_focus->con_activate();
+    //}
 }

@@ -45,6 +45,13 @@ export {
         };
     }
 
+    void from_json(nlohmann::json const &j, Rect &r) {
+        j.at("x").get_to(r.x);
+        j.at("y").get_to(r.y);
+        j.at("width").get_to(r.width);
+        j.at("height").get_to(r.height);
+    }
+
 }
 
 bool Rect::rect_contains(uint32_t _x, uint32_t _y) {
