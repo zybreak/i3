@@ -34,9 +34,9 @@ export {
 
        public:
         bool valid{false};
-        char *pattern{nullptr};
+        std::string pattern{};
 
-        explicit Regex(const char *pattern);
+        explicit Regex(const std::string pattern);
         Regex(const Regex &other);
         Regex(Regex &&other) noexcept;
         Regex &operator=(Regex &&other) noexcept;
@@ -55,20 +55,19 @@ export {
  * (and ELOGs an appropriate error message).
  *
  */
-Regex::Regex(const char *pattern) {
+Regex::Regex(const std::string pattern) : pattern(pattern) {
     int errorcode;
     PCRE2_SIZE offset;
 
-    this->pattern = sstrdup(pattern);
     uint32_t options = PCRE2_UTF;
     /* We use PCRE_UCP so that \B, \b, \D, \d, \S, \s, \W, \w and some POSIX
      * character classes play nicely with Unicode */
     options |= PCRE2_UCP;
-    if (!(this->regex = pcre2_compile((PCRE2_SPTR)pattern, PCRE2_ZERO_TERMINATED, options, &errorcode, &offset, nullptr))) {
+    if (!(this->regex = pcre2_compile((PCRE2_SPTR)pattern.c_str(), PCRE2_ZERO_TERMINATED, options, &errorcode, &offset, nullptr))) {
         PCRE2_UCHAR buffer[256];
         pcre2_get_error_message(errorcode, buffer, sizeof(buffer));
-        //ELOG(fmt::sprintf("PCRE regular expression compilation failed at %lu: %s\n",
-        //     offset, buffer));
+        ELOG(std::format("PCRE regular expression compilation failed at {}: {}",
+             offset, buffer));
         this->valid = false;
         return;
     }
@@ -97,8 +96,7 @@ Regex& Regex::operator=(Regex &&other) noexcept {
  *
  */
 Regex::~Regex() {
-    free(this->pattern);
-    free(this->regex);
+    pcre2_code_free(this->regex);
 }
 
 /*

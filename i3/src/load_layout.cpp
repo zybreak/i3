@@ -20,141 +20,9 @@ import log;
 import regex;
 import rect;
 
-/* TODO: refactor the whole parsing thing */
-
-class Match *current_swallow;
-
-struct tree_append_ctx {
-    std::string last_key{};
-    Con *json_node{nullptr};
-    Con *to_focus{nullptr};
-    bool parsing_gaps{false};
-    int incomplete{0};
-    bool parsing_swallows{false};
-    bool parsing_rect{false};
-    bool parsing_actual_deco_rect{false};
-    bool parsing_deco_rect{false};
-    bool parsing_window_rect{false};
-    bool parsing_geometry{false};
-    bool parsing_focus{false};
-    bool swallow_is_empty;
-    std::deque<int> focus_mappings{};
-};
-
-static void json_start_map(tree_append_ctx &ctx) {
-    LOG(fmt::sprintf("start of map, last_key = %s\n",  ctx.last_key));
-    if (ctx.parsing_swallows) {
-        LOG("creating new swallow\n");
-        auto match = std::make_unique<Match>();
-        current_swallow = match.get();
-        match->dock = M_DONTCHECK;
-        ctx.json_node->swallow.push_back(std::move(match));
-        ctx.swallow_is_empty = true;
-    } else {
-        if (!ctx.parsing_rect &&
-            !ctx.parsing_actual_deco_rect &&
-            !ctx.parsing_deco_rect &&
-            !ctx.parsing_window_rect &&
-            !ctx.parsing_geometry &&
-            !ctx.parsing_gaps) {
-            if (ctx.last_key == "floating_nodes") {
-                DLOG("New floating_node\n");
-                WorkspaceCon *ws = ctx.json_node->con_get_workspace();
-                ctx.json_node = new ConCon(nullptr, true);
-                ctx.json_node->name.clear();
-                ctx.json_node->parent = ws;
-                DLOG(fmt::sprintf("Parent is workspace = %p\n", fmt::ptr(ws)));
-            }
-            /* json_node is incomplete and should be removed if parsing fails */
-            ctx.incomplete++;
-            DLOG(fmt::sprintf("incomplete = %d\n",  ctx.incomplete));
-        }
-    }
-}
-
+#if 0
 static void json_end_map(tree_append_ctx &ctx) {
     LOG("end of map\n");
-    if (!ctx.parsing_swallows &&
-        !ctx.parsing_rect &&
-        !ctx.parsing_actual_deco_rect &&
-        !ctx.parsing_deco_rect &&
-        !ctx.parsing_window_rect &&
-        !ctx.parsing_geometry &&
-        !ctx.parsing_gaps) {
-        /* Set a few default values to simplify manually crafted layout files. */
-        if (ctx.json_node->layout == L_DEFAULT) {
-            DLOG("Setting layout = L_SPLITH\n");
-            ctx.json_node->layout = L_SPLITH;
-        }
-
-        /* Sanity check: swallow criteria don’t make any sense on a split
-         * container. */
-        if (ctx.json_node->con_is_split() > 0 && !ctx.json_node->swallow.empty()) {
-            DLOG("sanity check: removing swallows specification from split container\n");
-            ctx.json_node->swallow.clear();
-        }
-
-        if (ctx.json_node->type == CT_WORKSPACE) {
-            /* Ensure the workspace has a name. */
-            DLOG(fmt::sprintf("Attaching workspace. name = %s\n",  ctx.json_node->name));
-            if (ctx.json_node->name.empty()) {
-                ctx.json_node->name = "unnamed";
-            }
-
-            /* Prevent name clashes when appending a workspace, e.g. when the
-             * user tries to restore a workspace called “1” but already has a
-             * workspace called “1”. */
-            int cnt = 1;
-            while (get_existing_workspace_by_name(ctx.json_node->name) != nullptr) {
-                ctx.json_node->name = fmt::format("{}_{}", ctx.json_node->name, cnt++);
-            }
-
-            /* Set num accordingly so that i3bar will properly sort it. */
-            auto ws = dynamic_cast<WorkspaceCon*>(ctx.json_node);
-            ws->num = utils::ws_name_to_number(ctx.json_node->name);
-        }
-
-        // When appending JSON layout files that only contain the workspace
-        // _contents_, we might not have an upfront signal that the
-        // container we’re currently parsing is a floating container (like
-        // the “floating_nodes” key of the workspace container itself).
-        // That’s why we make sure the con is attached at the right place
-        // in the hierarchy in case it’s floating.
-        if (ctx.json_node->type == CT_FLOATING_CON) {
-            DLOG(fmt::sprintf("fixing parent which currently is %p / %s\n", fmt::ptr(ctx.json_node->parent), ctx.json_node->parent->name));
-            ctx.json_node->parent = ctx.json_node->parent->con_get_workspace();
-
-            // Also set a size if none was supplied, otherwise the placeholder
-            // window cannot be created as X11 requests with width=0 or
-            // height=0 are invalid.
-            if (ctx.json_node->rect == (Rect){0, 0, 0, 0}) {
-                DLOG("Geometry not set, combining children\n");
-                for (auto &child : ctx.json_node->nodes) {
-                    DLOG(fmt::sprintf("child geometry: %d x %d\n",  child->get_geometry().width, child->get_geometry().height));
-                    ctx.json_node->rect.width += child->get_geometry().width;
-                    ctx.json_node->rect.height = std::max(ctx.json_node->rect.height, child->get_geometry().height);
-                }
-            }
-
-            floating_check_size(ctx.json_node, false);
-        }
-
-        /* Fix erroneous JSON input regarding floating containers to avoid
-         * crashing, see #3901. */
-        const int old_floating_mode = ctx.json_node->floating;
-        if (old_floating_mode >= FLOATING_AUTO_ON && ctx.json_node->parent->type != CT_FLOATING_CON) {
-            LOG("Fixing floating node without CT_FLOATING_CON parent\n");
-
-            /* Force floating_enable to work */
-            ctx.json_node->floating = FLOATING_AUTO_OFF;
-            floating_enable(dynamic_cast<ConCon*>(ctx.json_node), false);
-            ctx.json_node->floating = static_cast<con_floating_t>(old_floating_mode);
-        }
-
-        ctx.json_node = ctx.json_node->parent;
-        ctx.incomplete--;
-        DLOG(fmt::sprintf("incomplete = %d\n",  ctx.incomplete));
-    }
 
     if (ctx.parsing_swallows && ctx.swallow_is_empty) {
         /* We parsed an empty swallow definition. This is an invalid layout
@@ -162,82 +30,8 @@ static void json_end_map(tree_append_ctx &ctx) {
         ELOG("Layout file is invalid: found an empty swallow definition.\n");
         return;
     }
-
-    ctx.parsing_gaps = false;
-    ctx.parsing_rect = false;
-    ctx.parsing_actual_deco_rect = false;
-    ctx.parsing_deco_rect = false;
-    ctx.parsing_window_rect = false;
-    ctx.parsing_geometry = false;
 }
-
-static void json_end_array(tree_append_ctx &ctx) {
-    LOG("end of array\n");
-    if (!ctx.parsing_swallows && !ctx.parsing_focus) {
-        ctx.json_node->con_fix_percent();
-    }
-    if (ctx.parsing_swallows) {
-        ctx.parsing_swallows = false;
-    }
-
-    if (ctx.parsing_focus) {
-        /* Clear the list of focus mappings */
-        for (auto mapping = ctx.focus_mappings.end(); mapping != ctx.focus_mappings.begin();--mapping) {
-            LOG(fmt::sprintf("focus (reverse) %d\n",  (*mapping)));
-            for (auto &con : ctx.json_node->focused) {
-                if (con->old_id != *mapping)
-                    continue;
-                LOG(fmt::sprintf("got it! %p\n", fmt::ptr(con)));
-                /* Move this entry to the top of the focus list. */
-                std::erase(ctx.json_node->focused, con);
-                ctx.json_node->focused.push_front(con);
-                break;
-            }
-        }
-        ctx.focus_mappings.clear();
-        ctx.parsing_focus = false;
-    }
-}
-
-static void json_key(tree_append_ctx &ctx, const std::string &key) {
-    LOG(fmt::sprintf("key: %s\n",  key));
-    ctx.last_key = key;
-    if (ctx.last_key == "swallows")
-        ctx.parsing_swallows = true;
-
-    if (strcasecmp(ctx.last_key.c_str(), "gaps") == 0)
-        ctx.parsing_gaps = true;
-
-    if (strcasecmp(ctx.last_key.c_str(), "actual_deco_rect") == 0)
-        ctx.parsing_actual_deco_rect = true;
-
-    if (ctx.last_key == "focus")
-        ctx.parsing_focus = true;
-}
-
-static void json_string(tree_append_ctx &ctx, std::string &val) {
-    LOG(fmt::sprintf("string: %s for key %s\n",  val, ctx.last_key));
-    if (ctx.parsing_swallows) {
-        if (ctx.last_key == "class") {
-            current_swallow->window_class = std::make_unique<Regex>(val.c_str());
-            ctx.swallow_is_empty = false;
-        } else if (ctx.last_key == "instance") {
-            current_swallow->instance = std::make_unique<Regex>(val.c_str());
-            ctx.swallow_is_empty = false;
-        } else if (ctx.last_key == "window_role") {
-            current_swallow->window_role = std::make_unique<Regex>(val.c_str());
-            ctx.swallow_is_empty = false;
-        } else if (ctx.last_key == "title") {
-            current_swallow->title = std::make_unique<Regex>(val.c_str());
-            ctx.swallow_is_empty = false;
-        } else if (ctx.last_key == "machine") {
-            current_swallow->machine = std::make_unique<Regex>(val.c_str());
-            ctx.swallow_is_empty = false;
-        } else {
-            ELOG(fmt::sprintf("swallow key %s unknown\n",  ctx.last_key));
-        }
-    }
-}
+#endif
 
 /*
  * Returns true if the provided JSON could be parsed.
@@ -279,6 +73,7 @@ json_content_t json_determine_content(std::string &fb) {
 }
 
 static Con* extract_con(nlohmann::json &j, Con *parent);
+static void con_massage(Con *con);
 
 static void extract_basecon(nlohmann::json &j, Con *con, Con *parent) {
     if (j.contains("name")) j["name"].get_to(con->name);
@@ -373,6 +168,32 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent) {
         con->percent = j["percent"];
     }
 
+    if (j.contains("swallows")) {
+        if (j["swallows"].is_array()) {
+            for (auto &match_json : j["swallows"]) {
+                LOG("creating new swallow\n");
+                auto match = std::make_unique<Match>();
+                match->dock = M_DONTCHECK;
+                if (match_json.contains("class")) {
+                    match->window_class = std::make_unique<Regex>(match_json["class"].get<std::string>());
+                }
+                if (match_json.contains("instance")) {
+                    match->instance = std::make_unique<Regex>(match_json["instance"].get<std::string>());
+                }
+                if (match_json.contains("window_role")) {
+                    match->window_role = std::make_unique<Regex>(match_json["window_role"].get<std::string>());
+                }
+                if (match_json.contains("title")) {
+                    match->title = std::make_unique<Regex>(match_json["title"].get<std::string>());
+                }
+                if (match_json.contains("machine")) {
+                    match->machine = std::make_unique<Regex>(match_json["machine"].get<std::string>());
+                }
+                con->swallow.push_back(std::move(match));
+            }
+        }
+    }
+
     //if (ctx.last_key == "focused" && val) {
     //    ctx.to_focus = ctx.json_node;
     //}
@@ -406,9 +227,23 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent) {
         con->old_id = j["id"];
     }
 
-    //if (ctx.parsing_focus) {
-    //    ctx.focus_mappings.push_back(val);
-    //}
+    if (j.contains("focus")) {
+        std::vector<uint32_t> focus_mappings{};
+        for (auto &focus_json : j["focus"]) {
+            focus_mappings.push_back(focus_json.get<int>());
+        }
+        /* Clear the list of focus mappings */
+        for (auto mapping = std::rbegin(focus_mappings); mapping != std::rend(focus_mappings); mapping++) {
+            LOG(fmt::sprintf("focus (reverse) %d\n",  (*mapping)));
+            auto focus_it = std::ranges::find_if(con->focused, [&mapping](Con *c) { return c->old_id == *mapping; });
+            if (focus_it != con->focused.end()) {
+                Con *c = *focus_it;
+                LOG(fmt::sprintf("got it! %p\n", fmt::ptr(c)));
+                /* Move this entry to the top of the focus list. */
+                std::rotate(con->focused.begin(), focus_it, con->focused.end());
+            }
+        }
+    }
 
     if (j.contains("rect")) {
         j.at("rect").get_to(con->rect);
@@ -453,17 +288,16 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent) {
     if (j.contains("nodes")) {
         for (auto &child_json : j["nodes"]) {
             Con *child = extract_con(child_json, con);
+
+            LOG("attaching");
+            child->con_attach(con, true);
+            LOG("Creating window\n");
+            global.x->con_init(child);
+
             con->nodes.push_back(child);
         }
     }
 
-#if 0
-    if (j.contains("floating_nodes")) {
-        Con *child = extract_con(j, con);
-        FloatingCon
-        j.floating_windows.push_back(child);
-    }
-#endif
 }
 
 static RootCon* extract_rootcon(nlohmann::json &j, Con *parent) {
@@ -532,6 +366,28 @@ static WorkspaceCon* extract_workspacecon(nlohmann::json &j, Con *parent) {
 
     if (j.contains("num")) con->num = j["num"];
 
+
+    if (j.contains("floating_nodes")) {
+        for (auto &child_json : j["floating_nodes"]) {
+            DLOG("New floating_node\n");
+            Con *child_con = extract_con(child_json, con);
+            
+            if (auto *child = dynamic_cast<FloatingCon*>(child_con); child != nullptr) {
+                child->name.clear();
+                DLOG(fmt::sprintf("Parent is workspace = %p\n", fmt::ptr(con)));
+
+                LOG("attaching");
+                child->con_attach(con, true);
+                LOG("Creating window\n");
+                global.x->con_init(child);
+
+                con->floating_windows.push_back(child);
+            } else {
+                DLOG("Wrong con type in floating_nodes");
+            }
+        }
+    }
+
     //if (j.contains("previous_workspace_name")) j["previous_workspace_name"].get_to(con->previous_workspace_name);
     return con;
 }
@@ -557,73 +413,105 @@ static Con* extract_con(nlohmann::json &j, Con *parent) {
        con = extract_concon(j, parent);
    }
 
-    LOG("attaching");
-    con->con_attach(parent, true);
-    LOG("Creating window\n");
-    global.x->con_init(con);
+    con->con_fix_percent();
 
     return con;
 }
 
-void tree_append_json(Con *parent, std::string &fb) {
-#if 0
-    nlohmann::json::parser_callback_t cb = [&ctx](int depth, nlohmann::json::parse_event_t event, nlohmann::json & parsed) {
-        if (event == nlohmann::json::parse_event_t::array_start) {
-        } else if (event == nlohmann::json::parse_event_t::array_end) {
-            json_end_array(ctx);
-        } else if (event == nlohmann::json::parse_event_t::object_start) {
-            json_start_map(ctx);
-        } else if (event == nlohmann::json::parse_event_t::object_end) {
-            json_end_map(ctx);
-        } else if (event == nlohmann::json::parse_event_t::key) {
-            auto key = parsed.get<std::string>();
-            json_key(ctx, key);
-        } else if (event == nlohmann::json::parse_event_t::value) {
-            if (parsed.is_boolean()) {
-                auto key = parsed.get<bool>();
-                json_bool(ctx, key);
-            } else if (parsed.is_number_integer()) {
-                auto key = parsed.get<long long>();
-                json_int(ctx, key);
-            } else if (parsed.is_number_float()) {
-                auto key = parsed.get<double>();
-                json_double(ctx, key);
-            } else if (parsed.is_string()) {
-                auto key = parsed.get<std::string>();
-                json_string(ctx, key);
+static void con_massage(Con *con) {
+    /* Set a few default values to simplify manually crafted layout files. */
+    if (con->layout == layout_t::L_DEFAULT) {
+        DLOG("Setting layout = L_SPLITH\n");
+        con->layout = layout_t::L_SPLITH;
+    }
+
+    /* Sanity check: swallow criteria don’t make any sense on a split
+     * container. */
+    if (con->con_is_split() > 0 && !con->swallow.empty()) {
+        DLOG("sanity check: removing swallows specification from split container\n");
+        con->swallow.clear();
+    }
+
+    if (con->type == con_type_t::CT_WORKSPACE) {
+        /* Ensure the workspace has a name. */
+        DLOG(fmt::sprintf("Attaching workspace. name = %s\n",  con->name));
+        if (con->name.empty()) {
+            con->name = "unnamed";
+        }
+
+        /* Prevent name clashes when appending a workspace, e.g. when the
+         * user tries to restore a workspace called “1” but already has a
+         * workspace called “1”. */
+        int cnt = 1;
+        while (get_existing_workspace_by_name(con->name) != nullptr) {
+            con->name = fmt::format("{}_{}", con->name, cnt++);
+        }
+
+        /* Set num accordingly so that i3bar will properly sort it. */
+        auto ws = dynamic_cast<WorkspaceCon*>(con);
+        ws->num = utils::ws_name_to_number(con->name);
+    }
+
+    // When appending JSON layout files that only contain the workspace
+    // _contents_, we might not have an upfront signal that the
+    // container we’re currently parsing is a floating container (like
+    // the “floating_nodes” key of the workspace container itself).
+    // That’s why we make sure the con is attached at the right place
+    // in the hierarchy in case it’s floating.
+    if (con->type == con_type_t::CT_FLOATING_CON) {
+        DLOG(fmt::sprintf("fixing parent which currently is %p / %s\n", fmt::ptr(con->parent), con->parent->name));
+        con->parent = con->parent->con_get_workspace();
+
+        // Also set a size if none was supplied, otherwise the placeholder
+        // window cannot be created as X11 requests with width=0 or
+        // height=0 are invalid.
+        if (con->rect == Rect{}) {
+            DLOG("Geometry not set, combining children\n");
+            for (auto &child : con->nodes) {
+                DLOG(fmt::sprintf("child geometry: %d x %d\n",  child->get_geometry().width, child->get_geometry().height));
+                con->rect.width += child->get_geometry().width;
+                con->rect.height = std::max(con->rect.height, child->get_geometry().height);
             }
         }
 
-        return true;
-    };
-#endif
+        floating_check_size(con, false);
+    }
 
+    /* Fix erroneous JSON input regarding floating containers to avoid
+     * crashing, see #3901. */
+    const con_floating_t old_floating_mode = con->floating;
+    if (std::to_underlying(old_floating_mode) >= std::to_underlying(con_floating_t::FLOATING_AUTO_ON) && con->parent->type != con_type_t::CT_FLOATING_CON) {
+        LOG("Fixing floating node without CT_FLOATING_CON parent\n");
+
+        /* Force floating_enable to work */
+        con->floating = con_floating_t::FLOATING_AUTO_OFF;
+        floating_enable(dynamic_cast<ConCon*>(con), false);
+        con->floating = old_floating_mode;
+    }
+}
+
+void tree_append_json(Con *parent, std::string &fb) {
     try {
         auto j = nlohmann::json::parse(fb, nullptr, true, true);
         Con *con = extract_con(j, parent);
-        std::cout << j << std::endl;
+
+        LOG("attaching");
+        con->con_attach(parent, true);
+        
+        con_massage(con);
+
+        /* In case not all containers were restored, we need to fix the
+         * percentages, otherwise i3 will crash immediately when rendering the
+         * next time. */
+        con->con_fix_percent();
+
+        //if (ctx.to_focus) {
+        //    ctx.to_focus->con_activate();
+        //}
+        
+        LOG("Creating window\n");
+        global.x->con_init(con);
     } catch (std::exception &e) {
-#if 0
         ELOG(fmt::sprintf("JSON parsing error: %s\n",  e.what()));
-        while (ctx.incomplete-- > 0) {
-            Con *parent = ctx.json_node->parent;
-            DLOG(fmt::sprintf("freeing incomplete container %p\n", fmt::ptr(ctx.json_node)));
-            if (ctx.json_node == ctx.to_focus) {
-                ctx.to_focus = nullptr;
-            }
-            delete ctx.json_node;
-            ctx.json_node = parent;
-        }
-        throw e;
-#endif
     }
-
-    /* In case not all containers were restored, we need to fix the
-     * percentages, otherwise i3 will crash immediately when rendering the
-     * next time. */
-    //con->con_fix_percent();
-
-    //if (ctx.to_focus) {
-    //    ctx.to_focus->con_activate();
-    //}
 }

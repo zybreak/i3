@@ -65,9 +65,9 @@ bool Match::match_is_empty() {
 static void checkWindowField(Regex const *match_field, i3Window const *window, char* (*window_field)(i3Window const *)) {
     if (is_initialized(match_field)) {
         const char *window_field_str = window_field(window) == nullptr ? "" : window_field(window);
-        if (strcmp(match_field->pattern, "__focused__") == 0 &&
-            global.focused && global.focused->get_window() && window_field(global.focused->get_window()) &&
-            strcmp(window_field_str, window_field(global.focused->get_window())) == 0) {
+        if (match_field->pattern == "__focused__" &&
+                global.focused && global.focused->get_window() && window_field(global.focused->get_window()) &&
+                strcmp(window_field_str, window_field(global.focused->get_window())) == 0) {
             LOG("window match_field matches focused window\n");
         } else if (match_field->regex_matches(window_field_str)) {
              LOG(fmt::sprintf("window match_field matches (%s)\n", window_field_str));
@@ -85,6 +85,7 @@ bool Match::match_matches_window(const i3Window *window) const {
     LOG(fmt::sprintf("Checking window 0x%08x (class %s)\n",  window->id, window->class_class));
 
     try {
+        // TODO: pointer to member
         checkWindowField(this->window_class.get(), window, [](const i3Window *window) { return !window->class_class.empty() ? (char*)window->class_class.c_str() : nullptr; });
         checkWindowField(this->instance.get(), window, [](const i3Window *window) { return !window->class_instance.empty() ? (char*)window->class_instance.c_str() : nullptr; });
 
@@ -154,8 +155,8 @@ bool Match::match_matches_window(const i3Window *window) const {
         if (ws == nullptr)
             return false;
 
-        if (strcmp(this->workspace->pattern, "__focused__") == 0 &&
-            strcmp(ws->name.c_str(), global.focused->con_get_workspace()->name.c_str()) == 0) {
+        if (this->workspace->pattern == "__focused__" &&
+                ws->name == global.focused->con_get_workspace()->name) {
             LOG("workspace matches focused workspace\n");
         } else if (this->workspace->regex_matches(ws->name.c_str())) {
             LOG(fmt::sprintf("workspace matches (%s)\n",  ws->name));

@@ -108,13 +108,7 @@ static std::string store_restart_layout() {
         return "";
     }
 
-    auto payload = j.dump();
-    
-    outFile << payload;
-
-    if (payload.length() > 0) {
-        DLOG(fmt::sprintf("layout: %.*s\n",  static_cast<int>(payload.length()), payload));
-    }
+    outFile << j << std::endl;
 
     return filename;
 }
