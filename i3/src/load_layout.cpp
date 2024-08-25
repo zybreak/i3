@@ -37,7 +37,7 @@ static void json_end_map(tree_append_ctx &ctx) {
  * Returns true if the provided JSON could be parsed.
  *
  */
-bool json_validate(std::string &fb) {
+bool json_validate(std::ifstream &&fb) {
 
     setlocale(LC_NUMERIC, "C");
     bool valid = nlohmann::json::accept(fb, true);
@@ -50,7 +50,7 @@ bool json_validate(std::string &fb) {
  * determine whether the file contains workspaces or regular containers, which
  * is important to know when deciding where (and how) to append the contents.
  * */
-json_content_t json_determine_content(std::string &fb) {
+json_content_t json_determine_content(std::ifstream &&fb) {
     // We default to JSON_CONTENT_CON because it is legal to not include
     // “"type": "con"” in the JSON files for better readability.
     try {
@@ -490,7 +490,7 @@ static void con_massage(Con *con) {
     }
 }
 
-void tree_append_json(Con *parent, std::string &fb) {
+void tree_append_json(Con *parent, std::ifstream &&fb) {
     try {
         auto j = nlohmann::json::parse(fb, nullptr, true, true);
         Con *con = extract_con(j, parent);

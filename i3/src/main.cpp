@@ -246,16 +246,15 @@ void enable_coredumps() {
 
 void do_tree_init(const program_arguments &args, const xcb_get_geometry_reply_t *greply) {
     bool needs_tree_init = true;
-    if (!args.layout_path.empty()) {
-        LOG(fmt::sprintf("Trying to restore the layout from \"%s\".\n", args.layout_path));
-        needs_tree_init = !tree_restore(args.layout_path, greply);
+    if (args.layout_path) {
+        LOG(fmt::format("Trying to restore the layout from \"{}\".", args.layout_path->native()));
+        needs_tree_init = !tree_restore(*args.layout_path, greply);
         if (args.delete_layout_path) {
-            unlink(args.layout_path.c_str());
-            std::string copy = args.layout_path;
-            const char *dir = dirname(copy.data());
+            std::filesystem::remove(*args.layout_path);
+            auto dir = args.layout_path->parent_path();
             /* possibly fails with ENOTEMPTY if there are files (or
              * sockets) left. */
-            rmdir(dir);
+            std::filesystem::remove(dir);
         }
     }
     if (needs_tree_init) {
@@ -285,7 +284,7 @@ static void set_screenshot_as_wallpaper(x_connection *conn, xcb_screen_t *screen
 }
 
 static void force_disable_output(const program_arguments &args) {
-    if (!args.layout_path.empty() && global.randr->randr_base > -1) {
+    if (args.layout_path && global.randr->randr_base > -1) {
         for (auto &con : global.croot->nodes) {
             for (Output *output : global.randr->outputs) {
                 if (output->active || strcmp(con->name.c_str(), output->output_primary_name().c_str()) != 0)

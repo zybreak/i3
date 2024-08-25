@@ -119,7 +119,6 @@ static void handle_active_window(xcb_client_message_event_t *event) {
         DLOG("Window is not being managed, ignoring _NET_ACTIVE_WINDOW\n");
         return;
     }
-
     /* data32[0] indicates the source of the request (application or pager) */
     if (event->data.data32[0] == 2) {
         /* Always focus the con if it is from a pager, because this is most

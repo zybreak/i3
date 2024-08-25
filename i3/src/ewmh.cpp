@@ -101,15 +101,10 @@ static void ewmh_update_desktop_viewport() {
 
     /* fill the viewport buffer */
     for (auto output : global.croot->nodes) {
-        auto content = dynamic_cast<OutputCon*>(output)->output_get_content();
-        if (content == nullptr) {
-            continue;
-        }
-        std::ranges::for_each(
-            content->nodes, [&](const auto) {
+        for (auto &ws: dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
             viewports.push_back(output->rect.x);
             viewports.push_back(output->rect.y);
-        });
+        }
     }
 
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root,

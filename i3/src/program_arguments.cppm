@@ -16,7 +16,7 @@ export {
         std::optional<std::filesystem::path> override_configpath{};
         bool autostart{true};
         bool new_parser{false};
-        std::string layout_path{};
+        std::optional<std::filesystem::path> layout_path{};
         bool delete_layout_path{false};
         bool disable_signalhandler{false};
         bool only_check_config{false};

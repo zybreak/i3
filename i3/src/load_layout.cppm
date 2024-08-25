@@ -34,13 +34,13 @@ export {
      * determine whether the file contains workspaces or regular containers, which
      * is important to know when deciding where (and how) to append the contents.
      * */
-    json_content_t json_determine_content(std::string & fb);
+    json_content_t json_determine_content(std::ifstream &&fb);
 
     /**
      * Returns true if the provided JSON could be parsed by yajl.
      *
      */
-    bool json_validate(std::string & fb);
+    bool json_validate(std::ifstream &&fb);
 
-    void tree_append_json(Con * con, std::string & fb);
+    void tree_append_json(Con * con, std::ifstream &&fb);
 }

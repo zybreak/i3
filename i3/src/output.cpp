@@ -39,7 +39,9 @@ Output* Output::get_output_from_string(const std::string &output_str) {
  *
  */
 std::string Output::output_primary_name() const {
-    return this->names.front();
+    std::string name = this->names.front();
+    
+    return name;
 }
 
 Output *get_output_for_con(Con *con) {

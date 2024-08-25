@@ -43,7 +43,7 @@ export {
         /** List of names for the output.
          * An output always has at least one name; the first name is
          * considered the primary one. */
-        std::deque<std::string> names{};
+        std::vector<std::string> names{};
 
         /** Pointer to the Con which represents this output */
         OutputCon *con{};

@@ -65,12 +65,6 @@ std::vector<std::string> add_argument(std::vector<std::string> &original, const 
 }
 
 static std::string store_restart_layout() {
-    setlocale(LC_NUMERIC, "C");
-
-    auto j = dump_node(global.croot, true);
-
-    setlocale(LC_NUMERIC, "");
-
     /* create a temporary file if one hasn't been specified, or just
      * resolve the tildes in the specified path */
     std::string filename;
@@ -108,7 +102,8 @@ static std::string store_restart_layout() {
         return "";
     }
 
-    outFile << j << std::endl;
+    outFile << dump_node(global.croot, true) << std::endl;
+
 
     return filename;
 }

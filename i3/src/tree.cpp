@@ -34,52 +34,48 @@ import rect;
  * Loads tree from 'path' (used for in-place restarts).
  *
  */
-bool tree_restore(const std::string_view path, const xcb_get_geometry_reply_t *geometry) {
-    auto globbed = utils::resolve_tilde(path);
-    std::string buf;
-
-    if (!std::filesystem::exists(globbed)) {
-        LOG(fmt::sprintf("%s does not exist, not restoring tree\n",  globbed));
+bool tree_restore(const std::filesystem::path path, const xcb_get_geometry_reply_t *geometry) {
+    //auto globbed = utils::resolve_tilde(path);
+    if (!std::filesystem::exists(path)) {
+        LOG(std::format("{} does not exist, not restoring tree", path.native()));
         return false;
     }
 
     try {
-        buf = utils::slurp(globbed);
-    } catch (std::exception &e) {
+        global.croot = new RootCon();
+        global.croot->rect = {
+                static_cast<uint32_t>(geometry->x),
+                static_cast<uint32_t>(geometry->y),
+                geometry->width,
+                geometry->height
+        };
+        global.focused = global.croot;
+
+        try {
+            tree_append_json(global.focused, utils::slurp(path));
+        } catch (std::exception const &e) {
+            ELOG(std::format("Parsing JSON failed: {}", e.what()));
+            return false;
+        }
+
+        DLOG("appended tree, using new root\n");
+        global.croot = dynamic_cast<RootCon*>(con::first(global.croot->nodes));
+        if (!global.croot) {
+            /* tree_append_json failed. Continuing here would segfault. */
+            return false;
+        }
+        DLOG(fmt::sprintf("new root = %p\n", fmt::ptr(global.croot)));
+        Con *out = con::first(global.croot->nodes);
+        DLOG(fmt::sprintf("out = %p\n", fmt::ptr(out)));
+        Con *ws = con::first(out->nodes);
+        DLOG(fmt::sprintf("ws = %p\n", fmt::ptr(ws)));
+
+        restore_open_placeholder_windows(global.croot);
+        return true;
+        
+    } catch (...) {
         return false;
     }
-
-    /* TODO: refactor the following */
-    global.croot = new RootCon();
-    global.croot->rect = {
-        static_cast<uint32_t>(geometry->x),
-        static_cast<uint32_t>(geometry->y),
-        geometry->width,
-        geometry->height
-    };
-    global.focused = global.croot;
-
-    try {
-        tree_append_json(global.focused, buf);
-    } catch (std::exception const &e) {
-        ELOG(std::format("Parsing JSON failed: {}", e.what()));
-        return false;
-    }
-
-    DLOG("appended tree, using new root\n");
-    global.croot = dynamic_cast<RootCon*>(con::first(global.croot->nodes));
-    if (!global.croot) {
-        /* tree_append_json failed. Continuing here would segfault. */
-        return false;
-    }
-    DLOG(fmt::sprintf("new root = %p\n", fmt::ptr(global.croot)));
-    Con *out = con::first(global.croot->nodes);
-    DLOG(fmt::sprintf("out = %p\n", fmt::ptr(out)));
-    Con *ws = con::first(out->nodes);
-    DLOG(fmt::sprintf("ws = %p\n", fmt::ptr(ws)));
-
-    restore_open_placeholder_windows(global.croot);
-    return true;
 }
 
 /*

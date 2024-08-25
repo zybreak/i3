@@ -157,8 +157,8 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
 
 #define APPEND_REGEX(re_name)                                                                                                                        \
     do {                                                                                                                                             \
-        if (swallows->re_name != nullptr) {                                                                                                             \
-            sasprintf(&serialized, "%s%s" #re_name "=\"%s\"", (serialized ? serialized : "["), (serialized ? " " : ""), swallows->re_name->pattern); \
+        if (swallows->re_name.get() != nullptr) {                                                                                                             \
+            sasprintf(&serialized, "%s%s" #re_name "=\"%s\"", (serialized ? serialized : "["), (serialized ? " " : ""), swallows->re_name->pattern.c_str()); \
         }                                                                                                                                            \
     } while (0)
 

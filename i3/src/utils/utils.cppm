@@ -45,21 +45,15 @@ export namespace utils {
      * size, or NULL if -1 is returned.
      *
      */
-    std::string slurp(const std::string &path) {
-        std::filebuf fb;
-        if (!fb.open(path, std::ios::in)) {
-            throw std::runtime_error(std::format("Cannot open file \"{}\"", path));
-        }
+    std::ifstream slurp(const std::filesystem::path &path) {
 
-        try {
-            std::istream is(&fb);
-            std::string s(std::istreambuf_iterator<char>(is), {});
-            fb.close();
-            return s;
-        }  catch (std::exception &e) {
-            fb.close();
-            throw e;
+
+        std::ifstream fileStream(path);
+        if (!fileStream) {
+            throw std::runtime_error(std::format("Cannot open file \"{}\"", path.native()));
         }
+        
+        return fileStream;
     }
 
     /**

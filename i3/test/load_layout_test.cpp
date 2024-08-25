@@ -17,12 +17,12 @@ public:
 TEST(LoadLayoutTest, ValidateSuccessful) {
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
-    auto input = R"(
+    auto input = std::istringstream{R"(
         {
             "foo": "bar"
         }
-    )"s;
-    bool validated = json_validate(input);
+    )"s};
+    bool validated = json_validate(std::move(input));
     
     ASSERT_TRUE(validated);
 }
@@ -30,11 +30,11 @@ TEST(LoadLayoutTest, ValidateSuccessful) {
 TEST(LoadLayoutTest, ValidateFailure) {
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
-    auto input = R"(
+    auto input = std::istringstream{R"(
             "foo" bar
         }
-    )"s;
-    bool validated = json_validate(input);
+    )"s};
+    bool validated = json_validate(std::move(input));
 
     ASSERT_FALSE(validated);
 }
@@ -42,12 +42,12 @@ TEST(LoadLayoutTest, ValidateFailure) {
 TEST(LoadLayoutTest, DetermineContentNoType) {
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
-    auto input = R"(
+    auto input = std::istringstream{R"(
         {
             "id": 123
         }
-    )"s;
-    json_content_t content = json_determine_content(input);
+    )"s};
+    json_content_t content = json_determine_content(std::move(input));
 
     ASSERT_EQ(content, json_content_t::JSON_CONTENT_CON);
 }
@@ -55,13 +55,13 @@ TEST(LoadLayoutTest, DetermineContentNoType) {
 TEST(LoadLayoutTest, DetermineContentCon) {
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
-    auto input = R"(
+    auto input = std::istringstream{R"(
         {
             "type": "con",
             "id": 123
         }
-    )"s;
-    json_content_t content = json_determine_content(input);
+    )"s};
+    json_content_t content = json_determine_content(std::move(input));
 
     ASSERT_EQ(content, json_content_t::JSON_CONTENT_CON);
 }
@@ -69,13 +69,13 @@ TEST(LoadLayoutTest, DetermineContentCon) {
 TEST(LoadLayoutTest, DetermineContentWorkspace) {
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
-    auto input = R"(
+    auto input = std::istringstream{R"(
         {
             "type": "workspace",
             "id": 123
         }
-    )"s;
-    json_content_t content = json_determine_content(input);
+    )"s};
+    json_content_t content = json_determine_content(std::move(input));
 
     ASSERT_EQ(content, json_content_t::JSON_CONTENT_WORKSPACE);
 }
@@ -83,10 +83,10 @@ TEST(LoadLayoutTest, DetermineContentWorkspace) {
 TEST(LoadLayoutTest, DetermineContentFailure) {
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
-    auto input = R"(
+    auto input = std::istringstream{R"(
         GARBAGE
-    )"s;
-    json_content_t content = json_determine_content(input);
+    )"s};
+    json_content_t content = json_determine_content(std::move(input));
 
     ASSERT_EQ(content, json_content_t::JSON_CONTENT_UNKNOWN);
 }
@@ -99,7 +99,7 @@ TEST(LoadLayoutTest, AppendJson) {
     
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
-    auto input = R"(
+    auto input = std::istringstream{R"(
 {
   "border": "normal",
   "current_border_width": -1,
@@ -862,11 +862,12 @@ TEST(LoadLayoutTest, AppendJson) {
   }
 }
 
-    )"s;
+    )"s};
     
     RootCon rootCon{true};
     
-    tree_append_json(&rootCon, input);
+    tree_append_json(&rootCon, std::move(input));
 
     ASSERT_EQ(1, rootCon.nodes.size());
+    ASSERT_EQ(con_type_t::CT_ROOT, rootCon.nodes[0]->type);
 }

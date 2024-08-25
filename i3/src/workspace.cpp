@@ -439,7 +439,7 @@ static void workspace_defer_update_urgent_hint_cb(Con *con) {
  */
 void workspace_show(WorkspaceCon *workspace) {
     Con *current, *old = nullptr;
-
+    
     /* disable fullscreen for the other workspaces and get the workspace we are
      * currently on. */
     for (auto &c : workspace->parent->nodes) {

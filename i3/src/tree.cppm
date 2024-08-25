@@ -3375,7 +3375,7 @@ typename Tree<T, tree_node_allocator>::leaf_iterator& Tree<T, tree_node_allocato
      * Loads Tree from ~/.i3/_restart.json (used for in-place restarts).
      *
      */
-    bool tree_restore(const std::string_view path, const xcb_get_geometry_reply_t *geometry);
+    bool tree_restore(const std::filesystem::path path, const xcb_get_geometry_reply_t *geometry);
 
     /**
      * tree_flatten() removes pairs of redundant split containers, e.g.:

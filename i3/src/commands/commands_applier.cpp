@@ -832,19 +832,19 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
      LOG(fmt::sprintf("Appending layout \"%s\"\n", cpath));
 
     /* Make sure we allow paths like '~/.i3/layout.json' */
-    auto path = utils::resolve_tilde(cpath);
-    std::string buf = utils::slurp(path);
+    //auto path = utils::resolve_tilde(cpath);
+    //std::string buf = utils::slurp(cpath);
 
-    if (!json_validate(buf)) {
-        ELOG(fmt::sprintf("Could not parse \"%s\" as JSON, not loading.\n", path));
-        throw std::runtime_error(fmt::sprintf("Could not parse \"%s\" as JSON.", path));
+    if (!json_validate(utils::slurp(cpath))) {
+        ELOG(fmt::format("Could not parse \"{}\" as JSON, not loading.", cpath));
+        throw std::runtime_error(fmt::format("Could not parse \"{}\" as JSON.", cpath));
     }
 
-    json_content_t content = json_determine_content(buf);
+    json_content_t content = json_determine_content(utils::slurp(cpath));
     //LOG(fmt::sprintf("JSON content = %d\n",  content));
     if (content == JSON_CONTENT_UNKNOWN) {
-        ELOG(fmt::sprintf("Could not determine the contents of \"%s\", not loading.\n", path));
-        throw std::runtime_error(fmt::sprintf("Could not determine the contents of \"%s\".", path));
+        ELOG(fmt::format("Could not determine the contents of \"{}\", not loading.", cpath));
+        throw std::runtime_error(fmt::format("Could not determine the contents of \"{}\".", cpath));
     }
 
     Con *parent = global.focused;
@@ -861,7 +861,7 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
     }
     DLOG(fmt::sprintf("Appending to parent=%p instead of focused=%p\n", fmt::ptr(parent), fmt::ptr(global.focused)));
     try {
-        tree_append_json(parent, buf);
+        tree_append_json(parent, utils::slurp(cpath));
         ysuccess(cmd_output.json_gen,  true);
     } catch (const std::exception &e) {
         /* Note that we continue executing since tree_append_json() has
