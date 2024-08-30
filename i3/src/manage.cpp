@@ -413,6 +413,8 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     xcb_window_t old_frame = XCB_NONE;
     if (nc->get_window() != cwindow && nc->get_window() != nullptr) {
         old_frame = _match_depth(cwindow, nc);
+    }
+    if (nc->get_window() != cwindow) {
         nc->set_window(cwindow);
     }
     x_reinit(nc);
