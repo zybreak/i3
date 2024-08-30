@@ -223,16 +223,6 @@ static nlohmann::json get_swallows(Con * con, bool inplace_restart) {
     return swallows;
 }
 
-static nlohmann::json get_floating_nodes(Con * con, bool inplace_restart) {
-
-    if (auto ws = dynamic_cast<WorkspaceCon*>(con); ws != nullptr) {
-        nlohmann::json j = ws->floating_windows | std::views::transform([&inplace_restart](FloatingCon *node) { return dump_node(node, inplace_restart); }) | std::ranges::to<std::vector>();
-        return j;
-    } else {
-        return nlohmann::json::array();
-    }
-}
-
 static void handle_deco_rect(nlohmann::json &j, Con * con) {
     if (con_draw_decoration_into_frame(con)) {
         Rect simulated_deco_rect = con->deco_rect;
@@ -245,7 +235,7 @@ static void handle_deco_rect(nlohmann::json &j, Con * con) {
     }
 }
 
-nlohmann::json dump_node(Con * con, bool inplace_restart) {
+static nlohmann::json dump_base_node(Con * con, bool inplace_restart) {
     nlohmann::json j;
 
     j["id"] = (uintptr_t)con;
@@ -261,10 +251,6 @@ nlohmann::json dump_node(Con * con, bool inplace_restart) {
     j["urgent"] = con->urgent;
     j["focused"] = (con == global.focused);
 
-    if (con->type != con_type_t::CT_ROOT && con->type != con_type_t::CT_OUTPUT) {
-        j["output"] = con->con_get_output()->name;
-    }
-
     j["layout"] = layout(con);
     j["last_split_layout"] = (con->layout == layout_t::L_SPLITV) ? "splitv" : "splith";
     j["border"] = border_style(con);
@@ -272,7 +258,7 @@ nlohmann::json dump_node(Con * con, bool inplace_restart) {
 
     j["rect"] = con->rect;
     handle_deco_rect(j, con);
-    
+
     j["window_rect"] = con->get_window_rect();
     j["geometry"] = con->get_geometry();
 
@@ -295,14 +281,8 @@ nlohmann::json dump_node(Con * con, bool inplace_restart) {
     if (con->type != con_type_t::CT_DOCKAREA || !inplace_restart) {
         j["nodes"] = con->nodes | std::views::transform([&inplace_restart](Con *node) { return dump_node(node, inplace_restart); }) | std::ranges::to<std::vector>();
     }
-    
-    if (auto ws = dynamic_cast<WorkspaceCon*>(con); ws != nullptr) {
-        j["workspace_layout"] = workspace_layout(ws);
-        j["num"] = ws->num;
-        j["gaps"] = ws->gaps;
-    }
-    
-    j["floating_nodes"] = get_floating_nodes(con, inplace_restart);
+
+    j["floating_nodes"] = nlohmann::json::array();
 
     j["focus"] = con->focused | std::views::transform([](Con *node) { return (uintptr_t)node; }) | std::ranges::to<std::vector>();
 
@@ -316,8 +296,81 @@ nlohmann::json dump_node(Con * con, bool inplace_restart) {
         j["depth"] = con->depth;
     }
 
-    if (inplace_restart && con->type == con_type_t::CT_ROOT && !global.workspaceManager->previous_workspace_name.empty()) {
+    return j;
+}
+
+static nlohmann::json dump_root_node(RootCon *rootCon, bool inplace_restart) {
+    nlohmann::json j = dump_base_node(rootCon, inplace_restart);
+
+    if (inplace_restart && !global.workspaceManager->previous_workspace_name.empty()) {
         j["previous_workspace_name"] = global.workspaceManager->previous_workspace_name;
+    }
+
+    return j;
+}
+
+static nlohmann::json dump_output_node(OutputCon *outputCon, bool inplace_restart) {
+    nlohmann::json j = dump_base_node(outputCon, inplace_restart);
+   
+    return j;
+}
+
+static nlohmann::json dump_con_con(ConCon *conCon, bool inplace_restart) {
+    nlohmann::json j = dump_base_node(conCon, inplace_restart);
+
+    j["output"] = conCon->con_get_output()->name;
+
+    return j;
+}
+
+static nlohmann::json dump_floating_con(FloatingCon *floatingCon, bool inplace_restart) {
+    nlohmann::json j = dump_base_node(floatingCon, inplace_restart);
+
+    j["output"] = floatingCon->con_get_output()->name;
+
+    return j;
+}
+
+static nlohmann::json dump_dock_con(DockCon *dockCon, bool inplace_restart) {
+    nlohmann::json j = dump_base_node(dockCon, inplace_restart);
+
+    j["output"] = dockCon->con_get_output()->name;
+
+    return j;
+}
+
+static nlohmann::json dump_workspace_con(WorkspaceCon *workspaceCon, bool inplace_restart) {
+    nlohmann::json j = dump_base_node(workspaceCon, inplace_restart);
+
+    j["workspace_layout"] = workspace_layout(workspaceCon);
+    j["num"] = workspaceCon->num;
+    j["gaps"] = workspaceCon->gaps;
+    j["floating_nodes"] = workspaceCon->floating_windows |
+            std::views::transform([&inplace_restart](FloatingCon *node) { return dump_node(node, inplace_restart); }) |
+            std::ranges::to<std::vector>();
+
+    j["output"] = workspaceCon->con_get_output()->name;
+
+    return j;
+}
+
+nlohmann::json dump_node(Con * con, bool inplace_restart) {
+    nlohmann::json j;
+
+    if (auto rootCon = dynamic_cast<RootCon*>(con); rootCon != nullptr) {
+        j = dump_root_node(rootCon, inplace_restart);
+    } else if (auto outputCon = dynamic_cast<OutputCon*>(con); outputCon != nullptr) {
+        j = dump_output_node(outputCon, inplace_restart);
+    } else if (auto conCon = dynamic_cast<ConCon*>(con); conCon != nullptr) {
+        j = dump_con_con(conCon, inplace_restart);
+    } else if (auto floatingCon = dynamic_cast<FloatingCon*>(con); floatingCon != nullptr) {
+        j = dump_floating_con(floatingCon, inplace_restart);
+    } else if (auto dockCon = dynamic_cast<DockCon*>(con); dockCon != nullptr) {
+        j = dump_dock_con(dockCon, inplace_restart);
+    } else if (auto workspaceCon = dynamic_cast<WorkspaceCon*>(con); workspaceCon != nullptr) {
+        j = dump_workspace_con(workspaceCon, inplace_restart);
+    } else {
+        throw std::runtime_error(std::format("Unhandled \"type\": {}", std::to_underlying(con->type)));
     }
 
     return j;
