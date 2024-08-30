@@ -62,19 +62,19 @@ bool Match::match_is_empty() {
             this->match_all_windows == false);
 }
 
-static void checkWindowField(Regex const *match_field, i3Window const *window, char* (*window_field)(i3Window const *)) {
-    if (is_initialized(match_field)) {
-        const char *window_field_str = window_field(window) == nullptr ? "" : window_field(window);
-        if (match_field->pattern == "__focused__" &&
-                global.focused && global.focused->get_window() && window_field(global.focused->get_window()) &&
-                strcmp(window_field_str, window_field(global.focused->get_window())) == 0) {
-            LOG("window match_field matches focused window\n");
-        } else if (match_field->regex_matches(window_field_str)) {
-             LOG(fmt::sprintf("window match_field matches (%s)\n", window_field_str));
-        } else {
-            throw std::logic_error("does not match");
-        }
+static bool checkWindowField(Regex const *match_field, i3Window const *window, std::string i3Window::*window_field) {
+    std::string window_field_str = window->*window_field;
+    if (match_field->pattern == "__focused__" &&
+            global.focused && global.focused->get_window() && !(global.focused->get_window()->*window_field).empty() &&
+            window_field_str == global.focused->get_window()->*window_field) {
+        LOG("window match_field matches focused window\n");
+        return true;
+    } else if (match_field->regex_matches(window_field_str)) {
+         LOG(std::format("window match_field matches ({})", window_field_str));
+         return true;
     }
+    
+    return false;
 }
 
 /*
@@ -84,33 +84,44 @@ static void checkWindowField(Regex const *match_field, i3Window const *window, c
 bool Match::match_matches_window(const i3Window *window) const {
     LOG(fmt::sprintf("Checking window 0x%08x (class %s)\n",  window->id, window->class_class));
 
-    try {
-        // TODO: pointer to member
-        checkWindowField(this->window_class.get(), window, [](const i3Window *window) { return !window->class_class.empty() ? (char*)window->class_class.c_str() : nullptr; });
-        checkWindowField(this->instance.get(), window, [](const i3Window *window) { return !window->class_instance.empty() ? (char*)window->class_instance.c_str() : nullptr; });
+    // TODO: pointer to member
+    if (is_initialized(this->window_class.get()) &&
+            !checkWindowField(this->window_class.get(), window, &i3Window::class_class)) {
+        return false;
+    }
+    if (is_initialized(this->instance.get()) &&
+            !checkWindowField(this->instance.get(), window, &i3Window::class_instance)) {
+        return false;
+    }
 
-        if (this->id != XCB_NONE) {
-            if (window->id == this->id) {
-                LOG(fmt::sprintf("match made by window id (%d)\n", window->id));
-            } else {
-                LOG("window id does not match\n");
-                return false;
-            }
+    if (this->id != XCB_NONE) {
+        if (window->id == this->id) {
+            LOG(fmt::sprintf("match made by window id (%d)\n", window->id));
+        } else {
+            LOG("window id does not match\n");
+            return false;
         }
+    }
 
-        checkWindowField(this->title.get(), window, [](const i3Window *window) { return !window->name.empty() ? (char*)window->name.c_str() : nullptr; });
-        checkWindowField(this->window_role.get(), window, [](const i3Window *window) { return !window->role.empty() ? (char*)window->role.c_str() : nullptr; });
+    if (is_initialized(this->title.get()) && 
+            !checkWindowField(this->title.get(), window, &i3Window::name)) {
+        return false;
+    }
+    if (is_initialized(this->window_role.get()) &&
+            !checkWindowField(this->window_role.get(), window, &i3Window::role)) {
+        return false;
+    }
 
-        if (this->window_type != UINT32_MAX) {
-            if (window->window_type == this->window_type) {
-                LOG(fmt::sprintf("window_type matches (%i)\n", this->window_type));
-            } else {
-                return false;
-            }
+    if (this->window_type != UINT32_MAX) {
+        if (window->window_type == this->window_type) {
+            LOG(fmt::sprintf("window_type matches (%i)\n", this->window_type));
+        } else {
+            return false;
         }
+    }
 
-        checkWindowField(this->machine.get(), window, [](const i3Window *window) { return !window->machine.empty() ? (char*)window->machine.c_str() : nullptr; });
-    } catch (std::logic_error &e) {
+    if (is_initialized(this->machine.get()) &&
+            !checkWindowField(this->machine.get(), window, &i3Window::machine)) {
         return false;
     }
 
@@ -158,7 +169,7 @@ bool Match::match_matches_window(const i3Window *window) const {
         if (this->workspace->pattern == "__focused__" &&
                 ws->name == global.focused->con_get_workspace()->name) {
             LOG("workspace matches focused workspace\n");
-        } else if (this->workspace->regex_matches(ws->name.c_str())) {
+        } else if (this->workspace->regex_matches(ws->name)) {
             LOG(fmt::sprintf("workspace matches (%s)\n",  ws->name));
         } else {
             return false;

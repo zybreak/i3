@@ -41,7 +41,7 @@ export {
         Regex(Regex &&other) noexcept;
         Regex &operator=(Regex &&other) noexcept;
         ~Regex();
-        bool regex_matches(const char *input) const;
+        bool regex_matches(const std::string_view input) const;
     };
 }
 
@@ -105,7 +105,7 @@ Regex::~Regex() {
  * be visible without debug logging.
  *
  */
-bool Regex::regex_matches(const char *input) const {
+bool Regex::regex_matches(const std::string_view input) const {
     pcre2_match_data *match_data;
     int rc;
 
@@ -117,21 +117,21 @@ bool Regex::regex_matches(const char *input) const {
 
     /* We use strlen() because pcre_exec() expects the length of the input
      * string in bytes */
-    rc = pcre2_match(this->regex, (PCRE2_SPTR)input, strlen(input), 0, 0, match_data, nullptr);
+    rc = pcre2_match(this->regex, (PCRE2_SPTR)input.data(), input.length(), 0, 0, match_data, nullptr);
     pcre2_match_data_free(match_data);
     if (rc > 0) {
-        LOG(fmt::sprintf("Regular expression \"%s\" matches \"%s\"\n",
+        LOG(std::format("Regular expression \"{}\" matches \"{}\"",
                          this->pattern, input));
         return true;
     }
 
     if (rc == PCRE2_ERROR_NOMATCH) {
-        LOG(fmt::sprintf("Regular expression \"%s\" does not match \"%s\"\n",
+        LOG(std::format("Regular expression \"{}\" does not match \"{}\"",
                          this->pattern, input));
         return false;
     }
 
-    ELOG(fmt::sprintf("PCRE error %d while trying to use regular expression \"%s\" on input \"%s\", see pcreapi(3)\n",
+    ELOG(std::format("PCRE error {} while trying to use regular expression \"{}\" on input \"{}\", see pcreapi(3)\n",
                       rc, this->pattern, input));
     return false;
 }
