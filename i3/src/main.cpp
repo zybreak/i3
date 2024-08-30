@@ -287,8 +287,9 @@ static void force_disable_output(const program_arguments &args) {
     if (args.layout_path && global.randr->randr_base > -1) {
         for (auto &con : global.croot->nodes) {
             for (Output *output : global.randr->outputs) {
-                if (output->active || strcmp(con->name.c_str(), output->output_primary_name().c_str()) != 0)
+                if (output->active || con->name != output->output_primary_name()) {
                     continue;
+                }
 
                 /* This will correctly correlate the output with its content
                  * container. We need to make the connection to properly

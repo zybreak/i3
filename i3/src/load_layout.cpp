@@ -12,6 +12,7 @@ module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
 #include <nlohmann/json.hpp>
+#include <xcb/xproto.h>
 module i3;
 
 import std;
@@ -20,24 +21,31 @@ import log;
 import regex;
 import rect;
 
-#if 0
-static void json_end_map(tree_append_ctx &ctx) {
-    LOG("end of map\n");
+static Con *to_focus{nullptr};
 
-    if (ctx.parsing_swallows && ctx.swallow_is_empty) {
-        /* We parsed an empty swallow definition. This is an invalid layout
-         * definition, hence we reject it. */
-        ELOG("Layout file is invalid: found an empty swallow definition.\n");
-        return;
+static void from_json(const nlohmann::json& j, gaps_t& p) {
+    if (j.contains("inner")) {
+        j.at("inner").get_to(p.inner);
+    }
+    if (j.contains("top")) {
+        j.at("top").get_to(p.top);
+    }
+    if (j.contains("right")) {
+        j.at("right").get_to(p.right);
+    }
+    if (j.contains("bottom")) {
+        j.at("bottom").get_to(p.bottom);
+    }
+    if (j.contains("left")) {
+        j.at("left").get_to(p.left);
     }
 }
-#endif
 
 /*
  * Returns true if the provided JSON could be parsed.
  *
  */
-bool json_validate(std::ifstream &&fb) {
+bool json_validate(std::istream &&fb) {
 
     setlocale(LC_NUMERIC, "C");
     bool valid = nlohmann::json::accept(fb, true);
@@ -50,7 +58,7 @@ bool json_validate(std::ifstream &&fb) {
  * determine whether the file contains workspaces or regular containers, which
  * is important to know when deciding where (and how) to append the contents.
  * */
-json_content_t json_determine_content(std::ifstream &&fb) {
+json_content_t json_determine_content(std::istream &&fb) {
     // We default to JSON_CONTENT_CON because it is legal to not include
     // “"type": "con"” in the JSON files for better readability.
     try {
@@ -189,27 +197,33 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent) {
                 if (match_json.contains("machine")) {
                     match->machine = std::make_unique<Regex>(match_json["machine"].get<std::string>());
                 }
+                if (match_json.contains("id")) {
+                    match->id = match_json["id"].get<xcb_window_t>();
+                }
+                if (match_json.contains("dock")) {
+                    match->dock = match_json["dock"].get<match_dock_t>();
+                }
+                if (match_json.contains("insert_where")) {
+                    match->insert_where = match_json["insert_where"].get<match_insert_t>();
+                }
+                if (match_json.contains("restart_mode")) {
+                    match->restart_mode = match_json["restart_mode"].get<bool>();
+                }
                 con->swallow.push_back(std::move(match));
             }
         }
     }
 
-    //if (ctx.last_key == "focused" && val) {
-    //    ctx.to_focus = ctx.json_node;
-    //}
+    if (j.contains("focused")) {
+        bool focused = j["focused"];
+        if (focused) {
+            to_focus = con;
+        }
+    }
 
     if (j.contains("sticky")) {
         con->sticky = j["sticky"];
     }
-
-#if 0
-    if (ctx.parsing_swallows) {
-        if (ctx.last_key == "restart_mode") {
-            current_swallow->restart_mode = val;
-            ctx.swallow_is_empty = false;
-        }
-    }
-#endif
 
     if (j.contains("fullscreen_mode")) {
         con->fullscreen_mode = j["fullscreen_mode"];
@@ -253,38 +267,6 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent) {
         j.at("deco_rect").get_to(con->deco_rect);
     }
 
-
-#if 0
-    if (ctx.parsing_swallows) {
-        if (ctx.last_key == "id") {
-            current_swallow->id = val;
-            ctx.swallow_is_empty = false;
-        }
-        if (ctx.last_key == "dock") {
-            current_swallow->dock = (enum match_dock_t)val;
-            ctx.swallow_is_empty = false;
-        }
-        if (ctx.last_key == "insert_where") {
-            current_swallow->insert_where = static_cast<match_insert_t>(val);
-            ctx.swallow_is_empty = false;
-        }
-    }
-#endif
-    if (j.contains("gaps")) {
-#if 0
-        if (strcasecmp(ctx.last_key.c_str(), "inner") == 0)
-            ctx.json_node->gaps.inner = val;
-        else if (strcasecmp(ctx.last_key.c_str(), "top") == 0)
-            ctx.json_node->gaps.top = val;
-        else if (strcasecmp(ctx.last_key.c_str(), "right") == 0)
-            ctx.json_node->gaps.right = val;
-        else if (strcasecmp(ctx.last_key.c_str(), "bottom") == 0)
-            ctx.json_node->gaps.bottom = val;
-        else if (strcasecmp(ctx.last_key.c_str(), "left") == 0)
-            ctx.json_node->gaps.left = val;
-#endif
-    }
-    
     if (j.contains("nodes")) {
         for (auto &child_json : j["nodes"]) {
             Con *child = extract_con(child_json, con);
@@ -293,8 +275,6 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent) {
             child->con_attach(con, true);
             LOG("Creating window\n");
             global.x->con_init(child);
-
-            con->nodes.push_back(child);
         }
     }
 
@@ -304,6 +284,10 @@ static RootCon* extract_rootcon(nlohmann::json &j, Con *parent) {
     auto *con = new RootCon{true};
     extract_basecon(j, con, parent);
 
+    if (j.contains("previous_workspace_name")) {
+        global.workspaceManager->previous_workspace_name = j["previous_workspace_name"].get<std::string>();
+    }
+    
     return con;
 }
 
@@ -388,7 +372,11 @@ static WorkspaceCon* extract_workspacecon(nlohmann::json &j, Con *parent) {
         }
     }
 
-    //if (j.contains("previous_workspace_name")) j["previous_workspace_name"].get_to(con->previous_workspace_name);
+    if (j.contains("gaps")) {
+        j.at("gaps").get_to(con->gaps);
+       
+    }
+
     return con;
 }
 
@@ -412,8 +400,6 @@ static Con* extract_con(nlohmann::json &j, Con *parent) {
        LOG(std::format("Unhandled \"type\": {}", type));
        con = extract_concon(j, parent);
    }
-
-    con->con_fix_percent();
 
     return con;
 }
@@ -490,8 +476,9 @@ static void con_massage(Con *con) {
     }
 }
 
-void tree_append_json(Con *parent, std::ifstream &&fb) {
+void tree_append_json(Con *parent, std::istream &&fb) {
     try {
+        to_focus = nullptr;
         auto j = nlohmann::json::parse(fb, nullptr, true, true);
         Con *con = extract_con(j, parent);
 
@@ -503,11 +490,12 @@ void tree_append_json(Con *parent, std::ifstream &&fb) {
         /* In case not all containers were restored, we need to fix the
          * percentages, otherwise i3 will crash immediately when rendering the
          * next time. */
-        con->con_fix_percent();
+        parent->con_fix_percent();
 
-        //if (ctx.to_focus) {
-        //    ctx.to_focus->con_activate();
-        //}
+        if (to_focus != nullptr) {
+            to_focus->con_activate();
+            to_focus = nullptr;
+        }
         
         LOG("Creating window\n");
         global.x->con_init(con);
