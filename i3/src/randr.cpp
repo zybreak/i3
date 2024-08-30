@@ -339,7 +339,9 @@ void output_init_con(Output *output) {
     /* Search for a Con with that name directly below the root node. There
      * might be one from a restored layout. */
     for (auto &current : global.croot->nodes) {
-        if (current->name != output->output_primary_name()) {
+        std::string current_name = current->name;
+        std::string output_name = output->output_primary_name();
+        if (current_name != output_name) {
             continue;
         }
 
