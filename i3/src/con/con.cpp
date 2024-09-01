@@ -133,7 +133,12 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
         } else {
             nodes.push_back(this);
         }
-        goto add_to_focused;
+        /* We insert to the TAIL because con_focus() will correct this.
+         * This way, we have the option to insert Cons without having
+         * to focus them. */
+        focused.push_back(this);
+        con_force_split_parents_redraw(this);
+        return;
     }
 
     if (!ignore_focus) {
@@ -178,7 +183,6 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
         nodes.push_back(this);
     }
 
-    add_to_focused:
     /* We insert to the TAIL because con_focus() will correct this.
      * This way, we have the option to insert Cons without having
      * to focus them. */

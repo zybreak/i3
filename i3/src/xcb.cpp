@@ -267,7 +267,9 @@ void xcb_remove_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_a
     }
     auto *atoms = (xcb_atom_t*)xcb_get_property_value(reply);
     if (atoms == nullptr) {
-        goto release_grab;
+        free(reply);
+        xcb_ungrab_server(conn);
+        return;
     }
 
     {
@@ -283,7 +285,6 @@ void xcb_remove_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_a
         xcb_change_property(conn, XCB_PROP_MODE_REPLACE, window, property, XCB_ATOM_ATOM, 32, values.size(), values.data());
     }
 
-release_grab:
     free(reply);
     xcb_ungrab_server(conn);
 }

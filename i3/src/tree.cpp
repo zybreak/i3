@@ -454,7 +454,8 @@ static Con *get_tree_next(Con *con, direction_t direction) {
     if (con->type == CT_WORKSPACE) {
         /* Special case for FOCUS_WRAPPING_WORKSPACE: allow the focus to leave
          * the workspace only when a workspace is selected. */
-        goto handle_workspace;
+        Con *workspace = get_tree_next_workspace(con, direction);
+        return workspace ? workspace : first_wrap;
     }
 
     while (con->type != CT_WORKSPACE) {
@@ -545,7 +546,6 @@ static Con *get_tree_next(Con *con, direction_t direction) {
         return first_wrap;
     }
 
-handle_workspace:;
     Con *workspace = get_tree_next_workspace(con, direction);
     return workspace ? workspace : first_wrap;
 }

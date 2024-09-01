@@ -467,18 +467,23 @@ static void add_keycode_if_matches(xkb_keymap *keymap, xkb_keycode_t key, void *
  *
  */
 void translate_keysyms(Keymap const * keymap) {
-    struct xkb_state *dummy_state = nullptr;
-    struct xkb_state *dummy_state_no_shift = nullptr;
-    struct xkb_state *dummy_state_numlock = nullptr;
-    struct xkb_state *dummy_state_numlock_no_shift = nullptr;
+    struct xkb_state *dummy_state = xkb_state_new(keymap->keymap);
+    struct xkb_state *dummy_state_no_shift = xkb_state_new(keymap->keymap);
+    struct xkb_state *dummy_state_numlock = xkb_state_new(keymap->keymap);
+    struct xkb_state *dummy_state_numlock_no_shift = xkb_state_new(keymap->keymap);
     bool has_errors = false;
 
-    if ((dummy_state = xkb_state_new(keymap->keymap)) == nullptr ||
-        (dummy_state_no_shift = xkb_state_new(keymap->keymap)) == nullptr ||
-        (dummy_state_numlock = xkb_state_new(keymap->keymap)) == nullptr ||
-        (dummy_state_numlock_no_shift = xkb_state_new(keymap->keymap)) == nullptr) {
+    if (dummy_state == nullptr ||
+            dummy_state_no_shift == nullptr ||
+            dummy_state_numlock == nullptr ||
+            dummy_state_numlock_no_shift == nullptr) {
         ELOG("Could not create XKB state, cannot translate keysyms.\n");
-        goto out;
+        xkb_state_unref(dummy_state);
+        xkb_state_unref(dummy_state_no_shift);
+        xkb_state_unref(dummy_state_numlock);
+        xkb_state_unref(dummy_state_numlock_no_shift);
+
+        return;
     }
 
     for (auto &bind : global.configManager->config->current_mode()->bindings) {
@@ -638,7 +643,6 @@ void translate_keysyms(Keymap const * keymap) {
              bind.event_state_mask, bind.symbol, keysym, keycodes, num_keycodes));
     }
 
-out:
     xkb_state_unref(dummy_state);
     xkb_state_unref(dummy_state_no_shift);
     xkb_state_unref(dummy_state_numlock);
