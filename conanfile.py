@@ -20,7 +20,7 @@ class i3(ConanFile):
 
 
     def build_requirements(self):
-        self.test_requires("gtest/1.13.0")
+        self.test_requires("gtest/1.15.0")
         
 
     def requirements(self):

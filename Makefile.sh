@@ -22,6 +22,7 @@ cmake --build build --target $target $clean_first --preset conan-debug
 
 if [ "$run_tests" = "true" ]; then
     ctest --test-dir build/Debug
-    cmake --build build --target coverage --preset conan-debug
+    #cmake --build build --target coverage --preset conan-debug
+    cmake --build build --target ccov-all --preset conan-debug
 fi
 

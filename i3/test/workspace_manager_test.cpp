@@ -2,19 +2,7 @@
 #include <gmock/gmock.h>
 
 import i3;
-
-class MockX : public X {
-public:
-    MockX() : X(nullptr) {
-        root_depth = 32;
-    };
-};
-
-class MockRandR : public RandR {
-public:
-    MockRandR() {}
-    MOCK_METHOD(Output*, get_output_by_name, (const std::string &name, const bool require_active), (override));
-};
+import mocks;
 
 TEST(WorkspaceManagerTest, References_Does_Not_Work){
     WorkspaceManager workspaceManager{};

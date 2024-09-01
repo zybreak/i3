@@ -3,21 +3,16 @@
 #include <nlohmann/json.hpp>
 
 import i3;
+import mocks;
 
 using json = nlohmann::json;
 
-class MockX : public X {
-public:
-    MockX() : X(nullptr) {
-        root_depth = 32;
-    };
-};
-
 TEST(DumpNodeTest, Dump) {
+    MockX mockX{};
     ConfigurationManager configManager{};
     global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
-    global.x = new MockX{};
+    global.x = &mockX;
     
     RootCon root{true};
     root.layout = layout_t::L_SPLITV;

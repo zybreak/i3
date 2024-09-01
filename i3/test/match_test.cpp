@@ -3,15 +3,7 @@
 #include <xcb/xcb.h>
 
 import i3;
-
-class MockX : public X {
-public:
-    MockX() : X(nullptr) {
-        root_depth = 32;
-    };
-
-    MOCK_METHOD(void, con_init, (Con *con, std::optional<xcb_drawable_t> id), (override));
-};
+import mocks;
 
 TEST(MatchTest, IsNotInitialized){
     Match m{};
@@ -45,7 +37,8 @@ TEST(MatchTest, MatchesUrgentLatest){
     ConfigurationManager configManager{};
     global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
-    global.x = new MockX{};
+    MockX mockX{};
+    global.x = &mockX;
     
     Match m{};
 
@@ -69,7 +62,8 @@ TEST(MatchTest, MatchesUrgentOldest){
     ConfigurationManager configManager{};
     global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
-    global.x = new MockX{};
+    MockX mockX{};
+    global.x = &mockX;
     
     Match m{};
 
@@ -94,7 +88,8 @@ TEST(MatchTest, ParseProperty){
     ConfigurationManager configManager{};
     global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
-    global.x = new MockX{};
+    MockX mockX{};
+    global.x = &mockX;
 
     Match m{};
    

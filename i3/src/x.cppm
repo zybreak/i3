@@ -72,13 +72,12 @@ export {
     };
 
     class X {
-       private:
+      protected:
         xcb_cursor_context_t *ctx;
         std::map<xcursor_cursor_t, xcb_cursor_t> cursors{};
 
         xcb_visualtype_t *get_visual_type_for_root();
 
-       protected:
         explicit X(x_connection *conn)
             : conn(conn) {
         }

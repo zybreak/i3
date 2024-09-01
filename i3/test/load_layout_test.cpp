@@ -4,17 +4,12 @@
 #include <xcb/xcb.h>
 
 import i3;
-
-class MockX : public X {
-public:
-    MockX() : X(nullptr) {
-        root_depth = 32;
-    };
-    
-    MOCK_METHOD(void, con_init, (Con *con, std::optional<xcb_drawable_t> id), (override));
-};
+import mocks;
 
 TEST(LoadLayoutTest, ValidateSuccessful) {
+    MockX mockX{};
+    global.x = &mockX;
+
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
     auto input = std::istringstream{R"(
@@ -28,6 +23,9 @@ TEST(LoadLayoutTest, ValidateSuccessful) {
 }
 
 TEST(LoadLayoutTest, ValidateFailure) {
+    MockX mockX{};
+    global.x = &mockX;
+
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
     auto input = std::istringstream{R"(
@@ -40,6 +38,9 @@ TEST(LoadLayoutTest, ValidateFailure) {
 }
 
 TEST(LoadLayoutTest, DetermineContentNoType) {
+    MockX mockX{};
+    global.x = &mockX;
+
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
     auto input = std::istringstream{R"(
@@ -53,6 +54,9 @@ TEST(LoadLayoutTest, DetermineContentNoType) {
 }
 
 TEST(LoadLayoutTest, DetermineContentCon) {
+    MockX mockX{};
+    global.x = &mockX;
+
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
     auto input = std::istringstream{R"(
@@ -67,6 +71,9 @@ TEST(LoadLayoutTest, DetermineContentCon) {
 }
 
 TEST(LoadLayoutTest, DetermineContentWorkspace) {
+    MockX mockX{};
+    global.x = &mockX;
+    
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
     auto input = std::istringstream{R"(
@@ -81,6 +88,9 @@ TEST(LoadLayoutTest, DetermineContentWorkspace) {
 }
 
 TEST(LoadLayoutTest, DetermineContentFailure) {
+    MockX mockX{};
+    global.x = &mockX;
+    
     using namespace nlohmann::literals;
     using namespace std::literals::string_literals;
     auto input = std::istringstream{R"(
@@ -92,7 +102,9 @@ TEST(LoadLayoutTest, DetermineContentFailure) {
 }
 
 TEST(LoadLayoutTest, AppendJson) {
-    global.x = new MockX{};
+    MockX mockX{};
+    global.x = &mockX;
+    std::cout << std::hex << (uintptr_t)&mockX << std::endl;
     ConfigurationManager configManager{};
     global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
