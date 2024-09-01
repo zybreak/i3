@@ -23,14 +23,6 @@ import log;
 import utils;
 
 /*
- * Frees an i3Window and all its members.
- *
- */
-i3Window::~i3Window() {
-    cairo_surface_destroy(this->icon);
-}
-
-/*
  * Updates the WM_CLASS (consisting of the class and instance) for the
  * given window.
  *
@@ -596,36 +588,6 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
     this->name_x_changed = true; /* trigger a redraw */
 
     //int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width); stride not really working for chromium?
-
-    auto *icon_data = new uint32_t[len*4];
-
-    for (uint64_t i = 0; i < len; i++) {
-        uint8_t r, g, b, a;
-        const uint32_t pixel = data[2 + i];
-        a = (pixel >> 24) & 0xff;
-        r = (pixel >> 16) & 0xff;
-        g = (pixel >> 8) & 0xff;
-        b = (pixel >> 0) & 0xff;
-
-        /* Cairo uses premultiplied alpha */
-        r = (r * a) / 0xff;
-        g = (g * a) / 0xff;
-        b = (b * a) / 0xff;
-
-        icon_data[i] = (static_cast<uint32_t>(a) << 24) | (r << 16) | (g << 8) | b;
-    }
-
-    if (this->icon != nullptr) {
-        cairo_surface_destroy(this->icon);
-    }
-    this->icon = cairo_image_surface_create_for_data(
-        reinterpret_cast<unsigned char *>(icon_data),
-        CAIRO_FORMAT_ARGB32,
-        width,
-        height,
-        width * 4);
-    static cairo_user_data_key_t free_data;
-    cairo_surface_set_user_data(this->icon, &free_data, icon_data, [](void *icon_data) {
-        delete[] reinterpret_cast<uint32_t*>(icon_data);
-    });
+    
+    this->icon = std::make_unique<i3WindowIcon>(width, height, data, len);
 }

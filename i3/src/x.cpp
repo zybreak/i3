@@ -680,7 +680,7 @@ void x_draw_decoration(Con *con) {
                    deco_width - mark_width - 2 * title_padding - total_icon_space);
     if (has_icon) {
         dest_surface->draw_util_image(
-            win->icon,
+            win->icon->data(),
             con->deco_rect.x + icon_offset_x,
             con->deco_rect.y + logical_px(global.x->root_screen, 1),
             icon_size,

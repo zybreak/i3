@@ -33,6 +33,61 @@ export {
         uint32_t bottom;
     };
 
+
+    class i3WindowIcon {
+
+        /** Window icon, as Cairo surface */
+        cairo_surface_t *icon;
+        uint32_t *icon_data;
+
+      public:
+        
+        cairo_surface_t* data() {
+            return icon;
+        }
+        
+        i3WindowIcon() = delete;
+        i3WindowIcon(i3WindowIcon const &other) = delete;
+        i3WindowIcon& operator=(i3WindowIcon const &other) = delete;
+        i3WindowIcon(i3WindowIcon &&other) {
+            std::swap(icon, other.icon);
+            std::swap(icon_data, other.icon_data);
+        }
+        i3WindowIcon(uint32_t width, uint32_t height, uint32_t *data, uint64_t len) {
+
+            this->icon_data = new uint32_t[len*4];
+
+            for (uint64_t i = 0; i < len; i++) {
+                uint8_t r, g, b, a;
+                const uint32_t pixel = data[2 + i];
+                a = (pixel >> 24) & 0xff;
+                r = (pixel >> 16) & 0xff;
+                g = (pixel >> 8) & 0xff;
+                b = (pixel >> 0) & 0xff;
+
+                /* Cairo uses premultiplied alpha */
+                r = (r * a) / 0xff;
+                g = (g * a) / 0xff;
+                b = (b * a) / 0xff;
+
+                icon_data[i] = (static_cast<uint32_t>(a) << 24) | (r << 16) | (g << 8) | b;
+            }
+
+            this->icon = cairo_image_surface_create_for_data(
+                    reinterpret_cast<unsigned char *>(icon_data),
+                    CAIRO_FORMAT_ARGB32,
+                    width,
+                    height,
+                    width * 4);
+        }
+
+        ~i3WindowIcon() {
+            cairo_surface_destroy(this->icon);
+            delete[] icon_data;
+        }
+
+    };
+
     /**
      * A 'Window' is a type which contains an xcb_window_t and all the related
      * information (hints like _NET_WM_NAME for that window).
@@ -120,7 +175,7 @@ export {
         double max_aspect_ratio;
 
         /** Window icon, as Cairo surface */
-        cairo_surface_t *icon;
+        std::unique_ptr<i3WindowIcon> icon{};
 
         /** The window has a nonrectangular shape. */
         bool shaped;
@@ -227,7 +282,6 @@ export {
          *
          */
         void window_update_icon(xcb_get_property_reply_t *prop);
-
-        ~i3Window();
     };
+   
 }
