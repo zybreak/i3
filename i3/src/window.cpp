@@ -482,20 +482,6 @@ void i3Window::window_update_machine(const std::string &machine) {
     LOG(fmt::sprintf("WM_CLIENT_MACHINE changed to \"%s\"\n", this->machine));
 }
 
-/*
- * Updates the WM_CLIENT_MACHINE
- *
- */
-void i3Window::window_update_machine(xcb_get_property_reply_t *prop) {
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-        DLOG("WM_CLIENT_MACHINE not set.\n");
-        return;
-    }
-
-    this->machine.assign((char *)xcb_get_property_value(prop), xcb_get_property_value_length(prop));
-     LOG(fmt::sprintf("WM_CLIENT_MACHINE changed to \"%s\"\n", this->machine));
-}
-
 void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
     uint32_t *data = nullptr;
     uint32_t width = 0, height = 0;

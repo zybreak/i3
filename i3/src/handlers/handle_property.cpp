@@ -280,7 +280,7 @@ std::optional<std::string> window_update_machine(xcb_get_property_reply_t *prop)
         return std::nullopt;
     }
 
-    std::string machine{(char *)xcb_get_property_value(prop), static_cast<std::string::size_type>(xcb_get_property_value_length(prop))};
+    std::string machine{static_cast<char *>(xcb_get_property_value(prop)), static_cast<std::string::size_type>(xcb_get_property_value_length(prop))};
 
     return machine;
 }

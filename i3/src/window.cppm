@@ -272,9 +272,6 @@ export {
          * Updates the WM_CLIENT_MACHINE
          *
          */
-        [[deprecated("Replaced by handle_property::window_update_machine, which has an improved interface")]]
-        void window_update_machine(xcb_get_property_reply_t *prop);
-
         void window_update_machine(const std::string &machine);
 
         /**

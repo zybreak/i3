@@ -275,8 +275,8 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     if (wm_normal_hints_cookie->value_len > 0) {
         cwindow->window_update_normal_hints(wm_normal_hints_cookie.get().get(), geom.get().get());
     }
-    if (wm_machine_cookie->value_len > 0) {
-        cwindow->window_update_machine(wm_machine_cookie.get().get());
+    if (auto machine = handle_property::window_update_machine(wm_machine_cookie.get().get()); machine) {
+        cwindow->window_update_machine(*machine);
     }
     xcb_get_property_reply_t *type_reply = (wm_type_cookie->value_len > 0 ? wm_type_cookie.get().get() : nullptr);
     xcb_get_property_reply_t *state_reply = (state_cookie->value_len > 0 ? state_cookie.get().get() : nullptr);
