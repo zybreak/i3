@@ -27,26 +27,9 @@ import utils;
  * given window.
  *
  */
-void i3Window::window_update_class(xcb_get_property_reply_t *prop) {
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-        DLOG("WM_CLASS not set.\n");
-        return;
-    }
-
-    /* We cannot use asprintf here since this property contains two
-     * null-terminated strings (for compatibility reasons). Instead, we
-     * use strdup() on both strings */
-    const size_t prop_length = xcb_get_property_value_length(prop);
-    char *new_class = (char*)xcb_get_property_value(prop);
-    const size_t class_class_index = strnlen(new_class, prop_length) + 1;
-
-    this->class_instance.clear();
-    this->class_class.clear();
-
-    this->class_instance.assign(new_class, prop_length);
-    if (class_class_index < prop_length) {
-        this->class_class.assign(new_class + class_class_index, prop_length - class_class_index);
-    }
+void i3Window::window_update_class(std::string &window_class, std::string &window_instance) {
+    this->class_class = window_class;
+    this->class_instance = window_instance;
     LOG(fmt::sprintf("WM_CLASS changed to %s (instance), %s (class)\n",
         this->class_instance, this->class_class));
 }

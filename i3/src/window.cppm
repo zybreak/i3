@@ -194,7 +194,7 @@ export {
          * given window.
          *
          */
-        void window_update_class(xcb_get_property_reply_t *prop);
+        void window_update_class(std::string &window_class, std::string &window_instance);
 
         /**
          * Updates the name by using _NET_WM_NAME (encoded in UTF-8) for the given

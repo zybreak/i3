@@ -10,8 +10,8 @@ import :window;
 export namespace handle_property {
 
     struct window_class {
-        std::string class_name;
-        std::string class_instance;
+        std::string class_name{};
+        std::string class_instance{};
     };
 
     struct window_hints {

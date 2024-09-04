@@ -152,7 +152,10 @@ static bool handle_windowrole_change(ConCon *con, xcb_get_property_reply_t *prop
  *
  */
 static bool handle_class_change(ConCon *con, xcb_get_property_reply_t *prop) {
-    con->get_window()->window_update_class(prop);
+    auto ret = handle_property::window_update_class(prop);
+    if (ret) {
+        con->get_window()->window_update_class(ret->class_name, ret->class_instance);
+    }
     con = remanage_window(con);
     return true;
 }

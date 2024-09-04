@@ -25,20 +25,19 @@ std::optional<window_class> window_update_class(xcb_get_property_reply_t *prop) 
      * null-terminated strings (for compatibility reasons). Instead, we
      * use strdup() on both strings */
     const size_t prop_length = xcb_get_property_value_length(prop);
-    char *new_class = (char *)xcb_get_property_value(prop);
+    char *new_class = (char*)xcb_get_property_value(prop);
     const size_t class_class_index = strnlen(new_class, prop_length) + 1;
 
-    std::string class_instance{};
-    std::string class_class{};
+    window_class w{};
 
-    class_instance.assign(new_class, prop_length);
+    w.class_instance.assign(new_class, class_class_index - 1);
     if (class_class_index < prop_length) {
-        class_class.assign(new_class + class_class_index, prop_length - class_class_index);
+        const size_t class_class_max_length = prop_length - class_class_index;
+        char *new_class_class = new_class + class_class_index;
+        w.class_name.assign(new_class_class, strnlen(new_class_class, class_class_max_length));
     }
 
-    return window_class{
-        .class_name = class_class,
-        .class_instance = class_instance};
+    return w;
 }
 
 /*

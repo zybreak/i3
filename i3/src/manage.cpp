@@ -141,6 +141,14 @@ static void con_merge_into(ConCon *old, ConCon *new_con) {
     tree_close_internal(old, kill_window_t::DONT_KILL_WINDOW, false);
 }
 
+static std::optional<std::string> to_string(auto &prop) {
+    if (prop->value_len > 0) {
+        auto data = prop.template value<char>();
+        return std::string{data.begin(), data.end()};
+    }
+    return std::nullopt;
+}
+
 /*
  * Do some sanity checks and then reparent the window.
  *
@@ -231,29 +239,54 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     xcb_grab_buttons(window, buttons);
 
     /* update as much information as possible so far (some replies may be NULL) */
-    cwindow->window_update_class((class_cookie.get() != nullptr) ? class_cookie.get().get() : nullptr);
-    cwindow->window_update_name_legacy((title_cookie.get() != nullptr ? title_cookie.get().get() : nullptr));
-    cwindow->window_update_name((utf8_title_cookie.get() != nullptr ? utf8_title_cookie.get().get() : nullptr));
-    cwindow->window_update_icon((wm_icon_cookie.get() != nullptr ? wm_icon_cookie.get().get() : nullptr));
-    cwindow->window_update_leader((leader_cookie.get() != nullptr ? leader_cookie.get().get() : nullptr));
-    cwindow->window_update_transient_for((transient_cookie.get() != nullptr ? transient_cookie.get().get() : nullptr));
-    cwindow->window_update_strut_partial((strut_cookie.get() != nullptr ? strut_cookie.get().get() : nullptr));
-    cwindow->window_update_role((role_cookie.get() != nullptr ? role_cookie.get().get() : nullptr));
+    if (auto ret = handle_property::window_update_class(class_cookie.get().get()); ret) {
+        cwindow->window_update_class(ret->class_name, ret->class_instance);
+    }
+    if (title_cookie->value_len > 0) {
+        cwindow->window_update_name_legacy(title_cookie.get().get());
+    }
+    if (utf8_title_cookie->value_len > 0) {
+        cwindow->window_update_name(utf8_title_cookie.get().get());
+    }
+    if (wm_icon_cookie->value_len > 0) {
+        cwindow->window_update_icon(wm_icon_cookie.get().get());
+    }
+    if (leader_cookie->value_len > 0) {
+        cwindow->window_update_leader(leader_cookie.get().get());
+    }
+    if (transient_cookie->value_len > 0) {
+        cwindow->window_update_transient_for(transient_cookie.get().get());
+    }
+    if (strut_cookie->value_len > 0) {
+        cwindow->window_update_strut_partial(strut_cookie.get().get());
+    }
+    if (role_cookie->value_len > 0) {
+        cwindow->window_update_role(role_cookie.get().get());
+    }
     bool urgency_hint;
-    cwindow->window_update_hints((wm_hints_cookie.get() != nullptr) ? wm_hints_cookie.get().get() : nullptr, &urgency_hint);
+    if (wm_hints_cookie->value_len > 0) {
+        cwindow->window_update_hints(wm_hints_cookie.get().get(), &urgency_hint);
+    }
     border_style_t motif_border_style = border_style_t::BS_NORMAL;
-    bool has_mwm_hints = cwindow->window_update_motif_hints((motif_wm_hints_cookie.get() != nullptr ? motif_wm_hints_cookie.get().get() : nullptr), &motif_border_style);
-    cwindow->window_update_normal_hints((wm_normal_hints_cookie.get() != nullptr) ? wm_normal_hints_cookie.get().get() : nullptr, geom.get().get());
-    cwindow->window_update_machine((wm_machine_cookie.get() != nullptr ? wm_machine_cookie.get().get() : nullptr));
-    xcb_get_property_reply_t *type_reply = (wm_type_cookie.get() != nullptr ? wm_type_cookie.get().get() : nullptr);
-    xcb_get_property_reply_t *state_reply = (state_cookie.get() != nullptr ? state_cookie.get().get() : nullptr);
+    bool has_mwm_hints = false;
+    if (motif_wm_hints_cookie->value_len > 0) {
+        has_mwm_hints = cwindow->window_update_motif_hints(motif_wm_hints_cookie.get().get(), &motif_border_style);
+    }
+    if (wm_normal_hints_cookie->value_len > 0) {
+        cwindow->window_update_normal_hints(wm_normal_hints_cookie.get().get(), geom.get().get());
+    }
+    if (wm_machine_cookie->value_len > 0) {
+        cwindow->window_update_machine(wm_machine_cookie.get().get());
+    }
+    xcb_get_property_reply_t *type_reply = (wm_type_cookie->value_len > 0 ? wm_type_cookie.get().get() : nullptr);
+    xcb_get_property_reply_t *state_reply = (state_cookie->value_len > 0 ? state_cookie.get().get() : nullptr);
 
-    char *startup_ws = startup_workspace_for_window(cwindow, (startup_id_cookie.get() != nullptr ? startup_id_cookie.get().get() : nullptr));
+    char *startup_ws = startup_workspace_for_window(cwindow, (startup_id_cookie->value_len > 0 ? startup_id_cookie.get().get() : nullptr));
     DLOG(fmt::sprintf("startup workspace = %s\n", startup_ws));
 
     /* Get _NET_WM_DESKTOP if it was set. */
     xcb_get_property_reply_t *wm_desktop_reply;
-    wm_desktop_reply = (wm_desktop_cookie.get() != nullptr ? wm_desktop_cookie.get().get() : nullptr);
+    wm_desktop_reply = (wm_desktop_cookie->value_len > 0) ? wm_desktop_cookie.get().get() : nullptr;
     cwindow->wm_desktop = NET_WM_DESKTOP_NONE;
     if (wm_desktop_reply != nullptr && xcb_get_property_value_length(wm_desktop_reply) != 0) {
         auto *wm_desktops = (uint32_t *)xcb_get_property_value(wm_desktop_reply);
