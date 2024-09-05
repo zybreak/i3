@@ -242,11 +242,11 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     if (auto ret = handle_property::window_update_class(class_cookie.get().get()); ret) {
         cwindow->window_update_class(ret->class_name, ret->class_instance);
     }
-    if (title_cookie->value_len > 0) {
-        cwindow->window_update_name_legacy(title_cookie.get().get());
+    if (auto ret = handle_property::window_update_name_legacy(title_cookie.get().get()); ret) {
+        cwindow->window_update_name_legacy(*ret);
     }
-    if (utf8_title_cookie->value_len > 0) {
-        cwindow->window_update_name(utf8_title_cookie.get().get());
+    if (auto ret = handle_property::window_update_name(utf8_title_cookie.get().get()); ret) {
+        cwindow->window_update_name(*ret);
     }
     if (wm_icon_cookie->value_len > 0) {
         cwindow->window_update_icon(wm_icon_cookie.get().get());

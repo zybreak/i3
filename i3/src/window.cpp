@@ -39,17 +39,8 @@ void i3Window::window_update_class(std::string &window_class, std::string &windo
  * window. Further updates using window_update_name_legacy will be ignored.
  *
  */
-void i3Window::window_update_name(xcb_get_property_reply_t *prop) {
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-        DLOG("_NET_WM_NAME not specified, not changing\n");
-        return;
-    }
-
-    /* Truncate the name at the first zero byte. See #3515. */
-    const int len = xcb_get_property_value_length(prop);
-    char *prop_name = sstrndup((const char *)xcb_get_property_value(prop), len);
-    this->name = prop_name;
-    free(prop_name);
+void i3Window::window_update_name(std::string &name) {
+    this->name = name;
 
     ConCon *con = con_by_window_id(id);
     if (con != nullptr && !con->title_format.empty()) {
@@ -69,21 +60,13 @@ void i3Window::window_update_name(xcb_get_property_reply_t *prop) {
  * window_update_name()).
  *
  */
-void i3Window::window_update_name_legacy(xcb_get_property_reply_t *prop) {
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-        DLOG("WM_NAME not set (_NET_WM_NAME is what you want anyways).\n");
-        return;
-    }
-
+void i3Window::window_update_name_legacy(std::string &name) {
     /* ignore update when the window is known to already have a UTF-8 name */
     if (uses_net_wm_name) {
         return;
     }
 
-    const int len = xcb_get_property_value_length(prop);
-    char *prop_name = sstrndup((const char *)xcb_get_property_value(prop), len);
-    this->name = prop_name;
-    free(prop_name);
+    this->name = name;
 
     ConCon *con = con_by_window_id(id);
     if (con != nullptr && !con->title_format.empty()) {

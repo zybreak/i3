@@ -201,7 +201,7 @@ export {
          * window. Further updates using window_update_name_legacy will be ignored.
          *
          */
-        void window_update_name(xcb_get_property_reply_t *prop);
+        void window_update_name(std::string &name);
 
         /**
          * Updates the name by using WM_NAME (encoded in COMPOUND_TEXT). We do not
@@ -210,48 +210,55 @@ export {
          * window_update_name()).
          *
          */
-        void window_update_name_legacy(xcb_get_property_reply_t *prop);
+        void window_update_name_legacy(std::string &name);
 
         /**
          * Updates the CLIENT_LEADER (logical parent window).
          *
          */
+        [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
         void window_update_leader(xcb_get_property_reply_t *prop);
 
         /**
          * Updates the TRANSIENT_FOR (logical parent window).
          *
          */
+        [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
         void window_update_transient_for(xcb_get_property_reply_t *prop);
 
         /**
          * Updates the _NET_WM_STRUT_PARTIAL (reserved pixels at the screen edges)
          *
          */
+        [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
         void window_update_strut_partial(xcb_get_property_reply_t *prop);
 
         /**
          * Updates the WM_WINDOW_ROLE
          *
          */
+        [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
         void window_update_role(xcb_get_property_reply_t *prop);
 
         /**
          * Updates the _NET_WM_WINDOW_TYPE property.
          *
          */
+        [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
         bool window_update_type(xcb_get_property_reply_t *reply);
 
         /**
          * Updates the WM_NORMAL_HINTS
          *
          */
+        [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
         bool window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_get_geometry_reply_t *geom);
 
         /**
          * Updates the WM_HINTS (we only care about the input focus handling part).
          *
          */
+        [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
         void window_update_hints(xcb_get_property_reply_t *prop, bool *urgency_hint);
 
         /**
@@ -266,6 +273,7 @@ export {
          * it is still in use by popular widget toolkits such as GTK+ and Java AWT.
          *
          */
+        [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
         bool window_update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_border_style);
 
         /**
@@ -278,6 +286,7 @@ export {
          * Updates the _NET_WM_ICON
          *
          */
+        [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
         void window_update_icon(xcb_get_property_reply_t *prop);
     };
    

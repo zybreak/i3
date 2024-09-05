@@ -43,16 +43,18 @@ static bool window_name_changed(const i3Window *window, std::string &old_name) {
  *
  */
 static bool handle_windowname_change(ConCon *con, xcb_get_property_reply_t *prop) {
-    std::string old_name = con->get_window()->name;
+    if (auto ret = handle_property::window_update_name(prop); ret) {
+        std::string old_name = con->get_window()->name;
 
-    con->get_window()->window_update_name(prop);
+        con->get_window()->window_update_name(*ret);
 
-    con = remanage_window(con);
+        con = remanage_window(con);
 
-    x_push_changes(global.croot);
+        x_push_changes(global.croot);
 
-    if (window_name_changed(con->get_window(), old_name)) {
-        ipc_send_window_event("title", con);
+        if (window_name_changed(con->get_window(), old_name)) {
+            ipc_send_window_event("title", con);
+        }
     }
 
     return true;
@@ -77,16 +79,18 @@ static bool handle_hints(ConCon *con, xcb_get_property_reply_t *reply) {
  *
  */
 static bool handle_windowname_change_legacy(ConCon *con, xcb_get_property_reply_t *prop) {
-    std::string old_name = con->get_window()->name;
+    if (auto ret = handle_property::window_update_name_legacy(prop); ret) {
+        std::string old_name = con->get_window()->name;
 
-    con->get_window()->window_update_name_legacy(prop);
+        con->get_window()->window_update_name_legacy(*ret);
 
-    con = remanage_window(con);
+        con = remanage_window(con);
 
-    x_push_changes(global.croot);
+        x_push_changes(global.croot);
 
-    if (window_name_changed(con->get_window(), old_name)) {
-        ipc_send_window_event("title", con);
+        if (window_name_changed(con->get_window(), old_name)) {
+            ipc_send_window_event("title", con);
+        }
     }
 
     return true;
