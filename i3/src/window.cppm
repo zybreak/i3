@@ -12,6 +12,7 @@ module;
 #include <cairo.h>
 #include <config.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_icccm.h>
 export module i3:window;
 
 import std;
@@ -188,6 +189,11 @@ export {
 
         /* The window has been swallowed. */
         bool swallowed;
+       
+        explicit i3Window(xcb_window_t id) : id(id) {};
+        i3Window() = delete;
+        i3Window(const i3Window&) =  delete;
+        i3Window& operator=(const i3Window&) = delete;
 
         /**
          * Updates the WM_CLASS (consisting of the class and instance) for the
@@ -251,6 +257,7 @@ export {
          * Updates the WM_NORMAL_HINTS
          *
          */
+        bool window_update_normal_hints(xcb_size_hints_t &size_hints, xcb_get_geometry_reply_t *geom);
         [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
         bool window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_get_geometry_reply_t *geom);
 

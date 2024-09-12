@@ -271,12 +271,22 @@ void PropertyHandlers::handle_mapping_notify(xcb_mapping_notify_event_t *event) 
  *
  */
 void PropertyHandlers::handle_map_request(xcb_map_request_event_t *event) {
-    auto attr = x.conn->get_window_attributes_unchecked(event->window);
+    try {
+        auto attr = x.conn->get_window_attributes(event->window);
 
-    DLOG(fmt::sprintf("window = 0x%08x, serial is %d.\n", event->window, event->sequence));
-    add_ignore_event(event->sequence, -1);
+        DLOG(fmt::sprintf("window = 0x%08x, serial is %d.\n", event->window, event->sequence));
+        add_ignore_event(event->sequence, -1);
 
-    manage_window(event->window, attr.get().get(), false);
+        /* Don’t manage clients with the override_redirect flag */
+        if (attr->override_redirect) {
+            DLOG(fmt::format("Could not manage window = 0x%08x, has override redirect", event->window));
+            return;
+        }
+        
+        manage_window(event->window, attr->visual);
+    } catch (...) {
+        DLOG(fmt::format("Could not manage window = 0x%08x", event->window));
+    }
 }
 
 /*

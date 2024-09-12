@@ -39,9 +39,7 @@ export {
      * Do some sanity checks and then reparent the window.
      *
      */
-    void manage_window(xcb_window_t window,
-                       xcb_get_window_attributes_reply_t * attr,
-                       bool needs_to_be_mapped);
+    void manage_window(xcb_window_t window, xcb_visualid_t visual);
 
     /**
      * Remanages a window: performs a swallow check and runs assignments.

@@ -8,6 +8,7 @@
  *
  */
 module;
+#include <xpp/proto/x.hpp>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
@@ -52,15 +53,19 @@ static void _remove_matches(Con *con) {
  */
 void manage_existing_windows(xcb_window_t root) {
     /* Get the tree of windows whose parent is the root window (= all) */
-    try {
-        auto reply = global.x->conn->query_tree(root);
+    auto reply = global.x->conn->query_tree(root);
 
-        for (auto child : reply.children()) {
+    for (auto child : reply.children()) {
+        try {
             auto attr = global.x->conn->get_window_attributes(child);
-            manage_window(child, attr.get().get(), true);
+            if (attr->map_state == XCB_MAP_STATE_VIEWABLE && !attr->override_redirect) {
+                manage_window(child, attr->visual);
+            } else {
+                DLOG(std::format("Existing window {} is already mapped, unviewable or has override redirect", child));
+            }
+        } catch (...) {
+            DLOG(std::format("Could not get attributes on window {}", child));
         }
-    } catch (...) {
-        return;
     }
 }
 
@@ -153,45 +158,30 @@ static std::optional<std::string> to_string(auto &prop) {
  * Do some sanity checks and then reparent the window.
  *
  */
-void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
-                   bool needs_to_be_mapped) {
+void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     DLOG(fmt::sprintf("window 0x%08x\n", window));
-
-    xcb_drawable_t d = {window};
-
-    auto geom = global.x->conn->get_geometry_unchecked(d);
-
-    /* Check if the window is mapped (it could be not mapped when initializing and
-       calling manage_window() for every window) */
-    if (attr == nullptr) {
-        DLOG("Could not get attributes\n");
-        xcb_discard_reply(**global.x, geom->sequence);
-        return;
-    }
-
-    if (needs_to_be_mapped && attr->map_state != XCB_MAP_STATE_VIEWABLE) {
-        xcb_discard_reply(**global.x, geom->sequence);
-        return;
-    }
-
-    /* Don’t manage clients with the override_redirect flag */
-    if (attr->override_redirect) {
-        xcb_discard_reply(**global.x, geom->sequence);
-        return;
-    }
 
     /* Check if the window is already managed */
     if (con_by_window_id(window) != nullptr) {
         DLOG(fmt::sprintf("already managed (by con %p)\n", fmt::ptr(con_by_window_id(window))));
-        xcb_discard_reply(**global.x, geom->sequence);
         return;
     }
 
+    auto opt_geom = [window]() -> std::optional<xpp::x::reply::checked::get_geometry<x_connection>> {
+        try {
+            return global.x->conn->get_geometry(static_cast<xcb_drawable_t>(window));
+        } catch (...) {
+            return std::nullopt;
+        }
+    }();
+
     /* Get the initial geometry (position, size, …) */
-    if (geom.get() == nullptr) {
+    if (!opt_geom) {
         DLOG("could not get geometry\n");
         return;
     }
+    
+    auto &geom = opt_geom.value();
 
     uint32_t values[1];
 
@@ -231,9 +221,8 @@ void manage_window(xcb_window_t window, xcb_get_window_attributes_reply_t *attr,
     auto wm_machine_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
     auto wm_icon_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_ICON], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
 
-    auto *cwindow = new i3Window();
-    cwindow->id = window;
-    cwindow->depth = get_visual_depth(attr->visual);
+    auto *cwindow = new i3Window(window);
+    cwindow->depth = get_visual_depth(visual);
 
     auto buttons = bindings_get_buttons_to_grab();
     xcb_grab_buttons(window, buttons);

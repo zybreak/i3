@@ -179,21 +179,8 @@ bool i3Window::window_update_type(xcb_get_property_reply_t *reply) {
  * Updates the WM_NORMAL_HINTS
  *
  */
-bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_get_geometry_reply_t *geom) {
+bool i3Window::window_update_normal_hints(xcb_size_hints_t &size_hints, xcb_get_geometry_reply_t *geom) {
     bool changed = false;
-    xcb_size_hints_t size_hints;
-
-    /* If the hints were already in this event, use them, if not, request them */
-    bool success;
-    if (reply != nullptr) {
-        success = xcb_icccm_get_wm_size_hints_from_reply(&size_hints, reply);
-    } else {
-        success = xcb_icccm_get_wm_normal_hints_reply(**global.x, xcb_icccm_get_wm_normal_hints_unchecked(**global.x, this->id), &size_hints, nullptr);
-    }
-    if (!success) {
-        DLOG("Could not get WM_NORMAL_HINTS\n");
-        return false;
-    }
 
     if ((size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE)) {
         DLOG(fmt::sprintf("Minimum size: %d (width) x %d (height)\n",  size_hints.min_width, size_hints.min_height));
@@ -340,6 +327,25 @@ bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_g
     }
 
     return changed;
+}
+
+bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_get_geometry_reply_t *geom) {
+    bool changed = false;
+    xcb_size_hints_t size_hints;
+
+    /* If the hints were already in this event, use them, if not, request them */
+    bool success;
+    if (reply != nullptr) {
+        success = xcb_icccm_get_wm_size_hints_from_reply(&size_hints, reply);
+    } else {
+        success = xcb_icccm_get_wm_normal_hints_reply(**global.x, xcb_icccm_get_wm_normal_hints_unchecked(**global.x, this->id), &size_hints, nullptr);
+    }
+    if (!success) {
+        DLOG("Could not get WM_NORMAL_HINTS\n");
+        return false;
+    }
+
+    return this->window_update_normal_hints(size_hints, geom);
 }
 
 /*
