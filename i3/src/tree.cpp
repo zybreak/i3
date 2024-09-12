@@ -167,7 +167,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
         return false;
     }
 
-    if (ConCon *con2 = dynamic_cast<ConCon*>(con); con2 != nullptr) {
+    if (ConCon *con2 = dynamic_cast<ConCon*>(con); con2 != nullptr && con2->get_window() != nullptr) {
         if (kill_window != kill_window_t::DONT_KILL_WINDOW) {
             x_window_kill(**global.x, con2->get_window()->id, kill_window);
             return false;
