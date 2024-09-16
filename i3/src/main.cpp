@@ -144,8 +144,7 @@ static std::tuple<std::string, int> create_socket(std::string filename) {
 
     sockfd = socket(AF_LOCAL, SOCK_STREAM, 0);
     if (sockfd < 0) {
-        perror("socket()");
-        throw std::exception();
+        throw std::runtime_error(std::format("socket(): {}", std::strerror(errno)));
     }
 
     (void)fcntl(sockfd, F_SETFD, FD_CLOEXEC);
@@ -154,15 +153,13 @@ static std::tuple<std::string, int> create_socket(std::string filename) {
     addr.sun_family = AF_LOCAL;
     strncpy(addr.sun_path, resolved.c_str(), sizeof(addr.sun_path) - 1);
     if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        perror("bind()");
-        throw std::exception();
+        throw std::runtime_error(std::format("bind(): {}", std::strerror(errno)));
     }
 
     set_nonblock(sockfd);
 
     if (listen(sockfd, 5) < 0) {
-        perror("listen()");
-        throw std::exception();
+        throw std::runtime_error(std::format("listen(): {}", std::strerror(errno)));
     }
 
     return std::make_tuple(resolved, sockfd);
@@ -254,7 +251,8 @@ void do_tree_init(const program_arguments &args, const xcb_get_geometry_reply_t 
             auto dir = args.layout_path->parent_path();
             /* possibly fails with ENOTEMPTY if there are files (or
              * sockets) left. */
-            std::filesystem::remove(dir);
+            std::error_code ec{};
+            std::filesystem::remove(dir, ec);
         }
     }
     if (needs_tree_init) {

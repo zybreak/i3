@@ -742,7 +742,7 @@ void ipc_new_client(EV_P_ ev_io *w, int revents) {
     int fd;
     if ((fd = accept(w->fd, (struct sockaddr *)&peer, &len)) < 0) {
         if (errno != EINTR) {
-            perror("accept()");
+            ELOG(std::format("accept(): {}", std::strerror(errno)));
         }
         return;
     }

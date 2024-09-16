@@ -11,6 +11,7 @@ module;
 #include <cstdlib>
 #include <unistd.h>
 #include <cstdio>
+#include <cerrno>
 module utils;
 
 import std;
@@ -48,7 +49,7 @@ std::optional<std::string> get_process_filename(const char *prefix) {
         if (mkdtemp(new_dir.data()) != nullptr) {
             dir = new_dir;
         } else {
-            perror("mkdtemp()");
+            ELOG(std::format("mkdtemp(): {}", std::strerror(errno)));
             return std::nullopt;
         }
     }
