@@ -186,20 +186,20 @@ static bool handle_strut_partial_change(ConCon *con, xcb_get_property_reply_t *p
     /* find out the desired position of this dock window */
     if (con->get_window()->reserved.top > 0 && con->get_window()->reserved.bottom == 0) {
         DLOG("Top dock client\n");
-        con->get_window()->dock = i3Window::W_DOCK_TOP;
+        con->get_window()->dock = window_dock_t::W_DOCK_TOP;
     } else if (con->get_window()->reserved.top == 0 && con->get_window()->reserved.bottom > 0) {
         DLOG("Bottom dock client\n");
-        con->get_window()->dock = i3Window::W_DOCK_BOTTOM;
+        con->get_window()->dock = window_dock_t::W_DOCK_BOTTOM;
     } else {
         DLOG("Ignoring invalid reserved edges (_NET_WM_STRUT_PARTIAL), using position as fallback:\n");
         if (con->get_geometry().y < (search_at->rect.height / 2)) {
             DLOG(fmt::sprintf("geom->y = %d < rect.height / 2 = %d, it is a top dock client\n",
                               con->get_geometry().y, (search_at->rect.height / 2)));
-            con->get_window()->dock = i3Window::W_DOCK_TOP;
+            con->get_window()->dock = window_dock_t::W_DOCK_TOP;
         } else {
             DLOG(fmt::sprintf("geom->y = %d >= rect.height / 2 = %d, it is a bottom dock client\n",
                               con->get_geometry().y, (search_at->rect.height / 2)));
-            con->get_window()->dock = i3Window::W_DOCK_BOTTOM;
+            con->get_window()->dock = window_dock_t::W_DOCK_BOTTOM;
         }
     }
 

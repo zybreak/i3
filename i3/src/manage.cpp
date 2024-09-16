@@ -302,20 +302,20 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         /* find out the desired position of this dock window */
         if (cwindow->reserved.top > 0 && cwindow->reserved.bottom == 0) {
             DLOG("Top dock client\n");
-            cwindow->dock = i3Window::W_DOCK_TOP;
+            cwindow->dock = window_dock_t::W_DOCK_TOP;
         } else if (cwindow->reserved.top == 0 && cwindow->reserved.bottom > 0) {
             DLOG("Bottom dock client\n");
-            cwindow->dock = i3Window::W_DOCK_BOTTOM;
+            cwindow->dock = window_dock_t::W_DOCK_BOTTOM;
         } else {
             DLOG("Ignoring invalid reserved edges (_NET_WM_STRUT_PARTIAL), using position as fallback:\n");
             if (geom->y < static_cast<int16_t>(search_at->rect.height / 2)) {
                 DLOG(fmt::sprintf("geom->y = %d < rect.height / 2 = %d, it is a top dock client\n",
                                   geom->y, (search_at->rect.height / 2)));
-                cwindow->dock = i3Window::W_DOCK_TOP;
+                cwindow->dock = window_dock_t::W_DOCK_TOP;
             } else {
                 DLOG(fmt::sprintf("geom->y = %d >= rect.height / 2 = %d, it is a bottom dock client\n",
                                   geom->y, (search_at->rect.height / 2)));
-                cwindow->dock = i3Window::W_DOCK_BOTTOM;
+                cwindow->dock = window_dock_t::W_DOCK_BOTTOM;
             }
         }
     }
@@ -470,7 +470,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
 
     if (fs == nullptr) {
         DLOG("Not in fullscreen mode, focusing\n");
-        if (!cwindow->dock) {
+        if (cwindow->dock == window_dock_t::W_NODOCK) {
             /* Check that the workspace is visible and on the same output as
              * the current focused container. If the window was assigned to an
              * invisible workspace, we should not steal focus. */
@@ -550,7 +550,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     }
 
     /* dock clients cannot be floating, that makes no sense */
-    if (cwindow->dock) {
+    if (cwindow->dock != window_dock_t::W_NODOCK) {
         want_floating = false;
     }
 

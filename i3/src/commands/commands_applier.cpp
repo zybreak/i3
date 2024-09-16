@@ -645,7 +645,7 @@ void CommandsApplier::resize(struct criteria_state *criteria_state, CommandsResu
 
     for (auto current: criteria_state->owindows) {
         /* Don't handle dock windows (issue #1201) */
-        if (current->get_window() && current->get_window()->dock) {
+        if (current->get_window() && current->get_window()->dock != window_dock_t::W_NODOCK) {
             DLOG(fmt::sprintf("This is a dock window. Not resizing (con = %p)\n)", fmt::ptr(current)));
             continue;
         }
@@ -736,7 +736,7 @@ void CommandsApplier::resize_set(struct criteria_state *criteria_state, Commands
             }
             floating_resize(floating_con, cwidth, cheight);
         } else {
-            if (current->get_window() && current->get_window()->dock) {
+            if (current->get_window() && current->get_window()->dock != window_dock_t::W_NODOCK) {
                 DLOG(fmt::sprintf("This is a dock window. Not resizing (con = %p)\n)", fmt::ptr(current)));
                 continue;
             }

@@ -177,11 +177,11 @@ bool Match::match_matches_window(const i3Window *window) const {
     }
 
     if (this->dock != M_DONTCHECK) {
-        if ((window->dock == i3Window::W_DOCK_TOP && this->dock == M_DOCK_TOP) ||
-            (window->dock == i3Window::W_DOCK_BOTTOM && this->dock == M_DOCK_BOTTOM) ||
-            ((window->dock == i3Window::W_DOCK_TOP || window->dock == i3Window::W_DOCK_BOTTOM) &&
+        if ((window->dock == window_dock_t::W_DOCK_TOP && this->dock == M_DOCK_TOP) ||
+            (window->dock == window_dock_t::W_DOCK_BOTTOM && this->dock == M_DOCK_BOTTOM) ||
+            ((window->dock == window_dock_t::W_DOCK_TOP || window->dock == window_dock_t::W_DOCK_BOTTOM) &&
              this->dock == M_DOCK_ANY) ||
-            (window->dock == i3Window::W_NODOCK && this->dock == M_NODOCK)) {
+            (window->dock == window_dock_t::W_NODOCK && this->dock == M_NODOCK)) {
             LOG("dock status matches\n");
         } else {
             LOG("dock status does not match\n");

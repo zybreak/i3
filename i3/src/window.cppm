@@ -28,10 +28,10 @@ export {
      *
      */
     struct reservedpx {
-        uint32_t left;
-        uint32_t right;
-        uint32_t top;
-        uint32_t bottom;
+        uint32_t left{0};
+        uint32_t right{0};
+        uint32_t top{0};
+        uint32_t bottom{0};
     };
 
 
@@ -89,6 +89,12 @@ export {
 
     };
 
+    enum window_dock_t {
+        W_NODOCK = 0,
+        W_DOCK_TOP = 1,
+        W_DOCK_BOTTOM = 2
+    };
+
     /**
      * A 'Window' is a type which contains an xcb_window_t and all the related
      * information (hints like _NET_WM_NAME for that window).
@@ -96,12 +102,12 @@ export {
      */
     class i3Window {
        public:
-        xcb_window_t id;
+        xcb_window_t id{XCB_WINDOW_NONE};
 
         /** Holds the xcb_window_t (just an ID) for the leader window (logical
          * parent for toolwindows and similar floating windows) */
-        xcb_window_t leader;
-        xcb_window_t transient_for;
+        xcb_window_t leader{XCB_WINDOW_NONE};
+        xcb_window_t transient_for{XCB_WINDOW_NONE};
 
         /** Pointers to the Assignments which were already ran for this Window
          * (assignments run only once) */
@@ -122,73 +128,71 @@ export {
         std::string machine{};
 
         /** Flag to force re-rendering the decoration upon changes */
-        bool name_x_changed;
+        bool name_x_changed{false};
 
         /** Whether the application used _NET_WM_NAME */
-        bool uses_net_wm_name;
+        bool uses_net_wm_name{false};
 
         /** Whether the application needs to receive WM_TAKE_FOCUS */
-        bool needs_take_focus;
+        bool needs_take_focus{false};
 
         /** Whether this window accepts focus. We store this inverted so that the
          * default will be 'accepts focus'. */
-        bool doesnt_accept_focus;
+        bool doesnt_accept_focus{false};
 
         /** The _NET_WM_WINDOW_TYPE for this window. */
-        xcb_atom_t window_type;
+        xcb_atom_t window_type{XCB_ATOM_NONE};
 
         /** The _NET_WM_DESKTOP for this window. */
-        uint32_t wm_desktop;
+        uint32_t wm_desktop{0};
 
         /** Whether the window says it is a dock window */
-        enum { W_NODOCK = 0,
-               W_DOCK_TOP = 1,
-               W_DOCK_BOTTOM = 2 } dock;
+        window_dock_t dock{W_NODOCK};
 
         /** When this window was marked urgent. 0 means not urgent */
         std::optional<std::chrono::time_point<std::chrono::system_clock>> urgent{};
 
         /** Pixels the window reserves. left/right/top/bottom */
-        reservedpx reserved;
+        reservedpx reserved{};
 
         /** Depth of the window */
-        uint16_t depth;
+        uint16_t depth{0};
 
         /* the wanted size of the window, used in combination with size
          * increments (see below). */
-        int base_width;
-        int base_height;
+        int base_width{0};
+        int base_height{0};
 
         /* minimum increment size specified for the window (in pixels) */
-        int width_increment;
-        int height_increment;
+        int width_increment{0};
+        int height_increment{0};
 
         /* Minimum size specified for the window. */
-        uint32_t min_width;
-        uint32_t min_height;
+        uint32_t min_width{0};
+        uint32_t min_height{0};
 
         /* Maximum size specified for the window. */
-        uint32_t max_width;
-        uint32_t max_height;
+        uint32_t max_width{0};
+        uint32_t max_height{0};
 
         /* aspect ratio from WM_NORMAL_HINTS (MPlayer uses this for example) */
-        double min_aspect_ratio;
-        double max_aspect_ratio;
+        double min_aspect_ratio{0};
+        double max_aspect_ratio{0};
 
         /** Window icon, as Cairo surface */
         std::unique_ptr<i3WindowIcon> icon{};
 
         /** The window has a nonrectangular shape. */
-        bool shaped;
+        bool shaped{false};
         /** The window has a nonrectangular input shape. */
-        bool input_shaped;
+        bool input_shaped{false};
 
         /* Time when the window became managed. Used to determine whether a window
          * should be swallowed after initial management. */
         std::chrono::time_point<std::chrono::system_clock> managed_since{};
 
         /* The window has been swallowed. */
-        bool swallowed;
+        bool swallowed{false};
        
         explicit i3Window(xcb_window_t id) : id(id) {};
         i3Window() = delete;
