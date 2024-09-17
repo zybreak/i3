@@ -25,6 +25,7 @@ target_sources(UnitTest PUBLIC
         utils_test.cpp
         util_test.cpp
         workspace_manager_test.cpp
+        manage_test.cpp
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES

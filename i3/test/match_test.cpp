@@ -27,7 +27,7 @@ TEST(MatchTest, MatchesWindowClass){
 
     EXPECT_FALSE(m.match_is_empty());
 
-    i3Window w{};
+    i3Window w{XCB_WINDOW_NONE};
     w.class_class = "foo";
 
     ASSERT_TRUE(m.match_matches_window(&w));
@@ -46,11 +46,11 @@ TEST(MatchTest, MatchesUrgentLatest){
 
     EXPECT_FALSE(m.match_is_empty());
 
-    i3Window w{};
+    i3Window w{XCB_WINDOW_NONE};
     w.class_class = "foo";
     w.urgent = std::chrono::system_clock::now();
 
-    i3Window w2{};
+    i3Window w2{XCB_WINDOW_NONE};
     w2.urgent = std::chrono::system_clock::now() + std::chrono::seconds(1);
 
     auto c = new ConCon(&w2, true);
@@ -71,11 +71,11 @@ TEST(MatchTest, MatchesUrgentOldest){
 
     EXPECT_FALSE(m.match_is_empty());
 
-    i3Window w{};
+    i3Window w{XCB_WINDOW_NONE};
     w.class_class = "foo";
     w.urgent = std::chrono::system_clock::now();
 
-    i3Window w2{};
+    i3Window w2{XCB_WINDOW_NONE};
     w2.urgent = std::chrono::system_clock::now() + std::chrono::seconds(1);
 
     auto c = new ConCon(&w2, true);

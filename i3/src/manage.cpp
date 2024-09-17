@@ -154,6 +154,109 @@ static std::optional<std::string> to_string(auto &prop) {
     return std::nullopt;
 }
 
+static ConCon* find_con_for_window(i3Window *cwindow, Con *search_at, bool &urgency_hint, char *startup_ws, bool &match_from_restart_mode) {
+    Match *match = nullptr;
+    Con *nc_for_window = con_for_window(search_at, cwindow, &match);
+    ConCon *nc = nullptr;
+    match_from_restart_mode = (match && match->restart_mode);
+    if (nc_for_window == nullptr) {
+        Con *wm_desktop_ws = nullptr;
+        auto assignmentOpt = global.assignmentManager->assignment_for<WorkspaceAssignment>(cwindow);
+
+        /* If not, check if it is assigned to a specific workspace */
+        if (assignmentOpt) {
+            DLOG(fmt::sprintf("Assignment matches (%p)\n", fmt::ptr(match)));
+
+            Con *assigned_ws = nullptr;
+            if (assignmentOpt->get().type == workspace_assignment_type::WORKSPACE_NUMBER) {
+                long parsed_num = utils::ws_name_to_number(assignmentOpt->get().workspace);
+
+                assigned_ws = get_existing_workspace_by_num(parsed_num);
+            }
+            /* A_TO_WORKSPACE type assignment or fallback from A_TO_WORKSPACE_NUMBER
+             * when the target workspace number does not exist yet. */
+            if (!assigned_ws) {
+                assigned_ws = workspace_get_or_create(assignmentOpt->get().workspace);
+            }
+
+            auto descend_nc = con_descend_tiling_focused(assigned_ws);
+            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", assigned_ws->name, fmt::ptr(descend_nc), descend_nc->name));
+            if (descend_nc->type == CT_WORKSPACE) {
+                nc = tree_open_con(descend_nc, cwindow);
+            } else {
+                nc = tree_open_con(descend_nc->parent, cwindow);
+            }
+
+            /* set the urgency hint on the window if the workspace is not visible */
+            if (!workspace_is_visible(assigned_ws)) {
+                urgency_hint = true;
+            }
+        } else if (cwindow->wm_desktop != NET_WM_DESKTOP_NONE &&
+                   cwindow->wm_desktop != NET_WM_DESKTOP_ALL &&
+                   (wm_desktop_ws = ewmh_get_workspace_by_index(cwindow->wm_desktop)) != nullptr) {
+            /* If _NET_WM_DESKTOP is set to a specific desktop, we open it
+             * there. Note that we ignore the special value 0xFFFFFFFF here
+             * since such a window will be made sticky anyway. */
+
+            DLOG(fmt::sprintf("Using workspace %p / %s because _NET_WM_DESKTOP = %d.\n",
+                    fmt::ptr(wm_desktop_ws), wm_desktop_ws->name, cwindow->wm_desktop));
+
+            auto descend_nc = con_descend_tiling_focused(wm_desktop_ws);
+            if (descend_nc->type == CT_WORKSPACE) {
+                nc = tree_open_con(descend_nc, cwindow);
+            } else {
+                nc = tree_open_con(descend_nc->parent, cwindow);
+            }
+        } else if (startup_ws) {
+            /* If it was started on a specific workspace, we want to open it there. */
+            DLOG(fmt::sprintf("Using workspace on which this application was started (%s)\n", startup_ws));
+            auto descend_nc = con_descend_tiling_focused(workspace_get_or_create(startup_ws));
+            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", startup_ws, fmt::ptr(descend_nc), descend_nc->name));
+            if (descend_nc->type == CT_WORKSPACE) {
+                nc = tree_open_con(descend_nc, cwindow);
+            } else {
+                nc = tree_open_con(descend_nc->parent, cwindow);
+            }
+        } else {
+            /* If not, insert it at the currently focused position */
+            if (global.focused->type == CT_CON && global.focused->con_accepts_window()) {
+                LOG(fmt::sprintf("using current container, focused = %p, focused->name = %s\n",
+                        fmt::ptr(global.focused), global.focused->name));
+                nc = dynamic_cast<ConCon*>(global.focused);
+            } else {
+                nc = tree_open_con(nullptr, cwindow);
+            }
+        }
+        auto outputAssignmentOpt = global.assignmentManager->assignment_for<OutputAssignment>(cwindow);
+        if (outputAssignmentOpt) {
+            con_move_to_output_name(nc_for_window, outputAssignmentOpt->get().output, true);
+        }
+    } else {
+        /* M_BELOW inserts the new window as a child of the one which was
+         * matched (e.g. dock areas) */
+        if (match != nullptr && match->insert_where == M_BELOW) {
+            nc = tree_open_con(nc_for_window, cwindow);
+        } else {
+            nc = dynamic_cast<ConCon*>(nc_for_window); // TODO: bad?
+        }
+
+        /* If M_BELOW is not used, the container is replaced. This happens with
+         * "swallows" criteria that are used for stored layouts, in which case
+         * we need to remove that criterion, because they should only be valid
+         * once. */
+        if (match != nullptr && match->insert_where != M_BELOW) {
+            DLOG(fmt::sprintf("Removing match %p from container %p\n", fmt::ptr(match), fmt::ptr(nc)));
+            std::erase_if(nc->swallow, [&match](auto &m) {
+                return m.get() == match;
+            });
+        }
+
+        cwindow->swallowed = true;
+    }
+    
+    return nc;
+}
+
 /*
  * Do some sanity checks and then reparent the window.
  *
@@ -324,104 +427,8 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
 
     /* See if any container swallows this new window */
     cwindow->swallowed = false;
-    Match *match = nullptr;
-    Con *nc_for_window = con_for_window(search_at, cwindow, &match);
-    ConCon *nc = nullptr;
-    const bool match_from_restart_mode = (match && match->restart_mode);
-    if (nc_for_window == nullptr) {
-        Con *wm_desktop_ws = nullptr;
-        auto assignmentOpt = global.assignmentManager->assignment_for<WorkspaceAssignment>(cwindow);
-
-        /* If not, check if it is assigned to a specific workspace */
-        if (assignmentOpt) {
-            DLOG(fmt::sprintf("Assignment matches (%p)\n", fmt::ptr(match)));
-
-            Con *assigned_ws = nullptr;
-            if (assignmentOpt->get().type == workspace_assignment_type::WORKSPACE_NUMBER) {
-                long parsed_num = utils::ws_name_to_number(assignmentOpt->get().workspace);
-
-                assigned_ws = get_existing_workspace_by_num(parsed_num);
-            }
-            /* A_TO_WORKSPACE type assignment or fallback from A_TO_WORKSPACE_NUMBER
-             * when the target workspace number does not exist yet. */
-            if (!assigned_ws) {
-                assigned_ws = workspace_get_or_create(assignmentOpt->get().workspace);
-            }
-
-            auto descend_nc = con_descend_tiling_focused(assigned_ws);
-            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", assigned_ws->name, fmt::ptr(descend_nc), descend_nc->name));
-            if (descend_nc->type == CT_WORKSPACE) {
-                nc = tree_open_con(descend_nc, cwindow);
-            } else {
-                nc = tree_open_con(descend_nc->parent, cwindow);
-            }
-
-            /* set the urgency hint on the window if the workspace is not visible */
-            if (!workspace_is_visible(assigned_ws)) {
-                urgency_hint = true;
-            }
-        } else if (cwindow->wm_desktop != NET_WM_DESKTOP_NONE &&
-                   cwindow->wm_desktop != NET_WM_DESKTOP_ALL &&
-                   (wm_desktop_ws = ewmh_get_workspace_by_index(cwindow->wm_desktop)) != nullptr) {
-            /* If _NET_WM_DESKTOP is set to a specific desktop, we open it
-             * there. Note that we ignore the special value 0xFFFFFFFF here
-             * since such a window will be made sticky anyway. */
-
-            DLOG(fmt::sprintf("Using workspace %p / %s because _NET_WM_DESKTOP = %d.\n",
-                              fmt::ptr(wm_desktop_ws), wm_desktop_ws->name, cwindow->wm_desktop));
-
-            auto descend_nc = con_descend_tiling_focused(wm_desktop_ws);
-            if (descend_nc->type == CT_WORKSPACE) {
-                nc = tree_open_con(descend_nc, cwindow);
-            } else {
-                nc = tree_open_con(descend_nc->parent, cwindow);
-            }
-        } else if (startup_ws) {
-            /* If it was started on a specific workspace, we want to open it there. */
-            DLOG(fmt::sprintf("Using workspace on which this application was started (%s)\n", startup_ws));
-            auto descend_nc = con_descend_tiling_focused(workspace_get_or_create(startup_ws));
-            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", startup_ws, fmt::ptr(descend_nc), descend_nc->name));
-            if (descend_nc->type == CT_WORKSPACE) {
-                nc = tree_open_con(descend_nc, cwindow);
-            } else {
-                nc = tree_open_con(descend_nc->parent, cwindow);
-            }
-        } else {
-            /* If not, insert it at the currently focused position */
-            if (global.focused->type == CT_CON && global.focused->con_accepts_window()) {
-                LOG(fmt::sprintf("using current container, focused = %p, focused->name = %s\n",
-                                 fmt::ptr(global.focused), global.focused->name));
-                nc = dynamic_cast<ConCon*>(global.focused);
-            } else {
-                nc = tree_open_con(nullptr, cwindow);
-            }
-        }
-        auto outputAssignmentOpt = global.assignmentManager->assignment_for<OutputAssignment>(cwindow);
-        if (outputAssignmentOpt) {
-            con_move_to_output_name(nc_for_window, outputAssignmentOpt->get().output, true);
-        }
-    } else {
-        /* M_BELOW inserts the new window as a child of the one which was
-         * matched (e.g. dock areas) */
-        if (match != nullptr && match->insert_where == M_BELOW) {
-            nc = tree_open_con(nc_for_window, cwindow);
-        } else {
-            nc = dynamic_cast<ConCon*>(nc_for_window); // TODO: bad?
-        }
-
-        /* If M_BELOW is not used, the container is replaced. This happens with
-         * "swallows" criteria that are used for stored layouts, in which case
-         * we need to remove that criterion, because they should only be valid
-         * once. */
-        if (match != nullptr && match->insert_where != M_BELOW) {
-            DLOG(fmt::sprintf("Removing match %p from container %p\n", fmt::ptr(match), fmt::ptr(nc)));
-            std::erase_if(nc->swallow, [&match](auto &m) {
-                return m.get() == match;
-            });
-        }
-
-        cwindow->swallowed = true;
-    }
+    bool match_from_restart_mode = false;
+    ConCon *nc = find_con_for_window(cwindow, search_at, urgency_hint, startup_ws, match_from_restart_mode);
 
     DLOG(fmt::sprintf("new container = %p\n", fmt::ptr(nc)));
     if (nc->get_window() != nullptr && nc->get_window() != cwindow) {
