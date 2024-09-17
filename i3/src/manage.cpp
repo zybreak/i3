@@ -257,6 +257,77 @@ static ConCon* find_con_for_window(i3Window *cwindow, Con *search_at, bool &urge
     return nc;
 }
 
+static bool should_set_focus(i3Window *cwindow, Con *fs, WorkspaceCon *ws, ConCon *nc, bool match_from_restart_mode) {
+    bool set_focus = false;
+    if (fs == nullptr) {
+        DLOG("Not in fullscreen mode, focusing\n");
+        if (cwindow->dock == window_dock_t::W_NODOCK) {
+            /* Check that the workspace is visible and on the same output as
+             * the current focused container. If the window was assigned to an
+             * invisible workspace, we should not steal focus. */
+            Con *current_output = global.focused->con_get_output();
+            Con *target_output = ws->con_get_output();
+
+            if (workspace_is_visible(ws) && current_output == target_output) {
+                if (!match_from_restart_mode) {
+                    set_focus = true;
+                } else {
+                    DLOG("not focusing, matched with restart_mode == true\n");
+                }
+            } else {
+                DLOG("workspace not visible, not focusing\n");
+            }
+        } else {
+            DLOG("dock, not focusing\n");
+        }
+    } else {
+        DLOG(fmt::sprintf("fs = %p, ws = %p, not focusing\n", fmt::ptr(fs), fmt::ptr(ws)));
+        /* Insert the new container in focus stack *after* the currently
+         * focused (fullscreen) con. This way, the new container will be
+         * focused after we return from fullscreen mode */
+        Con *first = con::first(nc->parent->focused);
+        if (first != nc) {
+            /* We only modify the focus stack if the container is not already
+             * the first one. This can happen when existing containers swallow
+             * new windows, for example when restarting. */
+            std::erase(nc->parent->focused, nc);
+            nc->parent->focused.push_front(nc);
+        }
+    }
+    
+    return set_focus;
+}
+
+static void handle_dock(i3Window *cwindow, Con **search_at_p, xcb_get_geometry_reply_t *geom) {
+    Output *output = global.randr->get_output_containing(geom->x, geom->y);
+    if (output != nullptr) {
+        DLOG(fmt::sprintf("Starting search at output %s\n", output->output_primary_name()));
+        *search_at_p = output->con;
+    }
+    
+    Con *search_at = *search_at_p;
+
+    /* find out the desired position of this dock window */
+    if (cwindow->reserved.top > 0 && cwindow->reserved.bottom == 0) {
+        DLOG("Top dock client\n");
+        cwindow->dock = window_dock_t::W_DOCK_TOP;
+    } else if (cwindow->reserved.top == 0 && cwindow->reserved.bottom > 0) {
+        DLOG("Bottom dock client\n");
+        cwindow->dock = window_dock_t::W_DOCK_BOTTOM;
+    } else {
+        DLOG("Ignoring invalid reserved edges (_NET_WM_STRUT_PARTIAL), using position as fallback:\n");
+        if (geom->y < static_cast<int16_t>(search_at->rect.height / 2)) {
+            DLOG(fmt::sprintf("geom->y = %d < rect.height / 2 = %d, it is a top dock client\n",
+                    geom->y, (search_at->rect.height / 2)));
+            cwindow->dock = window_dock_t::W_DOCK_TOP;
+        } else {
+            DLOG(fmt::sprintf("geom->y = %d >= rect.height / 2 = %d, it is a bottom dock client\n",
+                    geom->y, (search_at->rect.height / 2)));
+            cwindow->dock = window_dock_t::W_DOCK_BOTTOM;
+        }
+    }
+}
+
 /*
  * Do some sanity checks and then reparent the window.
  *
@@ -396,31 +467,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
 
     if (xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK])) {
         LOG("This window is of type dock\n");
-        Output *output = global.randr->get_output_containing(geom->x, geom->y);
-        if (output != nullptr) {
-            DLOG(fmt::sprintf("Starting search at output %s\n", output->output_primary_name()));
-            search_at = output->con;
-        }
-
-        /* find out the desired position of this dock window */
-        if (cwindow->reserved.top > 0 && cwindow->reserved.bottom == 0) {
-            DLOG("Top dock client\n");
-            cwindow->dock = window_dock_t::W_DOCK_TOP;
-        } else if (cwindow->reserved.top == 0 && cwindow->reserved.bottom > 0) {
-            DLOG("Bottom dock client\n");
-            cwindow->dock = window_dock_t::W_DOCK_BOTTOM;
-        } else {
-            DLOG("Ignoring invalid reserved edges (_NET_WM_STRUT_PARTIAL), using position as fallback:\n");
-            if (geom->y < static_cast<int16_t>(search_at->rect.height / 2)) {
-                DLOG(fmt::sprintf("geom->y = %d < rect.height / 2 = %d, it is a top dock client\n",
-                                  geom->y, (search_at->rect.height / 2)));
-                cwindow->dock = window_dock_t::W_DOCK_TOP;
-            } else {
-                DLOG(fmt::sprintf("geom->y = %d >= rect.height / 2 = %d, it is a bottom dock client\n",
-                                  geom->y, (search_at->rect.height / 2)));
-                cwindow->dock = window_dock_t::W_DOCK_BOTTOM;
-            }
-        }
+        handle_dock(cwindow, &search_at, geom.get().get());
     }
 
     DLOG(fmt::sprintf("Initial geometry: (%d, %d, %d, %d)\n", geom->x, geom->y, geom->width, geom->height));
@@ -473,43 +520,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         fs = nullptr;
     }
 
-    bool set_focus = false;
-
-    if (fs == nullptr) {
-        DLOG("Not in fullscreen mode, focusing\n");
-        if (cwindow->dock == window_dock_t::W_NODOCK) {
-            /* Check that the workspace is visible and on the same output as
-             * the current focused container. If the window was assigned to an
-             * invisible workspace, we should not steal focus. */
-            Con *current_output = global.focused->con_get_output();
-            Con *target_output = ws->con_get_output();
-
-            if (workspace_is_visible(ws) && current_output == target_output) {
-                if (!match_from_restart_mode) {
-                    set_focus = true;
-                } else {
-                    DLOG("not focusing, matched with restart_mode == true\n");
-                }
-            } else {
-                DLOG("workspace not visible, not focusing\n");
-            }
-        } else {
-            DLOG("dock, not focusing\n");
-        }
-    } else {
-        DLOG(fmt::sprintf("fs = %p, ws = %p, not focusing\n", fmt::ptr(fs), fmt::ptr(ws)));
-        /* Insert the new container in focus stack *after* the currently
-         * focused (fullscreen) con. This way, the new container will be
-         * focused after we return from fullscreen mode */
-        Con *first = con::first(nc->parent->focused);
-        if (first != nc) {
-            /* We only modify the focus stack if the container is not already
-             * the first one. This can happen when existing containers swallow
-             * new windows, for example when restarting. */
-            std::erase(nc->parent->focused, nc);
-            nc->parent->focused.push_front(nc);
-        }
-    }
+    bool set_focus = should_set_focus(cwindow, fs, ws, nc, match_from_restart_mode);
 
     /* set floating if necessary */
     bool want_floating = false;
