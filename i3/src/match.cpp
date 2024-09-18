@@ -81,7 +81,7 @@ static bool checkWindowField(Regex const *match_field, i3Window const *window, s
  * Check if a match data structure matches the given window.
  *
  */
-bool Match::match_matches_window(const i3Window *window) const {
+bool Match::match_matches_window(i3Window const *window) const {
     LOG(fmt::sprintf("Checking window 0x%08x (class %s)\n",  window->id, window->class_class));
 
     // TODO: pointer to member

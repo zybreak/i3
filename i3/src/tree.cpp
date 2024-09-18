@@ -94,35 +94,41 @@ void tree_init(const xcb_get_geometry_reply_t *geometry) {
     };
 }
 
+static Con* _focused() {
+    /* every focusable Con has a parent (outputs have parent root) */
+    Con *con = global.focused->parent;
+    /* If the parent is an output, we are on a workspace. In this case,
+     * the new container needs to be opened as a leaf of the workspace. */
+    if (con->parent->type == CT_OUTPUT && con->type != CT_DOCKAREA) {
+        con = global.focused;
+    }
+
+    /* If the currently focused container is a floating container, we
+     * attach the new container to the currently focused spot in its
+     * workspace. */
+    if (con->type == CT_FLOATING_CON) {
+        con = con_descend_tiling_focused(con->parent);
+        if (con->type != CT_WORKSPACE) {
+            con = con->parent;
+        }
+    }
+    
+    DLOG(fmt::sprintf("con = %p\n", fmt::ptr(con)));
+
+    assert(con != nullptr);
+    
+    return con;
+}
+
 /*
  * Opens an empty container in the current container
  *
  */
-ConCon *tree_open_con(Con *con, i3Window *window) {
-    if (con == nullptr) {
-        /* every focusable Con has a parent (outputs have parent root) */
-        con = global.focused->parent;
-        /* If the parent is an output, we are on a workspace. In this case,
-         * the new container needs to be opened as a leaf of the workspace. */
-        if (con->parent->type == CT_OUTPUT && con->type != CT_DOCKAREA) {
-            con = global.focused;
-        }
-
-        /* If the currently focused container is a floating container, we
-         * attach the new container to the currently focused spot in its
-         * workspace. */
-        if (con->type == CT_FLOATING_CON) {
-            con = con_descend_tiling_focused(con->parent);
-            if (con->type != CT_WORKSPACE)
-                con = con->parent;
-        }
-        DLOG(fmt::sprintf("con = %p\n", fmt::ptr(con)));
-    }
-
-    assert(con != nullptr);
+ConCon *tree_open_con(Con *_con) {
+    Con *con = _con != nullptr ? _con : _focused();
 
     /* 3. create the container and attach it to its parent */
-    ConCon *new_con = new ConCon(window);
+    ConCon *new_con = new ConCon();
     new_con->con_attach(con, false);
 
     new_con->layout = L_SPLITH;

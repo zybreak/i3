@@ -1660,7 +1660,7 @@ void CommandsApplier::restart(struct criteria_state *criteria_state, CommandsRes
  */
 void CommandsApplier::open(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
     LOG("opening new container\n");
-    ConCon *con = tree_open_con(nullptr, nullptr);
+    ConCon *con = tree_open_con(nullptr);
     con->layout = L_SPLITH;
     con->con_activate();
     if (cmd_output.json_gen != nullptr) {

@@ -90,7 +90,7 @@ export {
          *
          */
         template<typename T>
-        std::optional<std::reference_wrapper<T>> assignment_for(const i3Window *window) {
+        std::optional<std::reference_wrapper<T>> assignment_for(i3Window const *window) {
             auto assignment = std::ranges::find_if(assignments, [&](auto &a) {
                 return ((dynamic_cast<T*>(a.get())) && (a->match.match_matches_window(window)));
             });

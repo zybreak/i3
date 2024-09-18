@@ -625,7 +625,7 @@ export {
      * TODO: priority
      *
      */
-    Con *con_for_window(Con * con, i3Window * window, Match * *store_match);
+    Con *con_for_window(Con const * con, i3Window const * window, Match * *store_match);
 
     /**
      * Toggles fullscreen mode for the given container. Fullscreen mode will not be

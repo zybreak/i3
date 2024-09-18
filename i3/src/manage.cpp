@@ -24,12 +24,55 @@ import utils;
 import log;
 import rect;
 
+template<typename T>
+struct window_data {
+    T wm_type_cookie;
+    T strut_cookie;
+    T state_cookie;
+    T utf8_title_cookie;
+    T leader_cookie;
+    T transient_cookie;
+    T title_cookie;
+    T class_cookie;
+    T role_cookie;
+    T startup_id_cookie;
+    T wm_hints_cookie;
+    T wm_normal_hints_cookie;
+    T motif_wm_hints_cookie;
+    T wm_user_time_cookie;
+    T wm_desktop_cookie;
+    T wm_machine_cookie;
+    T wm_icon_cookie;
+};
+
+static auto get_window_data(xcb_window_t window) {
+    return window_data{
+            .wm_type_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+            .strut_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+            .state_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_STATE], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+            .utf8_title_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_NAME], XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
+            .leader_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+            .transient_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_TRANSIENT_FOR, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+            .title_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
+            .class_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLASS, XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
+            .role_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
+            .startup_id_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 0, 512),
+            .wm_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_HINTS, XCB_ATOM_WM_HINTS, 0L, XCB_ICCCM_NUM_WM_HINTS_ELEMENTS),
+            .wm_normal_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS, 0L, XCB_ICCCM_NUM_WM_SIZE_HINTS_ELEMENTS),
+            .motif_wm_hints_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], XCB_GET_PROPERTY_TYPE_ANY, 0, 5 * sizeof(uint64_t)),
+            .wm_user_time_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+            .wm_desktop_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+            .wm_machine_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+            .wm_icon_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_ICON], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX)
+    };
+}
+
 /*
  * Match frame and window depth. This is needed because X will refuse to reparent a
  * window whose background is ParentRelative under a window with a different depth.
  *
  */
-static xcb_window_t _match_depth(i3Window *win, Con *con) {
+static xcb_window_t _match_depth(i3Window const *win, Con *con) {
     xcb_window_t old_frame = XCB_NONE;
     if (con->depth != win->depth) {
         old_frame = con->frame->id;
@@ -154,107 +197,122 @@ static std::optional<std::string> to_string(auto &prop) {
     return std::nullopt;
 }
 
-static ConCon* find_con_for_window(i3Window *cwindow, Con *search_at, bool &urgency_hint, char *startup_ws, bool &match_from_restart_mode) {
+static ConCon* find_con_for_window_not_found(i3Window const *cwindow, Con const *search_at, bool &urgency_hint, char *startup_ws, bool &match_from_restart_mode, Match *match) {
+    ConCon *nc = nullptr;
+    Con *wm_desktop_ws = nullptr;
+    auto assignmentOpt = global.assignmentManager->assignment_for<WorkspaceAssignment>(cwindow);
+
+    /* If not, check if it is assigned to a specific workspace */
+    if (assignmentOpt) {
+        DLOG(fmt::sprintf("Assignment matches (%p)\n", fmt::ptr(match)));
+
+        Con *assigned_ws = nullptr;
+        if (assignmentOpt->get().type == workspace_assignment_type::WORKSPACE_NUMBER) {
+            long parsed_num = utils::ws_name_to_number(assignmentOpt->get().workspace);
+
+            assigned_ws = get_existing_workspace_by_num(parsed_num);
+        }
+        /* A_TO_WORKSPACE type assignment or fallback from A_TO_WORKSPACE_NUMBER
+         * when the target workspace number does not exist yet. */
+        if (!assigned_ws) {
+            assigned_ws = workspace_get_or_create(assignmentOpt->get().workspace);
+        }
+
+        auto descend_nc = con_descend_tiling_focused(assigned_ws);
+        DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", assigned_ws->name, fmt::ptr(descend_nc), descend_nc->name));
+        if (descend_nc->type == CT_WORKSPACE) {
+            nc = tree_open_con(descend_nc);
+        } else {
+            nc = tree_open_con(descend_nc->parent);
+        }
+
+        /* set the urgency hint on the window if the workspace is not visible */
+        if (!workspace_is_visible(assigned_ws)) {
+            urgency_hint = true;
+        }
+    } else if (cwindow->wm_desktop != NET_WM_DESKTOP_NONE &&
+               cwindow->wm_desktop != NET_WM_DESKTOP_ALL &&
+               (wm_desktop_ws = ewmh_get_workspace_by_index(cwindow->wm_desktop)) != nullptr) {
+        /* If _NET_WM_DESKTOP is set to a specific desktop, we open it
+         * there. Note that we ignore the special value 0xFFFFFFFF here
+         * since such a window will be made sticky anyway. */
+
+        DLOG(fmt::sprintf("Using workspace %p / %s because _NET_WM_DESKTOP = %d.\n",
+                fmt::ptr(wm_desktop_ws), wm_desktop_ws->name, cwindow->wm_desktop));
+
+        auto descend_nc = con_descend_tiling_focused(wm_desktop_ws);
+        if (descend_nc->type == CT_WORKSPACE) {
+            nc = tree_open_con(descend_nc);
+        } else {
+            nc = tree_open_con(descend_nc->parent);
+        }
+    } else if (startup_ws) {
+        /* If it was started on a specific workspace, we want to open it there. */
+        DLOG(fmt::sprintf("Using workspace on which this application was started (%s)\n", startup_ws));
+        auto descend_nc = con_descend_tiling_focused(workspace_get_or_create(startup_ws));
+        DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", startup_ws, fmt::ptr(descend_nc), descend_nc->name));
+        if (descend_nc->type == CT_WORKSPACE) {
+            nc = tree_open_con(descend_nc);
+        } else {
+            nc = tree_open_con(descend_nc->parent);
+        }
+    } else {
+        /* If not, insert it at the currently focused position */
+        if (global.focused->type == CT_CON && global.focused->con_accepts_window()) {
+            LOG(fmt::sprintf("using current container, focused = %p, focused->name = %s\n",
+                    fmt::ptr(global.focused), global.focused->name));
+            nc = dynamic_cast<ConCon*>(global.focused);
+        } else {
+            nc = tree_open_con(nullptr);
+        }
+    }
+    auto outputAssignmentOpt = global.assignmentManager->assignment_for<OutputAssignment>(cwindow);
+    if (outputAssignmentOpt) {
+        con_move_to_output_name(nc, outputAssignmentOpt->get().output, true);
+    }   
+    
+    return nc;
+}
+
+static ConCon* find_con_for_window_found(i3Window const *cwindow, Con const *search_at, Con *nc_for_window, bool &urgency_hint, char *startup_ws, bool &match_from_restart_mode, Match *match) {
+    ConCon *nc;
+    /* M_BELOW inserts the new window as a child of the one which was
+         * matched (e.g. dock areas) */
+    if (match != nullptr && match->insert_where == M_BELOW) {
+        nc = tree_open_con(nc_for_window);
+    } else {
+        nc = dynamic_cast<ConCon*>(nc_for_window); // TODO: bad to assume its a concon?
+    }
+
+    /* If M_BELOW is not used, the container is replaced. This happens with
+     * "swallows" criteria that are used for stored layouts, in which case
+     * we need to remove that criterion, because they should only be valid
+     * once. */
+    if (match != nullptr && match->insert_where != M_BELOW) {
+        DLOG(fmt::sprintf("Removing match %p from container %p\n", fmt::ptr(match), fmt::ptr(nc)));
+        std::erase_if(nc->swallow, [&match](auto &m) {
+            return m.get() == match;
+        });
+    }
+
+    
+    return nc;
+}
+
+static std::pair<ConCon*,bool> find_con_for_window(i3Window const *cwindow, Con const *search_at, bool &urgency_hint, char *startup_ws, bool &match_from_restart_mode) {
     Match *match = nullptr;
+    bool swallowed = false;
     Con *nc_for_window = con_for_window(search_at, cwindow, &match);
     ConCon *nc = nullptr;
     match_from_restart_mode = (match && match->restart_mode);
     if (nc_for_window == nullptr) {
-        Con *wm_desktop_ws = nullptr;
-        auto assignmentOpt = global.assignmentManager->assignment_for<WorkspaceAssignment>(cwindow);
-
-        /* If not, check if it is assigned to a specific workspace */
-        if (assignmentOpt) {
-            DLOG(fmt::sprintf("Assignment matches (%p)\n", fmt::ptr(match)));
-
-            Con *assigned_ws = nullptr;
-            if (assignmentOpt->get().type == workspace_assignment_type::WORKSPACE_NUMBER) {
-                long parsed_num = utils::ws_name_to_number(assignmentOpt->get().workspace);
-
-                assigned_ws = get_existing_workspace_by_num(parsed_num);
-            }
-            /* A_TO_WORKSPACE type assignment or fallback from A_TO_WORKSPACE_NUMBER
-             * when the target workspace number does not exist yet. */
-            if (!assigned_ws) {
-                assigned_ws = workspace_get_or_create(assignmentOpt->get().workspace);
-            }
-
-            auto descend_nc = con_descend_tiling_focused(assigned_ws);
-            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", assigned_ws->name, fmt::ptr(descend_nc), descend_nc->name));
-            if (descend_nc->type == CT_WORKSPACE) {
-                nc = tree_open_con(descend_nc, cwindow);
-            } else {
-                nc = tree_open_con(descend_nc->parent, cwindow);
-            }
-
-            /* set the urgency hint on the window if the workspace is not visible */
-            if (!workspace_is_visible(assigned_ws)) {
-                urgency_hint = true;
-            }
-        } else if (cwindow->wm_desktop != NET_WM_DESKTOP_NONE &&
-                   cwindow->wm_desktop != NET_WM_DESKTOP_ALL &&
-                   (wm_desktop_ws = ewmh_get_workspace_by_index(cwindow->wm_desktop)) != nullptr) {
-            /* If _NET_WM_DESKTOP is set to a specific desktop, we open it
-             * there. Note that we ignore the special value 0xFFFFFFFF here
-             * since such a window will be made sticky anyway. */
-
-            DLOG(fmt::sprintf("Using workspace %p / %s because _NET_WM_DESKTOP = %d.\n",
-                    fmt::ptr(wm_desktop_ws), wm_desktop_ws->name, cwindow->wm_desktop));
-
-            auto descend_nc = con_descend_tiling_focused(wm_desktop_ws);
-            if (descend_nc->type == CT_WORKSPACE) {
-                nc = tree_open_con(descend_nc, cwindow);
-            } else {
-                nc = tree_open_con(descend_nc->parent, cwindow);
-            }
-        } else if (startup_ws) {
-            /* If it was started on a specific workspace, we want to open it there. */
-            DLOG(fmt::sprintf("Using workspace on which this application was started (%s)\n", startup_ws));
-            auto descend_nc = con_descend_tiling_focused(workspace_get_or_create(startup_ws));
-            DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", startup_ws, fmt::ptr(descend_nc), descend_nc->name));
-            if (descend_nc->type == CT_WORKSPACE) {
-                nc = tree_open_con(descend_nc, cwindow);
-            } else {
-                nc = tree_open_con(descend_nc->parent, cwindow);
-            }
-        } else {
-            /* If not, insert it at the currently focused position */
-            if (global.focused->type == CT_CON && global.focused->con_accepts_window()) {
-                LOG(fmt::sprintf("using current container, focused = %p, focused->name = %s\n",
-                        fmt::ptr(global.focused), global.focused->name));
-                nc = dynamic_cast<ConCon*>(global.focused);
-            } else {
-                nc = tree_open_con(nullptr, cwindow);
-            }
-        }
-        auto outputAssignmentOpt = global.assignmentManager->assignment_for<OutputAssignment>(cwindow);
-        if (outputAssignmentOpt) {
-            con_move_to_output_name(nc_for_window, outputAssignmentOpt->get().output, true);
-        }
+        nc = find_con_for_window_not_found(cwindow, search_at, urgency_hint, startup_ws, match_from_restart_mode, match);
     } else {
-        /* M_BELOW inserts the new window as a child of the one which was
-         * matched (e.g. dock areas) */
-        if (match != nullptr && match->insert_where == M_BELOW) {
-            nc = tree_open_con(nc_for_window, cwindow);
-        } else {
-            nc = dynamic_cast<ConCon*>(nc_for_window); // TODO: bad?
-        }
-
-        /* If M_BELOW is not used, the container is replaced. This happens with
-         * "swallows" criteria that are used for stored layouts, in which case
-         * we need to remove that criterion, because they should only be valid
-         * once. */
-        if (match != nullptr && match->insert_where != M_BELOW) {
-            DLOG(fmt::sprintf("Removing match %p from container %p\n", fmt::ptr(match), fmt::ptr(nc)));
-            std::erase_if(nc->swallow, [&match](auto &m) {
-                return m.get() == match;
-            });
-        }
-
-        cwindow->swallowed = true;
+        nc = find_con_for_window_found(cwindow, search_at, nc_for_window, urgency_hint, startup_ws, match_from_restart_mode, match);
+        swallowed = true;
     }
     
-    return nc;
+    return {nc,swallowed};
 }
 
 static bool should_set_focus(i3Window *cwindow, Con *fs, WorkspaceCon *ws, ConCon *nc, bool match_from_restart_mode) {
@@ -328,6 +386,54 @@ static void handle_dock(i3Window *cwindow, Con **search_at_p, xcb_get_geometry_r
     }
 }
 
+template<typename Window_data>
+static std::unique_ptr<i3Window> create_window(Window_data &w_data, xcb_window_t window, xcb_visualid_t visual, bool &urgency_hint, border_style_t &motif_border_style, bool &has_mwm_hints, xcb_get_geometry_reply_t *geom) {
+    auto cwindow = std::make_unique<i3Window>(window);
+    cwindow->depth = get_visual_depth(visual);
+
+    auto buttons = bindings_get_buttons_to_grab();
+    xcb_grab_buttons(window, buttons);
+
+    /* update as much information as possible so far (some replies may be NULL) */
+    if (auto ret = handle_property::window_update_class(w_data.class_cookie.get().get()); ret) {
+        cwindow->window_update_class(ret->class_name, ret->class_instance);
+    }
+    if (auto ret = handle_property::window_update_name_legacy(w_data.title_cookie.get().get()); ret) {
+        cwindow->window_update_name_legacy(*ret);
+    }
+    if (auto ret = handle_property::window_update_name(w_data.utf8_title_cookie.get().get()); ret) {
+        cwindow->window_update_name(*ret);
+    }
+    if (w_data.wm_icon_cookie->value_len > 0) {
+        cwindow->window_update_icon(w_data.wm_icon_cookie.get().get());
+    }
+    if (w_data.leader_cookie->value_len > 0) {
+        cwindow->window_update_leader(w_data.leader_cookie.get().get());
+    }
+    if (w_data.transient_cookie->value_len > 0) {
+        cwindow->window_update_transient_for(w_data.transient_cookie.get().get());
+    }
+    if (w_data.strut_cookie->value_len > 0) {
+        cwindow->window_update_strut_partial(w_data.strut_cookie.get().get());
+    }
+    if (w_data.role_cookie->value_len > 0) {
+        cwindow->window_update_role(w_data.role_cookie.get().get());
+    }
+    if (w_data.wm_hints_cookie->value_len > 0) {
+        cwindow->window_update_hints(w_data.wm_hints_cookie.get().get(), &urgency_hint);
+    }
+    if (w_data.motif_wm_hints_cookie->value_len > 0) {
+        has_mwm_hints = cwindow->window_update_motif_hints(w_data.motif_wm_hints_cookie.get().get(), &motif_border_style);
+    }
+    if (w_data.wm_normal_hints_cookie->value_len > 0) {
+        cwindow->window_update_normal_hints(w_data.wm_normal_hints_cookie.get().get(), geom);
+    }
+    if (auto machine = handle_property::window_update_machine(w_data.wm_machine_cookie.get().get()); machine) {
+        cwindow->window_update_machine(*machine);
+    }
+    return std::move(cwindow);
+}
+
 /*
  * Do some sanity checks and then reparent the window.
  *
@@ -377,79 +483,22 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         return;
     }
 
-    auto wm_type_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto strut_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto state_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_STATE], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto utf8_title_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_NAME], XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
-    auto leader_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto transient_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_TRANSIENT_FOR, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto title_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
-    auto class_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLASS, XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
-    auto role_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], XCB_GET_PROPERTY_TYPE_ANY, 0, 128);
-    auto startup_id_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
-    auto wm_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_HINTS, XCB_ATOM_WM_HINTS, 0L, XCB_ICCCM_NUM_WM_HINTS_ELEMENTS);
-    auto wm_normal_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS, 0L, XCB_ICCCM_NUM_WM_SIZE_HINTS_ELEMENTS);
-    auto motif_wm_hints_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], XCB_GET_PROPERTY_TYPE_ANY, 0, 5 * sizeof(uint64_t));
-    auto wm_user_time_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto wm_desktop_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto wm_machine_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
-    auto wm_icon_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_ICON], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX);
+    window_data w_data = get_window_data(window);
 
-    auto *cwindow = new i3Window(window);
-    cwindow->depth = get_visual_depth(visual);
-
-    auto buttons = bindings_get_buttons_to_grab();
-    xcb_grab_buttons(window, buttons);
-
-    /* update as much information as possible so far (some replies may be NULL) */
-    if (auto ret = handle_property::window_update_class(class_cookie.get().get()); ret) {
-        cwindow->window_update_class(ret->class_name, ret->class_instance);
-    }
-    if (auto ret = handle_property::window_update_name_legacy(title_cookie.get().get()); ret) {
-        cwindow->window_update_name_legacy(*ret);
-    }
-    if (auto ret = handle_property::window_update_name(utf8_title_cookie.get().get()); ret) {
-        cwindow->window_update_name(*ret);
-    }
-    if (wm_icon_cookie->value_len > 0) {
-        cwindow->window_update_icon(wm_icon_cookie.get().get());
-    }
-    if (leader_cookie->value_len > 0) {
-        cwindow->window_update_leader(leader_cookie.get().get());
-    }
-    if (transient_cookie->value_len > 0) {
-        cwindow->window_update_transient_for(transient_cookie.get().get());
-    }
-    if (strut_cookie->value_len > 0) {
-        cwindow->window_update_strut_partial(strut_cookie.get().get());
-    }
-    if (role_cookie->value_len > 0) {
-        cwindow->window_update_role(role_cookie.get().get());
-    }
     bool urgency_hint;
-    if (wm_hints_cookie->value_len > 0) {
-        cwindow->window_update_hints(wm_hints_cookie.get().get(), &urgency_hint);
-    }
     border_style_t motif_border_style = border_style_t::BS_NORMAL;
     bool has_mwm_hints = false;
-    if (motif_wm_hints_cookie->value_len > 0) {
-        has_mwm_hints = cwindow->window_update_motif_hints(motif_wm_hints_cookie.get().get(), &motif_border_style);
-    }
-    if (wm_normal_hints_cookie->value_len > 0) {
-        cwindow->window_update_normal_hints(wm_normal_hints_cookie.get().get(), geom.get().get());
-    }
-    if (auto machine = handle_property::window_update_machine(wm_machine_cookie.get().get()); machine) {
-        cwindow->window_update_machine(*machine);
-    }
-    xcb_get_property_reply_t *type_reply = (wm_type_cookie->value_len > 0 ? wm_type_cookie.get().get() : nullptr);
-    xcb_get_property_reply_t *state_reply = (state_cookie->value_len > 0 ? state_cookie.get().get() : nullptr);
+    std::unique_ptr<i3Window> cwindow = create_window(w_data, window, visual, urgency_hint, motif_border_style, has_mwm_hints, geom.get().get());
+    
+    xcb_get_property_reply_t *type_reply = (w_data.wm_type_cookie->value_len > 0 ? w_data.wm_type_cookie.get().get() : nullptr);
+    xcb_get_property_reply_t *state_reply = (w_data.state_cookie->value_len > 0 ? w_data.state_cookie.get().get() : nullptr);
 
-    char *startup_ws = startup_workspace_for_window(cwindow, (startup_id_cookie->value_len > 0 ? startup_id_cookie.get().get() : nullptr));
+    char *startup_ws = startup_workspace_for_window(cwindow.get(), (w_data.startup_id_cookie->value_len > 0 ? w_data.startup_id_cookie.get().get() : nullptr));
     DLOG(fmt::sprintf("startup workspace = %s\n", startup_ws));
 
     /* Get _NET_WM_DESKTOP if it was set. */
     xcb_get_property_reply_t *wm_desktop_reply;
-    wm_desktop_reply = (wm_desktop_cookie->value_len > 0) ? wm_desktop_cookie.get().get() : nullptr;
+    wm_desktop_reply = (w_data.wm_desktop_cookie->value_len > 0) ? w_data.wm_desktop_cookie.get().get() : nullptr;
     cwindow->wm_desktop = NET_WM_DESKTOP_NONE;
     if (wm_desktop_reply != nullptr && xcb_get_property_value_length(wm_desktop_reply) != 0) {
         auto *wm_desktops = (uint32_t *)xcb_get_property_value(wm_desktop_reply);
@@ -467,7 +516,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
 
     if (xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK])) {
         LOG("This window is of type dock\n");
-        handle_dock(cwindow, &search_at, geom.get().get());
+        handle_dock(cwindow.get(), &search_at, geom.get().get());
     }
 
     DLOG(fmt::sprintf("Initial geometry: (%d, %d, %d, %d)\n", geom->x, geom->y, geom->width, geom->height));
@@ -475,10 +524,12 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     /* See if any container swallows this new window */
     cwindow->swallowed = false;
     bool match_from_restart_mode = false;
-    ConCon *nc = find_con_for_window(cwindow, search_at, urgency_hint, startup_ws, match_from_restart_mode);
+    auto res = find_con_for_window(cwindow.get(), search_at, urgency_hint, startup_ws, match_from_restart_mode);
+    ConCon *nc = res.first;
+    cwindow->swallowed = res.second;
 
     DLOG(fmt::sprintf("new container = %p\n", fmt::ptr(nc)));
-    if (nc->get_window() != nullptr && nc->get_window() != cwindow) {
+    if (nc->get_window() != nullptr && nc->get_window() != cwindow.get()) {
         if (!restore_kill_placeholder(nc->get_window()->id)) {
             DLOG("Uh?! Container without a placeholder, but with a window, has swallowed this to-be-managed window?!\n");
         } else {
@@ -487,17 +538,18 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         }
     }
     xcb_window_t old_frame = XCB_NONE;
-    if (nc->get_window() != cwindow && nc->get_window() != nullptr) {
-        old_frame = _match_depth(cwindow, nc);
+    if (nc->get_window() != cwindow.get() && nc->get_window() != nullptr) {
+        old_frame = _match_depth(cwindow.get(), nc);
     }
-    if (nc->get_window() != cwindow) {
-        nc->set_window(cwindow);
+    if (nc->get_window() != cwindow.get()) {
+        nc->depth = cwindow->depth;
+        nc->set_window(cwindow.release());
     }
     x_reinit(nc);
 
     nc->border_width = geom->border_width;
 
-    x_set_name(nc, fmt::format("[i3 con] container around {}", fmt::ptr(cwindow)));
+    x_set_name(nc, fmt::format("[i3 con] container around {}", fmt::ptr(nc->get_window())));
 
     /* handle fullscreen containers */
     WorkspaceCon *ws = nc->con_get_workspace();
@@ -520,7 +572,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         fs = nullptr;
     }
 
-    bool set_focus = should_set_focus(cwindow, fs, ws, nc, match_from_restart_mode);
+    bool set_focus = should_set_focus(nc->get_window(), fs, ws, nc, match_from_restart_mode);
 
     /* set floating if necessary */
     bool want_floating = false;
@@ -529,9 +581,9 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLBAR]) ||
         xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_SPLASH]) ||
         xcb_reply_contains_atom(state_reply, i3::atoms[i3::Atom::_NET_WM_STATE_MODAL]) ||
-        (cwindow->max_width > 0 && cwindow->max_height > 0 &&
-         cwindow->min_height == cwindow->max_height &&
-         cwindow->min_width == cwindow->max_width)) {
+        (nc->get_window()->max_width > 0 && nc->get_window()->max_height > 0 &&
+         nc->get_window()->min_height == nc->get_window()->max_height &&
+         nc->get_window()->min_width == nc->get_window()->max_width)) {
         LOG("This window is a dialog window, setting floating\n");
         want_floating = true;
     }
@@ -543,16 +595,16 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     /* We ignore the hint for an internal workspace because windows in the
      * scratchpad also have this value, but upon restarting i3 we don't want
      * them to become sticky windows. */
-    if (cwindow->wm_desktop == NET_WM_DESKTOP_ALL) {
+    if (nc->get_window()->wm_desktop == NET_WM_DESKTOP_ALL) {
         DLOG("This window has _NET_WM_DESKTOP = 0xFFFFFFFF. Will float it and make it sticky.\n");
         nc->sticky = true;
         want_floating = true;
     }
 
-    if (cwindow->transient_for != XCB_NONE ||
-        (cwindow->leader != XCB_NONE &&
-         cwindow->leader != cwindow->id &&
-         con_by_window_id(cwindow->leader) != nullptr)) {
+    if (nc->get_window()->transient_for != XCB_NONE ||
+        (nc->get_window()->leader != XCB_NONE &&
+         nc->get_window()->leader != nc->get_window()->id &&
+         con_by_window_id(nc->get_window()->leader) != nullptr)) {
         DLOG("This window is transient for another window, setting floating\n");
         want_floating = true;
 
@@ -568,7 +620,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     }
 
     /* dock clients cannot be floating, that makes no sense */
-    if (cwindow->dock != window_dock_t::W_NODOCK) {
+    if (nc->get_window()->dock != window_dock_t::W_NODOCK) {
         want_floating = false;
     }
 
@@ -635,14 +687,14 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         xcb_shape_query_extents_reply_t *reply =
             xcb_shape_query_extents_reply(**global.x, cookie, nullptr);
         if (reply != nullptr && reply->bounding_shaped) {
-            cwindow->shaped = true;
+            nc->get_window()->shaped = true;
         }
         free(reply);
         reply = nullptr;
     }
 
     /* Check if any assignments match */
-    global.assignmentManager->run_assignments(cwindow);
+    global.assignmentManager->run_assignments(nc->get_window());
 
     /* 'ws' may be invalid because of the assignments, e.g. when the user uses
      * "move window to workspace 1", but had it assigned to workspace 2. */
@@ -670,12 +722,12 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     }
     render_con(global.croot);
 
-    cwindow->managed_since = std::chrono::system_clock::now();
+    nc->get_window()->managed_since = std::chrono::system_clock::now();
 
     /* Send an event about window creation */
     ipc_send_window_event("new", nc);
 
-    if (set_focus && global.assignmentManager->assignment_for<NoFocusAssignment>(cwindow).has_value()) {
+    if (set_focus && global.assignmentManager->assignment_for<NoFocusAssignment>(nc->get_window()).has_value()) {
         /* The first window on a workspace should always be focused. We have to
          * compare with == 1 because the container has already been inserted at
          * this point. */
@@ -691,7 +743,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         DLOG(fmt::sprintf("Checking con = %p for _NET_WM_USER_TIME.\n", fmt::ptr(nc)));
 
         uint32_t *wm_user_time;
-        xcb_get_property_reply_t *wm_user_time_reply = (wm_user_time_cookie.get() != nullptr ? wm_user_time_cookie.get().get() : nullptr);
+        xcb_get_property_reply_t *wm_user_time_reply = (w_data.wm_user_time_cookie.get() != nullptr ? w_data.wm_user_time_cookie.get().get() : nullptr);
         if (wm_user_time_reply != nullptr && xcb_get_property_value_length(wm_user_time_reply) != 0 &&
             (wm_user_time = (uint32_t *)xcb_get_property_value(wm_user_time_reply)) &&
             wm_user_time[0] == 0) {
@@ -699,7 +751,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
             set_focus = false;
         }
     } else {
-        xcb_discard_reply(**global.x, wm_user_time_cookie->sequence);
+        xcb_discard_reply(**global.x, w_data.wm_user_time_cookie->sequence);
     }
 
     if (set_focus) {
@@ -735,7 +787,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     nc->con_set_urgency(urgency_hint);
 
     /* Update _NET_WM_DESKTOP. We invalidate the cached value first to force an update. */
-    cwindow->wm_desktop = NET_WM_DESKTOP_NONE;
+    nc->get_window()->wm_desktop = NET_WM_DESKTOP_NONE;
     ewmh_update_wm_desktop();
 
     /* If a sticky window was mapped onto another workspace, make sure to pop it to the front. */

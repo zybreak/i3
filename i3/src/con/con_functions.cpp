@@ -181,7 +181,7 @@ bool con_find_transient_for_window(Con *start, xcb_window_t target) {
  * TODO: priority
  *
  */
-Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
+Con *con_for_window(Con const *con, i3Window const *window, Match **store_match) {
 
     for (auto &child : con->nodes) {
         for (auto &match : child->swallow) {
@@ -199,8 +199,8 @@ Con *con_for_window(Con *con, i3Window *window, Match **store_match) {
         }
     }
 
-    if (dynamic_cast<WorkspaceCon*>(con)) {
-        for (auto &child : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
+    if (auto ws = dynamic_cast<const WorkspaceCon*>(con); ws) {
+        for (auto &child : ws->floating_windows) {
             for (auto &match : child->swallow) {
                 if (!match->match_matches_window(window)) {
                     continue;

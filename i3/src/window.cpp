@@ -330,7 +330,6 @@ bool i3Window::window_update_normal_hints(xcb_size_hints_t &size_hints, xcb_get_
 }
 
 bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_get_geometry_reply_t *geom) {
-    bool changed = false;
     xcb_size_hints_t size_hints;
 
     /* If the hints were already in this event, use them, if not, request them */
