@@ -345,23 +345,23 @@ void x_window_kill(xcb_connection_t *c, xcb_window_t window, kill_window_t kill_
 }
 
 static void x_draw_title_border(Con *con, surface_t *dest_surface) {
-    deco_render_params *p = con->deco_render_params.value().get();
+    deco_render_params &p = *con->deco_render_params;
     Rect *dr = &(con->deco_rect);
 
     /* Left */
-    dest_surface->draw_util_rectangle(p->color->border,
+    dest_surface->draw_util_rectangle(p.color->border,
                         dr->x, dr->y, 1, dr->height);
 
     /* Right */
-    dest_surface->draw_util_rectangle(p->color->border,
+    dest_surface->draw_util_rectangle(p.color->border,
                         dr->x + dr->width - 1, dr->y, 1, dr->height);
 
     /* Top */
-    dest_surface->draw_util_rectangle(p->color->border,
+    dest_surface->draw_util_rectangle(p.color->border,
                         dr->x, dr->y, dr->width, 1);
 
     /* Bottom */
-    dest_surface->draw_util_rectangle(p->color->border,
+    dest_surface->draw_util_rectangle(p.color->border,
                         dr->x, dr->y + dr->height - 1, dr->width, 1);
 }
 
@@ -492,7 +492,7 @@ void x_draw_decoration(Con *con) {
         (con->get_window() == nullptr || !con->get_window()->name_x_changed) &&
         !parent->pixmap_recreated &&
         !con->pixmap_recreated &&
-        *p == *con->deco_render_params.value().get()) {
+        *p == *con->deco_render_params) {
         draw_util_copy_surface(con->frame_buffer.get(), con->frame.get(), 0, 0, 0, 0, con->rect.width, con->rect.height);
         return;
     }
@@ -530,14 +530,14 @@ void x_draw_decoration(Con *con) {
     }
 
     /* 3: draw a rectangle in border color around the client */
-    if (con->deco_render_params.value()->border_style != border_style_t::BS_NONE && con->deco_render_params.value()->con_is_leaf) {
+    if (con->deco_render_params->border_style != border_style_t::BS_NONE && con->deco_render_params->con_is_leaf) {
         /* Fill the border. We don’t just fill the whole rectangle because some
          * children are not freely resizable and we want their background color
          * to "shine through". */
         xcb_rectangle_t rectangles[4];
         size_t rectangles_count = x_get_border_rectangles(con, rectangles);
         for (size_t i = 0; i < rectangles_count; i++) {
-            con->frame_buffer->draw_util_rectangle(con->deco_render_params.value()->color->child_border,
+            con->frame_buffer->draw_util_rectangle(con->deco_render_params->color->child_border,
                                 rectangles[i].x,
                                 rectangles[i].y,
                                 rectangles[i].width,
@@ -552,11 +552,11 @@ void x_draw_decoration(Con *con) {
         if (con::next(con, con->parent->nodes) == nullptr &&
             con::previous(con, con->parent->nodes) == nullptr &&
             con->parent->type != CT_FLOATING_CON) {
-            if (con->deco_render_params.value()->parent_layout == L_SPLITH) {
-                con->frame_buffer->draw_util_rectangle(con->deco_render_params.value()->color->indicator,
+            if (con->deco_render_params->parent_layout == L_SPLITH) {
+                con->frame_buffer->draw_util_rectangle(con->deco_render_params->color->indicator,
                                     r->width + (br.width + br.x), br.y, -(br.width + br.x), r->height + br.height);
-            } else if (con->deco_render_params.value()->parent_layout == L_SPLITV) {
-                con->frame_buffer->draw_util_rectangle(con->deco_render_params.value()->color->indicator,
+            } else if (con->deco_render_params->parent_layout == L_SPLITV) {
+                con->frame_buffer->draw_util_rectangle(con->deco_render_params->color->indicator,
                                     br.x, r->height + (br.height + br.y), r->width + br.width, -(br.height + br.y));
             }
         }
@@ -589,7 +589,7 @@ void x_draw_decoration(Con *con) {
 
     /* if this is a borderless/1pixel window, we don’t need to render the
      * decoration. */
-    if (con->deco_render_params.value()->border_style != border_style_t::BS_NORMAL) {
+    if (con->deco_render_params->border_style != border_style_t::BS_NORMAL) {
         draw_util_copy_surface(con->frame_buffer.get(), con->frame.get(), 0, 0, 0, 0, con->rect.width, con->rect.height);
         return;
     }
@@ -597,7 +597,7 @@ void x_draw_decoration(Con *con) {
     /* 4: paint the bar */
     DLOG(fmt::sprintf("con->deco_rect = (x=%d, y=%d, w=%d, h=%d) for con->name=%s\n",
          con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height, con->name));
-    dest_surface->draw_util_rectangle(con->deco_render_params.value()->color->background,
+    dest_surface->draw_util_rectangle(con->deco_render_params->color->background,
                         con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height);
 
     /* 5: draw title border */
@@ -674,7 +674,7 @@ void x_draw_decoration(Con *con) {
     }
 
     dest_surface->draw_util_text(*global.configManager->config->font, title,
-                   con->deco_render_params.value()->color->text, con->deco_render_params.value()->color->background,
+                   con->deco_render_params->color->text, con->deco_render_params->color->background,
                    con->deco_rect.x + title_offset_x,
                    con->deco_rect.y + text_offset_y,
                    deco_width - mark_width - 2 * title_padding - total_icon_space);

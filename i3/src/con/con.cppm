@@ -137,7 +137,7 @@ export {
         int current_border_width;
 
         /** Cache for the decoration rendering */
-        std::optional<std::unique_ptr<deco_render_params>> deco_render_params{};
+        std::unique_ptr<deco_render_params> deco_render_params{};
 
         std::deque<Con *> nodes{};
         std::deque<Con *> focused{};

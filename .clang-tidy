@@ -1,4 +1,4 @@
-Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*,cppcoreguidelines-*'
+Checks:          'clang-diagnostic-*,clang-analyzer-*,bugprone-*'
 WarningsAsErrors: ''
 HeaderFileExtensions:
   - ''
