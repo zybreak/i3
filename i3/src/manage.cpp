@@ -197,9 +197,8 @@ static std::optional<std::string> to_string(auto &prop) {
     return std::nullopt;
 }
 
-static ConCon* find_con_for_window_not_found(i3Window const *cwindow, Con const *search_at, bool &urgency_hint, char *startup_ws, bool &match_from_restart_mode, Match *match) {
+static ConCon* find_con_for_window_not_found(i3Window *cwindow, Con const *search_at, bool &urgency_hint, std::optional<std::string> &startup_ws, bool &match_from_restart_mode, Match *match) {
     ConCon *nc = nullptr;
-    Con *wm_desktop_ws = nullptr;
     auto assignmentOpt = global.assignmentManager->assignment_for<WorkspaceAssignment>(cwindow);
 
     /* If not, check if it is assigned to a specific workspace */
@@ -221,18 +220,19 @@ static ConCon* find_con_for_window_not_found(i3Window const *cwindow, Con const 
         auto descend_nc = con_descend_tiling_focused(assigned_ws);
         DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", assigned_ws->name, fmt::ptr(descend_nc), descend_nc->name));
         if (descend_nc->type == CT_WORKSPACE) {
-            nc = tree_open_con(descend_nc);
+            nc = tree_open_con(descend_nc, cwindow);
         } else {
-            nc = tree_open_con(descend_nc->parent);
+            nc = tree_open_con(descend_nc->parent, cwindow);
         }
 
         /* set the urgency hint on the window if the workspace is not visible */
         if (!workspace_is_visible(assigned_ws)) {
             urgency_hint = true;
         }
-    } else if (cwindow->wm_desktop != NET_WM_DESKTOP_NONE &&
+    } else if (WorkspaceCon *wm_desktop_ws = ewmh_get_workspace_by_index(cwindow->wm_desktop);
+               cwindow->wm_desktop != NET_WM_DESKTOP_NONE &&
                cwindow->wm_desktop != NET_WM_DESKTOP_ALL &&
-               (wm_desktop_ws = ewmh_get_workspace_by_index(cwindow->wm_desktop)) != nullptr) {
+               wm_desktop_ws != nullptr) {
         /* If _NET_WM_DESKTOP is set to a specific desktop, we open it
          * there. Note that we ignore the special value 0xFFFFFFFF here
          * since such a window will be made sticky anyway. */
@@ -242,19 +242,19 @@ static ConCon* find_con_for_window_not_found(i3Window const *cwindow, Con const 
 
         auto descend_nc = con_descend_tiling_focused(wm_desktop_ws);
         if (descend_nc->type == CT_WORKSPACE) {
-            nc = tree_open_con(descend_nc);
+            nc = tree_open_con(descend_nc, cwindow);
         } else {
-            nc = tree_open_con(descend_nc->parent);
+            nc = tree_open_con(descend_nc->parent, cwindow);
         }
     } else if (startup_ws) {
         /* If it was started on a specific workspace, we want to open it there. */
-        DLOG(fmt::sprintf("Using workspace on which this application was started (%s)\n", startup_ws));
-        auto descend_nc = con_descend_tiling_focused(workspace_get_or_create(startup_ws));
-        DLOG(fmt::sprintf("focused on ws %s: %p / %s\n", startup_ws, fmt::ptr(descend_nc), descend_nc->name));
+        DLOG(fmt::format("Using workspace on which this application was started ({})", *startup_ws));
+        auto descend_nc = con_descend_tiling_focused(workspace_get_or_create(*startup_ws));
+        DLOG(fmt::format("focused on ws {}: {} / {}", *startup_ws, fmt::ptr(descend_nc), descend_nc->name));
         if (descend_nc->type == CT_WORKSPACE) {
-            nc = tree_open_con(descend_nc);
+            nc = tree_open_con(descend_nc, cwindow);
         } else {
-            nc = tree_open_con(descend_nc->parent);
+            nc = tree_open_con(descend_nc->parent, cwindow);
         }
     } else {
         /* If not, insert it at the currently focused position */
@@ -262,8 +262,9 @@ static ConCon* find_con_for_window_not_found(i3Window const *cwindow, Con const 
             LOG(fmt::sprintf("using current container, focused = %p, focused->name = %s\n",
                     fmt::ptr(global.focused), global.focused->name));
             nc = dynamic_cast<ConCon*>(global.focused);
+            // TODO assign cwindow to nc?
         } else {
-            nc = tree_open_con(nullptr);
+            nc = tree_open_con(nullptr, cwindow);
         }
     }
     auto outputAssignmentOpt = global.assignmentManager->assignment_for<OutputAssignment>(cwindow);
@@ -274,12 +275,12 @@ static ConCon* find_con_for_window_not_found(i3Window const *cwindow, Con const 
     return nc;
 }
 
-static ConCon* find_con_for_window_found(i3Window const *cwindow, Con const *search_at, Con *nc_for_window, bool &urgency_hint, char *startup_ws, bool &match_from_restart_mode, Match *match) {
+static ConCon* find_con_for_window_found(i3Window *cwindow, Con *nc_for_window, Match *match) {
     ConCon *nc;
     /* M_BELOW inserts the new window as a child of the one which was
          * matched (e.g. dock areas) */
     if (match != nullptr && match->insert_where == M_BELOW) {
-        nc = tree_open_con(nc_for_window);
+        nc = tree_open_con(nc_for_window, cwindow);
     } else {
         nc = dynamic_cast<ConCon*>(nc_for_window); // TODO: bad to assume its a concon?
     }
@@ -299,20 +300,20 @@ static ConCon* find_con_for_window_found(i3Window const *cwindow, Con const *sea
     return nc;
 }
 
-static std::pair<ConCon*,bool> find_con_for_window(i3Window const *cwindow, Con const *search_at, bool &urgency_hint, char *startup_ws, bool &match_from_restart_mode) {
+static ConCon* find_con_for_window(i3Window *cwindow, Con const *search_at, bool &urgency_hint, std::optional<std::string> &startup_ws, bool &match_from_restart_mode) {
     Match *match = nullptr;
-    bool swallowed = false;
     Con *nc_for_window = con_for_window(search_at, cwindow, &match);
     ConCon *nc = nullptr;
     match_from_restart_mode = (match && match->restart_mode);
     if (nc_for_window == nullptr) {
         nc = find_con_for_window_not_found(cwindow, search_at, urgency_hint, startup_ws, match_from_restart_mode, match);
     } else {
-        nc = find_con_for_window_found(cwindow, search_at, nc_for_window, urgency_hint, startup_ws, match_from_restart_mode, match);
-        swallowed = true;
+        cwindow->swallowed = true;
+        nc = find_con_for_window_found(cwindow, nc_for_window, match);
+        // TODO assign cwindow to nc?
     }
     
-    return {nc,swallowed};
+    return nc;
 }
 
 static bool should_set_focus(i3Window *cwindow, Con *fs, WorkspaceCon *ws, ConCon *nc, bool match_from_restart_mode) {
@@ -387,8 +388,8 @@ static void handle_dock(i3Window *cwindow, Con **search_at_p, xcb_get_geometry_r
 }
 
 template<typename Window_data>
-static std::unique_ptr<i3Window> create_window(Window_data &w_data, xcb_window_t window, xcb_visualid_t visual, bool &urgency_hint, border_style_t &motif_border_style, bool &has_mwm_hints, xcb_get_geometry_reply_t *geom) {
-    auto cwindow = std::make_unique<i3Window>(window);
+static i3Window* create_window(Window_data &w_data, xcb_window_t window, xcb_visualid_t visual, bool &urgency_hint, border_style_t &motif_border_style, bool &has_mwm_hints, xcb_get_geometry_reply_t *geom) {
+    auto cwindow = new i3Window(window);
     cwindow->depth = get_visual_depth(visual);
 
     auto buttons = bindings_get_buttons_to_grab();
@@ -431,7 +432,7 @@ static std::unique_ptr<i3Window> create_window(Window_data &w_data, xcb_window_t
     if (auto machine = handle_property::window_update_machine(w_data.wm_machine_cookie.get().get()); machine) {
         cwindow->window_update_machine(*machine);
     }
-    return std::move(cwindow);
+    return cwindow;
 }
 
 /*
@@ -488,13 +489,13 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     bool urgency_hint;
     border_style_t motif_border_style = border_style_t::BS_NORMAL;
     bool has_mwm_hints = false;
-    std::unique_ptr<i3Window> cwindow = create_window(w_data, window, visual, urgency_hint, motif_border_style, has_mwm_hints, geom.get().get());
+    i3Window *cwindow = create_window(w_data, window, visual, urgency_hint, motif_border_style, has_mwm_hints, geom.get().get());
     
     xcb_get_property_reply_t *type_reply = (w_data.wm_type_cookie->value_len > 0 ? w_data.wm_type_cookie.get().get() : nullptr);
     xcb_get_property_reply_t *state_reply = (w_data.state_cookie->value_len > 0 ? w_data.state_cookie.get().get() : nullptr);
 
-    char *startup_ws = startup_workspace_for_window(cwindow.get(), (w_data.startup_id_cookie->value_len > 0 ? w_data.startup_id_cookie.get().get() : nullptr));
-    DLOG(fmt::sprintf("startup workspace = %s\n", startup_ws));
+    std::optional<std::string> startup_ws = startup_workspace_for_window(cwindow, (w_data.startup_id_cookie->value_len > 0 ? w_data.startup_id_cookie.get().get() : nullptr));
+    DLOG(fmt::format("startup workspace = {}", startup_ws.value_or("(null)")));
 
     /* Get _NET_WM_DESKTOP if it was set. */
     xcb_get_property_reply_t *wm_desktop_reply;
@@ -516,7 +517,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
 
     if (xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK])) {
         LOG("This window is of type dock\n");
-        handle_dock(cwindow.get(), &search_at, geom.get().get());
+        handle_dock(cwindow, &search_at, geom.get().get());
     }
 
     DLOG(fmt::sprintf("Initial geometry: (%d, %d, %d, %d)\n", geom->x, geom->y, geom->width, geom->height));
@@ -524,12 +525,13 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     /* See if any container swallows this new window */
     cwindow->swallowed = false;
     bool match_from_restart_mode = false;
-    auto res = find_con_for_window(cwindow.get(), search_at, urgency_hint, startup_ws, match_from_restart_mode);
-    ConCon *nc = res.first;
-    cwindow->swallowed = res.second;
+    ConCon *nc = find_con_for_window(cwindow, search_at, urgency_hint, startup_ws, match_from_restart_mode);
 
     DLOG(fmt::sprintf("new container = %p\n", fmt::ptr(nc)));
-    if (nc->get_window() != nullptr && nc->get_window() != cwindow.get()) {
+    
+    // TODO: This should already been set by find_con_for_window
+    
+    if (nc->get_window() != nullptr && nc->get_window() != cwindow) {
         if (!restore_kill_placeholder(nc->get_window()->id)) {
             DLOG("Uh?! Container without a placeholder, but with a window, has swallowed this to-be-managed window?!\n");
         } else {
@@ -538,13 +540,16 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         }
     }
     xcb_window_t old_frame = XCB_NONE;
-    if (nc->get_window() != cwindow.get() && nc->get_window() != nullptr) {
-        old_frame = _match_depth(cwindow.get(), nc);
+    if (nc->get_window() != cwindow && nc->get_window() != nullptr) {
+        old_frame = _match_depth(cwindow, nc);
     }
-    if (nc->get_window() != cwindow.get()) {
+    if (nc->get_window() != cwindow) {
         nc->depth = cwindow->depth;
-        nc->set_window(cwindow.release());
+        nc->set_window(cwindow);
     }
+    
+    // END:
+    
     x_reinit(nc);
 
     nc->border_width = geom->border_width;
