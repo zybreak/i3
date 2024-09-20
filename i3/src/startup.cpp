@@ -45,16 +45,12 @@ import log;
 
 static std::vector<std::unique_ptr<Startup_Sequence>> startup_sequences{};
 
-static std::optional<std::reference_wrapper<Startup_Sequence>> startup_sequence_get(i3Window *cwindow, xcb_get_property_reply_t* startup_id_reply, bool ignore_mapped_leader);
+static Startup_Sequence* startup_sequence_get(i3Window *cwindow, xcb_get_property_reply_t* startup_id_reply, bool ignore_mapped_leader);
 
-void remove_startup_sequence(char *id) {
-    auto itr = std::remove_if(startup_sequences.begin(), startup_sequences.end(), [&id](auto &currrent) {
-      return strcmp(currrent->id, id) == 0;
+void remove_startup_sequence(std::string id) {
+    std::erase_if(startup_sequences, [&id](auto &currrent) {
+      return currrent->id == id;
     });
-
-    if (itr != startup_sequences.end()) {
-        startup_sequences.erase(itr);
-    }
 }
 
 /*
@@ -65,25 +61,12 @@ void remove_startup_sequence(char *id) {
  *
  */
 static void startup_timeout(EV_P_ ev_timer *w, int revents) {
-    const char *id = sn_launcher_context_get_startup_id((SnLauncherContext*)w->data);
-    DLOG(fmt::sprintf("Timeout for startup sequence %s\n",  id));
-
-    auto seq_ptr = std::ranges::find_if(startup_sequences, [&id](auto &currrent) {
-        return strcmp(currrent->id, id) == 0;
-    });
-
-    /* Unref the context (for the timeout itself, see start_application) */
-    sn_launcher_context_unref((SnLauncherContext*)w->data);
-
-    if (seq_ptr == startup_sequences.end()) {
-        DLOG("Sequence already deleted, nevermind.\n");
-        delete w;
-        return;
-    }
+    Startup_Sequence *sequence = (Startup_Sequence*)w->data;
+    DLOG(fmt::format("Timeout for startup sequence {}", sequence->id));
 
     /* Complete the startup sequence, will trigger its deletion. */
-    sn_launcher_context_complete((SnLauncherContext*)w->data);
-    delete w;
+    sn_launcher_context_complete(sequence->context);
+    sequence->stop_timer();
 }
 
 /*
@@ -131,14 +114,43 @@ static int _prune_startup_sequences() {
  *
  */
 Startup_Sequence::~Startup_Sequence() {
-    auto sequence = this;
-    DLOG(fmt::format("Deleting startup sequence {}", sequence->id));
+    DLOG(fmt::format("Deleting startup sequence {}", this->id));
 
+    this->stop_timer();
+    
     /* Unref the context, will be free()d */
-    sn_launcher_context_unref(sequence->context);
+    sn_launcher_context_unref(this->context);
+}
 
-    free(sequence->id);
-    free(sequence->workspace);
+void Startup_Sequence::stop_timer() {
+    if (this->timeout == nullptr) {
+        return;
+    }
+
+    ev_timer_stop(global.eventHandler->main_loop, this->timeout);
+    delete this->timeout;
+    this->timeout = nullptr;
+}
+
+Startup_Sequence::Startup_Sequence(int screen, WorkspaceCon *ws, std::string name, std::string description, std::string launchee, xcb_timestamp_t last_timestamp) {
+    /* Create a startup notification context to monitor the progress of this
+         * startup. */
+    SnLauncherContext *context = sn_launcher_context_new(sndisplay, screen);
+    sn_launcher_context_set_name(context, name.c_str());
+    sn_launcher_context_set_description(context, description.c_str());
+    sn_launcher_context_initiate(context, "i3", launchee.c_str(), last_timestamp);
+
+    /* Trigger a timeout after 60 seconds */
+    this->timeout = new ev_timer();
+    this->timeout->data = this;
+    ev_timer_init(this->timeout, startup_timeout, 60.0, 0.);
+    ev_timer_start(global.eventHandler->main_loop, this->timeout);
+
+    LOG(fmt::sprintf("startup id = %s\n",  sn_launcher_context_get_startup_id(context)));
+
+    this->id = sn_launcher_context_get_startup_id(context);
+    this->workspace = ws->name;
+    this->context = context;
 }
 
 /*
@@ -157,38 +169,18 @@ void start_application(const std::string_view command, bool no_startup_id) {
     SnLauncherContext *context = nullptr;
 
     if (!no_startup_id) {
-        /* Create a startup notification context to monitor the progress of this
-         * startup. */
-        context = sn_launcher_context_new(sndisplay, global.x->conn->default_screen());
-        sn_launcher_context_set_name(context, "i3");
-        sn_launcher_context_set_description(context, "exec command in i3");
+
         /* Chop off everything starting from the first space (if there are any
          * spaces in the command), since we don’t want the parameters. */
         auto space = std::ranges::find(command, ' ');
         const auto &view = std::string_view(command.begin(), space);
-        sn_launcher_context_initiate(context, "i3", view.data(), global.last_timestamp);
-
-        /* Trigger a timeout after 60 seconds */
-        auto *timeout = new ev_timer();
-        ev_timer_init(timeout, startup_timeout, 60.0, 0.);
-        timeout->data = context;
-        ev_timer_start(global.eventHandler->main_loop, timeout);
-
-        LOG(fmt::sprintf("startup id = %s\n",  sn_launcher_context_get_startup_id(context)));
+        std::string launchee = view.data();
 
         /* Save the ID and current workspace in our internal list of startup
          * sequences */
         WorkspaceCon *ws = global.focused->con_get_workspace();
-        auto sequence = std::make_unique<Startup_Sequence>();
-        sequence->id = sstrdup(sn_launcher_context_get_startup_id(context));
-        sequence->workspace = sstrdup(ws->name.c_str());
-        sequence->context = context;
-        startup_sequences.push_back(std::move(sequence));
-
-        /* Increase the refcount once (it starts with 1, so it will be 2 now) for
-         * the timeout. Even if the sequence gets completed, the timeout still
-         * needs the context (but will unref it then) */
-        sn_launcher_context_ref(context);
+        
+        context = startup_sequences.emplace_back(std::make_unique<Startup_Sequence>(global.x->conn->default_screen(), ws, "i3", "exec command in i3", launchee, global.last_timestamp))->context;
     }
 
     LOG(fmt::sprintf("executing: %s\n",  command));
@@ -199,8 +191,9 @@ void start_application(const std::string_view command, bool no_startup_id) {
         setrlimit(RLIMIT_CORE, &global.original_rlimit_core);
         signal(SIGPIPE, SIG_DFL);
         /* Setup the environment variable(s) */
-        if (!no_startup_id)
+        if (!no_startup_id) {
             sn_launcher_context_setup_child_process(context);
+        }
         setenv("I3SOCK", global.current_socketpath.c_str(), 1);
 
         execl(_PATH_BSHELL, _PATH_BSHELL, "-c", command.data(), nullptr);
@@ -227,11 +220,11 @@ void startup_monitor_event(SnMonitorEvent *event, void *userdata) {
     /* Get the corresponding internal startup sequence */
     const char *id = sn_startup_sequence_get_id(snsequence);
     auto seq_ptr = std::ranges::find_if(startup_sequences, [&id](auto &current) {
-        return strcmp(current->id, id) == 0;
+        return strcmp(current->id.c_str(), id) == 0;
     });
 
     if (seq_ptr == startup_sequences.end()) {
-        DLOG(fmt::sprintf("Got event for startup sequence that we did not initiate (ID = %s). Ignoring.\n",  id));
+        DLOG(fmt::format("Got event for startup sequence that we did not initiate (ID = {}). Ignoring.", id));
         return;
     }
 
@@ -266,12 +259,12 @@ void startup_monitor_event(SnMonitorEvent *event, void *userdata) {
  */
 void startup_sequence_rename_workspace(const char *old_name, const char *new_name) {
     for (auto &current : startup_sequences) {
-        if (strcmp(current->workspace, old_name) != 0)
+        if (strcmp(current->workspace.c_str(), old_name) != 0) {
             continue;
-         DLOG(fmt::sprintf("Renaming workspace \"%s\" to \"%s\" in startup sequence %s.\n",
-             old_name, new_name, current->id));
-        free(current->workspace);
-        current->workspace = sstrdup(new_name);
+        }
+        DLOG(fmt::format("Renaming workspace \"{}\" to \"{}\" in startup sequence {}.\n",
+                old_name, new_name, current->id));
+        current->workspace = new_name;
     }
 }
 
@@ -279,14 +272,14 @@ void startup_sequence_rename_workspace(const char *old_name, const char *new_nam
  * Gets the stored startup sequence for the _NET_STARTUP_ID of a given window.
  *
  */
-static std::optional<std::reference_wrapper<Startup_Sequence>> startup_sequence_get(i3Window *cwindow,
+static Startup_Sequence* startup_sequence_get(i3Window *cwindow,
                                               xcb_get_property_reply_t* startup_id_reply, bool ignore_mapped_leader) {
     /* The _NET_STARTUP_ID is only needed during this function, so we get it
      * here and don’t save it in the 'cwindow'. */
     if (startup_id_reply == nullptr || xcb_get_property_value_length(startup_id_reply) == 0) {
         DLOG(fmt::sprintf("No _NET_STARTUP_ID set on window 0x%08x\n",  cwindow->id));
         if (cwindow->leader == XCB_NONE) {
-            return {};
+            return nullptr;
         }
 
         /* This is a special case that causes the leader's startup sequence
@@ -298,7 +291,7 @@ static std::optional<std::reference_wrapper<Startup_Sequence>> startup_sequence_
          * likely permanently unmapped and the child is the "real" window. */
         if (ignore_mapped_leader && con_by_window_id(cwindow->leader) != nullptr) {
             DLOG(fmt::sprintf("Ignoring leader window 0x%08x\n",  cwindow->leader));
-            return {};
+            return nullptr;
         }
 
         DLOG(fmt::sprintf("Checking leader window 0x%08x\n",  cwindow->leader));
@@ -310,7 +303,7 @@ static std::optional<std::reference_wrapper<Startup_Sequence>> startup_sequence_
         if (startup_id_reply == nullptr ||
             xcb_get_property_value_length(startup_id_reply) == 0) {
             DLOG("No _NET_STARTUP_ID set on the leader either\n");
-            return {};
+            return nullptr;
         }
     }
 
@@ -318,15 +311,15 @@ static std::optional<std::reference_wrapper<Startup_Sequence>> startup_sequence_
               (char *)xcb_get_property_value(startup_id_reply));
 
     auto seq_ptr = std::ranges::find_if(startup_sequences, [&startup_id](auto &current) {
-        return strcmp(current->id, startup_id.c_str()) == 0;
+        return current->id == startup_id;
     });
 
     if (seq_ptr == startup_sequences.end()) {
         DLOG(fmt::sprintf("WARNING: This sequence (ID %s) was not found\n",  startup_id));
-        return {};
+        return nullptr;
     }
 
-    return **seq_ptr;
+    return seq_ptr->get();
 }
 
 /*
@@ -338,22 +331,22 @@ static std::optional<std::reference_wrapper<Startup_Sequence>> startup_sequence_
  * Returns NULL otherwise.
  *
  */
-char *startup_workspace_for_window(i3Window *cwindow, xcb_get_property_reply_t *startup_id_reply) {
-    auto seq_opt = startup_sequence_get(cwindow, startup_id_reply, false);
-    if (!seq_opt) {
-        return nullptr;
+std::optional<std::string> startup_workspace_for_window(i3Window *cwindow, xcb_get_property_reply_t *startup_id_reply) {
+    auto *seq = startup_sequence_get(cwindow, startup_id_reply, false);
+    if (seq == nullptr) {
+        return std::nullopt;
     }
 
     /* If the startup sequence's time span has elapsed, delete it. */
     auto current_time = std::chrono::system_clock::now();
-    if (seq_opt->get().delete_at && current_time > seq_opt->get().delete_at.value()) {
-        DLOG(fmt::sprintf("Deleting expired startup sequence %s\n",  seq_opt->get().id));
-        remove_startup_sequence(seq_opt->get().id);
+    if (seq->delete_at && current_time > *seq->delete_at) {
+        DLOG(fmt::format("Deleting expired startup sequence {}",  seq->id));
+        remove_startup_sequence(seq->id);
 
-        return nullptr;
+        return std::nullopt;
     }
 
-    return seq_opt->get().workspace;
+    return seq->workspace;
 }
 
 /*
@@ -364,8 +357,8 @@ void startup_sequence_delete_by_window(i3Window *win) {
 
     auto startup_id_reply = global.x->conn->get_property(false, win->id, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
 
-    auto sequence = startup_sequence_get(win, (startup_id_reply.get() != nullptr) ? startup_id_reply.get().get() : nullptr, true);
-    if (sequence) {
-        remove_startup_sequence(sequence->get().id);
+    auto *sequence = startup_sequence_get(win, (startup_id_reply.get() != nullptr) ? startup_id_reply.get().get() : nullptr, true);
+    if (sequence != nullptr) {
+        remove_startup_sequence(sequence->id);
     }
 }
