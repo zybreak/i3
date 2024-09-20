@@ -3320,7 +3320,7 @@ typename Tree<T, tree_node_allocator>::leaf_iterator& Tree<T, tree_node_allocato
      * Opens an empty container in the current container
      *
      */
-    ConCon *tree_open_con(Con * con);
+    ConCon *tree_open_con(Con * con, i3Window * window = nullptr);
 
     /**
      * Splits (horizontally or vertically) the given container by creating a new

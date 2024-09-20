@@ -124,11 +124,11 @@ static Con* _focused() {
  * Opens an empty container in the current container
  *
  */
-ConCon *tree_open_con(Con *_con) {
+ConCon *tree_open_con(Con *_con, i3Window *window) {
     Con *con = _con != nullptr ? _con : _focused();
 
     /* 3. create the container and attach it to its parent */
-    ConCon *new_con = new ConCon();
+    ConCon *new_con = new ConCon(window);
     new_con->con_attach(con, false);
 
     new_con->layout = L_SPLITH;
