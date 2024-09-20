@@ -181,9 +181,9 @@ bool con_find_transient_for_window(Con *start, xcb_window_t target) {
  * TODO: priority
  *
  */
-Con *con_for_window(Con const *con, i3Window const *window, Match **store_match) {
-
-    for (auto &child : con->nodes) {
+template<typename List>
+static Con* _con_for_window(List &list, i3Window const *window, Match **store_match) {
+    for (auto &child : list) {
         for (auto &match : child->swallow) {
             if (!match->match_matches_window(window)) {
                 continue;
@@ -198,22 +198,23 @@ Con *con_for_window(Con const *con, i3Window const *window, Match **store_match)
             return result;
         }
     }
+    
+    return nullptr;
+}
+
+/*
+ * Returns the first container below 'con' which wants to swallow this window
+ * TODO: priority
+ *
+ */
+Con *con_for_window(Con const *con, i3Window const *window, Match **store_match) {
+    if (Con *result = _con_for_window(con->nodes, window, store_match); result != nullptr) {
+        return result;
+    }
 
     if (auto ws = dynamic_cast<const WorkspaceCon*>(con); ws) {
-        for (auto &child : ws->floating_windows) {
-            for (auto &match : child->swallow) {
-                if (!match->match_matches_window(window)) {
-                    continue;
-                }
-                if (store_match != nullptr) {
-                    *store_match = match.get();
-                }
-                return child;
-            }
-            Con *result = con_for_window(child, window, store_match);
-            if (result != nullptr) {
-                return result;
-            }
+        if (Con *result = _con_for_window(ws->floating_windows, window, store_match); result != nullptr) {
+            return result;
         }
     }
 
