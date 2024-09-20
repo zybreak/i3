@@ -132,7 +132,8 @@ export {
 
        public:
         PropertyHandlers() = delete;
-        PropertyHandlers(const PropertyHandlers &) = delete;
+        PropertyHandlers(PropertyHandlers const &) = delete;
+        PropertyHandlers operator=(PropertyHandlers const &) = delete;
 
         /**
          * Sets the appropriate atoms for the property handlers after the atoms were
