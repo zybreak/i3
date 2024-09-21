@@ -1,10 +1,32 @@
+Language: Cpp
+Standard: Latest
 BasedOnStyle: google
+AccessModifierOffset: -2
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None
 AllowShortBlocksOnASingleLine: Never
 AlwaysBreakBeforeMultilineStrings: false
+Cpp11BracedListStyle: true
+ContinuationIndentWidth: 8
+BreakBeforeBraces: Attach
+PointerAlignment: Left
+QualifierAlignment: Custom
+QualifierOrder: ['inline', 'static', 'constexpr', 'type', 'const', 'volatile' ]
 IndentWidth: 4
 ColumnLimit: 0
 SpaceBeforeParens: ControlStatements
 SortIncludes: Never
+AlignAfterOpenBracket: Align
+BreakBeforeConceptDeclarations: Always
+BreakInheritanceList: AfterComma
+BreakConstructorInitializers: BeforeColon
+EmptyLineBeforeAccessModifier: Always
+NamespaceIndentation: All
+SpaceBeforeInheritanceColon: true
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeCaseColon: false
+SpaceBeforeCpp11BracedList: false
+AlignTrailingComments:
+  Kind: Always
+  OverEmptyLines: 2
