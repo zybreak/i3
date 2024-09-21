@@ -2079,7 +2079,7 @@ static int *gaps_right(gaps_t *gaps) {
     return &(gaps->right);
 }
 
-typedef int *(*gap_accessor)(gaps_t *);
+using gap_accessor = int *(*)(gaps_t *);
 
 static bool gaps_update(gap_accessor get, const char *scope, const char *mode, int pixels) {
     DLOG(fmt::sprintf("gaps_update(scope=%s, mode=%s, pixels=%d)\n", scope, mode, pixels));

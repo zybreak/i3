@@ -29,7 +29,7 @@ export {
      * message_type is the type of the message as the sender specified it.
      *
      */
-    typedef void (*handler_t)(ipc_client *, uint8_t *, int, uint32_t, uint32_t);
+    using handler_t = void (*)(ipc_client *, uint8_t *, int, uint32_t, uint32_t);
 
     /* Macro to declare a callback */
 
