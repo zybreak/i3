@@ -544,7 +544,6 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         old_frame = _match_depth(cwindow, nc);
     }
     if (nc->get_window() != cwindow) {
-        nc->depth = cwindow->depth;
         nc->set_window(cwindow);
     }
     
