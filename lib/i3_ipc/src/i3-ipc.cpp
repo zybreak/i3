@@ -15,7 +15,7 @@ module i3ipc;
  */
 
 ;
-ipc_client::ipc_client(ev_loop *loop, int fd, void (*read_callback_t)(ev_loop *loop, ev_io *w, int revents), void (*write_callback_t)(ev_loop *loop, ev_io *w, int revents)) : loop(loop) {
+ipc_client::ipc_client(ev_loop *loop, int fd, callback read_callback_t, callback write_callback_t) : loop(loop) {
     this->fd = fd;
 
     read_callback = new ev_io{};

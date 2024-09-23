@@ -23,7 +23,7 @@ namespace i3ipc {
      * write failed) or count (meaning that all bytes were written)
      *
      */
-    ssize_t writeall(int fd, const void *buf, size_t count) {
+    static ssize_t writeall(int fd, const void *buf, size_t count) {
         size_t written = 0;
 
         while (written < count) {

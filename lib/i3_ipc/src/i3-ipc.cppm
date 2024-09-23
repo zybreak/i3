@@ -18,9 +18,11 @@ module;
 export module i3ipc;
 
 export class ipc_client {
-   private:
+  private:
     ev_loop *loop;
-   public:
+
+  public:
+    using callback = void (*)(ev_loop *loop, ev_io *w, int revents);
     int fd;
 
     /* The events which this client wants to receive */
@@ -40,7 +42,7 @@ export class ipc_client {
     ipc_client(ipc_client const &) = delete;
     ipc_client operator=(ipc_client const &) = delete;
 
-    ipc_client(ev_loop *loop, int fd, void (*read_callback_t)(ev_loop *loop, ev_io *w, int revents), void (*write_callback_t)(ev_loop *loop, ev_io *w, int revents));
+    ipc_client(ev_loop *loop, int fd, callback read_callback_t, callback write_callback_t);
     ~ipc_client();
     
     bool operator==(ipc_client const &o) {
@@ -55,7 +57,7 @@ export class ipc_client {
 export namespace i3ipc {
 
     /** Never change this, only on major IPC breakage (don’t do that) */
-    constexpr std::string MAGIC = "i3-ipc";
+    constexpr std::string MAGIC{"i3-ipc"};
 
     /**
      * Messages from clients to i3
@@ -110,32 +112,31 @@ export namespace i3ipc {
      * Events from i3 to clients. Events have the first bit set high.
      *
      */
-    const uint32_t EVENT_MASK = (1UL << 31);
+    uint32_t const EVENT_MASK = (1UL << 31);
 
     /* The workspace event will be triggered upon changes in the workspace list */
-    const uint32_t EVENT_WORKSPACE = (EVENT_MASK | 0);
+    uint32_t const EVENT_WORKSPACE = (EVENT_MASK | 0);
 
     /* The output event will be triggered upon changes in the output list */
-    const uint32_t EVENT_OUTPUT = (EVENT_MASK | 1);
+    uint32_t const EVENT_OUTPUT = (EVENT_MASK | 1);
 
     /* The output event will be triggered upon mode changes */
-    const uint32_t EVENT_MODE = (EVENT_MASK | 2);
+    uint32_t const EVENT_MODE = (EVENT_MASK | 2);
 
     /* The window event will be triggered upon window changes */
-    const uint32_t EVENT_WINDOW = (EVENT_MASK | 3);
+    uint32_t const EVENT_WINDOW = (EVENT_MASK | 3);
 
     /** Bar config update will be triggered to update the bar config */
-    const uint32_t EVENT_BARCONFIG_UPDATE = (EVENT_MASK | 4);
+    uint32_t const EVENT_BARCONFIG_UPDATE = (EVENT_MASK | 4);
 
     /** The binding event will be triggered when bindings run */
-    const uint32_t EVENT_BINDING = (EVENT_MASK | 5);
+    uint32_t const EVENT_BINDING = (EVENT_MASK | 5);
 
     /** The shutdown event will be triggered when the ipc shuts down */
-    const uint32_t EVENT_SHUTDOWN = (EVENT_MASK | 6);
+    uint32_t const EVENT_SHUTDOWN = (EVENT_MASK | 6);
 
     /** The tick event will be sent upon a tick IPC message */
-    const uint32_t EVENT_TICK = (EVENT_MASK | 7);
-
+    uint32_t const EVENT_TICK = (EVENT_MASK | 7);
 
     struct i3_ipc_header_t {
         /* 6 = strlen(I3_IPC_MAGIC) */
@@ -149,14 +150,14 @@ export namespace i3ipc {
      * socket. die()s if anything goes wrong.
      *
      */
-    //std::tuple<std::string, int> ipc_connect(const std::string_view &socket_path);
+    // std::tuple<std::string, int> ipc_connect(const std::string_view &socket_path);
 
     /**
      * Connects to the socket at the given path with no fallback paths. Returns
      * -1 if connect() fails and die()s for other errors.
      *
      */
-    int ipc_connect_impl(const std::string_view &socket_path);
+    int ipc_connect_impl(std::string_view const &socket_path);
 
     /**
      * Formats a message (payload) of the given size and type and sends it to i3 via
@@ -167,7 +168,7 @@ export namespace i3ipc {
      *
      */
     int ipc_send_message(int sockfd, uint32_t message_size,
-                                MESSAGE_TYPE message_type, const uint8_t *payload);
+                         MESSAGE_TYPE message_type, uint8_t const *payload);
 
     /**
      * Reads a message from the given socket file descriptor and stores its length
@@ -181,5 +182,5 @@ export namespace i3ipc {
      *
      */
     int ipc_recv_message(int sockfd, uint32_t *message_type,
-                                uint32_t *reply_length, uint8_t **reply);
-}
+                         uint32_t *reply_length, uint8_t **reply);
+}  // namespace i3ipc
