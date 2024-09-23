@@ -13,6 +13,7 @@ BreakBeforeBraces: Attach
 PointerAlignment: Left
 QualifierAlignment: Custom
 QualifierOrder: ['inline', 'static', 'constexpr', 'type', 'const', 'volatile' ]
+LambdaBodyIndentation: OuterScope
 IndentWidth: 4
 ColumnLimit: 0
 SpaceBeforeParens: ControlStatements
