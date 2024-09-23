@@ -33,7 +33,7 @@ import rect;
 import i3_commands_base;
 import i3_config_base;
 
-static std::vector<ipc_client*> all_clients{};
+static std::vector<std::unique_ptr<ipc_client>> all_clients{};
 
 static void ipc_client_timeout(EV_P_ ev_timer *w, int revents);
 static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents);
@@ -157,15 +157,13 @@ static void ipc_send_client_message(ipc_client *client, const i3ipc::REPLY_TYPE 
     ipc_send_client_message(client, static_cast<const uint32_t>(message_type), payload);
 }
 
-static void free_ipc_client(ipc_client *client, int exempt_fd) {
-    if (client->fd != exempt_fd) {
-        DLOG(fmt::sprintf("Disconnecting client on fd %d\n",  client->fd));
-        close(client->fd);
+static void free_ipc_client(ipc_client &client, int exempt_fd = -1) {
+    if (client.fd != exempt_fd) {
+        DLOG(fmt::sprintf("Disconnecting client on fd %d\n",  client.fd));
+        close(client.fd);
     }
 
-    std::erase(all_clients, client);
-
-    delete client;
+    std::erase_if(all_clients, [&client](auto &c) { return *c == client; });
 }
 
 /*
@@ -173,11 +171,11 @@ static void free_ipc_client(ipc_client *client, int exempt_fd) {
  * and subscribed to this kind of event.
  *
  */
-void ipc_send_event(const char *event, uint32_t message_type, const std::string &payload) {
+void ipc_send_event(std::string const event, uint32_t message_type, const std::string &payload) {
     for (auto &current : all_clients) {
         for (auto &e : current->events) {
             if (e == event) {
-                ipc_send_client_message(current, message_type, payload);
+                ipc_send_client_message(current.get(), message_type, payload);
                 break;
             }
         }
@@ -216,7 +214,7 @@ void ipc_shutdown(shutdown_reason_t reason, int exempt_fd) {
         if (current->fd != exempt_fd) {
             shutdown(current->fd, SHUT_RDWR);
         }
-        free_ipc_client(current, exempt_fd);
+        free_ipc_client(*current, exempt_fd);
     }
 }
 
@@ -644,7 +642,7 @@ static void ipc_receive_message(EV_P_ ev_io *w, int revents) {
 
         /* If not, there was some kind of error. We don’t bother and close the
          * connection. Delete the client from the list of clients. */
-        free_ipc_client(client, -1);
+        free_ipc_client(*client);
         free(message);
         return;
     }
@@ -673,7 +671,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
             ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));
         }
 
-        free_ipc_client(client, -1);
+        free_ipc_client(*client);
         return;
     }
     std::string exepath = std::format("/proc/{}/cmdline", peercred.pid);
@@ -684,7 +682,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
             ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));
         }
 
-        free_ipc_client(client, -1);
+        free_ipc_client(*client);
         return;
     }
     char buf[512] = {'\0'}; /* cut off cmdline for the error message. */
@@ -695,7 +693,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
             ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));
         }
 
-        free_ipc_client(client, -1);
+        free_ipc_client(*client);
         return;
     }
     for (char *walk = buf; walk < buf + n - 1; walk++) {
@@ -714,7 +712,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
         ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));
     }
 
-    free_ipc_client(client, -1);
+    free_ipc_client(*client);
 }
 
 static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents) {
@@ -756,11 +754,8 @@ void ipc_new_client(EV_P_ ev_io *w, int revents) {
 ipc_client *ipc_new_client_on_fd(EV_P_ int fd) {
     set_nonblock(fd);
 
-    auto *client = new ipc_client(EV_A_ fd, ipc_receive_message, ipc_socket_writeable_cb);
-
     DLOG(fmt::sprintf("IPC: new client connected on fd %d\n",  fd));
-    all_clients.push_back(client);
-    return client;
+    return all_clients.emplace_back(std::make_unique<ipc_client>(EV_A_ fd, ipc_receive_message, ipc_socket_writeable_cb)).get();
 }
 
 /*

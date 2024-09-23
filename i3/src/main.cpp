@@ -93,7 +93,7 @@ static bool is_debug_build() {
  *
  */
 static void i3_exit() {
-    ipc_shutdown(SHUTDOWN_REASON_EXIT, -1);
+    ipc_shutdown(SHUTDOWN_REASON_EXIT);
     if (global.configManager->config->ipc_socket_path) {
         unlink(global.configManager->config->ipc_socket_path->c_str());
     }

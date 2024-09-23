@@ -35,11 +35,22 @@ export class ipc_client {
     ev_timer *timeout{};
     uint8_t *buffer{};
     size_t buffer_size{};
+    
+    ipc_client() = delete;
+    ipc_client(ipc_client const &) = delete;
+    ipc_client operator=(ipc_client const &) = delete;
 
     ipc_client(ev_loop *loop, int fd, void (*read_callback_t)(ev_loop *loop, ev_io *w, int revents), void (*write_callback_t)(ev_loop *loop, ev_io *w, int revents));
     ~ipc_client();
+    
+    bool operator==(ipc_client const &o) {
+        return this->fd == o.fd;
+    }
+    
+    bool operator!=(ipc_client const &o) {
+        return this->fd != o.fd;
+    }
 };
-
 
 export namespace i3ipc {
 

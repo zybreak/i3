@@ -119,7 +119,7 @@ void i3_restart(bool forget_layout) {
 
     restore_geometry();
 
-    ipc_shutdown(SHUTDOWN_REASON_RESTART, -1);
+    ipc_shutdown(SHUTDOWN_REASON_RESTART);
 
      LOG(fmt::sprintf("restarting \"%s\"...\n", global.start_argv.front()));
     /* make sure -a is in the argument list or add it */

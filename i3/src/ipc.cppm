@@ -57,7 +57,7 @@ export {
      * and subscribed to this kind of event.
      *
      */
-    void ipc_send_event(const char *event, uint32_t message_type, const std::string &payload);
+    void ipc_send_event(std::string const event, uint32_t message_type, const std::string &payload);
 
     /**
      * Calls to ipc_shutdown() should provide a reason for the shutdown.
@@ -74,7 +74,7 @@ export {
      * exempt_fd is never closed. Set to -1 to close all fds.
      *
      */
-    void ipc_shutdown(shutdown_reason_t reason, int exempt_fd);
+    void ipc_shutdown(shutdown_reason_t reason, int exempt_fd = -1);
 
     /**
      * Generates a json workspace event. Returns a dynamically allocated yajl
