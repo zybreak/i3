@@ -9,11 +9,11 @@ module;
 #include <cstdlib>
 #include <cstdint>
 #include <sys/un.h>
-#include <string_view>
-
 #include <cerrno>
 #include <unistd.h>
 module i3ipc;
+
+import std;
 
 namespace i3ipc {
     /*

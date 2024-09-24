@@ -34,7 +34,6 @@ module;
 #include "parser-specs/commandsGrammarBaseListener.h"
 export module i3_commands_new;
 
-import i3ipc;
 import i3_commands_base;
 import :commands_listener;
 
@@ -46,5 +45,5 @@ import :commands_listener;
  * Free the returned CommandResult with command_result_free().
  */
 export namespace i3_commands_new {
-    CommandResult parse_command(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier &applier);
+    CommandResult parse_command(const std::string &input, command_parser_data &&data, BaseCommandsApplier &applier);
 }

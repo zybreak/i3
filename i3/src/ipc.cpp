@@ -65,6 +65,40 @@ static ssize_t writeall_nonblock(int fd, const void *buf, size_t count) {
     return written;
 }
 
+/*
+ * ipc_new_client_on_fd() only sets up the event handler
+ * for activity on the new connection and inserts the file descriptor into
+ * the list of clients.
+ *
+ * This variant is useful for the inherited IPC connection when restarting.
+ *
+ */
+ipc_client::ipc_client(ev_loop *loop, int fd, callback read_callback_t, callback write_callback_t) : loop(loop) {
+    this->fd = fd;
+
+    read_callback = new ev_io{};
+    read_callback->data = this;
+    ev_io_init(read_callback, read_callback_t, fd, EV_READ);
+    ev_io_start(loop, read_callback);
+
+    write_callback = new ev_io{};
+    write_callback->data = this;
+    ev_io_init(write_callback, write_callback_t, fd, EV_WRITE);
+}
+
+ipc_client::~ipc_client() {
+    ev_io_stop(loop, read_callback);
+    delete read_callback;
+    ev_io_stop(loop, write_callback);
+    delete write_callback;
+    if (timeout) {
+        ev_timer_stop(loop, timeout);
+        delete timeout;
+    }
+
+    free(buffer);
+}
+
 void ipc_set_kill_timeout(ev_tstamp new_timeout) {
     kill_timeout = new_timeout;
 }
@@ -230,7 +264,7 @@ static void handle_run_command(ipc_client *client, uint8_t *message, int size, u
     nlohmann::json gen;
 
     auto commandsApplier = CommandsApplier{};
-    CommandResult result = parse_command(command, &gen, client, &commandsApplier);
+    CommandResult result = parse_command(command, {.gen = &gen, .client = client}, &commandsApplier);
 
     if (result.needs_tree_render) {
         tree_render();

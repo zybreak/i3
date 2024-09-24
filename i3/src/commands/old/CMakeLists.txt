@@ -28,7 +28,7 @@ target_sources(i3_commands_old PUBLIC
         i3_commands_old.cppm
         parser_stack.cppm
         )
-target_link_libraries(i3_commands_old PUBLIC nlohmann_json::nlohmann_json utils fmt::fmt libi3ipc i3_commands_base)
+target_link_libraries(i3_commands_old PUBLIC nlohmann_json::nlohmann_json utils fmt::fmt i3_commands_base)
 target_include_directories(i3_commands_old PUBLIC "${PROJECT_SOURCE_DIR}" "${PROJECT_BINARY_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}")
 add_dependencies(i3_commands_old Commands)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/GENERATED_commands_enums.cppm PROPERTIES GENERATED TRUE)

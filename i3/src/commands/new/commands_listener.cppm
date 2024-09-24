@@ -32,7 +32,8 @@ class criteria_state;
 export module i3_commands_new:commands_listener;
 
 import i3_commands_base;
-import i3ipc;
+
+class ipc_client;
 
 export class CommandsListener : public commandsGrammarBaseListener {
    private:

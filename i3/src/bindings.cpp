@@ -807,7 +807,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
 
     Binding bind_cp = *bind;
     auto commandsApplier = CommandsApplier{};
-    CommandResult result = parse_command(command, nullptr, nullptr, &commandsApplier);
+    CommandResult result = parse_command(command, {}, &commandsApplier);
 
     if (result.needs_tree_render) {
         tree_render();

@@ -19,6 +19,44 @@ struct Barconfig;
 class Con;
 
 export {
+    
+    class ipc_client {
+      private:
+        ev_loop *loop;
+        
+      public:
+        using callback = void (*)(ev_loop *loop, ev_io *w, int revents);
+        int fd;
+
+        /* The events which this client wants to receive */
+        std::vector<std::string> events{};
+
+        /* For clients which subscribe to the tick event: whether the first tick
+     * event has been sent by i3. */
+        bool first_tick_sent{};
+
+        ev_io *read_callback;
+        ev_io *write_callback;
+        ev_timer *timeout{};
+        uint8_t *buffer{};
+        size_t buffer_size{};
+    
+        ipc_client() = delete;
+        ipc_client(ipc_client const &) = delete;
+        ipc_client operator=(ipc_client const &) = delete;
+
+        ipc_client(ev_loop *loop, int fd, callback read_callback_t, callback write_callback_t);
+        ~ipc_client();
+    
+        bool operator==(ipc_client const &o) {
+            return this->fd == o.fd;
+        }
+    
+        bool operator!=(ipc_client const &o) {
+            return this->fd != o.fd;
+        }
+    };
+
     /*
      * Callback type for the different message types.
      *

@@ -34,10 +34,11 @@ module;
 #include "parser-specs/commandsGrammarBaseListener.h"
 module i3_commands_new;
 
-import i3ipc;
 import i3_commands_base;
 
 using namespace antlr4;
+
+class ipc_client;
 
 class ErrorListener : public BaseErrorListener {
     void syntaxError(Recognizer *recognizer, Token * offendingSymbol, size_t line, size_t charPositionInLine,
@@ -53,7 +54,7 @@ class ErrorListener : public BaseErrorListener {
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult i3_commands_new::parse_command(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier &applier) {
+CommandResult i3_commands_new::parse_command(const std::string &input, command_parser_data &&data, BaseCommandsApplier &applier) {
     std::string padded_input = fmt::sprintf("$(%s)", input);
     ANTLRInputStream stream{padded_input};
     commandsLexer lexer{&stream};
@@ -77,7 +78,7 @@ CommandResult i3_commands_new::parse_command(const std::string &input, nlohmann:
 
     //cout << tree->toStringTree(&parser, true) << endl << endl;
 
-    CommandsListener listener{applier, gen, client};
+    CommandsListener listener{applier, data.gen, data.client};
     tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
 
     CommandResult result{};

@@ -6,16 +6,15 @@
  *
  */
 module;
-
 #include <err.h>
 #include <fcntl.h>
 #include <cstdlib>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
-#include <string_view>
-
 module i3ipc;
+
+import std;
 
 namespace i3ipc {
     /**

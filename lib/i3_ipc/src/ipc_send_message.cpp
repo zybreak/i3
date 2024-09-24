@@ -8,13 +8,11 @@
 module;
 #include <cstdlib>
 #include <cstdint>
-#include <string_view>
-#include <utility>
-
 #include <cerrno>
 #include <unistd.h>
-
 module i3ipc;
+
+import std;
 
 namespace i3ipc {
 

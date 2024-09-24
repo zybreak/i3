@@ -33,7 +33,6 @@ module i3_commands_old;
 
 import std;
 import i3_commands_base;
-import i3ipc;
 import utils;
 
 /*******************************************************************************
@@ -231,7 +230,7 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, c
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult i3_commands_old::parse_command(const std::string &input, nlohmann::json *gen, ipc_client *client, BaseCommandsApplier *applier) {
+CommandResult i3_commands_old::parse_command(const std::string &input, command_parser_data &&data, BaseCommandsApplier *applier) {
     //DLOG(fmt::sprintf("COMMAND: *%.4000s*\n",  input));
     cmdp_state state = cmdp_state::INITIAL;
     stack stack{};
@@ -239,10 +238,10 @@ CommandResult i3_commands_old::parse_command(const std::string &input, nlohmann:
     auto result = CommandResult{};
 
     command_output.applier = applier;
-    command_output.client = client;
+    command_output.client = data.client;
 
     /* A YAJL JSON generator used for formatting replies. */
-    command_output.json_gen = gen;
+    command_output.json_gen = data.gen;
 
     command_output.needs_tree_render = false;
 
@@ -277,7 +276,7 @@ CommandResult i3_commands_old::parse_command(const std::string &input, nlohmann:
         }
 
         if (!token_handled) {
-            unhandled_token(result, gen, stack, input, len, ptr, walk);
+            unhandled_token(result, data.gen, stack, input, len, ptr, walk);
             break;
         }
     }
