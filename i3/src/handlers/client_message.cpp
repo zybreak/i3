@@ -125,7 +125,7 @@ static void handle_active_window(xcb_client_message_event_t *event) {
          * likely from some user action */
         DLOG(fmt::sprintf("This request came from a pager. Focusing con = %p\n", fmt::ptr(con)));
 
-        workspace_show(ws);
+        global.workspaceManager->workspace_show(ws);
         /* Re-set focus, even if unchanged from i3’s perspective. */
         global.x->focused_id = XCB_NONE;
         con->con_activate_unblock();
@@ -190,7 +190,7 @@ static void handle_current_desktop(xcb_client_message_event_t *event) {
     }
 
     DLOG(fmt::sprintf("Handling request to focus workspace %s\n", ws->name));
-    workspace_show(ws);
+    global.workspaceManager->workspace_show(ws);
     tree_render();
 }
 

@@ -248,7 +248,7 @@ static void move_to_output_directed(Con *con, direction_t direction) {
          * See: #3518. */
         con->con_focus();
         global.focused = old_ws;
-        workspace_show(dynamic_cast<WorkspaceCon*>(*ws));
+        global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon*>(*ws));
         con->con_focus();
     }
 

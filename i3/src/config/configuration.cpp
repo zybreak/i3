@@ -112,12 +112,12 @@ static std::optional<std::filesystem::path> get_config_path(const std::optional<
     return std::nullopt;
 }
 
-void INIT_COLOR(Colortriple &x, const char *cborder, const char *cbackground, const char *ctext, const char *cindicator) {
-    x.border = draw_util_hex_to_color(**global.x, global.x->root_screen, cborder);
-    x.background = draw_util_hex_to_color(**global.x, global.x->root_screen, cbackground);
-    x.text = draw_util_hex_to_color(**global.x, global.x->root_screen, ctext);
-    x.indicator = draw_util_hex_to_color(**global.x, global.x->root_screen, cindicator);
-    x.child_border = draw_util_hex_to_color(**global.x, global.x->root_screen, cbackground);
+void INIT_COLOR(X &x, Colortriple &color, const char *cborder, const char *cbackground, const char *ctext, const char *cindicator) {
+    color.border = draw_util_hex_to_color(*x, x.root_screen, cborder);
+    color.background = draw_util_hex_to_color(*x, x.root_screen, cbackground);
+    color.text = draw_util_hex_to_color(*x, x.root_screen, ctext);
+    color.indicator = draw_util_hex_to_color(*x, x.root_screen, cindicator);
+    color.child_border = draw_util_hex_to_color(*x, x.root_screen, cbackground);
 }
 
 /*
@@ -220,7 +220,7 @@ void ConfigurationManager::set_config(std::unique_ptr<Config> _config) {
     if (!config->font) {
         ELOG("You did not specify required configuration option \"font\"\n");
         using namespace std::literals;
-        config->font = load_font(**global.x, global.x->root_screen, "fixed"s);
+        config->font = load_font(*x, x.root_screen, "fixed"s);
     }
     
     // TODO: decide if we should call set_mode or no?
@@ -236,26 +236,25 @@ Config::Config() {
     config->modes.insert_or_assign("default", default_mode);
 }
 
-void Config::init_color() {
-    auto *config = this;
+void ConfigurationManager::init_color(Config &config) {
     /* Initialize default colors */
-    config->client.background = draw_util_hex_to_color(**global.x, global.x->root_screen, "#000000");
-    INIT_COLOR(config->client.focused, "#4c7899", "#285577", "#ffffff", "#2e9ef4");
-    INIT_COLOR(config->client.focused_inactive, "#333333", "#5f676a", "#ffffff", "#484e50");
-    INIT_COLOR(config->client.unfocused, "#333333", "#222222", "#888888", "#292d2e");
-    INIT_COLOR(config->client.urgent, "#2f343a", "#900000", "#ffffff", "#900000");
-    config->client.got_focused_tab_title = false;
+    config.client.background = draw_util_hex_to_color(*x, x.root_screen, "#000000");
+    INIT_COLOR(x, config.client.focused, "#4c7899", "#285577", "#ffffff", "#2e9ef4");
+    INIT_COLOR(x, config.client.focused_inactive, "#333333", "#5f676a", "#ffffff", "#484e50");
+    INIT_COLOR(x, config.client.unfocused, "#333333", "#222222", "#888888", "#292d2e");
+    INIT_COLOR(x, config.client.urgent, "#2f343a", "#900000", "#ffffff", "#900000");
+    config.client.got_focused_tab_title = false;
 
     /* border and indicator color are ignored for placeholder contents */
-    INIT_COLOR(config->client.placeholder, "#000000", "#0c0c0c", "#ffffff", "#000000");
+    INIT_COLOR(x, config.client.placeholder, "#000000", "#0c0c0c", "#ffffff", "#000000");
 
     /* the last argument (indicator color) is ignored for bar colors */
-    INIT_COLOR(config->bar.focused, "#4c7899", "#285577", "#ffffff", "#000000");
-    INIT_COLOR(config->bar.unfocused, "#333333", "#222222", "#888888", "#000000");
-    INIT_COLOR(config->bar.urgent, "#2f343a", "#900000", "#ffffff", "#000000");
+    INIT_COLOR(x, config.bar.focused, "#4c7899", "#285577", "#ffffff", "#000000");
+    INIT_COLOR(x, config.bar.unfocused, "#333333", "#222222", "#888888", "#000000");
+    INIT_COLOR(x, config.bar.urgent, "#2f343a", "#900000", "#ffffff", "#000000");
 
-    config->default_border_width = logical_px(global.x->root_screen, 2);
-    config->default_floating_border_width = logical_px(global.x->root_screen, 2);
+    config.default_border_width = logical_px(x.root_screen, 2);
+    config.default_floating_border_width = logical_px(x.root_screen, 2);
 }
 
 /*
@@ -273,7 +272,7 @@ void Config::init_color() {
 std::unique_ptr<Config> ConfigurationManager::load_configuration(const std::optional<std::filesystem::path> override_configpath) {
     
     auto config = std::make_unique<Config>();
-    config->init_color();
+    init_color(*config);
 
     auto config_path = get_config_path(override_configpath, true);
     if (config_path) {
@@ -291,7 +290,7 @@ std::unique_ptr<Config> ConfigurationManager::load_configuration(const std::opti
 
     LOG(fmt::sprintf("Parsing configfile %s\n",  resolved_path.native()));
 
-    ResourceDatabase resourceDatabase{*global.x->conn};
+    ResourceDatabase resourceDatabase{*x};
     try {
         ConfigApplier configApplier{config.get()};
         std::ifstream stream{resolved_path};

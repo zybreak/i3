@@ -20,6 +20,7 @@ import rect;
 class Output;
 class X;
 class ConfigurationManager;
+class WorkspaceManager;
 
 export {
     enum output_close_far_t {
@@ -31,6 +32,7 @@ export {
        private:
          X &x;
          ConfigurationManager &configManager;
+         WorkspaceManager &workspaceManager;
          
         /* Pointer to the result of the query for primary output */
         xcb_randr_output_t primary;
@@ -166,7 +168,7 @@ export {
          * XRandR information to setup workspaces for each screen.
          *
          */
-        explicit RandR(X &x, ConfigurationManager &configManager);
+        explicit RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &workspaceManager);
     };
 
     /**

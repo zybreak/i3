@@ -520,7 +520,7 @@ bool floating_maybe_reassign_ws(Con *con) {
     }
     con_move_to_workspace(con, ws, false, true, false);
     if (needs_focus) {
-        workspace_show(ws);
+        global.workspaceManager->workspace_show(ws);
         needs_focus->con_activate();
     }
     return true;

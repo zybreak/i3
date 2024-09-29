@@ -26,6 +26,8 @@ import i3_config_base;
 using std::uint32_t;
 using std::int32_t;
 
+class X;
+
 export {
 
 
@@ -272,12 +274,15 @@ export {
         };
         
         Config();
-
-        void init_color();
     };
     
     class ConfigurationManager {
-    public:
+      private:
+        X &x;
+
+        void init_color(Config &config);
+        
+      public:
         std::unique_ptr<Config> config{};
         
         void set_config(std::unique_ptr<Config> _config);
@@ -295,7 +300,7 @@ export {
          */
         std::unique_ptr<Config> load_configuration(const std::optional<std::filesystem::path> configfile = std::nullopt);
         
-        ConfigurationManager() {};
+        explicit ConfigurationManager(X &x) : x(x) {};
     };
 
 }

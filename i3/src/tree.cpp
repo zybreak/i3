@@ -206,7 +206,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
             xcb_change_save_set(**global.x, XCB_SET_MODE_DELETE, con2->get_window()->id);
 
             /* Stop receiving ShapeNotify events. */
-            if (global.shape->shape_supported) {
+            if (global.x->shape_supported) {
                 xcb_shape_select_input(**global.x, con2->get_window()->id, false);
             }
 
@@ -579,7 +579,7 @@ void tree_next(Con *con, direction_t direction) {
             }
         }
 
-        workspace_show(dynamic_cast<WorkspaceCon*>(next));
+        global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon*>(next));
         focus->con_activate();
         x_set_warp_to(focus->rect);
         return;
@@ -594,7 +594,7 @@ void tree_next(Con *con, direction_t direction) {
         }
     }
 
-    workspace_show(next->con_get_workspace());
+    global.workspaceManager->workspace_show(next->con_get_workspace());
     con_descend_focused(next)->con_activate();
 }
 

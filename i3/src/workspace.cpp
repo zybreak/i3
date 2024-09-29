@@ -81,17 +81,17 @@ WorkspaceCon *get_existing_workspace_by_num(int num) {
  * is higher than wide.
  *
  */
-static void _workspace_apply_default_orientation(Con *ws) {
+static void _workspace_apply_default_orientation(ConfigurationManager &configManager, Con *ws) {
     /* If default_orientation is set to NO_ORIENTATION we determine
      * orientation depending on output resolution. */
-    if (global.configManager->config->default_orientation == NO_ORIENTATION) {
+    if (configManager.config->default_orientation == NO_ORIENTATION) {
         Con *output = ws->con_get_output();
         ws->layout = (output->rect.height > output->rect.width) ? L_SPLITV : L_SPLITH;
         ws->rect = output->rect;
         DLOG(fmt::sprintf("Auto orientation. Workspace size set to (%d,%d), setting layout to %d.\n",
              output->rect.width, output->rect.height, std::to_underlying(ws->layout)));
     } else {
-        ws->layout = (global.configManager->config->default_orientation == HORIZ) ? L_SPLITH : L_SPLITV;
+        ws->layout = (configManager.config->default_orientation == HORIZ) ? L_SPLITH : L_SPLITV;
     }
 }
 
@@ -202,7 +202,7 @@ std::optional<WorkspaceConfig> WorkspaceManager::get_workspace_config(const std:
  * memory and initializing the data structures correctly).
  *
  */
-WorkspaceCon *workspace_get_or_create(const std::string &num) {
+WorkspaceCon* WorkspaceManager::workspace_get_or_create(const std::string &num) {
     WorkspaceCon *workspace = get_existing_workspace_by_name(num);
     if (workspace) {
         return workspace;
@@ -214,7 +214,7 @@ WorkspaceCon *workspace_get_or_create(const std::string &num) {
      * a positive number. Otherwise it’s a named ws and num will be 1. */
     const int parsed_num = utils::ws_name_to_number(num);
 
-    Output *o = global.workspaceManager->get_assigned_output(num, parsed_num);
+    Output *o = this->get_assigned_output(num, parsed_num);
     OutputCon *output = o ? o->con : nullptr;
     /* if an assignment is not found, we create this workspace on the current output */
     if (!output) {
@@ -228,12 +228,12 @@ WorkspaceCon *workspace_get_or_create(const std::string &num) {
     x_set_name(workspace, fmt::format("[i3 con] workspace {}", num));
 
     workspace->name = num;
-    workspace->workspace_layout = global.configManager->config->default_layout;
+    workspace->workspace_layout = configManager.config->default_layout;
     workspace->num = parsed_num;
     workspace->gaps = gaps_for_workspace(workspace);
 
     workspace->con_attach(output->output_get_content(), false);
-    _workspace_apply_default_orientation(workspace);
+    _workspace_apply_default_orientation(configManager, workspace);
 
     ipc_send_workspace_event("init", workspace, nullptr);
     ewmh_update_desktop_properties();
@@ -247,17 +247,17 @@ WorkspaceCon *workspace_get_or_create(const std::string &num) {
  * container.
  *
  */
-WorkspaceCon *create_workspace_on_output(Output *output, Con *content) {
+WorkspaceCon* WorkspaceManager::create_workspace_on_output(Output *output, Con *content) {
     /* add a workspace to this output */
     bool exists = true;
     auto *ws = new WorkspaceCon();
 
     /* try the configured workspace bindings first to find a free name */
-    for (const auto &target_name : global.configManager->config->binding_workspace_names) {
+    for (const auto &target_name : configManager.config->binding_workspace_names) {
         /* Ensure that this workspace is not assigned to a different output —
          * otherwise we would create it, then move it over to its output, then
          * find a new workspace, etc… */
-        Output *assigned = global.workspaceManager->get_assigned_output(target_name);
+        Output *assigned = this->get_assigned_output(target_name);
         if (assigned && assigned != output) {
             continue;
         }
@@ -283,7 +283,7 @@ WorkspaceCon *create_workspace_on_output(Output *output, Con *content) {
         int c = 0;
         while (exists) {
             c++;
-            Output *assigned = global.workspaceManager->get_assigned_output(c);
+            Output *assigned = this->get_assigned_output(c);
             exists = (get_existing_workspace_by_num(c) || (assigned && assigned != output));
             DLOG(fmt::sprintf("result for ws %d: exists = %d\n",  c, exists));
         }
@@ -299,8 +299,8 @@ WorkspaceCon *create_workspace_on_output(Output *output, Con *content) {
 
     ws->fullscreen_mode = CF_OUTPUT;
 
-    ws->workspace_layout = global.configManager->config->default_layout;
-    _workspace_apply_default_orientation(ws);
+    ws->workspace_layout = configManager.config->default_layout;
+    _workspace_apply_default_orientation(configManager, ws);
 
     ipc_send_workspace_event("init", ws, nullptr);
     return ws;
@@ -437,7 +437,7 @@ static void workspace_defer_update_urgent_hint_cb(Con *con) {
  * Switches to the given workspace
  *
  */
-void workspace_show(WorkspaceCon *workspace) {
+void WorkspaceManager::workspace_show(WorkspaceCon *workspace) {
     Con *current, *old = nullptr;
     
     /* disable fullscreen for the other workspaces and get the workspace we are
@@ -473,8 +473,8 @@ void workspace_show(WorkspaceCon *workspace) {
      * NOTE: Internal cons such as __i3_scratch (when a scratchpad window is
      * focused) are skipped, see bug #868. */
     if (current) {
-        global.workspaceManager->previous_workspace_name.assign(current->name);
-        DLOG(fmt::sprintf("Setting previous_workspace_name = %s\n",  global.workspaceManager->previous_workspace_name));
+        previous_workspace_name.assign(current->name);
+        DLOG(fmt::sprintf("Setting previous_workspace_name = %s\n", previous_workspace_name));
     }
 
     workspace_reassign_sticky(workspace);
@@ -487,7 +487,7 @@ void workspace_show(WorkspaceCon *workspace) {
 
     /* Display urgency hint for a while if the newly visible workspace would
      * focus and thereby immediately destroy it */
-    if (next->urgent && static_cast<int>(global.configManager->config->workspace_urgency_timer * 1000) > 0) {
+    if (next->urgent && static_cast<int>(configManager.config->workspace_urgency_timer * 1000) > 0) {
         /* focus for now… */
         next->urgent = false;
         next->con_focus();
@@ -498,7 +498,7 @@ void workspace_show(WorkspaceCon *workspace) {
         global.focused->urgent = true;
         workspace->urgent = true;
 
-        global.focused->start_urgency_timer(global.configManager->config->workspace_urgency_timer, global.configManager->config->workspace_urgency_timer, workspace_defer_update_urgent_hint_cb);
+        global.focused->start_urgency_timer(configManager.config->workspace_urgency_timer, configManager.config->workspace_urgency_timer, workspace_defer_update_urgent_hint_cb);
     } else {
         next->con_focus();
     }
@@ -550,7 +550,7 @@ void workspace_show(WorkspaceCon *workspace) {
  * Looks up the workspace by name and switches to it.
  *
  */
-void workspace_show_by_name(const std::string &num) {
+void WorkspaceManager::workspace_show_by_name(const std::string &num) {
     workspace_show(workspace_get_or_create(num));
 }
 
@@ -829,26 +829,26 @@ WorkspaceCon *workspace_prev_on_output() {
  * Focuses the previously focused workspace.
  *
  */
-void workspace_back_and_forth() {
-    if (global.workspaceManager->previous_workspace_name.empty()) {
+void WorkspaceManager::workspace_back_and_forth() {
+    if (previous_workspace_name.empty()) {
         DLOG("No previous workspace name set. Not switching.\n");
         return;
     }
 
-    workspace_show_by_name(global.workspaceManager->previous_workspace_name);
+    workspace_show_by_name(previous_workspace_name);
 }
 
 /*
  * Returns the previously focused workspace con, or NULL if unavailable.
  *
  */
-WorkspaceCon *workspace_back_and_forth_get() {
-    if (global.workspaceManager->previous_workspace_name.empty()) {
+WorkspaceCon* WorkspaceManager::workspace_back_and_forth_get() {
+    if (this->previous_workspace_name.empty()) {
         DLOG("No previous workspace name set.\n");
         return nullptr;
     }
 
-    return workspace_get_or_create(global.workspaceManager->previous_workspace_name);
+    return this->workspace_get_or_create(this->previous_workspace_name);
 }
 
 static bool get_urgency_flag(Con *con) {
@@ -993,7 +993,7 @@ Con *workspace_encapsulate(Con *ws) {
 /*
  * Move the given workspace to the specified output.
  */
-void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
+void WorkspaceManager::workspace_move_to_output(WorkspaceCon *ws, Output *output) {
      DLOG(fmt::sprintf("Moving workspace %p / %s to output %p / \"%s\".\n", fmt::ptr(ws), ws->name, fmt::ptr(output), output->output_primary_name()));
 
     Output *current_output = get_output_for_con(ws);
@@ -1018,7 +1018,7 @@ void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
 
         /* check if we can find a workspace assigned to this output */
         bool used_assignment = false;
-        for (const auto &assignment : global.workspaceManager->configs_for_output(current_output)) {
+        for (const auto &assignment : this->configs_for_output(current_output)) {
             /* check if this workspace's name or num is already attached to the tree */
             const int num = utils::ws_name_to_number(assignment.name);
             const bool attached = (num == -1)
@@ -1039,7 +1039,7 @@ void workspace_move_to_output(WorkspaceCon *ws, Output *output) {
          * the output. Workspace init IPC events are sent either by
          * workspace_get_or_create or create_workspace_on_output. */
         if (!used_assignment) {
-            create_workspace_on_output(current_output, ws->parent);
+            this->create_workspace_on_output(current_output, ws->parent);
         }
     }
     DLOG("Detaching\n");

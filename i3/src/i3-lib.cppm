@@ -15,7 +15,6 @@ export import :x;
 export import :workspace;
 export import :keysyms;
 export import :event_handler;
-export import :shape;
 export import :xkb;
 export import :handlers;
 export import :criteria_state;
@@ -81,11 +80,10 @@ public:
     pid_t config_error_nagbar_pid = -1;
     pid_t command_error_nagbar_pid = -1;
 
-    std::optional<Keysyms> keysyms{};
+    Keysyms *keysyms;
     std::optional<Keymap> keymap{};
     X *x;
     RandR *randr;
-    Shape *shape;
     Xkb *xkb;
     ConfigurationManager *configManager;
 

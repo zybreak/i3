@@ -132,7 +132,6 @@ target_sources(i3_lib PUBLIC
         src/workspace.cppm
         src/keysyms.cppm
         src/event_handler.cppm
-        src/shape.cppm
         src/xkb.cppm
         src/handlers/handlers.cppm
         src/criteria_state.cppm

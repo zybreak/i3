@@ -23,6 +23,7 @@ class Output;
 class OutputCon;
 class WorkspaceCon;
 class Con;
+class ConfigurationManager;
 
 export {
     /* We use NET_WM_DESKTOP_NONE for cases where we cannot determine the EWMH
@@ -62,6 +63,7 @@ export {
     class WorkspaceManager {
     private:
 
+      ConfigurationManager &configManager;
         /* The list of workspace assignments (which workspace should end up on which
          * output) */
         std::map<std::string, WorkspaceConfig> ws_assignments{};
@@ -116,10 +118,40 @@ export {
          */
         std::vector<WorkspaceConfig> configs_for_output(Output * output);
 
-        friend WorkspaceCon *workspace_get_or_create(const std::string &num);
-        friend WorkspaceCon *create_workspace_on_output(Output *output, Con *content);
+        WorkspaceCon *workspace_get_or_create(const std::string &num);
+        WorkspaceCon *create_workspace_on_output(Output *output, Con *content);
         
-        WorkspaceManager() {}
+        /**
+         * Move the given workspace to the specified output.
+         *
+         */
+        void workspace_move_to_output(WorkspaceCon * ws, Output * output);
+        
+        /**
+         * Returns the previously focused workspace con, or NULL if unavailable.
+         *
+         */
+        WorkspaceCon *workspace_back_and_forth_get();
+        
+        /**
+         * Focuses the previously focused workspace.
+         *
+         */
+        void workspace_back_and_forth();
+        
+        /**
+         * Looks up the workspace by name and switches to it.
+         *
+         */
+        void workspace_show_by_name(const std::string &num);
+        
+        /**
+         * Switches to the given workspace
+         *
+         */
+        void workspace_show(WorkspaceCon * ws);
+
+        WorkspaceManager(ConfigurationManager &configManager) : configManager(configManager) {}
     };
 
     /**
@@ -161,18 +193,6 @@ export {
     bool workspace_is_visible(Con * ws);
 
     /**
-     * Switches to the given workspace
-     *
-     */
-    void workspace_show(WorkspaceCon * ws);
-
-    /**
-     * Looks up the workspace by name and switches to it.
-     *
-     */
-    void workspace_show_by_name(const std::string &num);
-
-    /**
      * Returns the next workspace.
      *
      */
@@ -195,18 +215,6 @@ export {
      *
      */
     WorkspaceCon *workspace_prev_on_output();
-
-    /**
-     * Focuses the previously focused workspace.
-     *
-     */
-    void workspace_back_and_forth();
-
-    /**
-     * Returns the previously focused workspace con, or NULL if unavailable.
-     *
-     */
-    WorkspaceCon *workspace_back_and_forth_get();
 
     /**
      * Goes through all clients on the given workspace and updates the workspace’s
@@ -243,9 +251,4 @@ export {
      */
     Con *workspace_encapsulate(Con * ws);
 
-    /**
-     * Move the given workspace to the specified output.
-     *
-     */
-    void workspace_move_to_output(WorkspaceCon * ws, Output * output);
 }

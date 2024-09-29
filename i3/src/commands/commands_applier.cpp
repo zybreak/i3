@@ -114,7 +114,7 @@ static bool maybe_back_and_forth(CommandsResultIR &cmd_output, const char *name)
 
     DLOG("This workspace is already focused.\n");
     if (global.configManager->config->workspace_auto_back_and_forth) {
-        workspace_back_and_forth();
+        global.workspaceManager->workspace_back_and_forth();
         cmd_output.needs_tree_render = true;
     }
     return true;
@@ -133,7 +133,7 @@ static WorkspaceCon *maybe_auto_back_and_forth_workspace(WorkspaceCon *workspace
     current = global.focused->con_get_workspace();
 
     if (current == workspace) {
-        baf = workspace_back_and_forth_get();
+        baf = global.workspaceManager->workspace_back_and_forth_get();
         if (baf != nullptr) {
             DLOG("Substituting workspace with back_and_forth, as it is focused.\n");
             return baf;
@@ -398,7 +398,7 @@ void CommandsApplier::move_con_to_workspace(struct criteria_state *criteria_stat
  *
  */
 void CommandsApplier::move_con_to_workspace_back_and_forth(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
-    WorkspaceCon *ws = workspace_back_and_forth_get();
+    WorkspaceCon *ws = global.workspaceManager->workspace_back_and_forth_get();
     if (ws == nullptr) {
         throw std::runtime_error("No workspace was previously active.");
     }
@@ -425,7 +425,7 @@ void CommandsApplier::move_con_to_workspace_name(struct criteria_state *criteria
 
     LOG(fmt::sprintf("should move window to workspace %s\n",  name));
     /* get the workspace */
-    WorkspaceCon *ws = workspace_get_or_create(name);
+    WorkspaceCon *ws = global.workspaceManager->workspace_get_or_create(name);
 
     if (no_auto_back_and_forth == nullptr) {
         ws = maybe_auto_back_and_forth_workspace(ws);
@@ -455,7 +455,7 @@ void CommandsApplier::move_con_to_workspace_number(struct criteria_state *criter
 
     WorkspaceCon *ws = get_existing_workspace_by_num(parsed_num);
     if (!ws) {
-        ws = workspace_get_or_create(which);
+        ws = global.workspaceManager->workspace_get_or_create(which);
     }
 
     if (no_auto_back_and_forth == nullptr) {
@@ -918,7 +918,7 @@ void CommandsApplier::workspace(struct criteria_state *criteria_state, CommandsR
         throw std::runtime_error(fmt::sprintf("BUG: called with which=%s", which));
     }
 
-    workspace_show(ws);
+    global.workspaceManager->workspace_show(ws);
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
@@ -943,7 +943,7 @@ void CommandsApplier::workspace_number(struct criteria_state *criteria_state, Co
     if (!workspace) {
         LOG(fmt::sprintf("There is no workspace with number %ld, creating a new one.\n",  parsed_num));
         ysuccess(cmd_output.json_gen,  true);
-        workspace_show_by_name(which);
+        global.workspaceManager->workspace_show_by_name(which);
         cmd_output.needs_tree_render = true;
         return;
     }
@@ -951,7 +951,7 @@ void CommandsApplier::workspace_number(struct criteria_state *criteria_state, Co
         ysuccess(cmd_output.json_gen,  true);
         return;
     }
-    workspace_show(workspace);
+    global.workspaceManager->workspace_show(workspace);
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
@@ -965,7 +965,7 @@ void CommandsApplier::workspace_number(struct criteria_state *criteria_state, Co
 void CommandsApplier::workspace_back_and_forth(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
     disable_global_fullscreen();
 
-    ::workspace_back_and_forth();
+    global.workspaceManager->workspace_back_and_forth();
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
@@ -990,7 +990,7 @@ void CommandsApplier::workspace_name(struct criteria_state *criteria_state, Comm
         ysuccess(cmd_output.json_gen,  true);
         return;
     }
-    workspace_show_by_name(name);
+    global.workspaceManager->workspace_show_by_name(name);
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
@@ -1091,7 +1091,7 @@ void CommandsApplier::move_con_to_output(struct criteria_state *criteria_state, 
         Output *target_output = user_output_names_find_next(names, current_output);
         if (target_output) {
             if (move_workspace) {
-                workspace_move_to_output(ws, target_output);
+                global.workspaceManager->workspace_move_to_output(ws, target_output);
             } else {
                 con_move_to_output(current, target_output, true);
             }
@@ -1297,7 +1297,7 @@ void CommandsApplier::focus_sibling(struct criteria_state *criteria_state, Comma
                  * workspace change happens properly. However, workspace_show
                  * descends focus so we also have to put focus on the workspace
                  * itself to maintain consistency. See #3997. */
-                workspace_show(dynamic_cast<WorkspaceCon*>(next));
+                global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon*>(next));
                 next->con_focus();
             } else {
                 next->con_activate();
@@ -1404,7 +1404,7 @@ void CommandsApplier::focus(struct criteria_state *criteria_state, CommandsResul
             /* Show the workspace of the matched container, without necessarily
              * focusing it. */
             LOG(fmt::sprintf("focusing workspace %p / %s - %p / %s\n", fmt::ptr(current), current->name, fmt::ptr(ws), ws->name));
-            workspace_show(ws);
+            global.workspaceManager->workspace_show(ws);
         } else {
             LOG(fmt::sprintf("focusing %p / %s\n", fmt::ptr(current), current->name));
             current->con_activate_unblock();
@@ -1709,7 +1709,7 @@ void CommandsApplier::focus_output(struct criteria_state *criteria_state, Comman
             throw std::runtime_error("BUG: No workspace found on output.");
         }
 
-        workspace_show(dynamic_cast<WorkspaceCon*>(*ws));
+        global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon*>(*ws));
     }
 
     cmd_output.needs_tree_render = success;
@@ -1966,7 +1966,7 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
 
     Output *assigned = global.workspaceManager->get_assigned_output(workspace->name, workspace->num);
     if (assigned) {
-        workspace_move_to_output(workspace, assigned);
+        global.workspaceManager->workspace_move_to_output(workspace, assigned);
     }
 
     bool can_restore_focus = previously_focused != nullptr;
@@ -1982,7 +1982,7 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
 
     if (can_restore_focus) {
         /* Restore the previous focus since con_attach messes with the focus. */
-        workspace_show(previously_focused->con_get_workspace());
+        global.workspaceManager->workspace_show(previously_focused->con_get_workspace());
         previously_focused->con_focus();
     }
 

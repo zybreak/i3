@@ -446,7 +446,7 @@ void tiling_drag(Con *con, xcb_button_press_event_t *event, bool use_threshold) 
         con_enable_fullscreen(con, CF_OUTPUT);
     }
     if (set_focus) {
-        workspace_show(con->con_get_workspace());
+        global.workspaceManager->workspace_show(con->con_get_workspace());
         con->con_focus();
     }
     tree_render();

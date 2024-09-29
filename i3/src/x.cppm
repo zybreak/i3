@@ -124,6 +124,9 @@ export {
         xcb_window_t wm_sn_selection_owner;
         xcb_window_t root;
 
+        int shape_base{-1};
+        bool shape_supported{true};
+        
         explicit X();
         virtual ~X() = default;
 

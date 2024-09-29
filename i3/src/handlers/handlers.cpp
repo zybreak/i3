@@ -106,7 +106,7 @@ static void check_crossing_screen_boundary(uint32_t x, uint32_t y) {
     Con *next = con_descend_focused(output->con->output_get_content());
     /* Since we are switching outputs, this *must* be a different workspace, so
      * call workspace_show() */
-    workspace_show(next->con_get_workspace());
+    global.workspaceManager->workspace_show(next->con_get_workspace());
     next->con_focus();
 
     /* If the focus changed, we re-render to get updated decorations */
@@ -166,7 +166,7 @@ void PropertyHandlers::handle_enter_notify(xcb_enter_notify_event_t *event) {
         }
     }
 
-    if (global.configManager->config->disable_focus_follows_mouse) {
+    if (configManager.config->disable_focus_follows_mouse) {
         return;
     }
 
@@ -180,7 +180,7 @@ void PropertyHandlers::handle_enter_notify(xcb_enter_notify_event_t *event) {
      * correctly update state and send the IPC event. */
     WorkspaceCon *ws = con->con_get_workspace();
     if (ws != global.focused->con_get_workspace()) {
-        workspace_show(ws);
+        workspaceManager.workspace_show(ws);
     }
 
     x.focused_id = XCB_NONE;
@@ -209,7 +209,7 @@ void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
         return;
     }
 
-    if (global.configManager->config->disable_focus_follows_mouse) {
+    if (configManager.config->disable_focus_follows_mouse) {
         return;
     }
 
@@ -388,7 +388,7 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
             int16_t y = event->value_mask & XCB_CONFIG_WINDOW_Y ? event->y : static_cast<int16_t>(con->get_geometry().y);
 
             Con *current_output = con->con_get_output();
-            Output *target = global.randr->get_output_containing(x, y);
+            Output *target = randr.get_output_containing(x, y);
             if (target != nullptr && current_output != target->con) {
                 DLOG(fmt::sprintf("Dock client is requested to be moved to output %s, moving it there.\n", target->output_primary_name()));
                 Match *match;
@@ -425,12 +425,12 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
             goto out;
         }
 
-        if (global.configManager->config->focus_on_window_activation == FOWA_FOCUS || (global.configManager->config->focus_on_window_activation == FOWA_SMART && workspace_is_visible(workspace))) {
+        if (configManager.config->focus_on_window_activation == FOWA_FOCUS || (configManager.config->focus_on_window_activation == FOWA_SMART && workspace_is_visible(workspace))) {
             DLOG(fmt::sprintf("Focusing con = %p\n", fmt::ptr(con)));
-            workspace_show(workspace);
+            workspaceManager.workspace_show(workspace);
             con->con_activate_unblock();
             tree_render();
-        } else if (global.configManager->config->focus_on_window_activation == FOWA_URGENT || (global.configManager->config->focus_on_window_activation == FOWA_SMART && !workspace_is_visible(workspace))) {
+        } else if (configManager.config->focus_on_window_activation == FOWA_URGENT || (configManager.config->focus_on_window_activation == FOWA_SMART && !workspace_is_visible(workspace))) {
             DLOG(fmt::sprintf("Marking con = %p urgent\n", fmt::ptr(con)));
             con->con_set_urgency(true);
             con = remanage_window(con);
@@ -465,7 +465,7 @@ void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
     global.croot->rect.width = reply->width;
     global.croot->rect.height = reply->height;
 
-    global.randr->randr_query_outputs();
+    randr.randr_query_outputs();
 
     ipc_send_event("output", i3ipc::EVENT_OUTPUT, R"({"change":"unspecified"})");
 }
@@ -737,7 +737,7 @@ void PropertyHandlers::handle_configure_notify(xcb_configure_notify_event_t *eve
     }
     DLOG(fmt::sprintf("ConfigureNotify for root window 0x%08x\n", event->event));
 
-    global.randr->randr_query_outputs();
+    randr.randr_query_outputs();
 
     ipc_send_event("output", i3ipc::EVENT_OUTPUT, "{\"change\":\"unspecified\"}");
 }
@@ -762,7 +762,7 @@ static void handle_selection_clear(xcb_selection_clear_event_t *event) {
  * received from X11
  *
  */
-PropertyHandlers::PropertyHandlers(X &x) : x{x} {
+PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr) : x{x}, workspaceManager(workspaceManager), configManager(configManager), randr(randr) {
     sn_monitor_context_new(sndisplay, x.conn->default_screen(), startup_monitor_event, nullptr, nullptr);
 
 
@@ -800,8 +800,8 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
     if (type != XCB_MOTION_NOTIFY)
         DLOG(fmt::sprintf("event type %d, xkb_base %d\n", type, global.xkb->xkb_base));
 
-    if (global.randr->randr_base > -1 &&
-        type == global.randr->randr_base + XCB_RANDR_SCREEN_CHANGE_NOTIFY) {
+    if (randr.randr_base > -1 &&
+        type == randr.randr_base + XCB_RANDR_SCREEN_CHANGE_NOTIFY) {
         handle_screen_change(event);
         return;
     }
@@ -844,7 +844,7 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
         return;
     }
 
-    if (global.shape->shape_supported && type == global.shape->shape_base + XCB_SHAPE_NOTIFY) {
+    if (x.shape_supported && type == x.shape_base + XCB_SHAPE_NOTIFY) {
         auto *shape = reinterpret_cast<xcb_shape_notify_event_t*>(event);
 
         DLOG(fmt::sprintf("shape_notify_event for window 0x%08x, shape_kind = %d, shaped = %d\n",

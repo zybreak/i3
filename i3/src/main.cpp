@@ -445,8 +445,8 @@ int main(int argc, char *argv[]) {
 
     LOG(fmt::sprintf("i3 %s starting\n", I3_VERSION));
     
-    global.assignmentManager = injector.create<AssignmentManager*>();
-    global.workspaceManager = injector.create<WorkspaceManager*>();
+    global.assignmentManager = &injector.create<AssignmentManager&>();
+    global.workspaceManager = &injector.create<WorkspaceManager&>();
     global.configManager = &configManager;
 
     /* Prefetch X11 extensions that we are interested in. */
@@ -639,11 +639,7 @@ int main(int argc, char *argv[]) {
        cursor until the first client is launched). */
     x.xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
 
-    global.xkb = injector.create<Xkb*>();
-
-    /* Check for Shape extension. We want to handle input shapes which is
-     * introduced in 1.1. */
-    global.shape = injector.create<Shape*>();
+    global.xkb = &injector.create<Xkb&>();
 
     auto &propertyHandlers = injector.create<PropertyHandlers&>();
 
@@ -656,7 +652,7 @@ int main(int argc, char *argv[]) {
 
     ewmh_setup_hints();
 
-    global.keysyms = injector.create<Keysyms>();
+    global.keysyms = new Keysyms(x);
 
     x.xcb_numlock_mask = global.keysyms->get_numlock_mask();
 

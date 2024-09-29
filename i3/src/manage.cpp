@@ -214,7 +214,7 @@ static ConCon* find_con_for_window_not_found(i3Window *cwindow, Con const *searc
         /* A_TO_WORKSPACE type assignment or fallback from A_TO_WORKSPACE_NUMBER
          * when the target workspace number does not exist yet. */
         if (!assigned_ws) {
-            assigned_ws = workspace_get_or_create(assignmentOpt->get().workspace);
+            assigned_ws = global.workspaceManager->workspace_get_or_create(assignmentOpt->get().workspace);
         }
 
         auto descend_nc = con_descend_tiling_focused(assigned_ws);
@@ -249,7 +249,7 @@ static ConCon* find_con_for_window_not_found(i3Window *cwindow, Con const *searc
     } else if (startup_ws) {
         /* If it was started on a specific workspace, we want to open it there. */
         DLOG(fmt::format("Using workspace on which this application was started ({})", *startup_ws));
-        auto descend_nc = con_descend_tiling_focused(workspace_get_or_create(*startup_ws));
+        auto descend_nc = con_descend_tiling_focused(global.workspaceManager->workspace_get_or_create(*startup_ws));
         DLOG(fmt::format("focused on ws {}: {} / {}", *startup_ws, fmt::ptr(descend_nc), descend_nc->name));
         if (descend_nc->type == CT_WORKSPACE) {
             nc = tree_open_con(descend_nc, cwindow);
@@ -679,7 +679,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
      * cleanup) */
     xcb_change_save_set(**global.x, XCB_SET_MODE_INSERT, window);
 
-    if (global.shape->shape_supported) {
+    if (global.x->shape_supported) {
         /* Receive ShapeNotify events whenever the client altered its window
          * shape. */
         xcb_shape_select_input(**global.x, window, true);

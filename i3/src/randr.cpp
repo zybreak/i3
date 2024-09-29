@@ -451,7 +451,7 @@ void init_ws_for_output(Output *output) {
          * can't call render_con here because render_output only proceeds
          * if a workspace exists. */
         content->rect = output->con->rect;
-        workspace_move_to_output(dynamic_cast<WorkspaceCon*>(workspace), output);
+        global.workspaceManager->workspace_move_to_output(dynamic_cast<WorkspaceCon*>(workspace), output);
     }
 
     /* Temporarily set the focused container, might not be initialized yet. */
@@ -463,10 +463,10 @@ void init_ws_for_output(Output *output) {
          * mode), if they were invisible before, this might not be the case. */
         bool any_visible = std::ranges::any_of(content->nodes, [](auto &child) { return child->fullscreen_mode == CF_OUTPUT; });
         if (!any_visible) {
-            workspace_show(dynamic_cast<WorkspaceCon*>(content->nodes.front()));
+            global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon*>(content->nodes.front()));
         }
         if (previous_focus) {
-            workspace_show(previous_focus);
+            global.workspaceManager->workspace_show(previous_focus);
         }
         return;
     }
@@ -475,19 +475,19 @@ void init_ws_for_output(Output *output) {
     for (const auto &assignment : global.workspaceManager->configs_for_output(output)) {
         LOG(fmt::sprintf("Initializing first assigned workspace \"%s\" for output \"%s\"\n",
                 assignment.name, assignment.output));
-        workspace_show_by_name(assignment.name);
+        global.workspaceManager->workspace_show_by_name(assignment.name);
         if (previous_focus) {
-            workspace_show(previous_focus);
+            global.workspaceManager->workspace_show(previous_focus);
         }
         return;
     }
 
     /* if there is still no workspace, we create the first free workspace */
     DLOG("Now adding a workspace\n");
-    workspace_show(create_workspace_on_output(output, content));
+    global.workspaceManager->workspace_show(global.workspaceManager->create_workspace_on_output(output, content));
 
     if (previous_focus) {
-        workspace_show(previous_focus);
+        global.workspaceManager->workspace_show(previous_focus);
     }
 }
 
@@ -832,7 +832,7 @@ static void move_content(RandR *randr, Con *con) {
     if (next) {
         DLOG(fmt::sprintf("now focusing next = %p\n", fmt::ptr(next)));
         next->con_focus();
-        workspace_show(next->con_get_workspace());
+        global.workspaceManager->workspace_show(next->con_get_workspace());
     }
 
     /* 3: move the dock clients to the first output */
@@ -991,7 +991,7 @@ void RandR::randr_query_outputs() {
         DLOG(fmt::sprintf("Focusing primary output %s\n",  output->output_primary_name()));
         Con *content = output->con->output_get_content();
         Con *ws = con::first(content->focused);
-        workspace_show(dynamic_cast<WorkspaceCon*>(ws));
+        workspaceManager.workspace_show(dynamic_cast<WorkspaceCon*>(ws));
     }
 
     /* render_layout flushes */
@@ -1031,7 +1031,7 @@ void RandR::fallback_to_root_output() {
  * XRandR information to setup workspaces for each screen.
  *
  */
-RandR::RandR(X &x, ConfigurationManager &configManager) : x(x), configManager(configManager) {
+RandR::RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &workspaceManager) : x(x), configManager(configManager), workspaceManager(workspaceManager) {
     DLOG("Checking for XRandR...\n");
 
     const xcb_query_extension_reply_t *extreply;

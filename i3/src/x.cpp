@@ -21,6 +21,7 @@ module;
 
 #include <xpp/connection.hpp>
 #include <xpp/proto/x.hpp>
+#include <xpp/proto/shape.hpp>
 
 #include <unistd.h>
 
@@ -101,6 +102,21 @@ X::X() : conn(new x_connection()) {
     DLOG(fmt::sprintf("root_screen->height_in_pixels = %d, root_screen->height_in_millimeters = %d\n",
         root_screen->height_in_pixels, root_screen->height_in_millimeters));
     DLOG(fmt::sprintf("One logical pixel corresponds to %ld physical pixels on this display.\n",  logical_px(root_screen, 1)));
+
+    /* Check for Shape extension. We want to handle input shapes which is
+     * introduced in 1.1. */
+    auto shape_ext = conn->extension<xpp::shape::extension>();
+    if (shape_ext->present) {
+        shape_base = shape_ext->first_event;
+        auto version = conn->shape().query_version();
+        shape_supported = version && version->minor_version >= 1;
+    } else {
+        shape_supported = false;
+    }
+    
+    if (!shape_supported) {
+        DLOG("shape 1.1 is not present on this server\n");
+    }
 }
 
 /*
@@ -780,7 +796,7 @@ static void x_unshape_frame(ConCon *con, xcb_shape_sk_t shape_kind) {
  * Shape or unshape container frame based on the con state.
  */
 static void set_shape_state(ConCon *con, bool need_reshape) {
-    if (!global.shape->shape_supported) {
+    if (!global.x->shape_supported) {
         return;
     }
 

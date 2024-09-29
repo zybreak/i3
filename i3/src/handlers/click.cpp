@@ -251,7 +251,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
     if (in_stacked && dest == CLICK_DECORATION && is_scroll) {
         DLOG("Scrolling on a window decoration\n");
         /* Correctly move workspace focus first, see: #5472 */
-        workspace_show(ws);
+        global.workspaceManager->workspace_show(ws);
 
         /* Use the focused child of the tabbed / stacked container, not the
          * container the user scrolled on. */
@@ -291,7 +291,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
         }
     }
     if (ws != focused_workspace) {
-        workspace_show(ws);
+        global.workspaceManager->workspace_show(ws);
     }
     con_to_focus->con_activate();
 
@@ -428,7 +428,7 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
 
                 ws = dynamic_cast<WorkspaceCon*>(con::first(output->output_get_content()->focused));
                 if (ws != global.focused->con_get_workspace()) {
-                    workspace_show(ws);
+                    global.workspaceManager->workspace_show(ws);
                     tree_render();
                 }
                 return;

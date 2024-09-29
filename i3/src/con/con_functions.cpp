@@ -319,7 +319,7 @@ void con_enable_fullscreen(Con *con, fullscreen_mode_t fullscreen_mode) {
     WorkspaceCon *cur_ws = global.focused->con_get_workspace();
     Con *old_focused = global.focused;
     if (fullscreen_mode == CF_GLOBAL && cur_ws != con_ws) {
-        workspace_show(con_ws);
+        global.workspaceManager->workspace_show(con_ws);
     }
     con->con_activate();
     if (fullscreen_mode != CF_GLOBAL && cur_ws != con_ws) {
@@ -492,7 +492,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
     /* 7: when moving to another workspace, we leave the focus on the current
      * workspace. (see also #809) */
     if (!ignore_focus) {
-        workspace_show(current_ws);
+        global.workspaceManager->workspace_show(current_ws);
         if (dont_warp) {
             DLOG("x_set_warp_to(NULL) because dont_warp is set\n");
             x_set_warp_to(std::nullopt);

@@ -311,7 +311,7 @@ void Con::con_activate_unblock() {
     if (ws != previous_focus->con_get_workspace()) {
         previous_focus->con_activate();
         /* Now switch to the workspace, then focus */
-        workspace_show(ws);
+        global.workspaceManager->workspace_show(ws);
         this->con_activate();
     }
 }
