@@ -34,6 +34,7 @@ class i3(ConanFile):
         self.requires("nlohmann_json/3.11.3")
         self.requires("cairo/1.18.0")
         self.requires("pango/1.51.0")
+        self.requires("di/1.3.0")
 
 
     def layout(self):

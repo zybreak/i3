@@ -281,18 +281,21 @@ export {
         std::unique_ptr<Config> config{};
         
         void set_config(std::unique_ptr<Config> _config);
+
+        /**
+         * (Re-)loads the configuration file (sets useful defaults before).
+         *
+         * If you specify override_configpath, only this path is used to look for a
+         * configuration file.
+         *
+         * load_type specifies the type of loading: C_VALIDATE is used to only verify
+         * the correctness of the config file (used with the flag -C). C_LOAD will load
+         * the config for normal use and display errors in the nagbar. C_RELOAD will
+         * also clear the previous config.
+         */
+        std::unique_ptr<Config> load_configuration(const std::optional<std::filesystem::path> configfile = std::nullopt);
+        
+        ConfigurationManager() {};
     };
 
-    /**
-     * (Re-)loads the configuration file (sets useful defaults before).
-     *
-     * If you specify override_configpath, only this path is used to look for a
-     * configuration file.
-     *
-     * load_type specifies the type of loading: C_VALIDATE is used to only verify
-     * the correctness of the config file (used with the flag -C). C_LOAD will load
-     * the config for normal use and display errors in the nagbar. C_RELOAD will
-     * also clear the previous config.
-     */
-    std::unique_ptr<Config> load_configuration(const std::optional<std::filesystem::path> configfile = std::nullopt);
 }

@@ -270,7 +270,7 @@ void Config::init_color() {
  * also clear the previous config.
  *
  */
-std::unique_ptr<Config> load_configuration(const std::optional<std::filesystem::path> override_configpath) {
+std::unique_ptr<Config> ConfigurationManager::load_configuration(const std::optional<std::filesystem::path> override_configpath) {
     
     auto config = std::make_unique<Config>();
     config->init_color();

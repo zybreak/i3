@@ -8,7 +8,7 @@ AllowShortFunctionsOnASingleLine: None
 AllowShortBlocksOnASingleLine: Never
 AlwaysBreakBeforeMultilineStrings: false
 Cpp11BracedListStyle: true
-ContinuationIndentWidth: 8
+ContinuationIndentWidth: 4
 BreakBeforeBraces: Attach
 PointerAlignment: Left
 QualifierAlignment: Custom

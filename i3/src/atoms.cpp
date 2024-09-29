@@ -66,10 +66,10 @@ static const std::array I3_ATOMS {
 };
 
 /* Setup NetWM atoms */
-void setup_atoms() {
+void setup_atoms(X &x) {
     for (auto &atom : I3_ATOMS) {
         try {
-            i3::atoms[atom.first] = xpp::x::intern_atom(**global.x, false, atom.second).atom();
+            i3::atoms[atom.first] = xpp::x::intern_atom(*x, false, atom.second).atom();
         } catch (std::exception &e) {
             ELOG(std::format("Could not get atom {}", atom.second));
             exit(-1);

@@ -49,6 +49,7 @@ struct criteria_state;
 #include <xpp/proto/bigreq.hpp>
 #include <xcb/xproto.h>
 #include <xcb/xcb_atom.h>
+#include <boost/di.hpp>
 
 #ifdef I3_ASAN_ENABLED
 #include <sanitizer/lsan_interface.h>
@@ -281,10 +282,10 @@ static void set_screenshot_as_wallpaper(x_connection *conn, xcb_screen_t *screen
     conn->flush();
 }
 
-static void force_disable_output(const program_arguments &args) {
-    if (args.layout_path && global.randr->randr_base > -1) {
+static void force_disable_output(RandR &randr, const program_arguments &args) {
+    if (args.layout_path && randr.randr_base > -1) {
         for (auto &con : global.croot->nodes) {
-            for (Output *output : global.randr->outputs) {
+            for (Output *output : randr.outputs) {
                 if (output->active || con->name != output->output_primary_name()) {
                     continue;
                 }
@@ -298,7 +299,7 @@ static void force_disable_output(const program_arguments &args) {
                 }
 
                 output->to_be_disabled = true;
-                randr_disable_output(output);
+                randr.randr_disable_output(output);
             }
         }
     }
@@ -417,9 +418,12 @@ int main(int argc, char *argv[]) {
     }
     global.new_parser = args.new_parser;
 
+    const auto injector = boost::di::make_injector();
+    auto &configManager = injector.create<ConfigurationManager&>();
+
     if (args.only_check_config) {
         try {
-            load_configuration(args.override_configpath);
+            configManager.load_configuration(args.override_configpath);
             exit(EXIT_SUCCESS);
         } catch (std::exception &e) {
             exit(EXIT_FAILURE);
@@ -441,12 +445,12 @@ int main(int argc, char *argv[]) {
 
     LOG(fmt::sprintf("i3 %s starting\n", I3_VERSION));
     
-    global.assignmentManager = new AssignmentManager();
-    global.workspaceManager = new WorkspaceManager();
-    global.configManager = new ConfigurationManager();
+    global.assignmentManager = injector.create<AssignmentManager*>();
+    global.workspaceManager = injector.create<WorkspaceManager*>();
+    global.configManager = &configManager;
 
     /* Prefetch X11 extensions that we are interested in. */
-    X x{};
+    auto &x = injector.create<X&>();
     global.x = &x;
     if (x.conn->connection_has_error()) {
         errx(EXIT_FAILURE, "Cannot open display");
@@ -459,7 +463,7 @@ int main(int argc, char *argv[]) {
     xcb_change_property(*x, XCB_PROP_MODE_APPEND, x.root, XCB_ATOM_SUPERSCRIPT_X, XCB_ATOM_CARDINAL, 32, 0, "");
 
     /* Place requests for the atoms we need as soon as possible */
-    setup_atoms();
+    setup_atoms(x);
     xcb_timestamp_t last_timestamp = XCB_CURRENT_TIME;
 
     /* Get the PropertyNotify event we caused above */
@@ -483,7 +487,7 @@ int main(int argc, char *argv[]) {
     init_dpi(*x, x.root_screen);
 
     try {
-        global.configManager->set_config(load_configuration(args.override_configpath));
+        configManager.set_config(configManager.load_configuration(args.override_configpath));
     } catch (std::domain_error &e) {
         using namespace std::literals;
         std::vector<button_t> buttons{};
@@ -492,26 +496,26 @@ int main(int argc, char *argv[]) {
         start_nagbar(&global.config_error_nagbar_pid, buttons, prompt, font, bar_type_t::TYPE_ERROR, false);
     }
 
-    if (!global.configManager->config->ipc_socket_path) {
+    if (!configManager.config->ipc_socket_path) {
         /* Fall back to a file name in /tmp/ based on the PID */
         if (char *i3sock = getenv("I3SOCK")) {
-            global.configManager->config->ipc_socket_path = i3sock;
+            configManager.config->ipc_socket_path = i3sock;
         } else {
             auto process_filename = get_process_filename("ipc-socket");
             if (process_filename) {
-                global.configManager->config->ipc_socket_path = *process_filename;
+                configManager.config->ipc_socket_path = *process_filename;
             } else {
-                global.configManager->config->ipc_socket_path = std::nullopt;
+                configManager.config->ipc_socket_path = std::nullopt;
             }
         }
     }
     
     /* Create the UNIX domain socket for IPC */
     int ipc_socket;
-    if (global.configManager->config->ipc_socket_path) {
-        std::tie(global.current_socketpath, ipc_socket) = create_socket(*global.configManager->config->ipc_socket_path);
+    if (configManager.config->ipc_socket_path) {
+        std::tie(global.current_socketpath, ipc_socket) = create_socket(*configManager.config->ipc_socket_path);
         if (ipc_socket == -1) {
-            errx(EXIT_FAILURE, "Could not create the IPC socket: %s", global.configManager->config->ipc_socket_path->c_str());
+            errx(EXIT_FAILURE, "Could not create the IPC socket: %s", configManager.config->ipc_socket_path->c_str());
         }
     } else {
         errx(EXIT_FAILURE, "Could not create the IPC socket since socket path wasnt specified");
@@ -635,15 +639,15 @@ int main(int argc, char *argv[]) {
        cursor until the first client is launched). */
     x.xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
 
-    global.xkb = new Xkb(x);
+    global.xkb = injector.create<Xkb*>();
 
     /* Check for Shape extension. We want to handle input shapes which is
      * introduced in 1.1. */
-    global.shape = new Shape(x);
+    global.shape = injector.create<Shape*>();
 
-    PropertyHandlers propertyHandlers{x};
+    auto &propertyHandlers = injector.create<PropertyHandlers&>();
 
-    EventHandler eventHandler{x, propertyHandlers};
+    EventHandler &eventHandler = injector.create<EventHandler&>();
     global.eventHandler = &eventHandler;
 
     restore_connect();
@@ -652,7 +656,7 @@ int main(int argc, char *argv[]) {
 
     ewmh_setup_hints();
 
-    global.keysyms = Keysyms{x};
+    global.keysyms = injector.create<Keysyms>();
 
     x.xcb_numlock_mask = global.keysyms->get_numlock_mask();
 
@@ -668,13 +672,14 @@ int main(int argc, char *argv[]) {
 
     do_tree_init(args, greply.get());
 
-    global.randr = new RandR(x);
+    RandR randr = injector.create<RandR&>();
+    global.randr = &randr;
 
     /* We need to force disabling outputs which have been loaded from the
      * layout file but are no longer active. This can happen if the output has
      * been disabled in the short time between writing the restart layout file
      * and restarting i3. See #2326. */
-    force_disable_output(args);
+    force_disable_output(randr, args);
 
     Output *output = get_focused_output();
     con_descend_focused(output->con->output_get_content())->con_activate();

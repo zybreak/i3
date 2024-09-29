@@ -22,10 +22,11 @@ TEST(WorkspaceManagerTest, References_Does_Not_Work){
 
 TEST(WorkspaceManagerTest, FindTheRightOutput){
     MockX x{};
-    MockRandR randr{};
     Output output{};
     output.names.push_back("eDP-1");
     global.x = &x;
+    ConfigurationManager configManager{};
+    MockRandR randr{x, configManager};
     global.randr = &randr;
     
     EXPECT_CALL(randr, get_output_by_name("eDP-1",testing::_))

@@ -1605,7 +1605,7 @@ void CommandsApplier::reload(struct criteria_state *criteria_state, CommandsResu
     global.config_error_nagbar_pid = global.command_error_nagbar_pid = -1;
 
     try {
-        global.configManager->set_config(load_configuration());
+        global.configManager->set_config(global.configManager->load_configuration());
     } catch (std::domain_error &e) {
         using namespace std::literals;
         std::vector<button_t> buttons{};

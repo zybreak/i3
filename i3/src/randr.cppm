@@ -19,6 +19,7 @@ import rect;
 
 class Output;
 class X;
+class ConfigurationManager;
 
 export {
     enum output_close_far_t {
@@ -28,6 +29,9 @@ export {
 
     class RandR {
        private:
+         X &x;
+         ConfigurationManager &configManager;
+         
         /* Pointer to the result of the query for primary output */
         xcb_randr_output_t primary;
         /* This is the output covering the root window */
@@ -79,9 +83,6 @@ export {
         void randr_query_outputs_14();
 
         void fallback_to_root_output();
-
-    protected:
-        RandR() {}
 
     public:
         int randr_base{-1};
@@ -146,12 +147,26 @@ export {
          */
         void randr_query_outputs();
         
+        /**
+         * Returns the active output which contains the midpoint of the given rect. If
+         * such an output doesn't exist, returns the output which contains most of the
+         * rectangle or NULL if there is no output which intersects with it.
+         *
+         */
+        Output* get_output_from_rect(Rect rect);
+        
+        /**
+         * Disables the output and moves its content.
+         *
+         */
+        void randr_disable_output(Output * output);
+        
         /*
          * We have just established a connection to the X server and need the initial
          * XRandR information to setup workspaces for each screen.
          *
          */
-        explicit RandR(X &x);
+        explicit RandR(X &x, ConfigurationManager &configManager);
     };
 
     /**
@@ -172,20 +187,6 @@ export {
      *
      */
     void init_ws_for_output(Output * output);
-
-    /**
-     * Disables the output and moves its content.
-     *
-     */
-    void randr_disable_output(Output * output);
-
-    /**
-     * Returns the active output which contains the midpoint of the given rect. If
-     * such an output doesn't exist, returns the output which contains most of the
-     * rectangle or NULL if there is no output which intersects with it.
-     *
-     */
-    Output *get_output_from_rect(Rect rect);
 
     /**
      * Like get_output_next with close_far == CLOSEST_OUTPUT, but wraps.

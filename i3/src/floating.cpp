@@ -392,7 +392,7 @@ bool floating_enable(ConCon *con, bool automatic) {
 
     /* Sanity check: Are the coordinates on the appropriate output? If not, we
      * need to change them */
-    Output *current_output = get_output_from_rect(nc->rect);
+    Output *current_output = global.randr->get_output_from_rect(nc->rect);
     Con *correct_output = ws->con_get_output();
     if (!current_output || current_output->con != correct_output) {
         DLOG(fmt::sprintf("This floating window is on the wrong output, fixing coordinates (currently (%d, %d))\n",
@@ -403,7 +403,7 @@ bool floating_enable(ConCon *con, bool automatic) {
         if (current_output) {
             floating_fix_coordinates(nc, current_output->con->rect, correct_output->rect);
             /* Make sure that the result is in the correct output. */
-            current_output = get_output_from_rect(nc->rect);
+            current_output = global.randr->get_output_from_rect(nc->rect);
         }
         if (!current_output || current_output->con != correct_output) {
             floating_center(nc, ws->rect);
@@ -497,7 +497,7 @@ void floating_raise_con(FloatingCon *con) {
  *
  */
 bool floating_maybe_reassign_ws(Con *con) {
-    Output *output = get_output_from_rect(con->rect);
+    Output *output = global.randr->get_output_from_rect(con->rect);
 
     if (!output) {
         ELOG("No output found at destination coordinates?\n");

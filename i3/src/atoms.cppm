@@ -5,6 +5,8 @@ export module i3:atoms;
 
 import std;
 
+class X;
+
 export namespace i3 {
     enum class Atom {
         _NET_SUPPORTED,
@@ -70,4 +72,4 @@ export namespace i3 {
 }
 
 /* Setup NetWM atoms */
-export void setup_atoms();
+export void setup_atoms(X &x);

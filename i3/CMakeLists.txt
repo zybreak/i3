@@ -39,6 +39,9 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 list(APPEND libraries nlohmann_json::nlohmann_json)
 
+find_package(di CONFIG REQUIRED)
+list(APPEND libraries di::di)
+
 list(APPEND libraries libi3ipc)
 
 list(APPEND include_dirs

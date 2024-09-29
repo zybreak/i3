@@ -142,12 +142,12 @@ Output* RandR::get_output_containing(uint32_t x, uint32_t y) {
  * rectangle or NULL if there is no output which intersects with it.
  *
  */
-Output *get_output_from_rect(Rect rect) {
+Output* RandR::get_output_from_rect(Rect rect) {
     unsigned int mid_x = rect.x + rect.width / 2;
     unsigned int mid_y = rect.y + rect.height / 2;
-    Output *output = global.randr->get_output_containing(mid_x, mid_y);
+    Output *output = get_output_containing(mid_x, mid_y);
 
-    return output ? output : global.randr->output_containing_rect(rect);
+    return output ? output : output_containing_rect(rect);
 }
 
 /*
@@ -525,7 +525,7 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
     /* If default_orientation is NO_ORIENTATION, we change the orientation of
      * the workspaces and their children depending on output resolution. This is
      * only done for workspaces with maximum one child. */
-    if (global.configManager->config->default_orientation == NO_ORIENTATION) {
+    if (configManager.config->default_orientation == NO_ORIENTATION) {
         
         for (auto &workspace_con : content->nodes) {
             auto workspace = dynamic_cast<WorkspaceCon*>(workspace_con);
@@ -796,8 +796,8 @@ void RandR::randr_query_outputs_14() {
  * different container types (CT_CONTENT vs. CT_DOCKAREA)?
  *
  */
-static void move_content(Con *con) {
-    OutputCon *first = global.randr->get_first_output()->con;
+static void move_content(RandR *randr, Con *con) {
+    OutputCon *first = randr->get_first_output()->con;
     Con *first_content = first->output_get_content();
 
     /* We need to move the workspaces from the disappearing output to the first output */
@@ -952,7 +952,7 @@ void RandR::randr_query_outputs() {
     for (auto &con : global.croot->nodes) {
         if (this->get_output_by_name(con->name, true) == nullptr) {
             DLOG(fmt::sprintf("No output %s found, moving its old content to first output\n",  con->name));
-            move_content(con);
+            move_content(this, con);
         }
     }
 
@@ -960,7 +960,7 @@ void RandR::randr_query_outputs() {
      * because the user disabled them or because they are clones) */
     for (Output *output : outputs) {
         if (output->to_be_disabled) {
-            randr_disable_output(output);
+            this->randr_disable_output(output);
         }
 
         if (output->changed) {
@@ -1003,7 +1003,7 @@ void RandR::randr_query_outputs() {
  * Disables the output and moves its content.
  *
  */
-void randr_disable_output(Output *output) {
+void RandR::randr_disable_output(Output *output) {
     assert(output->to_be_disabled);
 
     output->active = false;
@@ -1013,7 +1013,7 @@ void randr_disable_output(Output *output) {
         /* clear the pointer before move_content calls tree_close_internal in which the memory is freed */
         Con *con = output->con;
         output->con = nullptr;
-        move_content(con);
+        move_content(this, con);
     }
 
     output->to_be_disabled = false;
@@ -1031,7 +1031,7 @@ void RandR::fallback_to_root_output() {
  * XRandR information to setup workspaces for each screen.
  *
  */
-RandR::RandR(X &x) {
+RandR::RandR(X &x, ConfigurationManager &configManager) : x(x), configManager(configManager) {
     DLOG("Checking for XRandR...\n");
 
     const xcb_query_extension_reply_t *extreply;

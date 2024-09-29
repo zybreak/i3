@@ -118,6 +118,8 @@ export {
 
         friend WorkspaceCon *workspace_get_or_create(const std::string &num);
         friend WorkspaceCon *create_workspace_on_output(Output *output, Con *content);
+        
+        WorkspaceManager() {}
     };
 
     /**
