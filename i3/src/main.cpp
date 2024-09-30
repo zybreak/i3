@@ -329,7 +329,7 @@ static void confirm_restart() {
     const int restart_fd = parse_restart_fd();
     if (restart_fd != -1) {
         DLOG(fmt::sprintf("serving restart fd %d", restart_fd));
-        ipc_client *client = ipc_new_client_on_fd(global.eventHandler->main_loop, restart_fd);
+        ipc_client *client = ipc_new_client_on_fd(global.main_loop, restart_fd);
         ipc_confirm_restart(client);
         unsetenv("_I3_RESTART_FD");
     }
@@ -639,7 +639,8 @@ int main(int argc, char *argv[]) {
        cursor until the first client is launched). */
     x.xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
 
-    global.xkb = &injector.create<Xkb&>();
+    auto &xkb = injector.create<Xkb&>();
+    global.xkb = &xkb;
 
     auto &propertyHandlers = injector.create<PropertyHandlers&>();
 
@@ -652,18 +653,10 @@ int main(int argc, char *argv[]) {
 
     ewmh_setup_hints();
 
-    global.keysyms = new Keysyms(x);
+    x.xcb_numlock_mask = xkb.get_numlock_mask();
 
-    x.xcb_numlock_mask = global.keysyms->get_numlock_mask();
-
-    auto keymap = load_keymap();
-    if (!keymap) {
-        errx(EXIT_FAILURE, "Could not load keymap\n");
-    }
-    
-    global.keymap = std::move(keymap);
-
-    translate_keysyms(&global.keymap.value());
+    xkb.load_keymap();
+    translate_keysyms(xkb.keymap());
     grab_all_keys(&*x);
 
     do_tree_init(args, greply.get());
@@ -685,7 +678,7 @@ int main(int argc, char *argv[]) {
     /* Listen to the IPC socket for clients */
     auto *ipc_io = new ev_io();
     ev_io_init(ipc_io, ipc_new_client, ipc_socket, EV_READ);
-    ev_io_start(global.eventHandler->main_loop, ipc_io);
+    ev_io_start(global.main_loop, ipc_io);
 
     confirm_restart();
 

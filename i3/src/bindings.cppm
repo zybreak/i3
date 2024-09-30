@@ -18,6 +18,7 @@ import :x;
 import :util;
 import i3_commands_base;
 
+class Keymap;
 
 export {
     class Config;
@@ -49,6 +50,7 @@ export {
         }
         
         auto operator<=>(const Binding_Keycode &) const = default;
+        bool operator==(const Binding_Keycode &) const = default;
     };
 
     enum binding_upon_t {
@@ -116,44 +118,6 @@ export {
         auto operator<=>(const Binding &) const = default;
     };
     
-    class Keymap {
-        xkb_context *context = nullptr;
-    public:
-        xkb_keymap *keymap = nullptr;
-        
-        Keymap();
-        
-        Keymap(Keymap &other) = delete;
-        void operator=(Keymap &other) = delete;
-        
-        void operator=(Keymap &&other) {
-            auto tmp_context = this->context;
-            auto tmp_keymap = this->keymap;
-            this->keymap = other.keymap;
-            this->context = other.context;
-            other.keymap = tmp_keymap;
-            other.context = tmp_context;
-        }
-       
-        Keymap(Keymap &&other) {
-            auto tmp_context = this->context;
-            auto tmp_keymap = this->keymap;
-            this->keymap = other.keymap;
-            this->context = other.context;
-            other.keymap = tmp_keymap;
-            other.context = tmp_context;
-        }
-        
-        ~Keymap() {
-            if (keymap) {
-                xkb_keymap_unref(keymap);
-            }
-            if (context) {
-                xkb_context_unref(context);
-            }
-        }
-    };
-
     /**
      * Adds a binding from config parameters given as strings and returns a
      * pointer to the binding structure. Returns NULL if the input code could not
@@ -196,7 +160,7 @@ export {
      * Translates keysymbols to keycodes for all bindings which use keysyms.
      *
      */
-    void translate_keysyms(Keymap const * keymap);
+    void translate_keysyms(Keymap const & keymap);
 
     /**
      * Switches the key bindings to the given mode, if the mode exists
@@ -236,12 +200,6 @@ export {
      *
      */
     CommandResult run_binding(Binding * bind, Con * con);
-
-    /**
-     * Loads the XKB keymap from the X11 server and feeds it to xkbcommon.
-     *
-     */
-    std::optional<Keymap> load_keymap();
 
     /**
      * Returns a list of buttons that should be grabbed on a window.

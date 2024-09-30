@@ -19,6 +19,7 @@ class X;
 class WorkspaceManager;
 class ConfigurationManager;
 class RandR;
+class Xkb;
 
 export {
     struct Ignore_Event {
@@ -34,6 +35,7 @@ export {
         WorkspaceManager &workspaceManager;
         ConfigurationManager &configManager;
         RandR &randr;
+        Xkb &xkb;
 
         /* After mapping/unmapping windows, a notify event is generated. However, we don’t want it,
            since it’d trigger an infinite loop of switching between the different windows when
@@ -146,7 +148,7 @@ export {
          * received from X11
          *
          */
-        explicit PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr);
+        explicit PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb);
 
         /**
          * Configure requests are received when the application wants to resize windows

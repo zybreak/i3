@@ -108,6 +108,8 @@ target_sources(i3_lib PUBLIC
         src/util.cpp
         src/window.cpp
         src/workspace.cpp
+        src/event_handler.cpp
+        src/xkb.cpp
         src/xcb.cpp
         src/x.cpp
         PUBLIC
@@ -130,7 +132,6 @@ target_sources(i3_lib PUBLIC
         src/util.cppm
         src/x.cppm
         src/workspace.cppm
-        src/keysyms.cppm
         src/event_handler.cppm
         src/xkb.cppm
         src/handlers/handlers.cppm

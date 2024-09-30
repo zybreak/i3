@@ -122,17 +122,17 @@ static void ipc_push_pending(ipc_client *client) {
         client->buffer = nullptr;
         client->buffer_size = 0;
         if (client->timeout) {
-            ev_timer_stop(global.eventHandler->main_loop, client->timeout);
+            ev_timer_stop(global.main_loop, client->timeout);
             delete client->timeout;
             client->timeout = nullptr;
         }
-        ev_io_stop(global.eventHandler->main_loop, client->write_callback);
+        ev_io_stop(global.main_loop, client->write_callback);
         return;
     }
 
     /* Otherwise, make sure that the io callback is enabled and create a new
      * timer if needed. */
-    ev_io_start(global.eventHandler->main_loop, client->write_callback);
+    ev_io_start(global.main_loop, client->write_callback);
 
     if (!client->timeout) {
         auto *timeout = new ev_timer();
@@ -140,13 +140,13 @@ static void ipc_push_pending(ipc_client *client) {
         timeout->data = client;
         client->timeout = timeout;
         ev_set_priority(timeout, EV_MINPRI);
-        ev_timer_start(global.eventHandler->main_loop, client->timeout);
+        ev_timer_start(global.main_loop, client->timeout);
     } else if (result > 0) {
         /* Keep the old timeout when nothing is written. Otherwise, we would
          * keep a dead connection by continuously renewing its timeouts. */
-        ev_timer_stop(global.eventHandler->main_loop, client->timeout);
+        ev_timer_stop(global.main_loop, client->timeout);
         ev_timer_set(client->timeout, kill_timeout, 0.0);
-        ev_timer_start(global.eventHandler->main_loop, client->timeout);
+        ev_timer_start(global.main_loop, client->timeout);
     }
     if (result == 0) {
         return;

@@ -168,7 +168,9 @@ export {
          * XRandR information to setup workspaces for each screen.
          *
          */
-        explicit RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &workspaceManager);
+        RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &workspaceManager);
+        
+        virtual ~RandR() = default;
     };
 
     /**

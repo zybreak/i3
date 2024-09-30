@@ -199,7 +199,7 @@ static void free_configuration() {
 }
 
 static void config_reload() {
-    translate_keysyms(&global.keymap.value());
+    translate_keysyms(global.xkb->keymap());
     grab_all_keys(*global.x);
     regrab_all_buttons(*global.x);
     gaps_reapply_workspace_assignments();

@@ -13,7 +13,6 @@ export import :con;
 export import :util;
 export import :x;
 export import :workspace;
-export import :keysyms;
 export import :event_handler;
 export import :xkb;
 export import :handlers;
@@ -75,13 +74,9 @@ public:
 
     std::vector<std::string> start_argv{};
 
-    int xkb_current_group;
-
     pid_t config_error_nagbar_pid = -1;
     pid_t command_error_nagbar_pid = -1;
 
-    Keysyms *keysyms;
-    std::optional<Keymap> keymap{};
     X *x;
     RandR *randr;
     Xkb *xkb;
@@ -105,6 +100,7 @@ public:
     bool new_parser;
     PropertyHandlers *handlers;
     EventHandler *eventHandler;
+    struct ev_loop *main_loop;
 
     static Global& instance() {
         static Global inst{};

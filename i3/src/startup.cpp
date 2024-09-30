@@ -127,7 +127,7 @@ void Startup_Sequence::stop_timer() {
         return;
     }
 
-    ev_timer_stop(global.eventHandler->main_loop, this->timeout);
+    ev_timer_stop(global.main_loop, this->timeout);
     delete this->timeout;
     this->timeout = nullptr;
 }
@@ -144,7 +144,7 @@ Startup_Sequence::Startup_Sequence(int screen, WorkspaceCon *ws, std::string nam
     this->timeout = new ev_timer();
     this->timeout->data = this;
     ev_timer_init(this->timeout, startup_timeout, 60.0, 0.);
-    ev_timer_start(global.eventHandler->main_loop, this->timeout);
+    ev_timer_start(global.main_loop, this->timeout);
 
     LOG(fmt::sprintf("startup id = %s\n",  sn_launcher_context_get_startup_id(context)));
 

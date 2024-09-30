@@ -259,12 +259,12 @@ void PropertyHandlers::handle_mapping_notify(xcb_mapping_notify_event_t *event) 
     }
 
     DLOG("Received mapping_notify for keyboard or modifier mapping, re-grabbing keys\n");
-    global.keysyms->refresh_keyboard_mapping(event);
+    global.xkb->refresh_keyboard_mapping(event);
 
-    x.xcb_numlock_mask = global.keysyms->get_numlock_mask();
+    x.xcb_numlock_mask = global.xkb->get_numlock_mask();
 
     ungrab_all_keys(&*x);
-    translate_keysyms(&global.keymap.value());
+    translate_keysyms(xkb.keymap());
     grab_all_keys(&*x);
 }
 
@@ -762,7 +762,7 @@ static void handle_selection_clear(xcb_selection_clear_event_t *event) {
  * received from X11
  *
  */
-PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr) : x{x}, workspaceManager(workspaceManager), configManager(configManager), randr(randr) {
+PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb) : x{x}, workspaceManager(workspaceManager), configManager(configManager), randr(randr), xkb(xkb) {
     sn_monitor_context_new(sndisplay, x.conn->default_screen(), startup_monitor_event, nullptr, nullptr);
 
 
@@ -812,12 +812,12 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
         auto *state = (xcb_xkb_state_notify_event_t *)event;
         if (state->xkbType == XCB_XKB_NEW_KEYBOARD_NOTIFY) {
             DLOG(fmt::sprintf("xkb new keyboard notify, sequence %d, time %d\n", state->sequence, state->time));
-            global.keysyms->key_symbols_alloc();
+            xkb.key_symbols_alloc();
             if (((xcb_xkb_new_keyboard_notify_event_t *)event)->changed & XCB_XKB_NKN_DETAIL_KEYCODES) {
-                global.keymap = load_keymap();
+                xkb.load_keymap();
             }
             ungrab_all_keys(conn);
-            translate_keysyms(&global.keymap.value());
+            translate_keysyms(xkb.keymap());
             grab_all_keys(conn);
         } else if (state->xkbType == XCB_XKB_MAP_NOTIFY) {
             if (event_is_ignored(event->sequence, type)) {
@@ -825,18 +825,18 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
             } else {
                 DLOG(fmt::sprintf("xkb map notify, sequence %d, time %d\n", state->sequence, state->time));
                 add_ignore_event(event->sequence, type);
-                global.keysyms->key_symbols_alloc();
+                xkb.key_symbols_alloc();
                 ungrab_all_keys(conn);
-                translate_keysyms(&global.keymap.value());
+                translate_keysyms(xkb.keymap());
                 grab_all_keys(conn);
-                global.keymap = load_keymap();
+                xkb.load_keymap();
             }
         } else if (state->xkbType == XCB_XKB_STATE_NOTIFY) {
             DLOG(fmt::sprintf("xkb state group = %d\n", state->group));
-            if (global.xkb_current_group == state->group) {
+            if (xkb.xkb_current_group == state->group) {
                 return;
             }
-            global.xkb_current_group = state->group;
+            xkb.xkb_current_group = state->group;
             ungrab_all_keys(conn);
             grab_all_keys(conn);
         }

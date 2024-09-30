@@ -250,11 +250,11 @@ drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
     ev_prepare_init(prepare, xcb_drag_prepare_cb);
     prepare->data = &loop;
     global.eventHandler->main_set_x11_cb(false);
-    ev_prepare_start(global.eventHandler->main_loop, prepare);
+    ev_prepare_start(global.main_loop, prepare);
 
-    ev_run(global.eventHandler->main_loop, 0);
+    ev_run(global.main_loop, 0);
 
-    ev_prepare_stop(global.eventHandler->main_loop, prepare);
+    ev_prepare_stop(global.main_loop, prepare);
     global.eventHandler->main_set_x11_cb(true);
 
     xcb_ungrab_keyboard(**global.x, XCB_CURRENT_TIME);
