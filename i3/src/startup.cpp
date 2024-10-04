@@ -47,7 +47,7 @@ static std::vector<std::unique_ptr<Startup_Sequence>> startup_sequences{};
 
 static Startup_Sequence* startup_sequence_get(i3Window *cwindow, xcb_get_property_reply_t* startup_id_reply, bool ignore_mapped_leader);
 
-void remove_startup_sequence(std::string id) {
+static void remove_startup_sequence(std::string id) {
     std::erase_if(startup_sequences, [&id](auto &currrent) {
       return currrent->id == id;
     });
@@ -135,7 +135,7 @@ void Startup_Sequence::stop_timer() {
 Startup_Sequence::Startup_Sequence(int screen, WorkspaceCon *ws, std::string name, std::string description, std::string launchee, xcb_timestamp_t last_timestamp) {
     /* Create a startup notification context to monitor the progress of this
          * startup. */
-    SnLauncherContext *context = sn_launcher_context_new(sndisplay, screen);
+    SnLauncherContext *context = sn_launcher_context_new(global.applicationLauncher->sndisplay, screen);
     sn_launcher_context_set_name(context, name.c_str());
     sn_launcher_context_set_description(context, description.c_str());
     sn_launcher_context_initiate(context, "i3", launchee.c_str(), last_timestamp);
@@ -165,7 +165,7 @@ Startup_Sequence::Startup_Sequence(int screen, WorkspaceCon *ws, std::string nam
  * (and ID) should be created, which is the default and encouraged behavior.
  *
  */
-void start_application(const std::string_view command, bool no_startup_id) {
+void ApplicationLauncher::start_application(const std::string_view command, bool no_startup_id) {
     SnLauncherContext *context = nullptr;
 
     if (!no_startup_id) {
@@ -206,11 +206,17 @@ void start_application(const std::string_view command, bool no_startup_id) {
     }
 }
 
+ApplicationLauncher::ApplicationLauncher(X &x) {
+    sndisplay = sn_xcb_display_new(*x, nullptr, nullptr);
+    sn_monitor_context_new(sndisplay, x.conn->default_screen(), [](SnMonitorEvent * event, void *userdata) { ((ApplicationLauncher*)userdata)->startup_monitor_event(event); }, this, nullptr);
+
+    /* Prepare for us to get a current timestamp as recommended by ICCCM */
+}
 /*
  * Called by libstartup-notification when something happens
  *
  */
-void startup_monitor_event(SnMonitorEvent *event, void *userdata) {
+void ApplicationLauncher::startup_monitor_event(SnMonitorEvent *event) {
     using namespace std::literals;
 
     SnStartupSequence *snsequence;
@@ -257,7 +263,7 @@ void startup_monitor_event(SnMonitorEvent *event, void *userdata) {
  * Renames workspaces that are mentioned in the startup sequences.
  *
  */
-void startup_sequence_rename_workspace(const char *old_name, const char *new_name) {
+void ApplicationLauncher::startup_sequence_rename_workspace(const char *old_name, const char *new_name) {
     for (auto &current : startup_sequences) {
         if (strcmp(current->workspace.c_str(), old_name) != 0) {
             continue;
@@ -331,7 +337,7 @@ static Startup_Sequence* startup_sequence_get(i3Window *cwindow,
  * Returns NULL otherwise.
  *
  */
-std::optional<std::string> startup_workspace_for_window(i3Window *cwindow, xcb_get_property_reply_t *startup_id_reply) {
+std::optional<std::string> ApplicationLauncher::startup_workspace_for_window(i3Window *cwindow, xcb_get_property_reply_t *startup_id_reply) {
     auto *seq = startup_sequence_get(cwindow, startup_id_reply, false);
     if (seq == nullptr) {
         return std::nullopt;
@@ -353,7 +359,7 @@ std::optional<std::string> startup_workspace_for_window(i3Window *cwindow, xcb_g
  * Deletes the startup sequence for a window if it exists.
  *
  */
-void startup_sequence_delete_by_window(i3Window *win) {
+void ApplicationLauncher::startup_sequence_delete_by_window(i3Window *win) {
 
     auto startup_id_reply = global.x->conn->get_property(false, win->id, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
 

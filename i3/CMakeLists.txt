@@ -62,6 +62,7 @@ add_subdirectory(src/log)
 
 add_library(i3_lib STATIC)
 target_sources(i3_lib PUBLIC
+        src/autostarts.cpp
         src/assignments.cpp
         src/atoms.cpp
         src/bindings.cpp
@@ -103,7 +104,9 @@ target_sources(i3_lib PUBLIC
         src/startup.cpp
         src/dpi.cpp
         src/draw.cpp
-        src/tiling_drag.cpp
+        src/handlers/tiling_drag.cpp
+        src/handlers/resize.cpp
+        src/handlers/floating.cpp
         src/tree.cpp
         src/util.cpp
         src/window.cpp
@@ -139,7 +142,6 @@ target_sources(i3_lib PUBLIC
         src/resize.cppm
         src/window.cppm
         src/match.cppm
-        src/tiling_drag.cppm
         src/tree.cppm
         src/startup.cppm
         src/draw.cppm

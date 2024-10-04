@@ -101,7 +101,7 @@ class Nagbar {
             return;
         }
 
-        start_application(button->action, true);
+        global.applicationLauncher->start_application(button->action, true);
 
         /* TODO: unset flag, re-render */
     }

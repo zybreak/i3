@@ -13,6 +13,7 @@ module;
 export module i3:handlers;
 
 import std;
+import :internal;
 
 class Con;
 class X;
@@ -20,6 +21,14 @@ class WorkspaceManager;
 class ConfigurationManager;
 class RandR;
 class Xkb;
+class InputManager;
+class ApplicationLauncher;
+
+enum click_destination_t {
+    CLICK_BORDER = 0,
+    CLICK_DECORATION = 1,
+    CLICK_INSIDE = 2
+};
 
 export {
     struct Ignore_Event {
@@ -34,6 +43,7 @@ export {
         X &x;
         WorkspaceManager &workspaceManager;
         ConfigurationManager &configManager;
+        InputManager &inputManager;
         RandR &randr;
         Xkb &xkb;
 
@@ -44,6 +54,45 @@ export {
 
         std::vector<std::unique_ptr<Ignore_Event>> ignore_events{};
 
+        /**
+         * Returns whether there currently are any drop targets.
+         * Used to only initiate a drag when there is something to drop onto.
+         *
+         */
+        bool has_drop_targets();
+        
+        /**
+         * Initiates a mouse drag operation on a tiled window.
+         *
+         */
+        void tiling_drag(Con * con, xcb_button_press_event_t * event, bool use_threshold);
+        
+        void route_click(Con *con, xcb_button_press_event_t *event, const bool mod_pressed, const click_destination_t dest);
+       
+         /**
+          * Called when the user clicked on the titlebar of a floating window.
+          * Calls the drag_pointer function with the drag_window callback
+          *
+          */
+         void floating_drag_window(Con * con, const xcb_button_press_event_t *event, bool use_threshold);
+         
+         void handle_move_resize(xcb_client_message_event_t *event);
+         
+         /**
+         * Called when the user clicked on a floating window while holding the
+         * floating_modifier and the right mouse button.
+         * Calls the drag_pointer function with the resize_window callback
+         *
+          */
+         void floating_resize_window(Con * con, bool proportional, const xcb_button_press_event_t *event);
+         
+      public:
+        // TODO: make private 
+        void resize_graphical_handler(Con *first, Con *second, orientation_t orientation,
+                                 const xcb_button_press_event_t *event,
+                                 bool use_threshold);
+      private:
+        
         /**
          * The button press X callback. This function determines whether the floating
          * modifier is pressed and where the user clicked (decoration, border, inside
@@ -148,7 +197,7 @@ export {
          * received from X11
          *
          */
-        explicit PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb);
+        PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb, InputManager &inputManager, ApplicationLauncher &applicationLauncher);
 
         /**
          * Configure requests are received when the application wants to resize windows

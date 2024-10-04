@@ -19,10 +19,62 @@ export module i3:startup;
 import std;
 
 class i3Window;
+class X;
 
 export {
-    /* Display handle for libstartup-notification */
-    SnDisplay *sndisplay;
+    
+    class ApplicationLauncher {
+      public:
+        /* Display handle for libstartup-notification */
+        SnDisplay *sndisplay;
+        
+        explicit ApplicationLauncher(X &x);
+        
+        /**
+         * Starts the given application by passing it through a shell. We use double
+         * fork to avoid zombie processes. As the started application’s parent exits
+         * (immediately), the application is reparented to init (process-id 1), which
+         * correctly handles children, so we don’t have to do it :-).
+         *
+         * The shell used to start applications is the system's bourne shell (i.e.,
+         * /bin/sh).
+         *
+         * The no_startup_id flag determines whether a startup notification context
+         * (and ID) should be created, which is the default and encouraged behavior.
+         *
+         */
+        void start_application(std::string_view command, bool no_startup_id);
+        
+        /**
+         * Called by libstartup-notification when something happens
+         *
+         */
+        void startup_monitor_event(SnMonitorEvent * event);
+
+        /**
+         * Renames workspaces that are mentioned in the startup sequences.
+         *
+         */
+        void startup_sequence_rename_workspace(const char *old_name, const char *new_name);
+
+        /**
+         * Checks if the given window belongs to a startup notification by checking if
+         * the _NET_STARTUP_ID property is set on the window (or on its leader, if it’s
+         * unset).
+         *
+         * If so, returns the workspace on which the startup was initiated.
+         * Returns NULL otherwise.
+         *
+         */
+        std::optional<std::string> startup_workspace_for_window(i3Window * cwindow, xcb_get_property_reply_t * startup_id_reply);
+
+        /**
+         * Deletes the startup sequence for a window if it exists.
+         *
+         */
+        void startup_sequence_delete_by_window(i3Window * win);
+        
+    };
 
     /**
      * Stores internal information about a startup sequence, like the workspace it
@@ -54,48 +106,4 @@ export {
 
         virtual ~Startup_Sequence();
     };
-
-    /**
-     * Starts the given application by passing it through a shell. We use double
-     * fork to avoid zombie processes. As the started application’s parent exits
-     * (immediately), the application is reparented to init (process-id 1), which
-     * correctly handles children, so we don’t have to do it :-).
-     *
-     * The shell used to start applications is the system's bourne shell (i.e.,
-     * /bin/sh).
-     *
-     * The no_startup_id flag determines whether a startup notification context
-     * (and ID) should be created, which is the default and encouraged behavior.
-     *
-     */
-    void start_application(std::string_view command, bool no_startup_id);
-
-    /**
-     * Called by libstartup-notification when something happens
-     *
-     */
-    void startup_monitor_event(SnMonitorEvent * event, void *userdata);
-
-    /**
-     * Renames workspaces that are mentioned in the startup sequences.
-     *
-     */
-    void startup_sequence_rename_workspace(const char *old_name, const char *new_name);
-
-    /**
-     * Checks if the given window belongs to a startup notification by checking if
-     * the _NET_STARTUP_ID property is set on the window (or on its leader, if it’s
-     * unset).
-     *
-     * If so, returns the workspace on which the startup was initiated.
-     * Returns NULL otherwise.
-     *
-     */
-    std::optional<std::string> startup_workspace_for_window(i3Window * cwindow, xcb_get_property_reply_t * startup_id_reply);
-
-    /**
-     * Deletes the startup sequence for a window if it exists.
-     *
-     */
-    void startup_sequence_delete_by_window(i3Window * win);
 }

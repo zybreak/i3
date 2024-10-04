@@ -264,7 +264,7 @@ static void handle_close_window(xcb_client_message_event_t *event) {
     }
 }
 
-static void handle_move_resize(xcb_client_message_event_t *event) {
+void PropertyHandlers::handle_move_resize(xcb_client_message_event_t *event) {
     /*
         * Client-side decorated Gtk3 windows emit this signal when being
         * dragged by their GtkHeaderBar
@@ -333,7 +333,7 @@ static xcb_configure_request_event_t handle_move_resize_window(xcb_client_messag
 void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) {
    /* If this is a startup notification ClientMessage, the library will handle
     * it and call our monitor_event() callback. */
-   if (sn_xcb_display_process_event(sndisplay, (xcb_generic_event_t *)event)) {
+   if (sn_xcb_display_process_event(global.applicationLauncher->sndisplay, (xcb_generic_event_t *)event)) {
        return;
    }
 

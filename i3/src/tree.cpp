@@ -29,6 +29,7 @@ import :output;
 import log;
 import utils;
 import rect;
+import program_arguments;
 
 /*
  * Loads tree from 'path' (used for in-place restarts).
@@ -92,6 +93,31 @@ void tree_init(const xcb_get_geometry_reply_t *geometry) {
         geometry->width,
         geometry->height
     };
+}
+
+TreeManager::TreeManager(X &x) : x(x) {
+    auto greply = x.conn->get_geometry(x.root).get();
+    if (greply == nullptr) {
+        throw std::runtime_error("Could not get geometry of the root window, exiting");
+    }
+    DLOG(fmt::sprintf("root geometry reply: (%d, %d) %d x %d\n", greply->x, greply->y, greply->width, greply->height));
+    
+    bool needs_tree_init = true;
+    if (global.args->layout_path) {
+        LOG(fmt::format("Trying to restore the layout from \"{}\".", global.args->layout_path->native()));
+        needs_tree_init = !tree_restore(*global.args->layout_path, greply.get());
+        if (global.args->delete_layout_path) {
+            std::filesystem::remove(*global.args->layout_path);
+            auto dir = global.args->layout_path->parent_path();
+            /* possibly fails with ENOTEMPTY if there are files (or
+             * sockets) left. */
+            std::error_code ec{};
+            std::filesystem::remove(dir, ec);
+        }
+    }
+    if (needs_tree_init) {
+        tree_init(greply.get());
+    }
 }
 
 static Con* _focused() {

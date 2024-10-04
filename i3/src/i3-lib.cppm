@@ -43,7 +43,6 @@ export import :root_atom_contents;
 export import :nagbar;
 export import :manage;
 export import :tree;
-export import :tiling_drag;
 export import :commands;
 export import :is_background_set;
 export import :resource_database;
@@ -53,6 +52,8 @@ export import :internal;
 export import :handle_property;
 export import :atoms;
 export import :dump_node;
+
+class program_arguments;
 
 export namespace i3 {
 
@@ -81,6 +82,9 @@ public:
     RandR *randr;
     Xkb *xkb;
     ConfigurationManager *configManager;
+    ApplicationLauncher *applicationLauncher;
+    
+    program_arguments *args;
 
     /* The original value of RLIMIT_CORE when i3 was started. We need to restore
      * this before starting any other process, since we set RLIMIT_CORE to

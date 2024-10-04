@@ -494,7 +494,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     xcb_get_property_reply_t *type_reply = (w_data.wm_type_cookie->value_len > 0 ? w_data.wm_type_cookie.get().get() : nullptr);
     xcb_get_property_reply_t *state_reply = (w_data.state_cookie->value_len > 0 ? w_data.state_cookie.get().get() : nullptr);
 
-    std::optional<std::string> startup_ws = startup_workspace_for_window(cwindow, (w_data.startup_id_cookie->value_len > 0 ? w_data.startup_id_cookie.get().get() : nullptr));
+    std::optional<std::string> startup_ws = global.applicationLauncher->startup_workspace_for_window(cwindow, (w_data.startup_id_cookie->value_len > 0 ? w_data.startup_id_cookie.get().get() : nullptr));
     DLOG(fmt::format("startup workspace = {}", startup_ws.value_or("(null)")));
 
     /* Get _NET_WM_DESKTOP if it was set. */
@@ -864,7 +864,7 @@ ConCon *remanage_window(ConCon *con) {
     if (moved_workpaces) {
         /* If the window is associated with a startup sequence, delete it so
          * child windows won't be created on the old workspace. */
-        startup_sequence_delete_by_window(nc->get_window());
+        global.applicationLauncher->startup_sequence_delete_by_window(nc->get_window());
 
         ewmh_update_wm_desktop();
     }

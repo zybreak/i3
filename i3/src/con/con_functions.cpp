@@ -512,12 +512,12 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
             if (child->get_window() == nullptr) {
                 continue;
             }
-            startup_sequence_delete_by_window(child->get_window());
+            global.applicationLauncher->startup_sequence_delete_by_window(child->get_window());
         }
     }
 
     if (con->get_window()) {
-        startup_sequence_delete_by_window(con->get_window());
+        global.applicationLauncher->startup_sequence_delete_by_window(con->get_window());
     }
 
     /* 9. If the container was marked urgent, move the urgency hint. */

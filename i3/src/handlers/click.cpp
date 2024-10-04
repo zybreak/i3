@@ -28,19 +28,13 @@ import rect;
 #define XCB_BUTTON_SCROLL_LEFT 6
 #define XCB_BUTTON_SCROLL_RIGHT 7
 
-enum click_destination_t {
-    CLICK_BORDER = 0,
-    CLICK_DECORATION = 1,
-    CLICK_INSIDE = 2
-};
-
 /*
  * Finds the correct pair of first/second cons between the resize will take
  * place according to the passed border position (top, left, right, bottom),
  * then calls resize_graphical_handler().
  *
  */
-static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press_event_t *event, bool use_threshold) {
+static bool tiling_resize_for_border(PropertyHandlers &handlers, Con *con, border_t border, xcb_button_press_event_t *event, bool use_threshold) {
     DLOG(fmt::sprintf("border = %d, con = %p\n", std::to_underlying(border), fmt::ptr(con)));
     Con *second = nullptr;
     Con *first = con;
@@ -89,7 +83,7 @@ static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press
 
     const orientation_t orientation = ((border == BORDER_LEFT || border == BORDER_RIGHT) ? HORIZ : VERT);
 
-    resize_graphical_handler(first, second, orientation, event, use_threshold);
+    handlers.resize_graphical_handler(first, second, orientation, event, use_threshold);
 
     DLOG("After resize handler, rendering\n");
     tree_render();
@@ -104,7 +98,7 @@ static bool tiling_resize_for_border(Con *con, border_t border, xcb_button_press
  * to the client).
  *
  */
-static bool floating_mod_on_tiled_client(Con *con, xcb_button_press_event_t *event) {
+static bool floating_mod_on_tiled_client(PropertyHandlers &handlers, Con *con, xcb_button_press_event_t *event) {
     /* The client is in tiling layout. We can still initiate a resize with the
      * right mouse button, by choosing the border which is the most near one to
      * the position of the mouse pointer */
@@ -119,22 +113,22 @@ static bool floating_mod_on_tiled_client(Con *con, xcb_button_press_event_t *eve
     if (to_right < to_left &&
         to_right < to_top &&
         to_right < to_bottom)
-        return tiling_resize_for_border(con, BORDER_RIGHT, event, false);
+        return tiling_resize_for_border(handlers, con, BORDER_RIGHT, event, false);
 
     if (to_left < to_right &&
         to_left < to_top &&
         to_left < to_bottom)
-        return tiling_resize_for_border(con, BORDER_LEFT, event, false);
+        return tiling_resize_for_border(handlers, con, BORDER_LEFT, event, false);
 
     if (to_top < to_right &&
         to_top < to_left &&
         to_top < to_bottom)
-        return tiling_resize_for_border(con, BORDER_TOP, event, false);
+        return tiling_resize_for_border(handlers, con, BORDER_TOP, event, false);
 
     if (to_bottom < to_right &&
         to_bottom < to_left &&
         to_bottom < to_top)
-        return tiling_resize_for_border(con, BORDER_BOTTOM, event, false);
+        return tiling_resize_for_border(handlers, con, BORDER_BOTTOM, event, false);
 
     return false;
 }
@@ -143,22 +137,22 @@ static bool floating_mod_on_tiled_client(Con *con, xcb_button_press_event_t *eve
  * Finds out which border was clicked on and calls tiling_resize_for_border().
  *
  */
-static bool tiling_resize(Con *con, xcb_button_press_event_t *event, const click_destination_t dest, bool use_threshold) {
+static bool tiling_resize(PropertyHandlers &handlers, Con *con, xcb_button_press_event_t *event, const click_destination_t dest, bool use_threshold) {
     /* check if this was a click on the window border (and on which one) */
     Rect bsr = con_border_style_rect(con);
     DLOG(fmt::sprintf("BORDER x = %d, y = %d for con %p, window 0x%08x\n",
                       event->event_x, event->event_y, fmt::ptr(con), event->event));
     //DLOG(fmt::sprintf("checks for right >= %d\n", con->get_window_rect().x + con->get_window_rect().width));
     if (dest == CLICK_DECORATION) {
-        return tiling_resize_for_border(con, BORDER_TOP, event, use_threshold);
+        return tiling_resize_for_border(handlers, con, BORDER_TOP, event, use_threshold);
     } else if (dest == CLICK_BORDER) {
         if (event->event_y >= 0 && event->event_y <= static_cast<int32_t>(bsr.y) &&
             event->event_x >= static_cast<int32_t>(bsr.x) && event->event_x <= static_cast<int32_t>(con->rect.width + bsr.width))
-            return tiling_resize_for_border(con, BORDER_TOP, event, false);
+            return tiling_resize_for_border(handlers, con, BORDER_TOP, event, false);
     }
     if (event->event_x >= 0 && event->event_x <= static_cast<int32_t>(bsr.x) &&
         event->event_y >= static_cast<int32_t>(bsr.y) && event->event_y <= static_cast<int32_t>(con->rect.height + bsr.height))
-        return tiling_resize_for_border(con, BORDER_LEFT, event, false);
+        return tiling_resize_for_border(handlers, con, BORDER_LEFT, event, false);
 
     auto concon = dynamic_cast<ConCon*>(con);
    
@@ -166,11 +160,11 @@ static bool tiling_resize(Con *con, xcb_button_press_event_t *event, const click
         if (event->event_x >= static_cast<int32_t>(concon->get_window_rect().x + concon->get_window_rect().width) &&
             event->event_y >= static_cast<int32_t>(bsr.y) &&
             event->event_y <= static_cast<int32_t>(concon->rect.height + bsr.height)) {
-            return tiling_resize_for_border(con, BORDER_RIGHT, event, false);
+            return tiling_resize_for_border(handlers, con, BORDER_RIGHT, event, false);
         }
 
         if (event->event_y >= static_cast<int32_t>(concon->get_window_rect().y + concon->get_window_rect().height)) {
-            return tiling_resize_for_border(con, BORDER_BOTTOM, event, false);
+            return tiling_resize_for_border(handlers, con, BORDER_BOTTOM, event, false);
         }
     }
 
@@ -188,7 +182,7 @@ static void allow_replay_pointer(xcb_timestamp_t time) {
  * functions for resizing/dragging.
  *
  */
-static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *event, const bool mod_pressed, const click_destination_t dest) {
+void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, const bool mod_pressed, const click_destination_t dest) {
     DLOG(fmt::sprintf("--> click properties: mod = %d, destination = %d\n", mod_pressed ? 1 : 0, std::to_underlying(dest)));
     DLOG(fmt::sprintf("--> OUTCOME = %p\n", fmt::ptr(con)));
     DLOG(fmt::sprintf("type = %d, name = %s\n", std::to_underlying(con->type), con->name));
@@ -208,8 +202,8 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
         run_binding(bind, con);
 
         /* ASYNC_POINTER eats the event */
-        conn->allow_events(XCB_ALLOW_ASYNC_POINTER, event->time);
-        conn->flush();
+        x.conn->allow_events(XCB_ALLOW_ASYNC_POINTER, event->time);
+        x.conn->flush();
 
         return;
     }
@@ -251,7 +245,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
     if (in_stacked && dest == CLICK_DECORATION && is_scroll) {
         DLOG("Scrolling on a window decoration\n");
         /* Correctly move workspace focus first, see: #5472 */
-        global.workspaceManager->workspace_show(ws);
+        workspaceManager.workspace_show(ws);
 
         /* Use the focused child of the tabbed / stacked container, not the
          * container the user scrolled on. */
@@ -268,8 +262,8 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
 
     /* 2: floating modifier pressed, initiate a drag */
     if (mod_pressed && is_left_click && !floatingcon &&
-        (global.configManager->config->tiling_drag == TILING_DRAG_MODIFIER ||
-        global.configManager->config->tiling_drag == TILING_DRAG_MODIFIER_OR_TITLEBAR) &&
+        (configManager.config->tiling_drag == TILING_DRAG_MODIFIER ||
+        configManager.config->tiling_drag == TILING_DRAG_MODIFIER_OR_TITLEBAR) &&
         has_drop_targets()) {
         const bool use_threshold = !mod_pressed;
         tiling_drag(con, event, use_threshold);
@@ -291,7 +285,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
         }
     }
     if (ws != focused_workspace) {
-        global.workspaceManager->workspace_show(ws);
+        workspaceManager.workspace_show(ws);
     }
     con_to_focus->con_activate();
 
@@ -318,7 +312,7 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
             is_left_or_right_click) {
             /* try tiling resize, but continue if it doesn’t work */
             DLOG("tiling resize with fallback\n");
-            if (tiling_resize(con, event, dest, dest == CLICK_DECORATION && !was_focused)) {
+            if (tiling_resize(*this, con, event, dest, dest == CLICK_DECORATION && !was_focused)) {
                 allow_replay_pointer(event->time);
                 return;
             }
@@ -349,8 +343,8 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
 
     /* 8: floating modifier pressed, or click in titlebar, initiate a drag */
     if (is_left_click &&
-        ((global.configManager->config->tiling_drag == TILING_DRAG_TITLEBAR && dest == CLICK_DECORATION) ||
-         (global.configManager->config->tiling_drag == TILING_DRAG_MODIFIER_OR_TITLEBAR &&
+        ((configManager.config->tiling_drag == TILING_DRAG_TITLEBAR && dest == CLICK_DECORATION) ||
+         (configManager.config->tiling_drag == TILING_DRAG_MODIFIER_OR_TITLEBAR &&
           (mod_pressed || dest == CLICK_DECORATION))) &&
         has_drop_targets()) {
         allow_replay_pointer(event->time);
@@ -361,20 +355,20 @@ static void route_click(x_connection *conn, Con *con, xcb_button_press_event_t *
 
     /* 9: floating modifier pressed, initiate a resize */
     if (dest == CLICK_INSIDE && mod_pressed && is_right_click) {
-        if (floating_mod_on_tiled_client(con, event)) {
+        if (floating_mod_on_tiled_client(*this, con, event)) {
             return;
         }
         /* Avoid propagating events to clients, since the user expects
          * $mod+click to be handled by i3. */
-        conn->allow_events(XCB_ALLOW_ASYNC_POINTER, event->time);
-        conn->flush();
+        x.conn->allow_events(XCB_ALLOW_ASYNC_POINTER, event->time);
+        x.conn->flush();
         return;
     }
     /* 10: otherwise, check for border/decoration clicks and resize */
     if ((dest == CLICK_BORDER || dest == CLICK_DECORATION) &&
         is_left_or_right_click) {
         DLOG("Trying to resize (tiling)\n");
-        tiling_resize(con, event, dest, dest == CLICK_DECORATION && !was_focused);
+        tiling_resize(*this, con, event, dest, dest == CLICK_DECORATION && !was_focused);
     }
 
     allow_replay_pointer(event->time);
@@ -396,11 +390,11 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
 
     global.last_timestamp = event->time;
 
-    const uint32_t mod = (global.configManager->config->floating_modifier & 0xFFFF);
+    const uint32_t mod = (configManager.config->floating_modifier & 0xFFFF);
     const bool mod_pressed = (mod != 0 && (event->state & mod) == mod);
     DLOG(fmt::sprintf("floating_mod = %d, detail = %d\n", mod_pressed, event->detail));
     if (ConCon *con = con_by_window_id(event->event)) {
-        route_click(*global.x, con, event, mod_pressed, CLICK_INSIDE);
+        route_click(con, event, mod_pressed, CLICK_INSIDE);
         return;
     }
 
@@ -409,7 +403,7 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
         /* Run bindings on the root window as well, see #2097. We only run it
          * if --whole-window was set as that's the equivalent for a normal
          * window. */
-        if (event->event == global.x->root) {
+        if (event->event == x.root) {
             Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event);
             if (bind != nullptr && bind->whole_window) {
                 run_binding(bind, nullptr);
@@ -418,7 +412,7 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
 
         /* If the root window is clicked, find the relevant output from the
          * click coordinates and focus the output's active workspace. */
-        if (event->event == global.x->root && event->response_type == XCB_BUTTON_PRESS) {
+        if (event->event == x.root && event->response_type == XCB_BUTTON_PRESS) {
             OutputCon *output;
             WorkspaceCon *ws;
             for (auto &c : global.croot->nodes) {
@@ -428,7 +422,7 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
 
                 ws = dynamic_cast<WorkspaceCon*>(con::first(output->output_get_content()->focused));
                 if (ws != global.focused->con_get_workspace()) {
-                    global.workspaceManager->workspace_show(ws);
+                    workspaceManager.workspace_show(ws);
                     tree_render();
                 }
                 return;
@@ -437,15 +431,15 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
         }
 
         ELOG("Clicked into unknown window?!\n");
-        xcb_allow_events(**global.x, XCB_ALLOW_REPLAY_POINTER, event->time);
-        xcb_flush(**global.x);
+        xcb_allow_events(*x, XCB_ALLOW_REPLAY_POINTER, event->time);
+        xcb_flush(*x);
         return;
     }
 
     /* Check if the click was on the decoration of a child */
     if (con->get_window() != nullptr) {
         if (con->deco_rect.rect_contains(event->event_x, event->event_y)) {
-            route_click(*global.x, con, event, mod_pressed, CLICK_DECORATION);
+            route_click(con, event, mod_pressed, CLICK_DECORATION);
             return;
         }
     } else {
@@ -453,16 +447,16 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
             if (!child->deco_rect.rect_contains(event->event_x, event->event_y))
                 continue;
 
-            route_click(*global.x, child, event, mod_pressed, CLICK_DECORATION);
+            route_click(child, event, mod_pressed, CLICK_DECORATION);
             return;
         }
     }
 
     if (event->child != XCB_NONE) {
         DLOG("event->child not XCB_NONE, so this is an event which originated from a click into the application, but the application did not handle it.\n");
-        route_click(*global.x, con, event, mod_pressed, CLICK_INSIDE);
+        route_click(con, event, mod_pressed, CLICK_INSIDE);
         return;
     }
 
-    route_click(*global.x, con, event, mod_pressed, CLICK_BORDER);
+    route_click(con, event, mod_pressed, CLICK_BORDER);
 }

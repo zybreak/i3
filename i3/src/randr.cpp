@@ -995,8 +995,8 @@ void RandR::randr_query_outputs() {
     }
 
     /* render_layout flushes */
-    ewmh_update_desktop_properties();
-    tree_render();
+    //ewmh_update_desktop_properties();
+    //tree_render();
 }
 
 /*
@@ -1031,7 +1031,7 @@ void RandR::fallback_to_root_output() {
  * XRandR information to setup workspaces for each screen.
  *
  */
-RandR::RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &workspaceManager) : x(x), configManager(configManager), workspaceManager(workspaceManager) {
+RandR::RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &workspaceManager, TreeManager &treeManager) : x(x), configManager(configManager), workspaceManager(workspaceManager) {
     DLOG("Checking for XRandR...\n");
 
     const xcb_query_extension_reply_t *extreply;

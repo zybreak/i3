@@ -1223,7 +1223,7 @@ void CommandsApplier::exec(struct criteria_state *criteria_state, CommandsResult
 
     for (auto it = criteria_state->owindows.begin(); it != criteria_state->owindows.end(); ++it) {
         DLOG(fmt::sprintf("should execute %s, no_startup_id = %d\n",  command, no_startup_id));
-        start_application(command, no_startup_id);
+        global.applicationLauncher->start_application(command, no_startup_id);
     }
 
     ysuccess(cmd_output.json_gen, true);
@@ -1997,7 +1997,7 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
 
     ewmh_update_desktop_properties();
 
-    startup_sequence_rename_workspace(old_name_copy, new_name);
+    global.applicationLauncher->startup_sequence_rename_workspace(old_name_copy, new_name);
     free(old_name_copy);
 }
 

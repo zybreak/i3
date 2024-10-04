@@ -79,21 +79,6 @@ export {
     void floating_move_to_pointer(Con * con);
 
     /**
-     * Called when the user clicked on the titlebar of a floating window.
-     * Calls the drag_pointer function with the drag_window callback
-     *
-     */
-    void floating_drag_window(Con * con, const xcb_button_press_event_t *event, bool use_threshold);
-
-    /**
-     * Called when the user clicked on a floating window while holding the
-     * floating_modifier and the right mouse button.
-     * Calls the drag_pointer function with the resize_window callback
-     *
-     */
-    void floating_resize_window(Con * con, bool proportional, const xcb_button_press_event_t *event);
-
-    /**
      * Called when a floating window is created or resized.  This function resizes
      * the window if its size is higher or lower than the configured maximum/minimum
      * size, respectively or when adjustments are needed to conform to the

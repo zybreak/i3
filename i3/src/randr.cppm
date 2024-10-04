@@ -21,6 +21,7 @@ class Output;
 class X;
 class ConfigurationManager;
 class WorkspaceManager;
+class TreeManager;
 
 export {
     enum output_close_far_t {
@@ -168,7 +169,7 @@ export {
          * XRandR information to setup workspaces for each screen.
          *
          */
-        RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &workspaceManager);
+        RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &workspaceManager, TreeManager &treeManager);
         
         virtual ~RandR() = default;
     };

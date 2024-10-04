@@ -762,8 +762,7 @@ static void handle_selection_clear(xcb_selection_clear_event_t *event) {
  * received from X11
  *
  */
-PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb) : x{x}, workspaceManager(workspaceManager), configManager(configManager), randr(randr), xkb(xkb) {
-    sn_monitor_context_new(sndisplay, x.conn->default_screen(), startup_monitor_event, nullptr, nullptr);
+PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb, InputManager &inputManager, ApplicationLauncher &applicationLauncher) : x{x}, workspaceManager(workspaceManager), configManager(configManager), randr(randr), xkb(xkb), inputManager(inputManager) {
 
 
 }

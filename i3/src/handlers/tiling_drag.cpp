@@ -73,7 +73,7 @@ static bool is_tiling_drop_target(Con *con) {
  * Used to only initiate a drag when there is something to drop onto.
  *
  */
-bool has_drop_targets() {
+bool PropertyHandlers::has_drop_targets() {
     int drop_targets = 0;
     for (auto &con : global.all_cons) {
         if (!is_tiling_drop_target(con)) {
@@ -174,19 +174,7 @@ static bool con_on_side_of_parent(Con *con, direction_t direction) {
             con_descend_direction(con->parent, reverse_direction) == con);
 }
 
-/*
- * The callback that is executed on every mouse move while dragging. On each
- * invocation we determine the drop target and the direction in which to insert
- * the dragged container. The indicator window is updated to show the new
- * position of the dragged container. The target container and direction are
- * passed out using the callback params.
- *
- */
-#define DRAGGING_CB(name)                                                      \
-    static void name(Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y, \
-                     const xcb_button_press_event_t *event, const void *extra)
-
-void create_indicator(drop_type_t drop_type, direction_t direction, Con *target, Rect rect, bool draw_window, Con *con, const Rect&, uint32_t new_x, uint32_t new_y, \
+static void create_indicator(drop_type_t drop_type, direction_t direction, Con *target, Rect rect, bool draw_window, Con *con, const Rect&, uint32_t new_x, uint32_t new_y, \
                           const xcb_button_press_event_t *event, const callback_params *params) {
     if (draw_window) {
         if (*(params->indicator) == 0) {
@@ -208,7 +196,48 @@ void create_indicator(drop_type_t drop_type, direction_t direction, Con *target,
     *(params->drop_type) = drop_type;
 }
 
-DRAGGING_CB(drag_callback) {
+/*
+ * Returns a new drop indicator window with the given initial coordinates.
+ *
+ */
+static xcb_window_t create_drop_indicator(Rect rect) {
+    uint32_t mask = 0;
+    uint32_t values[2];
+
+    mask = XCB_CW_BACK_PIXEL;
+    values[0] = global.configManager->config->client.focused.indicator.colorpixel;
+
+    mask |= XCB_CW_OVERRIDE_REDIRECT;
+    values[1] = 1;
+
+    xcb_window_t indicator = create_window(**global.x, rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
+                                           XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_MOVE, false, mask, values);
+    /* Change the window class to "i3-drag", so that it can be matched in a
+     * compositor configuration. Note that the class needs to be changed before
+     * mapping the window. */
+    xcb_change_property(**global.x,
+                        XCB_PROP_MODE_REPLACE,
+                        indicator,
+                        XCB_ATOM_WM_CLASS,
+                        XCB_ATOM_STRING,
+                        8,
+                        (strlen("i3-drag") + 1) * 2,
+                        "i3-drag\0i3-drag\0");
+    xcb_map_window(**global.x, indicator);
+    xcb_circulate_window(**global.x, XCB_CIRCULATE_RAISE_LOWEST, indicator);
+
+    return indicator;
+}
+
+/*
+ * The callback that is executed on every mouse move while dragging. On each
+ * invocation we determine the drop target and the direction in which to insert
+ * the dragged container. The indicator window is updated to show the new
+ * position of the dragged container. The target container and direction are
+ * passed out using the callback params.
+ *
+ */
+static void drag_callback(Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y, const xcb_button_press_event_t *event, callback_params const *params) {
     /* 30% of the container (minus the parent indicator) is used to drop the
      * dragged container as a sibling to the target */
     const double sibling_indicator_percent_of_rect = 0.3;
@@ -216,7 +245,7 @@ DRAGGING_CB(drag_callback) {
      * outer indicator generally thin but at least thick enough to cover
      * container titles */
     const double parent_indicator_max_size = render_deco_height() + logical_px(global.x->root_screen, 5);
-
+    
     Con *target = find_drop_target(new_x, new_y);
     if (target == nullptr) {
         return;
@@ -227,7 +256,6 @@ DRAGGING_CB(drag_callback) {
     direction_t direction = direction_t::D_LEFT;
     drop_type_t drop_type = DT_CENTER;
     bool draw_window = true;
-    const callback_params *params = static_cast<const callback_params*>(extra);
 
     if (target->type == CT_WORKSPACE) {
         return create_indicator(drop_type, direction, target, rect, draw_window, con, old_rect, new_x, new_y, event, params);
@@ -299,50 +327,17 @@ DRAGGING_CB(drag_callback) {
 }
 
 /*
- * Returns a new drop indicator window with the given initial coordinates.
- *
- */
-static xcb_window_t create_drop_indicator(Rect rect) {
-    uint32_t mask = 0;
-    uint32_t values[2];
-
-    mask = XCB_CW_BACK_PIXEL;
-    values[0] = global.configManager->config->client.focused.indicator.colorpixel;
-
-    mask |= XCB_CW_OVERRIDE_REDIRECT;
-    values[1] = 1;
-
-    xcb_window_t indicator = create_window(**global.x, rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
-                                           XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_MOVE, false, mask, values);
-    /* Change the window class to "i3-drag", so that it can be matched in a
-     * compositor configuration. Note that the class needs to be changed before
-     * mapping the window. */
-    xcb_change_property(**global.x,
-                        XCB_PROP_MODE_REPLACE,
-                        indicator,
-                        XCB_ATOM_WM_CLASS,
-                        XCB_ATOM_STRING,
-                        8,
-                        (strlen("i3-drag") + 1) * 2,
-                        "i3-drag\0i3-drag\0");
-    xcb_map_window(**global.x, indicator);
-    xcb_circulate_window(**global.x, XCB_CIRCULATE_RAISE_LOWEST, indicator);
-
-    return indicator;
-}
-
-/*
  * Initiates a mouse drag operation on a tiled window.
  *
  */
-void tiling_drag(Con *con, xcb_button_press_event_t *event, bool use_threshold) {
+void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bool use_threshold) {
     DLOG(fmt::sprintf("Start dragging tiled container: con = %p\n", fmt::ptr(con)));
     bool set_focus = (con == global.focused);
     bool set_fs = con->fullscreen_mode != CF_NONE;
 
     /* Don't change focus while dragging. */
     x_mask_event_mask(~XCB_EVENT_MASK_ENTER_WINDOW);
-    xcb_flush(**global.x);
+    xcb_flush(*x);
 
     /* Indicate drop location while dragging. This blocks until the drag is completed. */
     Con *target = nullptr;
@@ -350,11 +345,14 @@ void tiling_drag(Con *con, xcb_button_press_event_t *event, bool use_threshold) 
     drop_type_t drop_type;
     xcb_window_t indicator = 0;
     const callback_params params{.indicator = &indicator,.target = &target, .direction = &direction, .drop_type = &drop_type};
+    auto cb = [&params](Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y, const xcb_button_press_event_t *event) {
+        drag_callback(con, old_rect, new_x, new_y, event, &params);
+    };
 
-    drag_result_t drag_result = drag_pointer(con, event, XCB_NONE, XCURSOR_CURSOR_MOVE, use_threshold, drag_callback, &params);
+    drag_result_t drag_result = inputManager.drag_pointer(con, event, XCB_NONE, XCURSOR_CURSOR_MOVE, use_threshold, cb);
 
     /* Dragging is done. We don't need the indicator window any more. */
-    xcb_destroy_window(**global.x, indicator);
+    xcb_destroy_window(*x, indicator);
 
     if (drag_result == DRAG_REVERT ||
         target == nullptr ||
@@ -446,7 +444,7 @@ void tiling_drag(Con *con, xcb_button_press_event_t *event, bool use_threshold) 
         con_enable_fullscreen(con, CF_OUTPUT);
     }
     if (set_focus) {
-        global.workspaceManager->workspace_show(con->con_get_workspace());
+        workspaceManager.workspace_show(con->con_get_workspace());
         con->con_focus();
     }
     tree_render();
