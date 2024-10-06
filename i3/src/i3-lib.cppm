@@ -83,6 +83,7 @@ public:
     Xkb *xkb;
     ConfigurationManager *configManager;
     ApplicationLauncher *applicationLauncher;
+    IPCManager *ipcManager;
     
     program_arguments *args;
 

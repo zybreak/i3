@@ -420,7 +420,7 @@ bool floating_enable(ConCon *con, bool automatic) {
     }
 
     floating_set_hint_atom(nc, true);
-    ipc_send_window_event("floating", con);
+    global.ipcManager->ipc_send_window_event("floating", con);
     return true;
 }
 
@@ -447,7 +447,7 @@ void floating_disable(ConCon *con) {
 
     con->floating = FLOATING_USER_OFF;
     floating_set_hint_atom(con, false);
-    ipc_send_window_event("floating", con);
+    global.ipcManager->ipc_send_window_event("floating", con);
 }
 
 /*

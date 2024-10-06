@@ -729,7 +729,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     nc->get_window()->managed_since = std::chrono::system_clock::now();
 
     /* Send an event about window creation */
-    ipc_send_window_event("new", nc);
+    global.ipcManager->ipc_send_window_event("new", nc);
 
     if (set_focus && global.assignmentManager->assignment_for<NoFocusAssignment>(nc->get_window()).has_value()) {
         /* The first window on a workspace should always be focused. We have to

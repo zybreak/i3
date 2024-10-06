@@ -254,7 +254,7 @@ static void con_set_fullscreen_mode(xcb_connection_t *conn, Con *con, fullscreen
     DLOG(fmt::sprintf("mode now: %d\n",  std::to_underlying(con->fullscreen_mode)));
 
     /* Send an ipc window "fullscreen_mode" event */
-    ipc_send_window_event("fullscreen_mode", con);
+    global.ipcManager->ipc_send_window_event("fullscreen_mode", con);
 
     /* update _NET_WM_STATE if this container has a window */
     /* TODO: when a window is assigned to a container which is already
@@ -531,7 +531,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
 
     parent->on_remove_child();
 
-    ipc_send_window_event("move", con);
+    global.ipcManager->ipc_send_window_event("move", con);
     ewmh_update_wm_desktop();
     return true;
 }

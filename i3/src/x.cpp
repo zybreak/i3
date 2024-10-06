@@ -1339,7 +1339,7 @@ void x_push_changes(Con *con) {
                 change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->get_window()->id : XCB_WINDOW_NONE), global.x->last_focused);
 
                 if (to_focus != global.x->last_focused && is_con_attached(global.focused)) {
-                    ipc_send_window_event("focus", global.focused);
+                    global.ipcManager->ipc_send_window_event("focus", global.focused);
                 }
             } else {
                 DLOG(fmt::sprintf("Updating focus (focused: %p / %s) to X11 window 0x%08x\n", fmt::ptr(global.focused), global.focused->name, to_focus));
@@ -1359,7 +1359,7 @@ void x_push_changes(Con *con) {
                 change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->get_window()->id : XCB_WINDOW_NONE), global.x->last_focused);
 
                 if (to_focus != XCB_NONE && to_focus != global.x->last_focused && global.focused->get_window() != nullptr && is_con_attached(global.focused)) {
-                    ipc_send_window_event("focus", global.focused);
+                    global.ipcManager->ipc_send_window_event("focus", global.focused);
                 }
             }
 

@@ -882,7 +882,7 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
     restore_open_placeholder_windows(parent);
 
     if (content == JSON_CONTENT_WORKSPACE) {
-        ipc_send_workspace_event("restored", parent, nullptr);
+        global.ipcManager->ipc_send_workspace_event("restored", parent, nullptr);
     }
 
     cmd_output.needs_tree_render = true;
@@ -1616,7 +1616,7 @@ void CommandsApplier::reload(struct criteria_state *criteria_state, CommandsResu
     
     x_set_i3_atoms();
     /* Send an IPC event just in case the ws names have changed */
-    ipc_send_workspace_event("reload", nullptr, nullptr);
+    global.ipcManager->ipc_send_workspace_event("reload", nullptr, nullptr);
     /* Send an update event for each barconfig just in case it has changed */
     //for (auto &current: barconfigs) {
     //    ipc_send_barconfig_update_event(current.get());
@@ -1645,7 +1645,7 @@ void CommandsApplier::restart(struct criteria_state *criteria_state, CommandsRes
         fdstr = fmt::format("{}", exempt_fd);
         setenv("_I3_RESTART_FD", fdstr.c_str(), 1);
     }
-    ipc_shutdown(SHUTDOWN_REASON_RESTART, exempt_fd);
+    global.ipcManager->ipc_shutdown(shutdown_reason_t::SHUTDOWN_REASON_RESTART, exempt_fd);
     if (global.configManager->config->ipc_socket_path) {
         unlink(global.configManager->config->ipc_socket_path->c_str());
     }
@@ -1962,7 +1962,7 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
     Con *parent = workspace->parent;
     workspace->con_detach();
     workspace->con_attach(parent, false);
-    ipc_send_workspace_event("rename", workspace, nullptr);
+    global.ipcManager->ipc_send_workspace_event("rename", workspace, nullptr);
 
     Output *assigned = global.workspaceManager->get_assigned_output(workspace->name, workspace->num);
     if (assigned) {

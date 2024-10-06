@@ -388,7 +388,7 @@ void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bo
 
             insert_con_into(con, target, position);
 
-            ipc_send_window_event("move", con);
+            global.ipcManager->ipc_send_window_event("move", con);
             break;
         case DT_PARENT: {
             const bool parent_tabbed_or_stacked = (target->parent->layout == L_TABBED || target->parent->layout == L_STACKED);

@@ -255,7 +255,7 @@ static void move_to_output_directed(Con *con, direction_t direction) {
     /* force re-painting the indicators */
     con->deco_render_params.reset();
 
-    ipc_send_window_event("move", con);
+    global.ipcManager->ipc_send_window_event("move", con);
     tree_flatten(global.croot);
     ewmh_update_wm_desktop();
 }
@@ -310,7 +310,7 @@ void tree_move(Con *con, direction_t direction) {
                 /* force re-painting the indicators */
                 con->deco_render_params.reset();
 
-                ipc_send_window_event("move", con);
+                global.ipcManager->ipc_send_window_event("move", con);
                 tree_flatten(global.croot);
                 ewmh_update_wm_desktop();
                 return;
@@ -338,7 +338,7 @@ void tree_move(Con *con, direction_t direction) {
                     /* force re-painting the indicators */
                     con->deco_render_params.reset();
 
-                    ipc_send_window_event("move", con);
+                    global.ipcManager->ipc_send_window_event("move", con);
                     tree_flatten(global.croot);
                     ewmh_update_wm_desktop();
                     return;
@@ -362,7 +362,7 @@ void tree_move(Con *con, direction_t direction) {
                 /* redraw parents to ensure all parent split container titles are updated correctly */
                 con_force_split_parents_redraw(con);
 
-                ipc_send_window_event("move", con);
+                global.ipcManager->ipc_send_window_event("move", con);
                 return;
             }
 
@@ -425,7 +425,7 @@ void tree_move(Con *con, direction_t direction) {
     /* force re-painting the indicators */
     con->deco_render_params.reset();
 
-    ipc_send_window_event("move", con);
+    global.ipcManager->ipc_send_window_event("move", con);
     tree_flatten(global.croot);
     ewmh_update_wm_desktop();
 }

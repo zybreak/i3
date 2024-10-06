@@ -33,9 +33,7 @@ import rect;
 import i3_commands_base;
 import i3_config_base;
 
-static std::vector<std::unique_ptr<ipc_client>> all_clients{};
-
-static void ipc_client_timeout(EV_P_ ev_timer *w, int revents);
+void ipc_client_timeout(EV_P_ ev_timer *w, int revents);
 static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents);
 
 static ev_tstamp kill_timeout = 10.0;
@@ -73,13 +71,13 @@ static ssize_t writeall_nonblock(int fd, const void *buf, size_t count) {
  * This variant is useful for the inherited IPC connection when restarting.
  *
  */
-ipc_client::ipc_client(ev_loop *loop, int fd, callback read_callback_t, callback write_callback_t) : loop(loop) {
+ipc_client::ipc_client(int fd, callback read_callback_t, callback write_callback_t) {
     this->fd = fd;
 
     read_callback = new ev_io{};
     read_callback->data = this;
     ev_io_init(read_callback, read_callback_t, fd, EV_READ);
-    ev_io_start(loop, read_callback);
+    ev_io_start(global.main_loop, read_callback);
 
     write_callback = new ev_io{};
     write_callback->data = this;
@@ -87,12 +85,12 @@ ipc_client::ipc_client(ev_loop *loop, int fd, callback read_callback_t, callback
 }
 
 ipc_client::~ipc_client() {
-    ev_io_stop(loop, read_callback);
+    ev_io_stop(global.main_loop, read_callback);
     delete read_callback;
-    ev_io_stop(loop, write_callback);
+    ev_io_stop(global.main_loop, write_callback);
     delete write_callback;
     if (timeout) {
-        ev_timer_stop(loop, timeout);
+        ev_timer_stop(global.main_loop, timeout);
         delete timeout;
     }
 
@@ -191,7 +189,7 @@ static void ipc_send_client_message(ipc_client *client, const i3ipc::REPLY_TYPE 
     ipc_send_client_message(client, static_cast<const uint32_t>(message_type), payload);
 }
 
-static void free_ipc_client(ipc_client &client, int exempt_fd = -1) {
+void IPCManager::free_ipc_client(ipc_client &client, int exempt_fd) {
     if (client.fd != exempt_fd) {
         DLOG(fmt::sprintf("Disconnecting client on fd %d\n",  client.fd));
         close(client.fd);
@@ -205,7 +203,7 @@ static void free_ipc_client(ipc_client &client, int exempt_fd = -1) {
  * and subscribed to this kind of event.
  *
  */
-void ipc_send_event(std::string const event, uint32_t message_type, const std::string &payload) {
+void IPCManager::ipc_send_event(std::string const event, uint32_t message_type, const std::string &payload) {
     for (auto &current : all_clients) {
         for (auto &e : current->events) {
             if (e == event) {
@@ -219,12 +217,12 @@ void ipc_send_event(std::string const event, uint32_t message_type, const std::s
 /*
  * For shutdown events, we send the reason for the shutdown.
  */
-static void ipc_send_shutdown_event(shutdown_reason_t reason) {
+void IPCManager::ipc_send_shutdown_event(shutdown_reason_t reason) {
     nlohmann::json j;
 
-    if (reason == SHUTDOWN_REASON_RESTART) {
+    if (reason == shutdown_reason_t::SHUTDOWN_REASON_RESTART) {
         j["change"] = "restart";
-    } else if (reason == SHUTDOWN_REASON_EXIT) {
+    } else if (reason == shutdown_reason_t::SHUTDOWN_REASON_EXIT) {
         j["change"] = "exit";
     }
 
@@ -240,7 +238,7 @@ static void ipc_send_shutdown_event(shutdown_reason_t reason) {
  * exempt_fd is never closed. Set to -1 to close all fds.
  *
  */
-void ipc_shutdown(shutdown_reason_t reason, int exempt_fd) {
+void IPCManager::ipc_shutdown(shutdown_reason_t reason, int exempt_fd) {
     ipc_send_shutdown_event(reason);
 
     while (!all_clients.empty()) {
@@ -358,9 +356,7 @@ static nlohmann::json dump_binding(Binding *bind) {
 }
 
 static void handle_tree(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
-    setlocale(LC_NUMERIC, "C");
     auto j = dump_node(global.croot, false);
-    setlocale(LC_NUMERIC, "");
 
     auto payload = j.dump();
 
@@ -566,7 +562,7 @@ static void handle_send_tick(ipc_client *client, uint8_t *message, int size, uin
 
     auto payload = j.dump();
 
-    ipc_send_event("tick", i3ipc::EVENT_TICK, payload);
+    global.ipcManager->ipc_send_event("tick", i3ipc::EVENT_TICK, payload);
 
     std::string reply = R"({"success":true})";
     ipc_send_client_message(client, i3ipc::REPLY_TYPE::TICK, reply);
@@ -658,7 +654,7 @@ static std::array<handler_t, 13> handlers = {
  * at the moment.
  *
  */
-static void ipc_receive_message(EV_P_ ev_io *w, int revents) {
+void ipc_receive_message(EV_P_ ev_io *w, int revents) {
     uint32_t message_type;
     uint32_t message_length;
     uint8_t *message = nullptr;
@@ -676,7 +672,7 @@ static void ipc_receive_message(EV_P_ ev_io *w, int revents) {
 
         /* If not, there was some kind of error. We don’t bother and close the
          * connection. Delete the client from the list of clients. */
-        free_ipc_client(*client);
+        global.ipcManager->free_ipc_client(*client);
         free(message);
         return;
     }
@@ -691,7 +687,7 @@ static void ipc_receive_message(EV_P_ ev_io *w, int revents) {
     free(message);
 }
 
-static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
+void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
     /* No need to be polite and check for writeability, the other callback would
      * have been called by now. */
     auto *client = (ipc_client *)w->data;
@@ -705,7 +701,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
             ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));
         }
 
-        free_ipc_client(*client);
+        global.ipcManager->free_ipc_client(*client);
         return;
     }
     std::string exepath = std::format("/proc/{}/cmdline", peercred.pid);
@@ -716,7 +712,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
             ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));
         }
 
-        free_ipc_client(*client);
+        global.ipcManager->free_ipc_client(*client);
         return;
     }
     char buf[512] = {'\0'}; /* cut off cmdline for the error message. */
@@ -727,7 +723,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
             ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));
         }
 
-        free_ipc_client(*client);
+        global.ipcManager->free_ipc_client(*client);
         return;
     }
     for (char *walk = buf; walk < buf + n - 1; walk++) {
@@ -746,7 +742,7 @@ static void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
         ELOG(fmt::sprintf("client %p on fd %d timed out, killing\n", fmt::ptr(client), client->fd));
     }
 
-    free_ipc_client(*client);
+    global.ipcManager->free_ipc_client(*client);
 }
 
 static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents) {
@@ -768,11 +764,14 @@ static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents) {
  * the list of clients.
  *
  */
-void ipc_new_client(EV_P_ ev_io *w, int revents) {
+static void ipc_new_client(EV_P_ ev_io *w, int revents) {
+    
+    IPCManager *ipcManager = (IPCManager*)w->data;
+    
     struct sockaddr_un peer{};
     socklen_t len = sizeof(struct sockaddr_un);
-    int fd;
-    if ((fd = accept(w->fd, (struct sockaddr *)&peer, &len)) < 0) {
+    int fd = accept(w->fd, (struct sockaddr *)&peer, &len);
+    if (fd < 0) {
         if (errno != EINTR) {
             ELOG(std::format("accept(): {}", std::strerror(errno)));
         }
@@ -782,14 +781,14 @@ void ipc_new_client(EV_P_ ev_io *w, int revents) {
     /* Close this file descriptor on exec() */
     (void)fcntl(fd, F_SETFD, FD_CLOEXEC);
 
-    ipc_new_client_on_fd(EV_A_ fd);
+    ipcManager->ipc_new_client_on_fd(fd);
 }
 
-ipc_client *ipc_new_client_on_fd(EV_P_ int fd) {
+ipc_client* IPCManager::ipc_new_client_on_fd(int fd) {
     set_nonblock(fd);
 
-    DLOG(fmt::sprintf("IPC: new client connected on fd %d\n",  fd));
-    return all_clients.emplace_back(std::make_unique<ipc_client>(EV_A_ fd, ipc_receive_message, ipc_socket_writeable_cb)).get();
+    DLOG(fmt::format("IPC: new client connected on fd {}", fd));
+    return all_clients.emplace_back(std::make_unique<ipc_client>(fd, ipc_receive_message, ipc_socket_writeable_cb)).get();
 }
 
 /*
@@ -797,7 +796,6 @@ ipc_client *ipc_new_client_on_fd(EV_P_ int fd) {
  * generator. Free with yajl_gen_free().
  */
 nlohmann::json ipc_marshal_workspace_event(const char *change, Con *current, Con *old) {
-    setlocale(LC_NUMERIC, "C");
     nlohmann::json j;
 
     j["change"] = change;
@@ -810,8 +808,6 @@ nlohmann::json ipc_marshal_workspace_event(const char *change, Con *current, Con
         j["old"] = dump_node(old, false);
     }
 
-    setlocale(LC_NUMERIC, "");
-
     return j;
 }
 
@@ -820,7 +816,7 @@ nlohmann::json ipc_marshal_workspace_event(const char *change, Con *current, Con
  * the workspace container in "current". For focus events, we send the
  * previously focused workspace in "old".
  */
-void ipc_send_workspace_event(const char *change, Con *current, Con *old) {
+void IPCManager::ipc_send_workspace_event(const char *change, Con *current, Con *old) {
     auto gen = ipc_marshal_workspace_event(change, current, old);
 
     auto payload = gen.dump();
@@ -832,11 +828,10 @@ void ipc_send_workspace_event(const char *change, Con *current, Con *old) {
  * For the window events we send, along the usual "change" field,
  * also the window container, in "container".
  */
-void ipc_send_window_event(const char *property, Con *con) {
+void IPCManager::ipc_send_window_event(const char *property, Con *con) {
     DLOG(fmt::sprintf("Issue IPC window %s event (con = %p, window = 0x%08x)\n",
          property, fmt::ptr(con), (con->get_window() ? con->get_window()->id : XCB_WINDOW_NONE)));
 
-    setlocale(LC_NUMERIC, "C");
     nlohmann::json j;
 
     j["change"] = property;
@@ -845,7 +840,6 @@ void ipc_send_window_event(const char *property, Con *con) {
     auto payload = j.dump();
 
     ipc_send_event("window", i3ipc::EVENT_WINDOW, payload);
-    setlocale(LC_NUMERIC, "");
 }
 
 /*
@@ -858,10 +852,8 @@ void ipc_send_barconfig_update_event(Barconfig *barconfig) {
 /*
  * For the binding events, we send the serialized binding struct.
  */
-void ipc_send_binding_event(const char *event_type, Binding *bind, const char *modename) {
+void IPCManager::ipc_send_binding_event(const char *event_type, Binding *bind, const char *modename) {
     DLOG(fmt::sprintf("Issue IPC binding %s event (sym = %s, code = %d)\n",  event_type, bind->symbol, bind->keycode));
-
-    setlocale(LC_NUMERIC, "C");
 
     nlohmann::json j;
 
@@ -878,7 +870,6 @@ void ipc_send_binding_event(const char *event_type, Binding *bind, const char *m
     auto payload = j.dump();
 
     ipc_send_event("binding", i3ipc::EVENT_BINDING, payload);
-    setlocale(LC_NUMERIC, "");
 }
 
 /*
@@ -891,4 +882,93 @@ void ipc_confirm_restart(ipc_client *client) {
         client, i3ipc::REPLY_TYPE::COMMAND,
         reply);
     ipc_push_pending(client);
+}
+
+IPCManager::IPCManager(ConfigurationManager &configManager) : configManager(configManager) {
+    ipc_io = new ev_io();
+}
+
+IPCManager::~IPCManager() {
+    ev_io_stop(global.main_loop, ipc_io);
+    delete ipc_io;
+}
+/*
+ * Creates the UNIX domain socket at the given path, sets it to non-blocking
+ * mode, bind()s and listen()s on it.
+ *
+ * The full path to the socket is stored in the char* that out_socketpath points
+ * to.
+ *
+ */
+std::tuple<std::string, int> IPCManager::create_socket(std::string filename) {
+    auto resolved = utils::resolve_tilde(filename);
+    DLOG(fmt::sprintf("Creating UNIX socket at %s\n", resolved));
+    const std::filesystem::path p(resolved);
+    const std::filesystem::path &parent = p.parent_path();
+    
+    if (!std::filesystem::exists(parent)) {
+        try {
+            std::filesystem::create_directories(parent);
+        } catch (std::exception &e) {
+            ELOG(fmt::sprintf("mkdir(%s) failed: %s\n", parent.string(), e.what()));
+        }
+    }
+
+    /* Check if the socket is in use by another process (this call does not
+     * succeed if the socket is stale / the owner already exited) */
+    int sockfd = i3ipc::ipc_connect_impl(resolved);
+    if (sockfd != -1) {
+        ELOG(fmt::sprintf("Refusing to create UNIX socket at %s: Socket is already in use\n", resolved));
+        close(sockfd);
+        throw std::exception();
+    }
+
+    /* Unlink the unix domain socket before */
+    std::filesystem::remove(resolved);
+
+    sockfd = socket(AF_LOCAL, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        throw std::runtime_error(std::format("socket(): {}", std::strerror(errno)));
+    }
+
+    (void)fcntl(sockfd, F_SETFD, FD_CLOEXEC);
+
+    struct sockaddr_un addr {};
+    addr.sun_family = AF_LOCAL;
+    strncpy(addr.sun_path, resolved.c_str(), sizeof(addr.sun_path) - 1);
+    if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+        throw std::runtime_error(std::format("bind(): {}", std::strerror(errno)));
+    }
+
+    set_nonblock(sockfd);
+
+    if (::listen(sockfd, 5) < 0) {
+        throw std::runtime_error(std::format("listen(): {}", std::strerror(errno)));
+    }
+
+    return std::make_tuple(resolved, sockfd);
+}
+
+int IPCManager::create_socket() {
+    if (!configManager.config->ipc_socket_path) {
+        throw std::runtime_error("Could not create the IPC socket since socket path wasnt specified");
+    }
+    
+   std::tie(current_socketpath, ipc_socket) = create_socket(*configManager.config->ipc_socket_path);
+    if (ipc_socket == -1) {
+        throw std::runtime_error(std::format("Could not create the IPC socket: {}", *configManager.config->ipc_socket_path));
+    }
+    global.current_socketpath = *current_socketpath;
+    
+    return ipc_socket;
+}
+
+void IPCManager::listen() {
+    if (ipc_socket == -1) {
+        throw std::runtime_error("No socket created");
+    }
+   
+    ipc_io->data = this;
+    ev_io_init(ipc_io, ipc_new_client, ipc_socket, EV_READ);
+    ev_io_start(global.main_loop, ipc_io);
 }

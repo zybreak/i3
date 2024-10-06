@@ -241,7 +241,7 @@ void Con::con_focus() {
     if (this->urgent && this->con_is_leaf()) {
         this->con_set_urgency(false);
         workspace_update_urgent_flag(this->con_get_workspace());
-        ipc_send_window_event("urgent", this);
+        global.ipcManager->ipc_send_window_event("urgent", this);
     }
 }
 
@@ -919,6 +919,6 @@ void Con::con_set_urgency(bool urgent) {
 
     if (con->urgent != old_urgent) {
         LOG(fmt::sprintf("Urgency flag changed to %d\n",  con->urgent));
-        ipc_send_window_event("urgent", con);
+        global.ipcManager->ipc_send_window_event("urgent", con);
     }
 }

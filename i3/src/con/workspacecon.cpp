@@ -170,7 +170,7 @@ void WorkspaceCon::on_remove_child() {
         tree_close_internal(this, kill_window_t::DONT_KILL_WINDOW, false);
 
         auto payload = gen.dump();
-        ipc_send_event("workspace", i3ipc::EVENT_WORKSPACE, payload);
+        global.ipcManager->ipc_send_event("workspace", i3ipc::EVENT_WORKSPACE, payload);
     }
 }
 

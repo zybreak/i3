@@ -94,7 +94,7 @@ static bool is_debug_build() {
  *
  */
 static void i3_exit() {
-    ipc_shutdown(SHUTDOWN_REASON_EXIT);
+    global.ipcManager->ipc_shutdown(shutdown_reason_t::SHUTDOWN_REASON_EXIT);
     if (global.configManager->config->ipc_socket_path) {
         unlink(global.configManager->config->ipc_socket_path->c_str());
     }
@@ -107,63 +107,6 @@ static void i3_exit() {
 #ifdef I3_ASAN_ENABLED
     __lsan_do_leak_check();
 #endif
-}
-
-/*
- * Creates the UNIX domain socket at the given path, sets it to non-blocking
- * mode, bind()s and listen()s on it.
- *
- * The full path to the socket is stored in the char* that out_socketpath points
- * to.
- *
- */
-static std::tuple<std::string, int> create_socket(std::string filename) {
-    auto resolved = utils::resolve_tilde(filename);
-    DLOG(fmt::sprintf("Creating UNIX socket at %s\n", resolved));
-    const std::filesystem::path p(resolved);
-    const std::filesystem::path &parent = p.parent_path();
-
-    if (!std::filesystem::exists(parent)) {
-        try {
-            std::filesystem::create_directories(parent);
-        } catch (std::exception &e) {
-            ELOG(fmt::sprintf("mkdir(%s) failed: %s\n", parent.string(), e.what()));
-        }
-    }
-
-    /* Check if the socket is in use by another process (this call does not
-     * succeed if the socket is stale / the owner already exited) */
-    int sockfd = i3ipc::ipc_connect_impl(resolved);
-    if (sockfd != -1) {
-        ELOG(fmt::sprintf("Refusing to create UNIX socket at %s: Socket is already in use\n", resolved));
-        close(sockfd);
-        throw std::exception();
-    }
-
-    /* Unlink the unix domain socket before */
-    std::filesystem::remove(resolved);
-
-    sockfd = socket(AF_LOCAL, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        throw std::runtime_error(std::format("socket(): {}", std::strerror(errno)));
-    }
-
-    (void)fcntl(sockfd, F_SETFD, FD_CLOEXEC);
-
-    struct sockaddr_un addr {};
-    addr.sun_family = AF_LOCAL;
-    strncpy(addr.sun_path, resolved.c_str(), sizeof(addr.sun_path) - 1);
-    if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        throw std::runtime_error(std::format("bind(): {}", std::strerror(errno)));
-    }
-
-    set_nonblock(sockfd);
-
-    if (listen(sockfd, 5) < 0) {
-        throw std::runtime_error(std::format("listen(): {}", std::strerror(errno)));
-    }
-
-    return std::make_tuple(resolved, sockfd);
 }
 
 static int parse_restart_fd() {
@@ -325,11 +268,11 @@ static Output *get_focused_output() {
     return output;
 }
 
-static void confirm_restart() {
+static void confirm_restart(IPCManager &ipcManager) {
     const int restart_fd = parse_restart_fd();
     if (restart_fd != -1) {
         DLOG(fmt::sprintf("serving restart fd %d", restart_fd));
-        ipc_client *client = ipc_new_client_on_fd(global.main_loop, restart_fd);
+        ipc_client *client = ipcManager.ipc_new_client_on_fd(restart_fd);
         ipc_confirm_restart(client);
         unsetenv("_I3_RESTART_FD");
     }
@@ -601,16 +544,12 @@ int main(int argc, char *argv[]) {
         }
     }
     
+    auto &ipcManager = injector.create<IPCManager&>();
+    
+    global.ipcManager = &ipcManager;
+    
     /* Create the UNIX domain socket for IPC */
-    int ipc_socket;
-    if (configManager.config->ipc_socket_path) {
-        std::tie(global.current_socketpath, ipc_socket) = create_socket(*configManager.config->ipc_socket_path);
-        if (ipc_socket == -1) {
-            errx(EXIT_FAILURE, "Could not create the IPC socket: %s", configManager.config->ipc_socket_path->c_str());
-        }
-    } else {
-        errx(EXIT_FAILURE, "Could not create the IPC socket since socket path wasnt specified");
-    }
+    int ipc_socket = ipcManager.create_socket();
 
     aquire_selection(x, last_timestamp);
     
@@ -666,11 +605,9 @@ int main(int argc, char *argv[]) {
     tree_render();
 
     /* Listen to the IPC socket for clients */
-    auto *ipc_io = new ev_io();
-    ev_io_init(ipc_io, ipc_new_client, ipc_socket, EV_READ);
-    ev_io_start(global.main_loop, ipc_io);
+    ipcManager.listen();
 
-    confirm_restart();
+    confirm_restart(ipcManager);
 
     /* Set up i3 specific atoms like I3_SOCKET_PATH and I3_CONFIG_PATH */
     x_set_i3_atoms();

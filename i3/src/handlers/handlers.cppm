@@ -23,6 +23,7 @@ class RandR;
 class Xkb;
 class InputManager;
 class ApplicationLauncher;
+class IPCManager;
 
 enum click_destination_t {
     CLICK_BORDER = 0,
@@ -46,6 +47,7 @@ export {
         InputManager &inputManager;
         RandR &randr;
         Xkb &xkb;
+        IPCManager &ipcManager;
 
         /* After mapping/unmapping windows, a notify event is generated. However, we don’t want it,
            since it’d trigger an infinite loop of switching between the different windows when
@@ -197,7 +199,7 @@ export {
          * received from X11
          *
          */
-        PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb, InputManager &inputManager, ApplicationLauncher &applicationLauncher);
+        PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb, InputManager &inputManager, ApplicationLauncher &applicationLauncher, IPCManager &ipcManager);
 
         /**
          * Configure requests are received when the application wants to resize windows

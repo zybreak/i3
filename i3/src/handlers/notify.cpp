@@ -53,7 +53,7 @@ static bool handle_windowname_change(ConCon *con, xcb_get_property_reply_t *prop
         x_push_changes(global.croot);
 
         if (window_name_changed(con->get_window(), old_name)) {
-            ipc_send_window_event("title", con);
+            global.ipcManager->ipc_send_window_event("title", con);
         }
     }
 
@@ -89,7 +89,7 @@ static bool handle_windowname_change_legacy(ConCon *con, xcb_get_property_reply_
         x_push_changes(global.croot);
 
         if (window_name_changed(con->get_window(), old_name)) {
-            ipc_send_window_event("title", con);
+            global.ipcManager->ipc_send_window_event("title", con);
         }
     }
 

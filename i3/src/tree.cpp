@@ -240,7 +240,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
              * X11 Errors are returned when the window was already destroyed */
             global.handlers->add_ignore_event(cookie.sequence, 0);
         }
-        ipc_send_window_event("close", con2);
+        global.ipcManager->ipc_send_window_event("close", con2);
         con2->set_window(nullptr);
     }
 

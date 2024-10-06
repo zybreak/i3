@@ -235,7 +235,7 @@ WorkspaceCon* WorkspaceManager::workspace_get_or_create(const std::string &num) 
     workspace->con_attach(output->output_get_content(), false);
     _workspace_apply_default_orientation(configManager, workspace);
 
-    ipc_send_workspace_event("init", workspace, nullptr);
+    global.ipcManager->ipc_send_workspace_event("init", workspace, nullptr);
     ewmh_update_desktop_properties();
 
     return workspace;
@@ -302,7 +302,7 @@ WorkspaceCon* WorkspaceManager::create_workspace_on_output(Output *output, Con *
     ws->workspace_layout = configManager.config->default_layout;
     _workspace_apply_default_orientation(configManager, ws);
 
-    ipc_send_workspace_event("init", ws, nullptr);
+    global.ipcManager->ipc_send_workspace_event("init", ws, nullptr);
     return ws;
 }
 
@@ -428,7 +428,7 @@ static void workspace_defer_update_urgent_hint_cb(Con *con) {
         DLOG(fmt::sprintf("Resetting urgency flag of con %p by timer\n", fmt::ptr(con)));
         con->con_set_urgency(false);
         workspace_update_urgent_flag(con->con_get_workspace());
-        ipc_send_window_event("urgent", con);
+        global.ipcManager->ipc_send_window_event("urgent", con);
         tree_render();
     }
 }
@@ -503,7 +503,7 @@ void WorkspaceManager::workspace_show(WorkspaceCon *workspace) {
         next->con_focus();
     }
 
-    ipc_send_workspace_event("focus", workspace, current);
+    global.ipcManager->ipc_send_workspace_event("focus", workspace, current);
 
     DLOG(fmt::sprintf("old = %p / %s\n", fmt::ptr(old), (old ? old->name : "(null)")));
     /* Close old workspace if necessary. This must be done *after* doing
@@ -519,7 +519,7 @@ void WorkspaceManager::workspace_show(WorkspaceCon *workspace) {
             tree_close_internal(old, kill_window_t::DONT_KILL_WINDOW, false);
 
             auto payload = gen.dump();
-            ipc_send_event("workspace", i3ipc::EVENT_WORKSPACE, payload);
+            global.ipcManager->ipc_send_event("workspace", i3ipc::EVENT_WORKSPACE, payload);
 
             /* Avoid calling output_push_sticky_windows later with a freed container. */
             if (old == old_focus) {
@@ -878,7 +878,7 @@ void workspace_update_urgent_flag(WorkspaceCon *ws) {
     DLOG(fmt::sprintf("Workspace urgency flag changed from %d to %d\n",  old_flag, ws->urgent));
 
     if (old_flag != ws->urgent) {
-        ipc_send_workspace_event("urgent", ws, nullptr);
+        global.ipcManager->ipc_send_workspace_event("urgent", ws, nullptr);
     }
 }
 
@@ -1061,7 +1061,7 @@ void WorkspaceManager::workspace_move_to_output(WorkspaceCon *ws, Output *output
         floating_fix_coordinates(floating_con, old_content->rect, content->rect);
     }
 
-    ipc_send_workspace_event("move", ws, nullptr);
+    global.ipcManager->ipc_send_workspace_event("move", ws, nullptr);
     if (workspace_was_visible) {
         /* Focus the moved workspace on the destination output. */
         workspace_show(ws);

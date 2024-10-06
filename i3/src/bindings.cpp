@@ -672,7 +672,7 @@ void switch_mode(const std::string new_mode) {
 
     std::string event_msg = fmt::sprintf(R"({"change":"%s", "pango_markup":%s})", it->first, (mode.pango_markup ? "true" : "false"));
 
-    ipc_send_event("mode", i3ipc::EVENT_MODE, event_msg);
+    global.ipcManager->ipc_send_event("mode", i3ipc::EVENT_MODE, event_msg);
 }
 
 /*
@@ -807,7 +807,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
         start_nagbar(&global.command_error_nagbar_pid, buttons, prompt, global.configManager->config->font->pattern, bar_type_t::TYPE_ERROR, false);
     }
 
-    ipc_send_binding_event("run", &bind_cp, modename.c_str());
+    global.ipcManager->ipc_send_binding_event("run", &bind_cp, modename.c_str());
 
     return result;
 }

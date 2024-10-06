@@ -467,7 +467,7 @@ void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
 
     randr.randr_query_outputs();
 
-    ipc_send_event("output", i3ipc::EVENT_OUTPUT, R"({"change":"unspecified"})");
+    ipcManager.ipc_send_event("output", i3ipc::EVENT_OUTPUT, R"({"change":"unspecified"})");
 }
 
 /*
@@ -739,7 +739,7 @@ void PropertyHandlers::handle_configure_notify(xcb_configure_notify_event_t *eve
 
     randr.randr_query_outputs();
 
-    ipc_send_event("output", i3ipc::EVENT_OUTPUT, "{\"change\":\"unspecified\"}");
+    ipcManager.ipc_send_event("output", i3ipc::EVENT_OUTPUT, "{\"change\":\"unspecified\"}");
 }
 
 /*
@@ -762,7 +762,7 @@ static void handle_selection_clear(xcb_selection_clear_event_t *event) {
  * received from X11
  *
  */
-PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb, InputManager &inputManager, ApplicationLauncher &applicationLauncher) : x{x}, workspaceManager(workspaceManager), configManager(configManager), randr(randr), xkb(xkb), inputManager(inputManager) {
+PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb, InputManager &inputManager, ApplicationLauncher &applicationLauncher, IPCManager &ipcManager) : x{x}, workspaceManager(workspaceManager), configManager(configManager), randr(randr), xkb(xkb), inputManager(inputManager), ipcManager(ipcManager) {
 
 
 }
