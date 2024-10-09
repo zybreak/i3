@@ -93,10 +93,7 @@ sub activate_i3 {
         # the interactive signalhandler to make it crash immediately instead.
         # Also disable logging to SHM since we redirect the logs anyways.
         # Force Xinerama because we use Xdmx for multi-monitor tests.
-        my $i3cmd = q|i3 --shmlog-size=0 --disable-signalhandler|;
-        if (!defined($args{inject_randr15})) {
-            $i3cmd .= q| --force-xinerama|;
-        }
+        my $i3cmd = q|i3 --disable-signalhandler|;
         if (!$args{validate_config}) {
             # We only set logging if i3 is actually started, but not if we only
             # validate the config file. This is to keep logging to a minimum as
@@ -128,7 +125,7 @@ sub activate_i3 {
         # Append to $logfile instead of overwriting because i3 might be
         # run multiple times in one testcase.
         my $cmd = "exec $i3cmd -c $args{configfile} >>$logfile 2>&1";
-
+        
         if ($args{strace}) {
             my $out = "$outdir/strace-for-$test.log";
 

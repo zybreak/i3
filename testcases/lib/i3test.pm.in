@@ -7,7 +7,7 @@ use Test::Builder;
 use X11::XCB::Rect;
 use X11::XCB::Window;
 use X11::XCB qw(:all);
-use lib qw(@abs_top_builddir@/../AnyEvent-I3/blib/lib);
+use lib qw(@abs_top_builddir@/AnyEvent-I3/blib/lib);
 use AnyEvent::I3;
 use List::Util qw(first);
 use Time::HiRes qw(sleep);
@@ -53,7 +53,7 @@ our @EXPORT = qw(
     kill_all_windows
     events_for
     listen_for_binding
-    is_net_wm_state_focused
+    net_wm_state_contains
     cmp_tree
 );
 
@@ -897,7 +897,6 @@ tests which test specific config file directives.
   use i3test i3_autostart => 0;
 
   my $config = <<EOT;
-  # i3 config file (v4)
   for_window [class="borderless"] border none
   for_window [title="special borderless title"] border none
   EOT
@@ -925,7 +924,7 @@ sub launch_with_config {
     if ($config ne '-default') {
         print $fh $config;
     } else {
-        open(my $conf_fh, '<', '@abs_top_srcdir@/i3-test.config')
+        open(my $conf_fh, '<', '@abs_top_srcdir@/testcases/i3-test.config')
             or $tester->BAIL_OUT("could not open default config: $!");
         local $/;
         say $fh scalar <$conf_fh>;
@@ -1090,18 +1089,19 @@ sub listen_for_binding {
     return $command;
 }
 
-=head2 is_net_wm_state_focused
+=head2 net_wm_state_contains
 
-Returns true if the given window has the _NET_WM_STATE_FOCUSED atom.
+Returns true if the given window has the given _NET_WM_STATE atom.
 
-    ok(is_net_wm_state_focused($window), '_NET_WM_STATE_FOCUSED set');
+    ok(net_wm_state_contains($window, '_NET_WM_STATE_FOCUSED'),
+       '_NET_WM_STATE_FOCUSED set');
 
 =cut
-sub is_net_wm_state_focused {
-    my ($window) = @_;
+sub net_wm_state_contains {
+    my ($window, $atom_name) = @_;
 
     sync_with_i3;
-    my $atom = $x->atom(name => '_NET_WM_STATE_FOCUSED');
+    my $atom = $x->atom(name => $atom_name);
     my $cookie = $x->get_property(
         0,
         $window->{id},

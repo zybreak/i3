@@ -18,7 +18,7 @@ use Time::HiRes qw(time);
 use IO::Handle;
 
 # these are shipped with the testsuite
-use lib qw(@abs_top_builddir@/ @abs_top_builddir@/lib @abs_top_srcdir@/lib @abs_top_builddir@/../AnyEvent-I3/blib/lib);
+use lib qw(@abs_top_builddir@ @abs_top_builddir@/testcases/lib @abs_top_srcdir@/testcases/lib @abs_top_builddir@/AnyEvent-I3/blib/lib);
 use i3test::Util qw(slurp);
 use StartXServer;
 use StatusLine;
@@ -77,7 +77,7 @@ pod2usage(-verbose => 2, -exitcode => 0) if $help;
 
 # Check for missing executables
 my @binaries = qw(
-                   @abs_top_builddir@/../i3/i3
+                   @abs_top_builddir@/i3/i3
                );
 
 foreach my $binary (@binaries) {
@@ -85,21 +85,12 @@ foreach my $binary (@binaries) {
     die "$binary is not an executable" unless -x $binary;
 }
 
-my @test_binaries = qw(
-                        @abs_top_builddir@/test.commands_parser
-                        @abs_top_builddir@/test.config_parser
-                        @abs_top_builddir@/test.inject_randr15
-                    );
-
-foreach my $binary (@test_binaries) {
-    die "$binary executable not found, did you run “make check”?" unless -e $binary;
-    die "$binary is not an executable" unless -x $binary;
-}
-
 $ENV{PATH} = join(':',
-    '@abs_top_builddir@',
+    '@abs_top_builddir@/i3',
     '@abs_top_srcdir@',
     $ENV{PATH});
+# Make sure we don't re-use the existing (developer's) i3 connection
+delete $ENV{I3SOCK};
 
 qx(Xephyr -help 2>&1);
 die "Xephyr was not found in your path. Please install Xephyr (xserver-xephyr on Debian)." if $?;
@@ -150,12 +141,12 @@ my @testfiles = @ARGV;
 
 # if no files were passed on command line, run all tests from t/
 if (scalar @testfiles == 0) {
-    @testfiles = <@abs_top_srcdir@/t/*.t> if @testfiles == 0;
+    @testfiles = <@abs_top_srcdir@/testcases/t/*.t> if @testfiles == 0;
 } else {
     @testfiles = map {
         # Fully qualify each specified file if necessary
         if (! -e $_) {
-            $_ = "@abs_top_srcdir@/$_";
+            $_ = "@abs_top_srcdir@/testcases/$_";
         }
         $_
     } @testfiles;
