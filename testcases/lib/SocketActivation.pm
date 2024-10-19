@@ -8,6 +8,7 @@ use Cwd qw(abs_path); # core
 use POSIX qw(:fcntl_h); # core
 use AnyEvent::Handle; # not core
 use AnyEvent::Util; # not core
+use AnyEvent; # not core
 use Exporter 'import';
 use v5.10;
 
@@ -36,14 +37,6 @@ our @EXPORT = qw(activate_i3);
 sub activate_i3 {
     my %args = @_;
 
-    # remove the old unix socket
-    unlink($args{unix_socket_path});
-
-    my $socket = IO::Socket::UNIX->new(
-        Listen => 1,
-        Local => $args{unix_socket_path},
-    );
-
     my $pid = fork;
     if (!defined($pid)) {
         die "could not fork()";
@@ -54,8 +47,6 @@ sub activate_i3 {
         # processes.
         setpgrp;
 
-        $ENV{LISTEN_PID} = $$;
-        $ENV{LISTEN_FDS} = 1;
         delete $ENV{DESKTOP_STARTUP_ID};
         delete $ENV{I3SOCK};
         # $SHELL could be set to fish, which will horribly break running shell
@@ -68,26 +59,9 @@ sub activate_i3 {
         }
         $ENV{DISPLAY} = $args{display};
 
-        # We are about to exec, but we did not modify $^F to include $socket
-        # when creating the socket (because the file descriptor could have a
-        # number != 3 which would lead to i3 leaking a file descriptor). This
-        # caused Perl to set the FD_CLOEXEC flag, which would close $socket on
-        # exec(), effectively *NOT* passing $socket to the new process.
-        # Therefore, we explicitly clear FD_CLOEXEC (the only flag right now)
-        # by setting the flags to 0.
-        POSIX::fcntl($socket, F_SETFD, 0) or die "Could not clear fd flags: $!";
-
-        # If the socket does not use file descriptor 3 by chance already, we
-        # close fd 3 and dup2() the socket to 3.
-        if (fileno($socket) != 3) {
-            POSIX::close(3);
-            POSIX::dup2(fileno($socket), 3);
-            POSIX::close(fileno($socket));
-        }
-
         # Make sure no file descriptors are open. Strangely, I got an open file
         # descriptor pointing to AnyEvent/Impl/EV.pm when testing.
-        AnyEvent::Util::close_all_fds_except(0, 1, 2, 3);
+        AnyEvent::Util::close_all_fds_except(0, 1, 2);
 
         # Construct the command to launch i3. Use maximum debug level, disable
         # the interactive signalhandler to make it crash immediately instead.
@@ -144,18 +118,6 @@ sub activate_i3 {
                      'sh -c "export LISTEN_PID=\$\$; ' . $cmd . '"';
         }
 
-        if ($args{inject_randr15}) {
-            # See comment in $args{strace} branch.
-            $cmd = 'test.inject_randr15 --getmonitors_reply="' .
-                   $args{inject_randr15} . '" ' .
-                   ($args{inject_randr15_outputinfo}
-                    ? '--getoutputinfo_reply="' .
-                      $args{inject_randr15_outputinfo} . '" '
-                    : '') .
-                   '-- ' .
-                   'sh -c "export LISTEN_PID=\$\$; ' . $cmd . '"';
-        }
-
         # We need to use the shell due to using output redirections.
         exec '/bin/sh', '-c', $cmd;
 
@@ -165,35 +127,16 @@ sub activate_i3 {
 
     # close the socket, the child process should be the only one which keeps a file
     # descriptor on the listening socket.
-    $socket->close;
 
     if ($args{validate_config}) {
         $args{cv}->send(1);
         return $pid;
     }
-
-    # We now connect (will succeed immediately) and send a request afterwards.
-    # As soon as the reply is there, i3 is considered ready.
-    my $cl = IO::Socket::UNIX->new(Peer => $args{unix_socket_path});
-    my $hdl;
-    $hdl = AnyEvent::Handle->new(
-        fh => $cl,
-        on_error => sub {
-            $hdl->destroy;
-            $args{cv}->send(0);
-        });
-
-    # send a get_tree message without payload
-    $hdl->push_write('i3-ipc' . pack("LL", 0, 4));
-
-    # wait for the reply
-    $hdl->push_read(chunk => 1, => sub {
-        my ($h, $line) = @_;
-        $args{cv}->send(1);
-        undef $hdl;
+    my $w;
+    $w = AnyEvent->timer(after => .5, cb => sub {
+        $args{cv}->send(0);
+        undef $w;
     });
 
     return $pid;
 }
-
-1

@@ -173,7 +173,7 @@ use Time::HiRes qw(sleep);
 use i3test::Test;
 __
     $tester->BAIL_OUT("$@") if $@;
-    feature->import(":5.10");
+    #feature->import(":5.10");
     strict->import;
     warnings->import;
 
@@ -934,7 +934,7 @@ sub launch_with_config {
 
     my $cv = AnyEvent->condvar;
     $i3_pid = activate_i3(
-        unix_socket_path => "$tmp_socket_path-activation",
+        unix_socket_path => "$tmp_socket_path",
         display => $ENV{DISPLAY},
         configfile => $tmpfile,
         outdir => $ENV{OUTDIR},

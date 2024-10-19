@@ -56,7 +56,7 @@ sub get_socket_path {
     my $reply = $x->get_property_reply($cookie->{sequence});
     my $socketpath = $reply->{value};
     if ($socketpath eq "/tmp/nested-$ENV{DISPLAY}") {
-        $socketpath .= '-activation';
+        #$socketpath .= '-activation';
     }
     return $socketpath;
 }
