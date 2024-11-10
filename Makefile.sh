@@ -15,7 +15,7 @@ fi
 if [ "$clear_build" = "true" ]; then
     conan install . -pr:a clang -s:a build_type=Debug --output-folder=.  --build="missing"
     #./antlr.sh
-    cmake --preset conan-debug -DCMAKE_BUILD_TYPE=Debug
+    cmake --preset conan-debug -DI3_ASAN=True -DCMAKE_BUILD_TYPE=Debug
 fi
 
 cmake --build build --target $target $clean_first --preset conan-debug

@@ -17,11 +17,13 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --coverage")
 
 # Sanitizers makes the unit test fail
-#set(USE_SANITIZER Address Undefined)
-#include(sanitizers)
-#add_compile_definitions(I3_ASAN_ENABLED=1)
+if (I3_ASAN)
+set(USE_SANITIZER Address)
+include(sanitizers)
+add_compile_definitions(I3_ASAN_ENABLED=1)
 ##add_compile_options(-fsanitize-ignorelist=${PROJECT_SOURCE_DIR}/asan-ignorelist.txt)
 #SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize-ignorelist=${PROJECT_SOURCE_DIR}/asan-ignorelist.txt")
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-deprecated-declarations -Wno-unused-const-variable")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
