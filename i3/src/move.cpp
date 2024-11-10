@@ -109,10 +109,10 @@ void insert_con_into(Con *con, Con *target, position_t position) {
      * original workspace. Without the change focus would move to B instead of staying
      * with A. */
     if (moves_focus_from_ancestor && focus_before) {
-        auto place_it = std::ranges::find(con_ancestor->parent->focused, con_ancestor);
         std::erase(lca->focused, target_ancestor);
-        if (place_it != con_ancestor->parent->focused.end()) {
-            place_it = (place_it == con_ancestor->parent->focused.begin()) ? place_it : std::prev(place_it);
+        auto place_it = std::ranges::find(lca->focused, con_ancestor);
+        if (place_it != lca->focused.end()) {
+            //place_it = (place_it == lca->focused.begin()) ? place_it : std::prev(place_it);
             lca->focused.insert(place_it, target_ancestor);
         } else {
             lca->focused.push_front(target_ancestor);
