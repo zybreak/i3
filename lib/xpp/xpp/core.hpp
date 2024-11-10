@@ -102,15 +102,15 @@ namespace xpp {
         }
 
         virtual shared_generic_event_ptr poll_for_event() const {
-            return shared_generic_event_ptr(xcb_poll_for_event(m_c.get()));
+            return shared_generic_event_ptr(xcb_poll_for_event(m_c.get()), free);
         }
 
         virtual shared_generic_event_ptr poll_for_queued_event() const {
-            return shared_generic_event_ptr(xcb_poll_for_queued_event(m_c.get()));
+            return shared_generic_event_ptr(xcb_poll_for_queued_event(m_c.get()), free);
         }
 
         virtual shared_generic_event_ptr poll_for_special_event(xcb_special_event_t *se) const {
-            return shared_generic_event_ptr(xcb_poll_for_special_event(m_c.get(), se));
+            return shared_generic_event_ptr(xcb_poll_for_special_event(m_c.get(), se), free);
         }
 
         // virtual
