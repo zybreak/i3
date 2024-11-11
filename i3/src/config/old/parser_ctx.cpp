@@ -5,5 +5,5 @@ parser_ctx::parser_ctx(OldParser *parser) {
 }
 
 parser_ctx::~parser_ctx() {
-    //delete this->criteria_state;
+    delete this->criteria_state;
 }

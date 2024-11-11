@@ -566,7 +566,9 @@ OldParser::OldParser(const std::filesystem::path filename, std::istream &stream,
 }
 
 OldParser::OldParser(const std::filesystem::path filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), stream(stream), ctx(this) {
-    this->old_dir = getcwd(nullptr, 0);
+    char *cwd = getcwd(nullptr, 0);
+    this->old_dir = cwd;
+    free(cwd);
 
     std::filesystem::path f(filename);
     f.remove_filename();
