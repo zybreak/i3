@@ -280,6 +280,8 @@ CommandResult i3_commands_old::parse_command(const std::string &input, command_p
             break;
         }
     }
+    
+    delete criteria_state;
 
     result.needs_tree_render = command_output.needs_tree_render;
     return result;
