@@ -111,7 +111,7 @@ export {
         HEBM_SMART_NO_GAPS = (1 << 6)
     };
     
-    enum title_align_t {
+    enum class title_align_t {
         ALIGN_LEFT,
         ALIGN_CENTER,
         ALIGN_RIGHT
@@ -227,7 +227,7 @@ export {
         conf_fowa_t focus_on_window_activation;
 
         /** Title alignment options. */
-        title_align_t title_align;
+        title_align_t title_align{title_align_t::ALIGN_LEFT};
 
         /** The default border style for new windows. */
         border_style_t default_border{border_style_t::BS_NORMAL};
