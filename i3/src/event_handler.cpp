@@ -135,5 +135,7 @@ void EventHandler::loop() {
 }
 
 EventHandler::~EventHandler() {
-    ev_loop_destroy(global.main_loop);
+    //ev_loop_destroy(global.main_loop);
+    // Since we cannot guarantee this is destroyed after other classes usin main_loop, lets not delete it here
+    // Solution would be to add explicit dependencies to this class from those.
 }
