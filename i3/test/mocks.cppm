@@ -19,7 +19,7 @@ export {
 
     class MockRandR : public RandR {
     public:
-        MockRandR() {}
+        MockRandR(X &x, ConfigurationManager &configManager, WorkspaceManager &workspaceManager, TreeManager &treeManager) : RandR(x, configManager, workspaceManager, treeManager) {}
         MOCK_METHOD(Output*, get_output_by_name, (const std::string &name, const bool require_active), (override));
     };
 

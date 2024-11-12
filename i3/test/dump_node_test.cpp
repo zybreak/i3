@@ -9,7 +9,7 @@ using json = nlohmann::json;
 
 TEST(DumpNodeTest, Dump) {
     MockX mockX{};
-    ConfigurationManager configManager{};
+    ConfigurationManager configManager{mockX};
     global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
     global.x = &mockX;

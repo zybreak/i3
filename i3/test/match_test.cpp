@@ -34,10 +34,10 @@ TEST(MatchTest, MatchesWindowClass){
 }
 
 TEST(MatchTest, MatchesUrgentLatest){
-    ConfigurationManager configManager{};
+    MockX mockX{};
+    ConfigurationManager configManager{mockX};
     global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
-    MockX mockX{};
     global.x = &mockX;
     
     Match m{};
@@ -59,10 +59,10 @@ TEST(MatchTest, MatchesUrgentLatest){
 }
 
 TEST(MatchTest, MatchesUrgentOldest){
-    ConfigurationManager configManager{};
+    MockX mockX{};
+    ConfigurationManager configManager{mockX};
     global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
-    MockX mockX{};
     global.x = &mockX;
     
     Match m{};
@@ -85,10 +85,10 @@ TEST(MatchTest, MatchesUrgentOldest){
 
 
 TEST(MatchTest, ParseProperty){
-    ConfigurationManager configManager{};
+    MockX mockX{};
+    ConfigurationManager configManager{mockX};
     global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
-    MockX mockX{};
     global.x = &mockX;
 
     Match m{};

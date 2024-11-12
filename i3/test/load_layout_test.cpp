@@ -105,7 +105,7 @@ TEST(LoadLayoutTest, AppendJson) {
     MockX mockX{};
     global.x = &mockX;
     std::cout << std::hex << (uintptr_t)&mockX << std::endl;
-    ConfigurationManager configManager{};
+    ConfigurationManager configManager{mockX};
     global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
     

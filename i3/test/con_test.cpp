@@ -8,7 +8,7 @@ import mocks;
 TEST(ConTest, Floating) {
     MockX mockX{};
     global.x = &mockX;
-    ConfigurationManager configManager{};
+    ConfigurationManager configManager{mockX};
     global.configManager = &configManager;
     global.configManager->config = std::make_unique<Config>();
     ConCon x{nullptr, true};

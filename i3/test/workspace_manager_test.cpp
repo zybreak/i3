@@ -5,7 +5,9 @@ import i3;
 import mocks;
 
 TEST(WorkspaceManagerTest, References_Does_Not_Work){
-    WorkspaceManager workspaceManager{};
+    MockX x{};
+    ConfigurationManager configManager{x};
+    WorkspaceManager workspaceManager{configManager};
     
     workspaceManager.add_workspace_config(WorkspaceConfig{"1", "output"});
     
@@ -25,16 +27,16 @@ TEST(WorkspaceManagerTest, FindTheRightOutput){
     Output output{};
     output.names.push_back("eDP-1");
     global.x = &x;
-    ConfigurationManager configManager{};
-    MockRandR randr{x, configManager};
+    ConfigurationManager configManager{x};
+    WorkspaceManager workspaceManager{configManager};
+    TreeManager treeManager{x};
+    MockRandR randr{x, configManager, workspaceManager, treeManager};
     global.randr = &randr;
     
     EXPECT_CALL(randr, get_output_by_name("eDP-1",testing::_))
     .Times(1)
     .WillOnce(testing::Return(&output));
     
-    WorkspaceManager workspaceManager{};
-
     workspaceManager.add_workspace_config(WorkspaceConfig{"1", "wrong-output"});
     workspaceManager.add_workspace_config(WorkspaceConfig{"name", "eDP-1"});
 
