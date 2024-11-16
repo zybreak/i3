@@ -10,5 +10,6 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/complete-run.pl
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_custom_target(complete-run
-        #COMMAND ${CMAKE_CURRENT_BINARY_DIR}/complete-run.pl
         DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/complete-run.pl ${CMAKE_CURRENT_BINARY_DIR}/lib/i3test.pm)
+
+#add_test(NAME it COMMAND complete-run.pl --parallel 1)

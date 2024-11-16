@@ -19,6 +19,7 @@ if [ "$clear_build" = "true" ]; then
 fi
 
 cmake --build build --target $target $clean_first --preset conan-debug
+cmake --build build --target complete-run --preset conan-debug
 
 if [ "$run_tests" = "true" ]; then
     ctest --test-dir build/Debug
