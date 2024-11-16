@@ -43,15 +43,14 @@ import utils;
 import log;
 import i3_config_base;
 
-static void next_state(const cmdp_token &token, parser_ctx &ctx, OldParser &parser) {
+static void next_state(cmdp_token const &token, parser_ctx &ctx, OldParser &parser) {
     cmdp_state _next_state = token.next_state;
 
     if (token.next_state == cmdp_state::__CALL) {
         ConfigResultIR subcommand_output = {
             .parser = parser,
             .next_state = 0,
-            .has_errors = false
-        };
+            .has_errors = false};
         GENERATED_call(ctx.criteria_state, ctx.stack, token.call_identifier, subcommand_output);
         if (subcommand_output.has_errors) {
             ctx.has_errors = true;
@@ -104,7 +103,7 @@ static std::string_view single_line(std::string::const_iterator &start, std::str
     return std::string_view(start, newline_pos);
 }
 
-static std::string get_possible_tokens(const std::vector<cmdp_token> &ptr) {
+static std::string get_possible_tokens(std::vector<cmdp_token> const &ptr) {
     std::string possible_tokens{};
     for (unsigned long c = 0; c < ptr.size(); c++) {
         auto &token = ptr.at(c);
@@ -132,7 +131,7 @@ static std::string get_possible_tokens(const std::vector<cmdp_token> &ptr) {
 
 /* Figure out how much memory we will need to fill in the names of
  * all tokens afterwards. */
-void OldParser::unhandled_token(const std::string &input, int linecnt, const std::vector<cmdp_token> &ptr, bool &has_errors, std::string::const_iterator &walk, std::ostream &err_output) {
+void OldParser::unhandled_token(std::string const &input, int linecnt, std::vector<cmdp_token> const &ptr, bool &has_errors, std::string::const_iterator &walk, std::ostream &err_output) {
     /* Build up a decent error message. We include the problem, the
      * full input, and underline the position where the parser
      * currently is. */
@@ -145,7 +144,7 @@ void OldParser::unhandled_token(const std::string &input, int linecnt, const std
     /* Contains the same amount of characters as 'input' has, but with
      * the unparsable part highlighted using ^ characters. */
     std::string position{};
-    //position.reserve(std::distance(error_line, input.end()));
+    // position.reserve(std::distance(error_line, input.end()));
     std::string::const_iterator copywalk;
     for (copywalk = error_line;
          *copywalk != '\n' && *copywalk != '\r' && *copywalk != '\0';
@@ -164,19 +163,19 @@ void OldParser::unhandled_token(const std::string &input, int linecnt, const std
         if (linecnt > 2) {
             auto context_p2_start = start_of_line(context_p1_start - 2, beginning);
             std::string_view context_p2_line = single_line(context_p2_start, input_end);
-            err_output << fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 2, context_p2_line);
+            err_output << fmt::sprintf("CONFIG: Line %3d: %s\n", linecnt - 2, context_p2_line);
         }
-        err_output << fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt - 1, context_p1_line);
+        err_output << fmt::sprintf("CONFIG: Line %3d: %s\n", linecnt - 1, context_p1_line);
     }
-    err_output << fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt, error_copy);
-    err_output << fmt::sprintf("CONFIG:           %s\n",  position);
+    err_output << fmt::sprintf("CONFIG: Line %3d: %s\n", linecnt, error_copy);
+    err_output << fmt::sprintf("CONFIG:           %s\n", position);
     /* Print context lines *after* the error, if any. */
     for (int i = 0; i < 2; i++) {
         auto error_line_end = std::find(error_line, input_end, '\n');
         if (error_line_end != input_end && *(error_line_end + 1) != '\0') {
             error_line = error_line_end + 1;
             error_copy = single_line(error_line, input_end);
-            err_output << fmt::sprintf("CONFIG: Line %3d: %s\n",  linecnt + i + 1, error_copy);
+            err_output << fmt::sprintf("CONFIG: Line %3d: %s\n", linecnt + i + 1, error_copy);
         }
     }
 
@@ -212,16 +211,16 @@ void OldParser::unhandled_token(const std::string &input, int linecnt, const std
 }
 
 /* Dump the entire config file into the debug log. */
-static void log_config(const std::string &input) {
+static void log_config(std::string const &input) {
     std::istringstream iss(input);
 
     int linecnt = 1;
     for (std::string line; std::getline(iss, line); linecnt++) {
-        DLOG(fmt::sprintf("CONFIG(line %3d): %s\n",  linecnt, line));
+        DLOG(fmt::sprintf("CONFIG(line %3d): %s\n", linecnt, line));
     }
 }
 
-bool OldParser::handle_literal(std::string::const_iterator &walk, const cmdp_token &token) {
+bool OldParser::handle_literal(std::string::const_iterator &walk, cmdp_token const &token) {
     if (strncasecmp(std::to_address(walk), token.name.substr(1).c_str(), token.name.size() - 1) == 0) {
         if (token.identifier) {
             push_string_append(ctx.stack, token.identifier->c_str(), token.name.c_str() + 1);
@@ -234,7 +233,7 @@ bool OldParser::handle_literal(std::string::const_iterator &walk, const cmdp_tok
     return false;
 }
 
-bool OldParser::handle_number(std::string::const_iterator &walk, const cmdp_token &token) {
+bool OldParser::handle_number(std::string::const_iterator &walk, cmdp_token const &token) {
     char *end = nullptr;
     errno = 0;
     long int num = std::strtol(std::to_address(walk), &end, 10);
@@ -259,7 +258,7 @@ bool OldParser::handle_number(std::string::const_iterator &walk, const cmdp_toke
     return true;
 }
 
-bool OldParser::handle_word(std::string::const_iterator &walk, const cmdp_token &token) {
+bool OldParser::handle_word(std::string::const_iterator &walk, cmdp_token const &token) {
     std::string::const_iterator beginning = walk;
     /* Handle quoted strings (or words). */
     if (*walk == '"') {
@@ -275,8 +274,8 @@ bool OldParser::handle_word(std::string::const_iterator &walk, const cmdp_token 
             }
         } else {
             /* For a word, the delimiters are white space (' ' or
-                         * '\t'), closing square bracket (]), comma (,) and
-                         * semicolon (;). */
+             * '\t'), closing square bracket (]), comma (,) and
+             * semicolon (;). */
             while (*walk != ' ' && *walk != '\t' &&
                    *walk != ']' && *walk != ',' &&
                    *walk != ';' && *walk != '\r' &&
@@ -287,15 +286,15 @@ bool OldParser::handle_word(std::string::const_iterator &walk, const cmdp_token 
     }
     if (walk != beginning) {
         std::string str{};
-        str.reserve(std::distance(beginning, walk)  + 1);
+        str.reserve(std::distance(beginning, walk) + 1);
         /* We copy manually to handle escaping of characters. */
         int inpos;
         for (inpos = 0;
              inpos < std::distance(beginning, walk);
              inpos++) {
             /* We only handle escaped double quotes to not break
-                         * backwards compatibility with people using \w in
-                         * regular expressions etc. */
+             * backwards compatibility with people using \w in
+             * regular expressions etc. */
             if (beginning[inpos] == '\\' && beginning[inpos + 1] == '"') {
                 inpos++;
             }
@@ -305,7 +304,7 @@ bool OldParser::handle_word(std::string::const_iterator &walk, const cmdp_token 
             push_string_append(ctx.stack, token.identifier->c_str(), str.c_str());
         }
         /* If we are at the end of a quoted string, skip the ending
-                     * double quote. */
+         * double quote. */
         if (*walk == '"') {
             walk++;
         }
@@ -316,7 +315,7 @@ bool OldParser::handle_word(std::string::const_iterator &walk, const cmdp_token 
     return false;
 }
 
-bool OldParser::handle_line(std::string::const_iterator &walk, const cmdp_token &token) {
+bool OldParser::handle_line(std::string::const_iterator &walk, cmdp_token const &token) {
     while (*walk != '\0' && *walk != '\n' && *walk != '\r') {
         walk++;
     }
@@ -325,13 +324,13 @@ bool OldParser::handle_line(std::string::const_iterator &walk, const cmdp_token 
     return true;
 }
 
-bool OldParser::handle_end(std::string::const_iterator &walk, const cmdp_token &token, ConfigResultIR &subcommand_output, int *linecnt) {
+bool OldParser::handle_end(std::string::const_iterator &walk, cmdp_token const &token, ConfigResultIR &subcommand_output, int *linecnt) {
     if (*walk == '\0' || *walk == '\n' || *walk == '\r') {
         next_state(token, ctx, *this);
         /* To make sure we start with an appropriate matching
-                     * datastructure for commands which do *not* specify any
-                     * criteria, we re-initialize the criteria system after
-                     * every command. */
+         * datastructure for commands which do *not* specify any
+         * criteria, we re-initialize the criteria system after
+         * every command. */
         cfg::criteria_init(ctx.criteria_state, subcommand_output, std::to_underlying(cmdp_state::INITIAL));
         (*linecnt)++;
         walk++;
@@ -344,13 +343,13 @@ bool OldParser::handle_end(std::string::const_iterator &walk, const cmdp_token &
 
 static void reset_statelist(parser_ctx &ctx) {
     ctx.state = std::to_underlying(cmdp_state::INITIAL);
-    for (int & i : ctx.statelist) {
+    for (int &i : ctx.statelist) {
         i = std::to_underlying(cmdp_state::INITIAL);
     }
     ctx.statelist_idx = 1;
 }
 
-bool OldParser::parse_config(const std::string &input, std::ostream &err_output) {
+bool OldParser::parse_config(std::string const &input, std::ostream &err_output) {
     bool has_errors = false;
     std::string::const_iterator walk = input.begin();
     int linecnt = 1;
@@ -360,10 +359,9 @@ bool OldParser::parse_config(const std::string &input, std::ostream &err_output)
     reset_statelist(ctx);
 
     ConfigResultIR subcommand_output = {
-        .parser = dynamic_cast<BaseParser&>(*this),
+        .parser = dynamic_cast<BaseParser &>(*this),
         .next_state = 0,
-        .has_errors = false
-    };
+        .has_errors = false};
 
     cfg::criteria_init(ctx.criteria_state, subcommand_output, std::to_underlying(cmdp_state::INITIAL));
 
@@ -393,7 +391,7 @@ bool OldParser::parse_config(const std::string &input, std::ostream &err_output)
                 token_handled = handle_line(walk, token);
                 linecnt++;
             } else if (token.name == "end") {
-               token_handled = handle_end(walk, token, subcommand_output, &linecnt);
+                token_handled = handle_end(walk, token, subcommand_output, &linecnt);
             }
         }
 
@@ -415,12 +413,12 @@ static void upsert_variable(std::vector<std::shared_ptr<Variable>> &variables, s
             continue;
         }
 
-        DLOG(fmt::sprintf("Updated variable: %s = %s -> %s\n",  key, current->value, value.data()));
+        DLOG(fmt::sprintf("Updated variable: %s = %s -> %s\n", key, current->value, value.data()));
         current->value = value.data();
         return;
     }
 
-    DLOG(fmt::sprintf("Defined new variable: %s = %s\n",  key, value));
+    DLOG(fmt::sprintf("Defined new variable: %s = %s\n", key, value));
     auto n = std::make_shared<Variable>();
     auto loc = variables.begin();
     n->key = key.data();
@@ -446,11 +444,10 @@ static std::string read_file(std::istream &fstr, BaseResourceDatabase &resourceD
     std::string buf{};
 
     for (std::string buffer; std::getline(fstr, buffer);) {
-
         /* sscanf implicitly strips whitespace. */
         value[0] = '\0';
-        const bool skip_line = (sscanf(buffer.c_str(), "%511s %4095[^\n]", key, value) < 1 || strlen(key) < 3);
-        const bool comment = (key[0] == '#');
+        bool const skip_line = (sscanf(buffer.c_str(), "%511s %4095[^\n]", key, value) < 1 || strlen(key) < 3);
+        bool const comment = (key[0] == '#');
         value[4095] = '\n';
 
         bool continuation = strstr(buffer.c_str(), "\\\n");
@@ -475,7 +472,7 @@ static std::string read_file(std::istream &fstr, BaseResourceDatabase &resourceD
             char v_value[4096] = {'\0'};
 
             if (sscanf(value, "%511s %4095[^\n]", v_key, v_value) < 1) {
-                throw std::domain_error(fmt::sprintf("Failed to parse variable specification '%s', skipping it.\n",  value));
+                throw std::domain_error(fmt::sprintf("Failed to parse variable specification '%s', skipping it.\n", value));
             }
 
             if (v_key[0] != '$') {
@@ -498,7 +495,7 @@ static std::string read_file(std::istream &fstr, BaseResourceDatabase &resourceD
             fallback[0] = '\0';
 
             if (sscanf(value, "%511s %511s %4095[^\n]", v_key, res_name, fallback) < 1) {
-                throw std::domain_error(fmt::sprintf("Failed to parse resource specification '%s', skipping it.\n",  value));
+                throw std::domain_error(fmt::sprintf("Failed to parse resource specification '%s', skipping it.\n", value));
             }
 
             if (v_key[0] != '$') {
@@ -513,9 +510,9 @@ static std::string read_file(std::istream &fstr, BaseResourceDatabase &resourceD
     return buf;
 }
 
-static std::string::const_iterator caseInsensitiveSearch(const std::string& str, std::string::const_iterator &pos, const std::string& substr) {
+static std::string::const_iterator caseInsensitiveSearch(std::string const &str, std::string::const_iterator &pos, std::string const &substr) {
     return std::search(pos, str.cend(), substr.cbegin(), substr.cend(), [](char a, char b) {
-      return std::tolower(a) == std::tolower(b);
+        return std::tolower(a) == std::tolower(b);
     });
 }
 
@@ -560,12 +557,14 @@ static std::string replace_variables(std::string &buf, parser_ctx &ctx) {
     return destwalk;
 }
 
-OldParser::OldParser(const std::filesystem::path filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier) : OldParser(filename, stream, resourceDatabase, applier) {
+OldParser::OldParser(std::filesystem::path const filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier)
+    : OldParser(filename, stream, resourceDatabase, applier) {
     this->parent_ctx = &parent_ctx;
     this->ctx.variables = parent_ctx.variables;
 }
 
-OldParser::OldParser(const std::filesystem::path filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, BaseConfigApplier &applier) : BaseParser(applier, resourceDatabase), filename(filename), stream(stream), ctx(this) {
+OldParser::OldParser(std::filesystem::path const filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, BaseConfigApplier &applier)
+    : BaseParser(applier, resourceDatabase), filename(filename), stream(stream), ctx(this) {
     char *cwd = getcwd(nullptr, 0);
     this->old_dir = cwd;
     free(cwd);
@@ -577,7 +576,6 @@ OldParser::OldParser(const std::filesystem::path filename, std::istream &stream,
     if (chdir(f.c_str()) == -1) {
         throw std::runtime_error(fmt::sprintf("chdir(%s) failed: %s\n", f.c_str(), strerror(errno)));
     }
-
 }
 
 OldParser::~OldParser() {

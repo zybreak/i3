@@ -23,14 +23,12 @@ import utils;
 
 import i3_config_base;
 
-using std::uint32_t;
 using std::int32_t;
+using std::uint32_t;
 
 class X;
 
 export {
-
-
     /**
      * Mouse pointer warping modes.
      */
@@ -60,11 +58,15 @@ export {
         bool pango_markup{};
         std::vector<Binding> bindings{};
 
-        explicit Mode(std::string s) : name(std::move(s)) {}
+        explicit Mode(std::string s)
+            : name(std::move(s)) {
+        }
 
-        Mode(std::string s, const bool pango_markup) : name(std::move(s)), pango_markup(pango_markup) {}
-        
-        auto operator<=>(const Mode &) const = default;
+        Mode(std::string s, bool const pango_markup)
+            : name(std::move(s)), pango_markup(pango_markup) {
+        }
+
+        auto operator<=>(Mode const &) const = default;
     };
 
     enum conf_fowa_t {
@@ -110,7 +112,7 @@ export {
         HEBM_SMART = (1 << 5),
         HEBM_SMART_NO_GAPS = (1 << 6)
     };
-    
+
     enum class title_align_t {
         ALIGN_LEFT,
         ALIGN_CENTER,
@@ -126,25 +128,24 @@ export {
         Colortriple urgent;
         Colortriple placeholder;
         bool got_focused_tab_title{false};
-        
-        auto operator<=>(const config_client &r) const = default;
+
+        auto operator<=>(config_client const &r) const = default;
     };
 
     struct config_bar {
         Colortriple focused;
         Colortriple unfocused;
         Colortriple urgent;
-        
-        auto operator<=>(const config_bar &r) const = default;
+
+        auto operator<=>(config_bar const &r) const = default;
     };
-    
+
     /**
      * Holds part of the configuration
      *
      */
     class Config {
-    public:
-
+      public:
         /* NULL-terminated list of workspace names (in order) extracted from
          * keybindings. */
         std::vector<std::string> binding_workspace_names{};
@@ -189,7 +190,7 @@ export {
          * If you want to have a more fancy bar, it is recommended to replace
          * the whole bar by dzen2, for example using the i3-wsbar script which
          * comes with i3. Thus, you can turn it off entirely. */
-        bool disable_workspace_bar; // TODO: remove
+        bool disable_workspace_bar;  // TODO: remove
 
         /** When focus wrapping is enabled (the default), attempting to
          * move focus past the edge of the screen (in other words, in a
@@ -247,8 +248,8 @@ export {
 
         /* Color codes are stored here */
         config_client client{};
-        
-        config_bar bar; // TODO: remove
+
+        config_bar bar;  // TODO: remove
 
         /** What should happen when a new popup is opened during fullscreen mode */
         conf_pdf_t popup_during_fullscreen;
@@ -268,23 +269,23 @@ export {
         std::map<std::string, Mode> modes{};
         std::vector<IncludedFile> included_files{};
         std::string _current_mode{"default"};
-        
-        Mode* current_mode() {
+
+        Mode *current_mode() {
             return &modes.at(_current_mode);
         };
-        
+
         Config();
     };
-    
+
     class ConfigurationManager {
       private:
         X &x;
 
         void init_color(Config &config);
-        
+
       public:
         std::unique_ptr<Config> config{};
-        
+
         void set_config(std::unique_ptr<Config> _config);
 
         /**
@@ -298,9 +299,9 @@ export {
          * the config for normal use and display errors in the nagbar. C_RELOAD will
          * also clear the previous config.
          */
-        std::unique_ptr<Config> load_configuration(const std::optional<std::filesystem::path> configfile = std::nullopt);
-        
-        explicit ConfigurationManager(X &x) : x(x) {};
-    };
+        std::unique_ptr<Config> load_configuration(std::optional<std::filesystem::path> const configfile = std::nullopt);
 
+        explicit ConfigurationManager(X &x)
+            : x(x) {};
+    };
 }

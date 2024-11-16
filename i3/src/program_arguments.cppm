@@ -108,20 +108,20 @@ program_arguments parse_args(int argc, char *argv[]) {
                 std::fprintf(stderr, "\t-v          display version and exit\n");
                 std::fprintf(stderr, "\t-V          enable verbose mode\n");
                 std::fprintf(stderr, "\t--replace\n"
-                                "\tReplace an existing window manager.\n");
+                                     "\tReplace an existing window manager.\n");
                 std::fprintf(stderr, "\n");
                 std::fprintf(stderr, "\n");
                 std::fprintf(stderr, "\t--get-socketpath\n"
-                                "\tRetrieve the i3 IPC socket path from X11, print it, then exit.\n");
+                                     "\tRetrieve the i3 IPC socket path from X11, print it, then exit.\n");
                 std::fprintf(stderr, "\n");
                 std::fprintf(stderr, "If you pass plain text arguments, i3 will interpret them as a command\n"
-                                "to send to a currently running i3 (like old i3-msg). This allows you to\n"
-                                "use nice and logical commands, such as:\n"
-                                "\n"
-                                "\ti3 border none\n"
-                                "\ti3 floating toggle\n"
-                                "\ti3 kill window\n"
-                                "\n");
+                                     "to send to a currently running i3 (like old i3-msg). This allows you to\n"
+                                     "use nice and logical commands, such as:\n"
+                                     "\n"
+                                     "\ti3 border none\n"
+                                     "\ti3 floating toggle\n"
+                                     "\ti3 kill window\n"
+                                     "\n");
                 std::exit(opt == 'h' ? EXIT_SUCCESS : EXIT_FAILURE);
         }
     }

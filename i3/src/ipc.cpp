@@ -44,11 +44,11 @@ static ev_tstamp kill_timeout = 10.0;
  * written so far.
  *
  */
-static ssize_t writeall_nonblock(int fd, const void *buf, size_t count) {
+static ssize_t writeall_nonblock(int fd, void const *buf, size_t count) {
     size_t written = 0;
 
     while (written < count) {
-        const ssize_t n = write(fd, ((char *)buf) + written, count - written);
+        ssize_t const n = write(fd, ((char *)buf) + written, count - written);
         if (n == -1) {
             if (errno == EAGAIN) {
                 return written;
@@ -108,7 +108,7 @@ void ipc_set_kill_timeout(ev_tstamp new_timeout) {
  *
  */
 static void ipc_push_pending(ipc_client *client) {
-    const ssize_t result = writeall_nonblock(client->fd, client->buffer, client->buffer_size);
+    ssize_t const result = writeall_nonblock(client->fd, client->buffer, client->buffer_size);
     if (result < 0) {
         return;
     }
@@ -153,7 +153,7 @@ static void ipc_push_pending(ipc_client *client) {
     /* Shift the buffer to the left and reduce the allocated space. */
     client->buffer_size -= static_cast<size_t>(result);
     memmove(client->buffer, client->buffer + result, client->buffer_size);
-    client->buffer = static_cast<uint8_t*>(srealloc(client->buffer, client->buffer_size));
+    client->buffer = static_cast<uint8_t *>(srealloc(client->buffer, client->buffer_size));
 }
 
 /*
@@ -162,20 +162,19 @@ static void ipc_push_pending(ipc_client *client) {
  * send the message if the client's buffer was empty.
  *
  */
-static void ipc_send_client_message(ipc_client *client, const uint32_t message_type, const std::string &payload) {
+static void ipc_send_client_message(ipc_client *client, uint32_t const message_type, std::string const &payload) {
     auto size = payload.length();
 
-    const i3ipc::i3_ipc_header_t header = {
+    i3ipc::i3_ipc_header_t const header = {
         .magic = {'i', '3', '-', 'i', 'p', 'c'},
         .size = static_cast<uint32_t>(size),
-        .type = message_type
-    };
+        .type = message_type};
 
-    const size_t header_size = sizeof(i3ipc::i3_ipc_header_t);
-    const size_t message_size = header_size + size;
+    size_t const header_size = sizeof(i3ipc::i3_ipc_header_t);
+    size_t const message_size = header_size + size;
 
-    const bool push_now = (client->buffer_size == 0);
-    client->buffer = (uint8_t*)srealloc(client->buffer, client->buffer_size + message_size);
+    bool const push_now = (client->buffer_size == 0);
+    client->buffer = (uint8_t *)srealloc(client->buffer, client->buffer_size + message_size);
     memcpy(client->buffer + client->buffer_size, ((void *)&header), header_size);
     memcpy(client->buffer + client->buffer_size + header_size, payload.c_str(), size);
     client->buffer_size += message_size;
@@ -185,13 +184,13 @@ static void ipc_send_client_message(ipc_client *client, const uint32_t message_t
     }
 }
 
-static void ipc_send_client_message(ipc_client *client, const i3ipc::REPLY_TYPE message_type, const std::string &payload) {
-    ipc_send_client_message(client, static_cast<const uint32_t>(message_type), payload);
+static void ipc_send_client_message(ipc_client *client, i3ipc::REPLY_TYPE const message_type, std::string const &payload) {
+    ipc_send_client_message(client, static_cast<uint32_t const>(message_type), payload);
 }
 
 void IPCManager::free_ipc_client(ipc_client &client, int exempt_fd) {
     if (client.fd != exempt_fd) {
-        DLOG(fmt::sprintf("Disconnecting client on fd %d\n",  client.fd));
+        DLOG(fmt::sprintf("Disconnecting client on fd %d\n", client.fd));
         close(client.fd);
     }
 
@@ -203,7 +202,7 @@ void IPCManager::free_ipc_client(ipc_client &client, int exempt_fd) {
  * and subscribed to this kind of event.
  *
  */
-void IPCManager::ipc_send_event(std::string const event, uint32_t message_type, const std::string &payload) {
+void IPCManager::ipc_send_event(std::string const event, uint32_t message_type, std::string const &payload) {
     for (auto &current : all_clients) {
         for (auto &e : current->events) {
             if (e == event) {
@@ -257,8 +256,8 @@ void IPCManager::ipc_shutdown(shutdown_reason_t reason, int exempt_fd) {
 static void handle_run_command(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     /* To get a properly terminated buffer, we copy
      * message_size bytes out of the buffer */
-    std::string command((const char *)message, message_size);
-    LOG(fmt::sprintf("IPC: received: *%.4000s*\n",  command));
+    std::string command((char const *)message, message_size);
+    LOG(fmt::sprintf("IPC: received: *%.4000s*\n", command));
     nlohmann::json gen;
 
     auto commandsApplier = CommandsApplier{};
@@ -374,20 +373,18 @@ static void handle_get_workspaces(ipc_client *client, uint8_t *message, int size
     WorkspaceCon *focused_ws = global.focused->con_get_workspace();
 
     for (auto &output : global.croot->nodes) {
-        for (auto &ws_con : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
+        for (auto &ws_con : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
             assert(ws_con->type == CT_WORKSPACE);
-            auto ws = dynamic_cast<WorkspaceCon*>(ws_con);
+            auto ws = dynamic_cast<WorkspaceCon *>(ws_con);
 
-            a.push_back({
-                { "id", (uintptr_t)ws },
-                { "num", ws->num },
-                { "name", ws->name },
-                { "visible", workspace_is_visible(ws) },
-                { "focused", ws == focused_ws },
-                { "rect", ws->rect },
-                { "output", output->name },
-                {"urgent", ws->urgent }
-            });
+            a.push_back({{"id", (uintptr_t)ws},
+                         {"num", ws->num},
+                         {"name", ws->name},
+                         {"visible", workspace_is_visible(ws)},
+                         {"focused", ws == focused_ws},
+                         {"rect", ws->rect},
+                         {"output", output->name},
+                         {"urgent", ws->urgent}});
         }
     }
 
@@ -401,11 +398,9 @@ static void handle_get_workspaces(ipc_client *client, uint8_t *message, int size
  *
  */
 static void handle_get_outputs(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
-
     auto a = nlohmann::json::array();
 
     for (Output *output : global.randr->outputs) {
-
         auto o = nlohmann::json::object();
 
         o["name"] = output->output_primary_name();
@@ -438,7 +433,7 @@ static void handle_get_version(ipc_client *client, uint8_t *message, int size, u
     j["loaded_config_file_name"] = global.configManager->config->current_configpath.native();
 
     auto a = nlohmann::json::array();
-    for (auto &included_file : std::ranges::drop_view{global.configManager->config->included_files,1}) {
+    for (auto &included_file : std::ranges::drop_view{global.configManager->config->included_files, 1}) {
         a.push_back(included_file.path);
     }
     j["included_config_file_names"] = a;
@@ -474,12 +469,11 @@ static void handle_get_binding_modes(ipc_client *client, uint8_t *message, int s
  *
  */
 static void add_subscription(ipc_client *client, std::string &s) {
-
     client->events.emplace_back(s.c_str());
 
     DLOG("client is now subscribed to:\n");
     for (auto &event : client->events) {
-        DLOG(fmt::sprintf("event %s\n",  event));
+        DLOG(fmt::sprintf("event %s\n", event));
     }
     DLOG("(done)\n");
 }
@@ -491,7 +485,7 @@ static void add_subscription(ipc_client *client, std::string &s) {
  */
 static void handle_subscribe(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     try {
-        auto j = nlohmann::json::parse(std::string((const char*)message, message_size));
+        auto j = nlohmann::json::parse(std::string((char const *)message, message_size));
         if (j.is_array()) {
             for (auto type : j) {
                 if (type.is_string()) {
@@ -504,7 +498,7 @@ static void handle_subscribe(ipc_client *client, uint8_t *message, int size, uin
         }
     } catch (std::exception &e) {
         auto err = e.what();
-        ELOG(fmt::sprintf("Parse error: %s\n",  err));
+        ELOG(fmt::sprintf("Parse error: %s\n", err));
 
         std::string reply = R"({"success":false})";
         ipc_send_client_message(client, i3ipc::REPLY_TYPE::SUBSCRIBE, reply);
@@ -535,14 +529,13 @@ static void handle_subscribe(ipc_client *client, uint8_t *message, int size, uin
 static void handle_get_config(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     auto a = nlohmann::json::array();
 
-    for (auto &included_file : std::ranges::drop_view{global.configManager->config->included_files,1}) {
+    for (auto &included_file : std::ranges::drop_view{global.configManager->config->included_files, 1}) {
         a.emplace_back(included_file.raw_contents);
     }
 
     nlohmann::json j = {
-        { "config", std::string(global.configManager->config->included_files[0].raw_contents) },
-        { "included_configs", a }
-    };
+        {"config", std::string(global.configManager->config->included_files[0].raw_contents)},
+        {"included_configs", a}};
 
     auto payload = j.dump();
 
@@ -554,7 +547,6 @@ static void handle_get_config(ipc_client *client, uint8_t *message, int size, ui
  * synchronization point in event-related tests.
  */
 static void handle_send_tick(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
-
     nlohmann::json j;
 
     j["first"] = false;
@@ -586,7 +578,7 @@ static void _sync_json_int(sync_state &state, long long val) {
 static void handle_sync(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     sync_state state{};
 
-    nlohmann::json::parser_callback_t cb = [&state](int depth, nlohmann::json::parse_event_t event, nlohmann::json & parsed) {
+    nlohmann::json::parser_callback_t cb = [&state](int depth, nlohmann::json::parse_event_t event, nlohmann::json &parsed) {
         if (event == nlohmann::json::parse_event_t::key) {
             auto key = parsed.get<std::string>();
             state.last_key = key;
@@ -601,25 +593,24 @@ static void handle_sync(ipc_client *client, uint8_t *message, int size, uint32_t
     };
 
     try {
-        auto json = nlohmann::json::parse(std::string((const char *) message, message_size), cb, true, true);
+        auto json = nlohmann::json::parse(std::string((char const *)message, message_size), cb, true, true);
     } catch (std::exception &e) {
-        ELOG(fmt::sprintf("Parse error: %s\n",  e.what()));
+        ELOG(fmt::sprintf("Parse error: %s\n", e.what()));
 
         std::string reply = "{\"success\":false}";
         ipc_send_client_message(client, i3ipc::REPLY_TYPE::SYNC, reply);
         return;
     }
 
-    DLOG(fmt::sprintf("received IPC sync request (rnd = %d, window = 0x%08x)\n",  state.rnd, state.window));
-    sync_respond(global.x,state.window, state.rnd);
+    DLOG(fmt::sprintf("received IPC sync request (rnd = %d, window = 0x%08x)\n", state.rnd, state.window));
+    sync_respond(global.x, state.window, state.rnd);
     std::string reply = "{\"success\":true}";
     ipc_send_client_message(client, i3ipc::REPLY_TYPE::SYNC, reply);
 }
 
 static void handle_get_binding_state(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     nlohmann::json j = {
-        { "name",  global.configManager->config->current_mode()->name}
-    };
+        {"name", global.configManager->config->current_mode()->name}};
 
     auto payload = j.dump();
 
@@ -680,8 +671,8 @@ void ipc_receive_message(EV_P_ ev_io *w, int revents) {
     try {
         handler_t h = handlers.at(message_type);
         h(client, message, 0, message_length, message_type);
-    } catch (std::out_of_range const& e) {
-        DLOG(fmt::sprintf("Unhandled message type: %d\n",  message_type));
+    } catch (std::out_of_range const &e) {
+        DLOG(fmt::sprintf("Unhandled message type: %d\n", message_type));
     }
 
     free(message);
@@ -716,7 +707,7 @@ void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
         return;
     }
     char buf[512] = {'\0'}; /* cut off cmdline for the error message. */
-    const ssize_t n = read(fd, buf, sizeof(buf));
+    ssize_t const n = read(fd, buf, sizeof(buf));
     close(fd);
     if (n < 0) {
         if (!cmdline) {
@@ -746,7 +737,7 @@ void ipc_client_timeout(EV_P_ ev_timer *w, int revents) {
 }
 
 static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents) {
-    DLOG(fmt::sprintf("fd %d writeable\n",  w->fd));
+    DLOG(fmt::sprintf("fd %d writeable\n", w->fd));
     auto *client = (ipc_client *)w->data;
 
     /* If this callback is called then there should be a corresponding active
@@ -765,9 +756,8 @@ static void ipc_socket_writeable_cb(EV_P_ ev_io *w, int revents) {
  *
  */
 static void ipc_new_client(EV_P_ ev_io *w, int revents) {
-    
-    IPCManager *ipcManager = (IPCManager*)w->data;
-    
+    IPCManager *ipcManager = (IPCManager *)w->data;
+
     struct sockaddr_un peer{};
     socklen_t len = sizeof(struct sockaddr_un);
     int fd = accept(w->fd, (struct sockaddr *)&peer, &len);
@@ -784,7 +774,7 @@ static void ipc_new_client(EV_P_ ev_io *w, int revents) {
     ipcManager->ipc_new_client_on_fd(fd);
 }
 
-ipc_client* IPCManager::ipc_new_client_on_fd(int fd) {
+ipc_client *IPCManager::ipc_new_client_on_fd(int fd) {
     set_nonblock(fd);
 
     DLOG(fmt::format("IPC: new client connected on fd {}", fd));
@@ -795,7 +785,7 @@ ipc_client* IPCManager::ipc_new_client_on_fd(int fd) {
  * Generates a json workspace event. Returns a dynamically allocated yajl
  * generator. Free with yajl_gen_free().
  */
-nlohmann::json ipc_marshal_workspace_event(const char *change, Con *current, Con *old) {
+nlohmann::json ipc_marshal_workspace_event(char const *change, Con *current, Con *old) {
     nlohmann::json j;
 
     j["change"] = change;
@@ -816,7 +806,7 @@ nlohmann::json ipc_marshal_workspace_event(const char *change, Con *current, Con
  * the workspace container in "current". For focus events, we send the
  * previously focused workspace in "old".
  */
-void IPCManager::ipc_send_workspace_event(const char *change, Con *current, Con *old) {
+void IPCManager::ipc_send_workspace_event(char const *change, Con *current, Con *old) {
     auto gen = ipc_marshal_workspace_event(change, current, old);
 
     auto payload = gen.dump();
@@ -828,9 +818,9 @@ void IPCManager::ipc_send_workspace_event(const char *change, Con *current, Con 
  * For the window events we send, along the usual "change" field,
  * also the window container, in "container".
  */
-void IPCManager::ipc_send_window_event(const char *property, Con *con) {
+void IPCManager::ipc_send_window_event(char const *property, Con *con) {
     DLOG(fmt::sprintf("Issue IPC window %s event (con = %p, window = 0x%08x)\n",
-         property, fmt::ptr(con), (con->get_window() ? con->get_window()->id : XCB_WINDOW_NONE)));
+                      property, fmt::ptr(con), (con->get_window() ? con->get_window()->id : XCB_WINDOW_NONE)));
 
     nlohmann::json j;
 
@@ -852,8 +842,8 @@ void ipc_send_barconfig_update_event(Barconfig *barconfig) {
 /*
  * For the binding events, we send the serialized binding struct.
  */
-void IPCManager::ipc_send_binding_event(const char *event_type, Binding *bind, const char *modename) {
-    DLOG(fmt::sprintf("Issue IPC binding %s event (sym = %s, code = %d)\n",  event_type, bind->symbol, bind->keycode));
+void IPCManager::ipc_send_binding_event(char const *event_type, Binding *bind, char const *modename) {
+    DLOG(fmt::sprintf("Issue IPC binding %s event (sym = %s, code = %d)\n", event_type, bind->symbol, bind->keycode));
 
     nlohmann::json j;
 
@@ -876,7 +866,7 @@ void IPCManager::ipc_send_binding_event(const char *event_type, Binding *bind, c
  * Sends a restart reply to the IPC client on the specified fd.
  */
 void ipc_confirm_restart(ipc_client *client) {
-    DLOG(fmt::sprintf("ipc_confirm_restart(fd %d)\n",  client->fd));
+    DLOG(fmt::sprintf("ipc_confirm_restart(fd %d)\n", client->fd));
     std::string reply = "[{\"success\":true}]";
     ipc_send_client_message(
         client, i3ipc::REPLY_TYPE::COMMAND,
@@ -884,7 +874,8 @@ void ipc_confirm_restart(ipc_client *client) {
     ipc_push_pending(client);
 }
 
-IPCManager::IPCManager(ConfigurationManager &configManager) : configManager(configManager) {
+IPCManager::IPCManager(ConfigurationManager &configManager)
+    : configManager(configManager) {
     ipc_io = new ev_io();
 }
 
@@ -903,9 +894,9 @@ IPCManager::~IPCManager() {
 std::tuple<std::string, int> IPCManager::create_socket(std::string filename) {
     auto resolved = utils::resolve_tilde(filename);
     DLOG(fmt::sprintf("Creating UNIX socket at %s\n", resolved));
-    const std::filesystem::path p(resolved);
-    const std::filesystem::path &parent = p.parent_path();
-    
+    std::filesystem::path const p(resolved);
+    std::filesystem::path const &parent = p.parent_path();
+
     if (!std::filesystem::exists(parent)) {
         try {
             std::filesystem::create_directories(parent);
@@ -933,7 +924,7 @@ std::tuple<std::string, int> IPCManager::create_socket(std::string filename) {
 
     (void)fcntl(sockfd, F_SETFD, FD_CLOEXEC);
 
-    struct sockaddr_un addr {};
+    struct sockaddr_un addr{};
     addr.sun_family = AF_LOCAL;
     strncpy(addr.sun_path, resolved.c_str(), sizeof(addr.sun_path) - 1);
     if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
@@ -953,13 +944,13 @@ int IPCManager::create_socket() {
     if (!configManager.config->ipc_socket_path) {
         throw std::runtime_error("Could not create the IPC socket since socket path wasnt specified");
     }
-    
-   std::tie(current_socketpath, ipc_socket) = create_socket(*configManager.config->ipc_socket_path);
+
+    std::tie(current_socketpath, ipc_socket) = create_socket(*configManager.config->ipc_socket_path);
     if (ipc_socket == -1) {
         throw std::runtime_error(std::format("Could not create the IPC socket: {}", *configManager.config->ipc_socket_path));
     }
     global.current_socketpath = *current_socketpath;
-    
+
     return ipc_socket;
 }
 
@@ -967,7 +958,7 @@ void IPCManager::listen() {
     if (ipc_socket == -1) {
         throw std::runtime_error("No socket created");
     }
-   
+
     ipc_io->data = this;
     ev_io_init(ipc_io, ipc_new_client, ipc_socket, EV_READ);
     ev_io_start(global.main_loop, ipc_io);

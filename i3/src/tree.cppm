@@ -20,9 +20,9 @@ class i3Window;
 class X;
 
 export {
-    
     class TreeManager {
         X &x;
+
       public:
         TreeManager(X &x);
     };
@@ -33,13 +33,13 @@ export {
      * assigning a workspace to each RandR output.
      *
      */
-    void tree_init(const xcb_get_geometry_reply_t *geometry);
+    void tree_init(xcb_get_geometry_reply_t const *geometry);
 
     /**
      * Opens an empty container in the current container
      *
      */
-    ConCon *tree_open_con(Con * con, i3Window * window = nullptr);
+    ConCon *tree_open_con(Con * con, i3Window *window = nullptr);
 
     /**
      * Splits (horizontally or vertically) the given container by creating a new
@@ -94,7 +94,7 @@ export {
      * Loads Tree from ~/.i3/_restart.json (used for in-place restarts).
      *
      */
-    bool tree_restore(const std::filesystem::path path, const xcb_get_geometry_reply_t *geometry);
+    bool tree_restore(std::filesystem::path const path, xcb_get_geometry_reply_t const *geometry);
 
     /**
      * tree_flatten() removes pairs of redundant split containers, e.g.:

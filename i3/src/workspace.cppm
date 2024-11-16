@@ -31,44 +31,44 @@ export {
      * need to use uint32_t as we actually need the full range of it. This is
      * technically dangerous, but it's safe to assume that we will never have more
      * than 4294967279 workspaces open at a time. */
-    const uint32_t NET_WM_DESKTOP_NONE = 0xFFFFFFF0;
-    const uint32_t NET_WM_DESKTOP_ALL = 0xFFFFFFFF;
+    uint32_t const NET_WM_DESKTOP_NONE = 0xFFFFFFF0;
+    uint32_t const NET_WM_DESKTOP_ALL = 0xFFFFFFFF;
 
     /**
      * Stores which workspace (by name or number) goes to which output and its gaps config.
      *
      */
     class WorkspaceConfig {
-       public:
+      public:
         std::string name{};
         std::string output{};
         gaps_t gaps;
         gaps_mask_t gaps_mask;
-        
-        auto operator<=>(WorkspaceConfig const&) const = default;
-        WorkspaceConfig& operator=(WorkspaceConfig const&) = default;
-        
-        explicit WorkspaceConfig(std::string name) : name(std::move(name)) {
+
+        auto operator<=>(WorkspaceConfig const &) const = default;
+        WorkspaceConfig &operator=(WorkspaceConfig const &) = default;
+
+        explicit WorkspaceConfig(std::string name)
+            : name(std::move(name)) {
         }
-        
-        WorkspaceConfig(std::string name, std::string output) : name(std::move(name)), output(std::move(output)) {
+
+        WorkspaceConfig(std::string name, std::string output)
+            : name(std::move(name)), output(std::move(output)) {
         }
-        
+
         WorkspaceConfig(WorkspaceConfig const &) = default;
         WorkspaceConfig(WorkspaceConfig &&) = default;
     };
 
-   
     // TODO: I feel this should reside with the configuration
     class WorkspaceManager {
-    private:
-
-      ConfigurationManager &configManager;
+      private:
+        ConfigurationManager &configManager;
         /* The list of workspace assignments (which workspace should end up on which
          * output) */
         std::map<std::string, WorkspaceConfig> ws_assignments{};
 
-    public:
+      public:
         /**
          * Returns the first output that is assigned to a workspace specified by the
          * given name or number. Returns NULL if no such output exists.
@@ -80,9 +80,9 @@ export {
          * 'name' is ignored when NULL, 'parsed_num' is ignored when it is -1.
          *
          */
-        Output* get_assigned_output(std::string const name, long const parsed_num);
-        Output* get_assigned_output(long const parsed_num);
-        Output* get_assigned_output(std::string const name);
+        Output *get_assigned_output(std::string const name, long const parsed_num);
+        Output *get_assigned_output(long const parsed_num);
+        Output *get_assigned_output(std::string const name);
 
         /**
          * Stores a copy of the name of the last used workspace for the workspace
@@ -90,20 +90,20 @@ export {
          *
          */
         std::string previous_workspace_name{};
-        
-        std::optional<WorkspaceConfig> get_workspace_config(const std::string &name);
+
+        std::optional<WorkspaceConfig> get_workspace_config(std::string const &name);
 
         std::optional<WorkspaceConfig> get_workspace_config(WorkspaceCon const *ws);
-        
+
         void add_workspace_config(WorkspaceConfig &&config) {
             auto name = config.name;
             ws_assignments.insert_or_assign(name, std::forward<WorkspaceConfig>(config));
         }
-        
+
         void clear() {
             ws_assignments.clear();
         }
-        
+
         std::vector<WorkspaceConfig> all_workspace_configs() {
             std::vector<WorkspaceConfig> config{};
             config.reserve(ws_assignments.size());
@@ -116,42 +116,44 @@ export {
         /**
          * Returns workspace assignments which would be triggered for the output.
          */
-        std::vector<WorkspaceConfig> configs_for_output(Output * output);
+        std::vector<WorkspaceConfig> configs_for_output(Output *output);
 
-        WorkspaceCon *workspace_get_or_create(const std::string &num);
+        WorkspaceCon *workspace_get_or_create(std::string const &num);
         WorkspaceCon *create_workspace_on_output(Output *output, Con *content);
-        
+
         /**
          * Move the given workspace to the specified output.
          *
          */
-        void workspace_move_to_output(WorkspaceCon * ws, Output * output);
-        
+        void workspace_move_to_output(WorkspaceCon *ws, Output *output);
+
         /**
          * Returns the previously focused workspace con, or NULL if unavailable.
          *
          */
         WorkspaceCon *workspace_back_and_forth_get();
-        
+
         /**
          * Focuses the previously focused workspace.
          *
          */
         void workspace_back_and_forth();
-        
+
         /**
          * Looks up the workspace by name and switches to it.
          *
          */
-        void workspace_show_by_name(const std::string &num);
-        
+        void workspace_show_by_name(std::string const &num);
+
         /**
          * Switches to the given workspace
          *
          */
-        void workspace_show(WorkspaceCon * ws);
+        void workspace_show(WorkspaceCon *ws);
 
-        WorkspaceManager(ConfigurationManager &configManager) : configManager(configManager) {}
+        WorkspaceManager(ConfigurationManager &configManager)
+            : configManager(configManager) {
+        }
     };
 
     /**
@@ -159,7 +161,7 @@ export {
      * not exist.
      *
      */
-    WorkspaceCon *get_existing_workspace_by_name(const std::string &name);
+    WorkspaceCon *get_existing_workspace_by_name(std::string const &name);
 
     /**
      * Returns the workspace with the given number or NULL if such a workspace does
@@ -174,7 +176,7 @@ export {
      * memory and initializing the data structures correctly).
      *
      */
-    WorkspaceCon *workspace_get_or_create(const std::string &num);
+    WorkspaceCon *workspace_get_or_create(std::string const &num);
 
     /**
      * Returns a pointer to a new workspace in the given output. The workspace
@@ -250,5 +252,4 @@ export {
      * The container inherits the layout from the workspace.
      */
     Con *workspace_encapsulate(Con * ws);
-
 }

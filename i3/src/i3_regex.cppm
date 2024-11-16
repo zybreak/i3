@@ -32,16 +32,16 @@ export {
     class Regex {
         pcre2_code *regex{nullptr};
 
-       public:
+      public:
         bool valid{false};
         std::string pattern{};
 
-        explicit Regex(const std::string pattern);
-        Regex(const Regex &other);
+        explicit Regex(std::string const pattern);
+        Regex(Regex const &other);
         Regex(Regex &&other) noexcept;
         Regex &operator=(Regex &&other) noexcept;
         ~Regex();
-        bool regex_matches(const std::string_view input) const;
+        bool regex_matches(std::string_view const input) const;
     };
 }
 
@@ -55,7 +55,8 @@ export {
  * (and ELOGs an appropriate error message).
  *
  */
-Regex::Regex(const std::string pattern) : pattern(pattern) {
+Regex::Regex(std::string const pattern)
+    : pattern(pattern) {
     int errorcode;
     PCRE2_SIZE offset;
 
@@ -67,14 +68,15 @@ Regex::Regex(const std::string pattern) : pattern(pattern) {
         PCRE2_UCHAR buffer[256];
         pcre2_get_error_message(errorcode, buffer, sizeof(buffer));
         ELOG(std::format("PCRE regular expression compilation failed at {}: {}",
-             offset, buffer));
+                         offset, buffer));
         this->valid = false;
         return;
     }
     this->valid = true;
 }
 
-Regex::Regex(const Regex &other) : Regex(other.pattern) {
+Regex::Regex(Regex const &other)
+    : Regex(other.pattern) {
 }
 
 Regex::Regex(Regex &&other) noexcept {
@@ -83,7 +85,7 @@ Regex::Regex(Regex &&other) noexcept {
     std::swap(this->pattern, other.pattern);
 }
 
-Regex& Regex::operator=(Regex &&other) noexcept {
+Regex &Regex::operator=(Regex &&other) noexcept {
     std::swap(this->regex, other.regex);
     std::swap(this->valid, other.valid);
     std::swap(this->pattern, other.pattern);
@@ -105,7 +107,7 @@ Regex::~Regex() {
  * be visible without debug logging.
  *
  */
-bool Regex::regex_matches(const std::string_view input) const {
+bool Regex::regex_matches(std::string_view const input) const {
     pcre2_match_data *match_data;
     int rc;
 
@@ -121,17 +123,17 @@ bool Regex::regex_matches(const std::string_view input) const {
     pcre2_match_data_free(match_data);
     if (rc > 0) {
         LOG(std::format("Regular expression \"{}\" matches \"{}\"",
-                         this->pattern, input));
+                        this->pattern, input));
         return true;
     }
 
     if (rc == PCRE2_ERROR_NOMATCH) {
         LOG(std::format("Regular expression \"{}\" does not match \"{}\"",
-                         this->pattern, input));
+                        this->pattern, input));
         return false;
     }
 
     ELOG(std::format("PCRE error {} while trying to use regular expression \"{}\" on input \"{}\", see pcreapi(3)\n",
-                      rc, this->pattern, input));
+                     rc, this->pattern, input));
     return false;
 }

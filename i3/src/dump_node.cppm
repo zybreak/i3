@@ -4,4 +4,4 @@ export module i3:dump_node;
 
 class Con;
 
-export nlohmann::json dump_node(Con * con, bool inplace_restart);
+export nlohmann::json dump_node(Con* con, bool inplace_restart);

@@ -18,7 +18,6 @@ import :parser_ctx;
 import :cmdp_token;
 
 export {
-
     /**
      * Parses the given file by first replacing the variables, then calling
      * parse_config and launching i3-nagbar if use_nagbar is true.
@@ -28,24 +27,24 @@ export {
      *
      */
     class OldParser : public BaseParser {
-       private:
-        const std::filesystem::path filename;
+      private:
+        std::filesystem::path const filename;
         std::string old_dir{};
         std::istream &stream;
 
-        bool parse_config(const std::string &input, std::ostream &err_output);
-        void unhandled_token(const std::string &input, int linecnt, const std::vector<cmdp_token> &ptr, bool &has_errors, std::string::const_iterator &walk, std::ostream &err_output);
-        bool handle_literal(std::string::const_iterator &walk, const cmdp_token &token);
-        bool handle_number(std::string::const_iterator &walk, const cmdp_token &token);
-        bool handle_word(std::string::const_iterator &walk, const cmdp_token &token);
-        bool handle_line(std::string::const_iterator &walk, const cmdp_token &token);
-        bool handle_end(std::string::const_iterator &walk, const cmdp_token &token, ConfigResultIR &subcommand_output, int *linecnt);
+        bool parse_config(std::string const &input, std::ostream &err_output);
+        void unhandled_token(std::string const &input, int linecnt, std::vector<cmdp_token> const &ptr, bool &has_errors, std::string::const_iterator &walk, std::ostream &err_output);
+        bool handle_literal(std::string::const_iterator &walk, cmdp_token const &token);
+        bool handle_number(std::string::const_iterator &walk, cmdp_token const &token);
+        bool handle_word(std::string::const_iterator &walk, cmdp_token const &token);
+        bool handle_line(std::string::const_iterator &walk, cmdp_token const &token);
+        bool handle_end(std::string::const_iterator &walk, cmdp_token const &token, ConfigResultIR &subcommand_output, int *linecnt);
 
-       public:
+      public:
         parser_ctx *parent_ctx = nullptr;
         parser_ctx ctx;
-        OldParser(const std::filesystem::path filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier);
-        OldParser(const std::filesystem::path filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, BaseConfigApplier &applier);
+        OldParser(std::filesystem::path const filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, parser_ctx &parent_ctx, BaseConfigApplier &applier);
+        OldParser(std::filesystem::path const filename, std::istream &stream, BaseResourceDatabase &resourceDatabase, BaseConfigApplier &applier);
         ~OldParser() override;
         void parse_file() override;
     };

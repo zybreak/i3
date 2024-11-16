@@ -114,5 +114,5 @@ export {
      * reassigned to a different output (or when the output’s rect changes).
      *
      */
-    void floating_fix_coordinates(FloatingCon * con, const Rect &old_rect, const Rect &new_rect);
+    void floating_fix_coordinates(FloatingCon * con, Rect const &old_rect, Rect const &new_rect);
 }

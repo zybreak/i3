@@ -35,7 +35,7 @@ using namespace std::literals;
  * $XDG_CONFIG_DIRS).
  *
  */
-static std::optional<std::filesystem::path> get_config_path(const std::optional<std::filesystem::path> override_configpath, bool use_system_paths) {
+static std::optional<std::filesystem::path> get_config_path(std::optional<std::filesystem::path> const override_configpath, bool use_system_paths) {
     std::string xdg_config_home;
 
     static std::optional<std::filesystem::path> saved_configpath{};
@@ -112,7 +112,7 @@ static std::optional<std::filesystem::path> get_config_path(const std::optional<
     return std::nullopt;
 }
 
-void INIT_COLOR(X &x, Colortriple &color, const char *cborder, const char *cbackground, const char *ctext, const char *cindicator) {
+void INIT_COLOR(X &x, Colortriple &color, char const *cborder, char const *cbackground, char const *ctext, char const *cindicator) {
     color.border = draw_util_hex_to_color(*x, x.root_screen, cborder);
     color.background = draw_util_hex_to_color(*x, x.root_screen, cbackground);
     color.text = draw_util_hex_to_color(*x, x.root_screen, ctext);
@@ -130,12 +130,12 @@ void INIT_COLOR(X &x, Colortriple &color, const char *cborder, const char *cback
 static void extract_workspace_names_from_bindings(Config *config) {
     config->binding_workspace_names.clear();
     for (auto &bind : config->current_mode()->bindings) {
-        DLOG(fmt::sprintf("binding with command %s\n",  bind.command));
+        DLOG(fmt::sprintf("binding with command %s\n", bind.command));
         if (bind.command.length() < strlen("workspace ") ||
             strncasecmp(bind.command.c_str(), "workspace", strlen("workspace")) != 0) {
             continue;
         }
-        DLOG(fmt::sprintf("relevant command = %s\n",  bind.command));
+        DLOG(fmt::sprintf("relevant command = %s\n", bind.command));
         auto target = bind.command.cbegin();
         std::advance(target, strlen("workspace "));
         while (*target == ' ' || *target == '\t') {
@@ -180,7 +180,6 @@ static void extract_workspace_names_from_bindings(Config *config) {
     }
 }
 
-
 static void free_configuration() {
     /* First ungrab the keys */
     ungrab_all_keys(*global.x);
@@ -188,7 +187,7 @@ static void free_configuration() {
     global.assignmentManager->clear();
     global.workspaceManager->clear();
 
-    for (const auto &con : global.all_cons) {
+    for (auto const &con : global.all_cons) {
         /* Assignments changed, previously ran assignments are invalid. */
         if (con->get_window()) {
             con->get_window()->ran_assignments.clear();
@@ -214,7 +213,7 @@ void ConfigurationManager::set_config(std::unique_ptr<Config> _config) {
     if (reload) {
         free_configuration();
     }
-    
+
     config = std::move(_config);
 
     if (!config->font) {
@@ -222,7 +221,7 @@ void ConfigurationManager::set_config(std::unique_ptr<Config> _config) {
         using namespace std::literals;
         config->font = load_font(*x, x.root_screen, "fixed"s);
     }
-    
+
     // TODO: decide if we should call set_mode or no?
 
     if (reload) {
@@ -269,8 +268,7 @@ void ConfigurationManager::init_color(Config &config) {
  * also clear the previous config.
  *
  */
-std::unique_ptr<Config> ConfigurationManager::load_configuration(const std::optional<std::filesystem::path> override_configpath) {
-    
+std::unique_ptr<Config> ConfigurationManager::load_configuration(std::optional<std::filesystem::path> const override_configpath) {
     auto config = std::make_unique<Config>();
     init_color(*config);
 
@@ -284,11 +282,11 @@ std::unique_ptr<Config> ConfigurationManager::load_configuration(const std::opti
     std::filesystem::path resolved_path;
     try {
         resolved_path = std::filesystem::canonical(config->current_configpath);
-    } catch (const std::filesystem::filesystem_error& e) {
+    } catch (std::filesystem::filesystem_error const &e) {
         throw std::runtime_error(std::format("realpath({}): {}", config->current_configpath.native(), e.what()));
     }
 
-    LOG(fmt::sprintf("Parsing configfile %s\n",  resolved_path.native()));
+    LOG(fmt::sprintf("Parsing configfile %s\n", resolved_path.native()));
 
     ResourceDatabase resourceDatabase{*x};
     try {
@@ -296,18 +294,18 @@ std::unique_ptr<Config> ConfigurationManager::load_configuration(const std::opti
         std::ifstream stream{resolved_path};
 
         if (global.new_parser) {
-            NewParser np{ resolved_path, stream, resourceDatabase, configApplier };
+            NewParser np{resolved_path, stream, resourceDatabase, configApplier};
             np.parse_file();
         } else {
-            OldParser op{ resolved_path, stream, resourceDatabase, configApplier };
+            OldParser op{resolved_path, stream, resourceDatabase, configApplier};
             op.parse_file();
             config->included_files = op.included_files;
         }
-        
+
         if (has_duplicate_bindings(config.get())) {
             throw std::domain_error(std::format("Duplicate bindings in configuration file: {}", strerror((*__errno_location()))));
         }
-    } catch (const std::domain_error &e) {
+    } catch (std::domain_error const &e) {
         throw e;
     }
 
@@ -316,5 +314,3 @@ std::unique_ptr<Config> ConfigurationManager::load_configuration(const std::opti
 
     return config;
 }
-
-

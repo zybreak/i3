@@ -31,7 +31,7 @@ void AssignmentManager::run_assignments(i3Window *window) {
     bool needs_tree_render = false;
 
     /* Check if any assignments match */
-    for (const auto &current : this->assignments) {
+    for (auto const &current : this->assignments) {
         auto command = dynamic_cast<CommandAssignment *>(current.get());
 
         if (command == nullptr || !current->match.match_matches_window(window)) {

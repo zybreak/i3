@@ -31,9 +31,9 @@ namespace utils {
         } else {
             if (!as_word) {
                 /* For a string (starting with 's'), the delimiters are
-                     * comma (,) and semicolon (;) which introduce a new
-                     * operation or command, respectively. Also, newlines
-                     * end a command. */
+                 * comma (,) and semicolon (;) which introduce a new
+                 * operation or command, respectively. Also, newlines
+                 * end a command. */
                 while (*walk != ';' && *walk != ',' &&
                        *walk != '\0' && *walk != '\r' &&
                        *walk != '\n') {
@@ -41,8 +41,8 @@ namespace utils {
                 }
             } else {
                 /* For a word, the delimiters are white space (' ' or
-                     * '\t'), closing square bracket (]), comma (,) and
-                     * semicolon (;). */
+                 * '\t'), closing square bracket (]), comma (,) and
+                 * semicolon (;). */
                 while (*walk != ' ' && *walk != '\t' &&
                        *walk != ']' && *walk != ',' &&
                        *walk != ';' && *walk != '\r' &&
@@ -54,16 +54,16 @@ namespace utils {
         if (walk == beginning) {
             return std::nullopt;
         }
-       
+
         std::string str{};
-        //str.allocate(std::distance(beginning, walk));
+        // str.allocate(std::distance(beginning, walk));
         /* We copy manually to handle escaping of characters. */
         for (std::string::const_iterator inpos = beginning;
              inpos < walk;
              inpos++) {
             /* We only handle escaped double quotes and backslashes to not break
-                 * backwards compatibility with people using \w in regular expressions
-                 * etc. */
+             * backwards compatibility with people using \w in regular expressions
+             * etc. */
             if (*inpos == '\\' && (*(inpos + 1) == '"' || *(inpos + 1) == '\\')) {
                 inpos++;
             }
@@ -73,4 +73,4 @@ namespace utils {
         return str;
     }
 
-}
+}  // namespace utils

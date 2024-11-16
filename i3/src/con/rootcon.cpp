@@ -18,5 +18,5 @@ import log;
 
 void RootCon::on_remove_child() {
     DLOG("on_remove_child\n");
-    DLOG(fmt::sprintf("not handling, type = %d, name = %s\n",  std::to_underlying(this->type), this->name));
+    DLOG(fmt::sprintf("not handling, type = %d, name = %s\n", std::to_underlying(this->type), this->name));
 }

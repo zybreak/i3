@@ -79,8 +79,8 @@ static void floating_set_hint_atom(Con *con, bool floating) {
  */
 void floating_check_size(Con *floating_con, bool prefer_height) {
     /* Define reasonable minimal and maximal sizes for floating windows */
-    const uint32_t floating_sane_min_height = 50;
-    const uint32_t floating_sane_min_width = 75;
+    uint32_t const floating_sane_min_height = 50;
+    uint32_t const floating_sane_min_width = 75;
     Rect floating_sane_max_dimensions;
     Con *focused_con = con_descend_focused(floating_con);
 
@@ -96,10 +96,10 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
     border_rect.height += 2 * focused_con->border_width;
 
     DLOG(fmt::sprintf("floating_check_size, want min width %d, min height %d, border extra: w=%d, h=%d\n",
-         floating_sane_min_width,
-         floating_sane_min_height,
-         border_rect.width,
-         border_rect.height));
+                      floating_sane_min_width,
+                      floating_sane_min_height,
+                      border_rect.width,
+                      border_rect.height));
 
     if (i3Window *window = focused_con->get_window(); window != nullptr) {
         /* ICCCM says: If a base size is not provided, the minimum size is to be used in its place
@@ -142,8 +142,8 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
          *
          * Ignoring aspect ratio during fullscreen was necessary to fix MPlayer
          * subtitle rendering, see https://bugs.i3wm.org/594 */
-        const double min_ar = window->min_aspect_ratio;
-        const double max_ar = window->max_aspect_ratio;
+        double const min_ar = window->min_aspect_ratio;
+        double const max_ar = window->max_aspect_ratio;
         if (floating_con->fullscreen_mode == CF_NONE && (min_ar > 0 || max_ar > 0)) {
             /* The ICCCM says to subtract the base size from the window size for
              * aspect ratio calculations. However, unlike determining the base
@@ -151,7 +151,7 @@ void floating_check_size(Con *floating_con, bool prefer_height) {
              * this case according to the ICCCM. */
             double width = floating_con->rect.width - window->base_width - border_rect.width;
             double height = floating_con->rect.height - window->base_height - border_rect.height;
-            const double ar = static_cast<double>(width) / static_cast<double>(height);
+            double const ar = static_cast<double>(width) / static_cast<double>(height);
             double new_ar = -1;
             if (min_ar > 0 && ar < min_ar) {
                 new_ar = min_ar;
@@ -330,7 +330,7 @@ bool floating_enable(ConCon *con, bool automatic) {
     x_set_name(nc, fmt::format("[i3 con] floatingcon around {}", fmt::ptr(con)));
 
     DLOG(fmt::sprintf("Original rect: (%d, %d) with %d x %d\n", con->rect.x, con->rect.y, con->rect.width, con->rect.height));
-    //DLOG(fmt::sprintf("Geometry = (%d, %d) with %d x %d\n", con->geometry.x, con->geometry.y, con->geometry.width, con->geometry.height));
+    // DLOG(fmt::sprintf("Geometry = (%d, %d) with %d x %d\n", con->geometry.x, con->geometry.y, con->geometry.width, con->geometry.height));
     nc->rect = con->get_geometry();
     /* If the geometry was not set (split containers), we need to determine a
      * sensible one by combining the geometry of all children */
@@ -338,7 +338,7 @@ bool floating_enable(ConCon *con, bool automatic) {
         DLOG("Geometry not set, combining children\n");
         for (auto &child : con->nodes) {
             uint32_t height = 0, width = 0;
-            if (auto cc = dynamic_cast<ConCon*>(child); cc) {
+            if (auto cc = dynamic_cast<ConCon *>(child); cc) {
                 height = cc->get_geometry().height;
                 width = cc->get_geometry().width;
             }
@@ -512,7 +512,7 @@ bool floating_maybe_reassign_ws(Con *con) {
     DLOG("Need to re-assign!\n");
 
     Con *content = output->con->output_get_content();
-    WorkspaceCon *ws = dynamic_cast<WorkspaceCon*>(con::first(content->focused));
+    WorkspaceCon *ws = dynamic_cast<WorkspaceCon *>(con::first(content->focused));
     DLOG(fmt::sprintf("Moving con %p / %s to workspace %p / %s\n", fmt::ptr(con), con->name, fmt::ptr(ws), ws->name));
     Con *needs_focus = con_descend_focused(con);
     if (!needs_focus->con_inside_focused()) {
@@ -634,7 +634,7 @@ void floating_resize(Con *floating_con, uint32_t x, uint32_t y) {
  * reassigned to a different output (or when the output’s rect changes).
  *
  */
-void floating_fix_coordinates(FloatingCon *con, const Rect &old_rect, const Rect &new_rect) {
+void floating_fix_coordinates(FloatingCon *con, Rect const &old_rect, Rect const &new_rect) {
     DLOG(fmt::sprintf("Fixing coordinates of floating window %p (rect (%d, %d), %d x %d)\n",
                       fmt::ptr(con), con->rect.x, con->rect.y, con->rect.width, con->rect.height));
     DLOG(fmt::sprintf("old_rect = (%d, %d), %d x %d\n",

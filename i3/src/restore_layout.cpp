@@ -79,7 +79,7 @@ static void restore_xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
         if (event->response_type == 0) {
             auto *error = (xcb_generic_error_t *)event;
             DLOG(fmt::sprintf("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
-                 error->sequence, error->error_code));
+                              error->sequence, error->error_code));
             free(event);
             continue;
         }
@@ -143,8 +143,8 @@ void restore_connect() {
 }
 
 static void update_placeholder_contents(x_connection *conn, placeholder_state *state) {
-    const color_t foreground = global.configManager->config->client.placeholder.text;
-    const color_t background = global.configManager->config->client.placeholder.background;
+    color_t const foreground = global.configManager->config->client.placeholder.text;
+    color_t const background = global.configManager->config->client.placeholder.background;
 
     state->surface->draw_util_clear_surface(background);
 
@@ -155,11 +155,11 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
     for (auto &swallows : state->con->swallow) {
         char *serialized = nullptr;
 
-#define APPEND_REGEX(re_name)                                                                                                                        \
-    do {                                                                                                                                             \
-        if (swallows->re_name.get() != nullptr) {                                                                                                             \
+#define APPEND_REGEX(re_name)                                                                                                                                \
+    do {                                                                                                                                                     \
+        if (swallows->re_name.get() != nullptr) {                                                                                                            \
             sasprintf(&serialized, "%s%s" #re_name "=\"%s\"", (serialized ? serialized : "["), (serialized ? " " : ""), swallows->re_name->pattern.c_str()); \
-        }                                                                                                                                            \
+        }                                                                                                                                                    \
     } while (0)
 
         APPEND_REGEX(window_class);
@@ -178,9 +178,9 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
 
         std::string str{serialized};
         state->surface->draw_util_text(*global.configManager->config->font, str, foreground, background,
-                       logical_px(global.x->root_screen, 2),
-                       (n * (global.configManager->config->font->height + logical_px(global.x->root_screen, 2))) + logical_px(global.x->root_screen, 2),
-                       state->rect.width - 2 * logical_px(global.x->root_screen, 2));
+                                       logical_px(global.x->root_screen, 2),
+                                       (n * (global.configManager->config->font->height + logical_px(global.x->root_screen, 2))) + logical_px(global.x->root_screen, 2),
+                                       state->rect.width - 2 * logical_px(global.x->root_screen, 2));
         n++;
         free(serialized);
     }
@@ -199,10 +199,9 @@ static void open_placeholder_window(x_connection *conn, Con *con) {
         (con->get_window() == nullptr || con->get_window()->id == XCB_NONE) &&
         !con->swallow.empty() &&
         con->type == CT_CON) {
-
         uint32_t values[]{
-                global.configManager->config->client.placeholder.background.colorpixel,
-                XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY,
+            global.configManager->config->client.placeholder.background.colorpixel,
+            XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY,
         };
         xcb_window_t placeholder = create_window(
             restore_conn,
@@ -227,7 +226,7 @@ static void open_placeholder_window(x_connection *conn, Con *con) {
                                 i3::atoms[i3::Atom::_NET_WM_NAME], i3::atoms[i3::Atom::UTF8_STRING], 8, con->name.length(), con->name.c_str());
         }
         DLOG(fmt::sprintf("Created placeholder window 0x%08x for leaf container %p / %s\n",
-             placeholder, fmt::ptr(con), con->name));
+                          placeholder, fmt::ptr(con), con->name));
 
         auto state = std::make_unique<placeholder_state>();
         state->window = placeholder;
@@ -248,8 +247,8 @@ static void open_placeholder_window(x_connection *conn, Con *con) {
     for (auto &child : con->nodes) {
         open_placeholder_window(conn, child);
     }
-    if (dynamic_cast<WorkspaceCon*>(con)) {
-        for (auto &child : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+    if (dynamic_cast<WorkspaceCon *>(con)) {
+        for (auto &child : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
             open_placeholder_window(conn, child);
         }
     }
@@ -266,8 +265,8 @@ void restore_open_placeholder_windows(Con *parent) {
     for (auto &child : parent->nodes) {
         open_placeholder_window(*global.x, child);
     }
-    if (dynamic_cast<WorkspaceCon*>(parent)) {
-        for (auto &child : dynamic_cast<WorkspaceCon*>(parent)->floating_windows) {
+    if (dynamic_cast<WorkspaceCon *>(parent)) {
+        for (auto &child : dynamic_cast<WorkspaceCon *>(parent)->floating_windows) {
             open_placeholder_window(*global.x, child);
         }
     }
@@ -292,11 +291,11 @@ bool restore_kill_placeholder(xcb_window_t placeholder) {
         xcb_destroy_window(restore_conn, state->window);
         state->surface.reset();
         state_ptr = states.erase(state_ptr);
-        DLOG(fmt::sprintf("placeholder window 0x%08x destroyed.\n",  placeholder));
+        DLOG(fmt::sprintf("placeholder window 0x%08x destroyed.\n", placeholder));
         return true;
     }
 
-    DLOG(fmt::sprintf("0x%08x is not a placeholder window, ignoring.\n",  placeholder));
+    DLOG(fmt::sprintf("0x%08x is not a placeholder window, ignoring.\n", placeholder));
     return false;
 }
 
@@ -306,14 +305,14 @@ static void expose_event(xcb_expose_event_t *event) {
             continue;
         }
 
-        DLOG(fmt::sprintf("refreshing window 0x%08x contents (con %p)\n",  state->window, fmt::ptr(state->con)));
+        DLOG(fmt::sprintf("refreshing window 0x%08x contents (con %p)\n", state->window, fmt::ptr(state->con)));
 
         update_placeholder_contents(*global.x, state.get());
 
         return;
     }
 
-    ELOG(fmt::sprintf("Received ExposeEvent for unknown window 0x%08x\n",  event->window));
+    ELOG(fmt::sprintf("Received ExposeEvent for unknown window 0x%08x\n", event->window));
 }
 
 /*
@@ -329,7 +328,7 @@ static void configure_notify(xcb_configure_notify_event_t *event) {
         }
 
         DLOG(fmt::sprintf("ConfigureNotify: window 0x%08x has now width=%d, height=%d (con %p)\n",
-             state->window, event->width, event->height, fmt::ptr(state->con)));
+                          state->window, event->width, event->height, fmt::ptr(state->con)));
 
         state->rect.width = event->width;
         state->rect.height = event->height;
@@ -341,7 +340,7 @@ static void configure_notify(xcb_configure_notify_event_t *event) {
         return;
     }
 
-    ELOG(fmt::sprintf("Received ConfigureNotify for unknown window 0x%08x\n",  event->window));
+    ELOG(fmt::sprintf("Received ConfigureNotify for unknown window 0x%08x\n", event->window));
 }
 
 static void restore_handle_event(int type, xcb_generic_event_t *event) {
@@ -356,7 +355,7 @@ static void restore_handle_event(int type, xcb_generic_event_t *event) {
             configure_notify((xcb_configure_notify_event_t *)event);
             break;
         default:
-            DLOG(fmt::sprintf("Received unhandled X11 event of type %d\n",  type));
+            DLOG(fmt::sprintf("Received unhandled X11 event of type %d\n", type));
             break;
     }
 }

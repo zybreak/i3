@@ -3,10 +3,10 @@ module i3_config_old;
 import std;
 import utils;
 
-static const int EXIT_FAILURE = 1;
+static int const EXIT_FAILURE = 1;
 
 void clear_stack(stack &ctx) {
-    for (auto & c : ctx.stack) {
+    for (auto &c : ctx.stack) {
         if (c.type == stack_entry::STACK_STR) {
             std::free(c.val.str);
         }
@@ -16,8 +16,8 @@ void clear_stack(stack &ctx) {
     }
 }
 
-const char *get_string(stack &stack, const char *identifier) {
-    for (auto & c : stack.stack) {
+char const *get_string(stack &stack, char const *identifier) {
+    for (auto &c : stack.stack) {
         if (c.identifier == nullptr) {
             break;
         }
@@ -28,8 +28,8 @@ const char *get_string(stack &stack, const char *identifier) {
     return nullptr;
 }
 
-long get_long(stack &stack, const char *identifier) {
-    for (auto & c : stack.stack) {
+long get_long(stack &stack, char const *identifier) {
+    for (auto &c : stack.stack) {
         if (c.identifier == nullptr) {
             break;
         }
@@ -41,8 +41,8 @@ long get_long(stack &stack, const char *identifier) {
     return 0;
 }
 
-void push_long(stack &ctx, const char *identifier, long num) {
-    for (auto & c : ctx.stack) {
+void push_long(stack &ctx, char const *identifier, long num) {
+    for (auto &c : ctx.stack) {
         if (c.identifier != nullptr) {
             continue;
         }
@@ -57,9 +57,9 @@ void push_long(stack &ctx, const char *identifier, long num) {
      * means there’s either a bug in this parser or the specification
      * contains a command with more than 10 identified tokens. */
     std::cerr << "BUG: config_parser stack full. This means either a bug "
-            << "in the code, or a new command which contains more than "
-            << "10 identified tokens."
-            << std::endl;
+              << "in the code, or a new command which contains more than "
+              << "10 identified tokens."
+              << std::endl;
 
     std::exit(EXIT_FAILURE);
 }
@@ -69,8 +69,8 @@ void push_long(stack &ctx, const char *identifier, long num) {
  * single array, since the number of entries we have to store is very small.
  *
  */
-void push_string(stack &stack, const char *identifier, char *str) {
-    for (auto & c : stack.stack) {
+void push_string(stack &stack, char const *identifier, char *str) {
+    for (auto &c : stack.stack) {
         if (c.identifier != nullptr) {
             continue;
         }
@@ -84,7 +84,7 @@ void push_string(stack &stack, const char *identifier, char *str) {
     /* When we arrive here, the stack is full. This should not happen and
      * means there’s either a bug in this parser or the specification
      * contains a command with more than 10 identified tokens. */
-    std::cerr <<  "BUG: commands_parser stack full. This means either a bug "
+    std::cerr << "BUG: commands_parser stack full. This means either a bug "
               << "in the code, or a new command which contains more than "
               << "10 identified tokens."
               << std::endl;
@@ -97,8 +97,8 @@ void push_string(stack &stack, const char *identifier, char *str) {
  * single array, since the number of entries we have to store is very small.
  *
  */
-void push_string_append(stack &ctx, const char *identifier, const char *str) {
-    for (auto & c : ctx.stack) {
+void push_string_append(stack &ctx, char const *identifier, char const *str) {
+    for (auto &c : ctx.stack) {
         if (c.identifier != nullptr &&
             std::strcmp(c.identifier, identifier) != 0) {
             continue;

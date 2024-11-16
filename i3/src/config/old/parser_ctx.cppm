@@ -14,13 +14,13 @@ export {
      *
      */
     class Variable {
-       public:
+      public:
         std::string key{};
         std::string value{};
     };
 
     class parser_ctx {
-       public:
+      public:
         int state;
         criteria_state *criteria_state;
 

@@ -112,7 +112,7 @@ void insert_con_into(Con *con, Con *target, position_t position) {
         std::erase(lca->focused, target_ancestor);
         auto place_it = std::ranges::find(lca->focused, con_ancestor);
         if (place_it != lca->focused.end()) {
-            //place_it = (place_it == lca->focused.begin()) ? place_it : std::prev(place_it);
+            // place_it = (place_it == lca->focused.begin()) ? place_it : std::prev(place_it);
             lca->focused.insert(place_it, target_ancestor);
         } else {
             lca->focused.push_front(target_ancestor);
@@ -229,7 +229,7 @@ static void move_to_output_directed(Con *con, direction_t direction) {
     }
 
     WorkspaceCon *old_ws = con->con_get_workspace();
-    const bool moves_focus = (global.focused == con);
+    bool const moves_focus = (global.focused == con);
     attach_to_workspace(con, *ws, direction);
     if (moves_focus) {
         /* workspace_show will not correctly update the active workspace because
@@ -248,7 +248,7 @@ static void move_to_output_directed(Con *con, direction_t direction) {
          * See: #3518. */
         con->con_focus();
         global.focused = old_ws;
-        global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon*>(*ws));
+        global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon *>(*ws));
         con->con_focus();
     }
 
@@ -300,7 +300,7 @@ void tree_move(Con *con, direction_t direction) {
         if (!same_orientation) {
             if (con->con_is_floating()) {
                 /* this is a floating con, we just disable floating */
-                floating_disable(dynamic_cast<ConCon*>(con));
+                floating_disable(dynamic_cast<ConCon *>(con));
                 return;
             }
             if (con->con_inside_floating()) {

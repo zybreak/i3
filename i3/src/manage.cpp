@@ -24,7 +24,7 @@ import utils;
 import log;
 import rect;
 
-template<typename T>
+template <typename T>
 struct window_data {
     T wm_type_cookie;
     T strut_cookie;
@@ -47,24 +47,23 @@ struct window_data {
 
 static auto get_window_data(xcb_window_t window) {
     return window_data{
-            .wm_type_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-            .strut_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-            .state_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_STATE], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-            .utf8_title_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_NAME], XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
-            .leader_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-            .transient_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_TRANSIENT_FOR, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-            .title_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
-            .class_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLASS, XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
-            .role_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
-            .startup_id_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 0, 512),
-            .wm_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_HINTS, XCB_ATOM_WM_HINTS, 0L, XCB_ICCCM_NUM_WM_HINTS_ELEMENTS),
-            .wm_normal_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS, 0L, XCB_ICCCM_NUM_WM_SIZE_HINTS_ELEMENTS),
-            .motif_wm_hints_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], XCB_GET_PROPERTY_TYPE_ANY, 0, 5 * sizeof(uint64_t)),
-            .wm_user_time_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-            .wm_desktop_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-            .wm_machine_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-            .wm_icon_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_ICON], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX)
-    };
+        .wm_type_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+        .strut_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+        .state_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_STATE], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+        .utf8_title_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_NAME], XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
+        .leader_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+        .transient_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_TRANSIENT_FOR, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+        .title_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
+        .class_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLASS, XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
+        .role_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
+        .startup_id_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 0, 512),
+        .wm_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_HINTS, XCB_ATOM_WM_HINTS, 0L, XCB_ICCCM_NUM_WM_HINTS_ELEMENTS),
+        .wm_normal_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS, 0L, XCB_ICCCM_NUM_WM_SIZE_HINTS_ELEMENTS),
+        .motif_wm_hints_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], XCB_GET_PROPERTY_TYPE_ANY, 0, 5 * sizeof(uint64_t)),
+        .wm_user_time_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+        .wm_desktop_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+        .wm_machine_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
+        .wm_icon_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_ICON], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX)};
 }
 
 /*
@@ -124,7 +123,7 @@ void restore_geometry() {
     DLOG("Restoring geometry\n");
 
     for (auto &c : global.all_cons) {
-        if (auto con = dynamic_cast<ConCon*>(c); con && con->get_window() != nullptr) {
+        if (auto con = dynamic_cast<ConCon *>(c); con && con->get_window() != nullptr) {
             DLOG(fmt::sprintf("Re-adding X11 border of %d px\n", con->border_width));
             con->get_window_rect().width += (2 * con->border_width);
             con->get_window_rect().height += (2 * con->border_width);
@@ -151,7 +150,7 @@ void restore_geometry() {
  * such as left, right, up, down.
  *
  */
-static bool con_move_to_output_name(Con *con, const std::string &name, bool fix_coordinates) {
+static bool con_move_to_output_name(Con *con, std::string const &name, bool fix_coordinates) {
     Output *current_output = get_output_for_con(con);
     Output *output = current_output->get_output_from_string(name);
     if (output == nullptr) {
@@ -197,7 +196,7 @@ static std::optional<std::string> to_string(auto &prop) {
     return std::nullopt;
 }
 
-static ConCon* find_con_for_window_not_found(i3Window *cwindow, Con const *search_at, bool &urgency_hint, std::optional<std::string> &startup_ws, bool &match_from_restart_mode, Match *match) {
+static ConCon *find_con_for_window_not_found(i3Window *cwindow, Con const *search_at, bool &urgency_hint, std::optional<std::string> &startup_ws, bool &match_from_restart_mode, Match *match) {
     ConCon *nc = nullptr;
     auto assignmentOpt = global.assignmentManager->assignment_for<WorkspaceAssignment>(cwindow);
 
@@ -238,7 +237,7 @@ static ConCon* find_con_for_window_not_found(i3Window *cwindow, Con const *searc
          * since such a window will be made sticky anyway. */
 
         DLOG(fmt::sprintf("Using workspace %p / %s because _NET_WM_DESKTOP = %d.\n",
-                fmt::ptr(wm_desktop_ws), wm_desktop_ws->name, cwindow->wm_desktop));
+                          fmt::ptr(wm_desktop_ws), wm_desktop_ws->name, cwindow->wm_desktop));
 
         auto descend_nc = con_descend_tiling_focused(wm_desktop_ws);
         if (descend_nc->type == CT_WORKSPACE) {
@@ -260,8 +259,8 @@ static ConCon* find_con_for_window_not_found(i3Window *cwindow, Con const *searc
         /* If not, insert it at the currently focused position */
         if (global.focused->type == CT_CON && global.focused->con_accepts_window()) {
             LOG(fmt::sprintf("using current container, focused = %p, focused->name = %s\n",
-                    fmt::ptr(global.focused), global.focused->name));
-            nc = dynamic_cast<ConCon*>(global.focused);
+                             fmt::ptr(global.focused), global.focused->name));
+            nc = dynamic_cast<ConCon *>(global.focused);
             // TODO assign cwindow to nc?
         } else {
             nc = tree_open_con(nullptr, cwindow);
@@ -270,19 +269,19 @@ static ConCon* find_con_for_window_not_found(i3Window *cwindow, Con const *searc
     auto outputAssignmentOpt = global.assignmentManager->assignment_for<OutputAssignment>(cwindow);
     if (outputAssignmentOpt) {
         con_move_to_output_name(nc, outputAssignmentOpt->get().output, true);
-    }   
-    
+    }
+
     return nc;
 }
 
-static ConCon* find_con_for_window_found(i3Window *cwindow, Con *nc_for_window, Match *match) {
+static ConCon *find_con_for_window_found(i3Window *cwindow, Con *nc_for_window, Match *match) {
     ConCon *nc;
     /* M_BELOW inserts the new window as a child of the one which was
-         * matched (e.g. dock areas) */
+     * matched (e.g. dock areas) */
     if (match != nullptr && match->insert_where == M_BELOW) {
         nc = tree_open_con(nc_for_window, cwindow);
     } else {
-        nc = dynamic_cast<ConCon*>(nc_for_window); // TODO: bad to assume its a concon?
+        nc = dynamic_cast<ConCon *>(nc_for_window);  // TODO: bad to assume its a concon?
     }
 
     /* If M_BELOW is not used, the container is replaced. This happens with
@@ -296,11 +295,10 @@ static ConCon* find_con_for_window_found(i3Window *cwindow, Con *nc_for_window, 
         });
     }
 
-    
     return nc;
 }
 
-static ConCon* find_con_for_window(i3Window *cwindow, Con const *search_at, bool &urgency_hint, std::optional<std::string> &startup_ws, bool &match_from_restart_mode) {
+static ConCon *find_con_for_window(i3Window *cwindow, Con const *search_at, bool &urgency_hint, std::optional<std::string> &startup_ws, bool &match_from_restart_mode) {
     Match *match = nullptr;
     Con *nc_for_window = con_for_window(search_at, cwindow, &match);
     ConCon *nc = nullptr;
@@ -312,7 +310,7 @@ static ConCon* find_con_for_window(i3Window *cwindow, Con const *search_at, bool
         nc = find_con_for_window_found(cwindow, nc_for_window, match);
         // TODO assign cwindow to nc?
     }
-    
+
     return nc;
 }
 
@@ -353,7 +351,7 @@ static bool should_set_focus(i3Window *cwindow, Con *fs, WorkspaceCon *ws, ConCo
             nc->parent->focused.push_front(nc);
         }
     }
-    
+
     return set_focus;
 }
 
@@ -363,7 +361,7 @@ static void handle_dock(i3Window *cwindow, Con **search_at_p, xcb_get_geometry_r
         DLOG(fmt::sprintf("Starting search at output %s\n", output->output_primary_name()));
         *search_at_p = output->con;
     }
-    
+
     Con *search_at = *search_at_p;
 
     /* find out the desired position of this dock window */
@@ -377,18 +375,18 @@ static void handle_dock(i3Window *cwindow, Con **search_at_p, xcb_get_geometry_r
         DLOG("Ignoring invalid reserved edges (_NET_WM_STRUT_PARTIAL), using position as fallback:\n");
         if (geom->y < static_cast<int16_t>(search_at->rect.height / 2)) {
             DLOG(fmt::sprintf("geom->y = %d < rect.height / 2 = %d, it is a top dock client\n",
-                    geom->y, (search_at->rect.height / 2)));
+                              geom->y, (search_at->rect.height / 2)));
             cwindow->dock = window_dock_t::W_DOCK_TOP;
         } else {
             DLOG(fmt::sprintf("geom->y = %d >= rect.height / 2 = %d, it is a bottom dock client\n",
-                    geom->y, (search_at->rect.height / 2)));
+                              geom->y, (search_at->rect.height / 2)));
             cwindow->dock = window_dock_t::W_DOCK_BOTTOM;
         }
     }
 }
 
-template<typename Window_data>
-static i3Window* create_window(Window_data &w_data, xcb_window_t window, xcb_visualid_t visual, bool &urgency_hint, border_style_t &motif_border_style, bool &has_mwm_hints, xcb_get_geometry_reply_t *geom) {
+template <typename Window_data>
+static i3Window *create_window(Window_data &w_data, xcb_window_t window, xcb_visualid_t visual, bool &urgency_hint, border_style_t &motif_border_style, bool &has_mwm_hints, xcb_get_geometry_reply_t *geom) {
     auto cwindow = new i3Window(window);
     cwindow->depth = get_visual_depth(visual);
 
@@ -461,7 +459,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         DLOG("could not get geometry\n");
         return;
     }
-    
+
     auto &geom = opt_geom.value();
 
     uint32_t values[1];
@@ -490,7 +488,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     border_style_t motif_border_style = border_style_t::BS_NORMAL;
     bool has_mwm_hints = false;
     i3Window *cwindow = create_window(w_data, window, visual, urgency_hint, motif_border_style, has_mwm_hints, geom.get().get());
-    
+
     xcb_get_property_reply_t *type_reply = (w_data.wm_type_cookie->value_len > 0 ? w_data.wm_type_cookie.get().get() : nullptr);
     xcb_get_property_reply_t *state_reply = (w_data.state_cookie->value_len > 0 ? w_data.state_cookie.get().get() : nullptr);
 
@@ -528,9 +526,9 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     ConCon *nc = find_con_for_window(cwindow, search_at, urgency_hint, startup_ws, match_from_restart_mode);
 
     DLOG(fmt::sprintf("new container = %p\n", fmt::ptr(nc)));
-    
+
     // TODO: This should already been set by find_con_for_window
-    
+
     if (nc->get_window() != nullptr && nc->get_window() != cwindow) {
         if (!restore_kill_placeholder(nc->get_window()->id)) {
             DLOG("Uh?! Container without a placeholder, but with a window, has swallowed this to-be-managed window?!\n");
@@ -546,9 +544,9 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     if (nc->get_window() != cwindow) {
         nc->set_window(cwindow);
     }
-    
+
     // END:
-    
+
     x_reinit(nc);
 
     nc->border_width = geom->border_width;
@@ -814,14 +812,14 @@ static ConCon *placeholder_for_con(ConCon *con) {
     if (nc->get_window()->managed_since > con->get_window()->managed_since) {
         return nullptr;
     }
-    
-    auto concon = dynamic_cast<ConCon*>(nc);
-    
+
+    auto concon = dynamic_cast<ConCon *>(nc);
+
     if (concon == nullptr) {
         ELOG("Placeholder is not a container! This is because of a erroneous assumption on my part\n");
         return nullptr;
     }
-    
+
     return concon;
 }
 

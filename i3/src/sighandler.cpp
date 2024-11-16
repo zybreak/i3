@@ -27,7 +27,7 @@ import log;
 import rect;
 
 class dialog_t {
-   public:
+  public:
     xcb_window_t id{};
     xcb_colormap_t colormap{};
     Rect dims{};
@@ -69,7 +69,7 @@ static int margin = 4;
 static int sighandler_backtrace() {
     char *tmpdir = getenv("TMPDIR");
     if (tmpdir == nullptr) {
-        tmpdir = (char*)"/tmp";
+        tmpdir = (char *)"/tmp";
     }
 
     pid_t pid_parent = getpid();
@@ -119,17 +119,17 @@ static int sighandler_backtrace() {
         gdb_log_cmd = std::format("set logging file {}", filename);
 
         char *args[] = {
-                (char*)"gdb",
-                (char*)global.start_argv.front().c_str(),
-                (char*)"-p",
-                (char*)pid_s.c_str(),
-                (char*)"-batch",
-                (char*)"-nx",
-                (char*)"-ex", (char*)gdb_log_cmd.c_str(),
-                (char*)"-ex", (char*)"set logging on",
-                (char*)"-ex", (char*)"bt full",
-                (char*)"-ex", (char*)"quit",
-                nullptr};
+            (char *)"gdb",
+            (char *)global.start_argv.front().c_str(),
+            (char *)"-p",
+            (char *)pid_s.c_str(),
+            (char *)"-batch",
+            (char *)"-nx",
+            (char *)"-ex", (char *)gdb_log_cmd.c_str(),
+            (char *)"-ex", (char *)"set logging on",
+            (char *)"-ex", (char *)"bt full",
+            (char *)"-ex", (char *)"quit",
+            nullptr};
         execvp(args[0], args);
         DLOG("Failed to exec GDB\n");
         exit(EXIT_FAILURE);
@@ -201,12 +201,12 @@ static void sighandler_create_dialogs() {
         dialog->dims.x -= dialog->dims.width / 2;
         dialog->dims.y -= dialog->dims.height / 2;
 
-        dialog->id = create_window((xcb_connection_t*)**global.x, dialog->dims, global.x->root_depth, visual,
+        dialog->id = create_window((xcb_connection_t *)**global.x, dialog->dims, global.x->root_depth, visual,
                                    XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER,
                                    true, mask, values);
 
         dialog->surface = std::make_unique<surface_t>(**global.x, dialog->id, get_visualtype_by_id(visual),
-                               dialog->dims.width, dialog->dims.height);
+                                                      dialog->dims.width, dialog->dims.height);
 
         xcb_grab_keyboard(**global.x, false, dialog->id, XCB_CURRENT_TIME, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
@@ -236,18 +236,18 @@ static void sighandler_handle_expose() {
 }
 
 static void sighandler_draw_dialog(dialog_t *dialog) {
-    const color_t black = draw_util_hex_to_color(**global.x, global.x->root_screen, "#000000");
-    const color_t white = draw_util_hex_to_color(**global.x, global.x->root_screen, "#FFFFFF");
-    const color_t red = draw_util_hex_to_color(**global.x, global.x->root_screen, "#FF0000");
+    color_t const black = draw_util_hex_to_color(**global.x, global.x->root_screen, "#000000");
+    color_t const white = draw_util_hex_to_color(**global.x, global.x->root_screen, "#FFFFFF");
+    color_t const red = draw_util_hex_to_color(**global.x, global.x->root_screen, "#FF0000");
 
     /* Start with a clean slate and draw a red border. */
     dialog->surface->draw_util_clear_surface(red);
     dialog->surface->draw_util_rectangle(black, border_width, border_width,
-                        dialog->dims.width - 2 * border_width, dialog->dims.height - 2 * border_width);
+                                         dialog->dims.width - 2 * border_width, dialog->dims.height - 2 * border_width);
 
     int y = border_width + margin;
-    const int x = border_width + margin;
-    const int max_width = dialog->dims.width - 2 * x;
+    int const x = border_width + margin;
+    int const max_width = dialog->dims.width - 2 * x;
 
     dialog->surface->draw_util_text(*global.configManager->config->font, message_intro, white, black, x, y, max_width);
     y += global.configManager->config->font->height;
@@ -255,11 +255,11 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     dialog->surface->draw_util_text(*global.configManager->config->font, message_intro2, white, black, x, y, max_width);
     y += global.configManager->config->font->height;
 
-    char *bt_color = (char*)"#FFFFFF";
+    char *bt_color = (char *)"#FFFFFF";
     if (backtrace_done < 0) {
-        bt_color = (char*)"#AA0000";
+        bt_color = (char *)"#AA0000";
     } else if (backtrace_done > 0) {
-        bt_color = (char*)"#00AA00";
+        bt_color = (char *)"#00AA00";
     }
     dialog->surface->draw_util_text(*global.configManager->config->font, message_option_backtrace, draw_util_hex_to_color(**global.x, global.x->root_screen, bt_color), black, x, y, max_width);
     y += global.configManager->config->font->height;
@@ -298,7 +298,7 @@ static void sighandler_handle_key_press(xcb_key_press_event_t *event) {
 }
 
 static void handle_signal(int sig, siginfo_t *info, void *data) {
-    DLOG(fmt::sprintf("i3 crashed. SIG: %d\n",  sig));
+    DLOG(fmt::sprintf("i3 crashed. SIG: %d\n", sig));
 
     struct sigaction action{};
     action.sa_handler = SIG_DFL;

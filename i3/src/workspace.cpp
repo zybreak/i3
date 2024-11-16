@@ -25,11 +25,10 @@ import utils;
  * Returns true if the name consists of only digits.
  *
  */
-__attribute__((pure))
-static bool name_is_digits(const std::string &name) {
+__attribute__((pure)) static bool name_is_digits(std::string const &name) {
     /* positive integers and zero are interpreted as numbers */
     auto it = std::ranges::find_if(name, [](auto c) { return !std::isdigit(c); });
-    
+
     return it == name.end();
 }
 
@@ -38,16 +37,16 @@ static bool name_is_digits(const std::string &name) {
  * not exist.
  *
  */
-WorkspaceCon *get_existing_workspace_by_name(const std::string &name) {
+WorkspaceCon *get_existing_workspace_by_name(std::string const &name) {
     WorkspaceCon *workspace = nullptr;
     for (auto &output : global.croot->nodes) {
-        auto outputCon = dynamic_cast<OutputCon*>(output);
+        auto outputCon = dynamic_cast<OutputCon *>(output);
         if (!outputCon) {
             continue;
         }
         auto ws = std::ranges::find_if(outputCon->output_get_content()->nodes, [&name](auto &child) { return child->name == name; });
         if (ws != outputCon->output_get_content()->nodes.end()) {
-            workspace = dynamic_cast<WorkspaceCon*>(*ws);
+            workspace = dynamic_cast<WorkspaceCon *>(*ws);
         }
     }
 
@@ -62,13 +61,13 @@ WorkspaceCon *get_existing_workspace_by_name(const std::string &name) {
 WorkspaceCon *get_existing_workspace_by_num(int num) {
     WorkspaceCon *workspace = nullptr;
     for (auto &output : global.croot->nodes) {
-        auto outputCon = dynamic_cast<OutputCon*>(output);
+        auto outputCon = dynamic_cast<OutputCon *>(output);
         if (!outputCon) {
             continue;
         }
-        auto ws = std::ranges::find_if(outputCon->output_get_content()->nodes, [&num](auto &child) { return dynamic_cast<WorkspaceCon*>(child)->num == num; });
+        auto ws = std::ranges::find_if(outputCon->output_get_content()->nodes, [&num](auto &child) { return dynamic_cast<WorkspaceCon *>(child)->num == num; });
         if (ws != outputCon->output_get_content()->nodes.end()) {
-            workspace = dynamic_cast<WorkspaceCon*>(*ws);
+            workspace = dynamic_cast<WorkspaceCon *>(*ws);
         }
     }
 
@@ -89,44 +88,42 @@ static void _workspace_apply_default_orientation(ConfigurationManager &configMan
         ws->layout = (output->rect.height > output->rect.width) ? L_SPLITV : L_SPLITH;
         ws->rect = output->rect;
         DLOG(fmt::sprintf("Auto orientation. Workspace size set to (%d,%d), setting layout to %d.\n",
-             output->rect.width, output->rect.height, std::to_underlying(ws->layout)));
+                          output->rect.width, output->rect.height, std::to_underlying(ws->layout)));
     } else {
         ws->layout = (configManager.config->default_orientation == HORIZ) ? L_SPLITH : L_SPLITV;
     }
 }
 
-Output* WorkspaceManager::get_assigned_output(std::string const name) {
-    
+Output *WorkspaceManager::get_assigned_output(std::string const name) {
     auto it = ws_assignments.find(name);
     if (it != ws_assignments.end() && !it->second.output.empty()) {
         auto assignment = it->second;
         DLOG(fmt::sprintf("Found workspace name=\"%s\" assignment to output \"%s\"\n",
-                name, assignment.output));
+                          name, assignment.output));
         return global.randr->get_output_by_name(assignment.output, true);
     }
-    
+
     return nullptr;
 }
 
-Output* WorkspaceManager::get_assigned_output(long const parsed_num) {
-    for (const auto &it : ws_assignments) {
+Output *WorkspaceManager::get_assigned_output(long const parsed_num) {
+    for (auto const &it : ws_assignments) {
         auto assignment = it.second;
         if (assignment.output.empty()) {
             continue;
         }
 
         if (parsed_num != -1 &&
-                   name_is_digits(assignment.name) &&
-                   utils::ws_name_to_number(assignment.name) == parsed_num) {
+            name_is_digits(assignment.name) &&
+            utils::ws_name_to_number(assignment.name) == parsed_num) {
             DLOG(fmt::sprintf("Found workspace number=%ld assignment to output \"%s\"\n",
-                    parsed_num, assignment.output));
+                              parsed_num, assignment.output));
             return global.randr->get_output_by_name(assignment.output, true);
         }
     }
-    
+
     return nullptr;
 }
-
 
 /**
  * Returns the first output that is assigned to a workspace specified by the
@@ -139,19 +136,19 @@ Output* WorkspaceManager::get_assigned_output(long const parsed_num) {
  * 'name' is ignored when NULL, 'parsed_num' is ignored when it is -1.
  *
  */
-Output* WorkspaceManager::get_assigned_output(std::string const name, long const parsed_num) {
+Output *WorkspaceManager::get_assigned_output(std::string const name, long const parsed_num) {
     if (auto output = get_assigned_output(name)) {
         DLOG(fmt::sprintf("Found workspace name=\"%s\" assignment to output \"%s\"\n",
-                name, output->names.front()));
+                          name, output->names.front()));
         return output;
     }
 
     if (auto output = get_assigned_output(parsed_num)) {
         DLOG(fmt::sprintf("Found workspace number=%ld assignment to output \"%s\"\n",
-                parsed_num, output->names.front()));
+                          parsed_num, output->names.front()));
         return output;
     }
-    
+
     return nullptr;
 }
 
@@ -160,7 +157,7 @@ std::optional<WorkspaceConfig> WorkspaceManager::get_workspace_config(WorkspaceC
         auto a = i.second;
         return (a.name == ws->name || (ws->num != -1 && name_is_digits(a.name) && utils::ws_name_to_number(a.name) == ws->num));
     };
-    
+
     auto it = std::ranges::find_if(ws_assignments, findByCon);
     if (it != ws_assignments.end()) {
         return it->second;
@@ -175,7 +172,7 @@ std::optional<WorkspaceConfig> WorkspaceManager::get_workspace_config(WorkspaceC
  */
 std::vector<WorkspaceConfig> WorkspaceManager::configs_for_output(Output *output) {
     std::vector<WorkspaceConfig> assignments{};
-    
+
     for (auto &it : ws_assignments) {
         auto assignment = it.second;
         Output *assigned = get_assigned_output(assignment.name);
@@ -183,11 +180,11 @@ std::vector<WorkspaceConfig> WorkspaceManager::configs_for_output(Output *output
             assignments.push_back(assignment);
         }
     }
-    
+
     return assignments;
 }
 
-std::optional<WorkspaceConfig> WorkspaceManager::get_workspace_config(const std::string &name) {
+std::optional<WorkspaceConfig> WorkspaceManager::get_workspace_config(std::string const &name) {
     auto it = ws_assignments.find(name);
     if (it != ws_assignments.end()) {
         return it->second;
@@ -202,17 +199,17 @@ std::optional<WorkspaceConfig> WorkspaceManager::get_workspace_config(const std:
  * memory and initializing the data structures correctly).
  *
  */
-WorkspaceCon* WorkspaceManager::workspace_get_or_create(const std::string &num) {
+WorkspaceCon *WorkspaceManager::workspace_get_or_create(std::string const &num) {
     WorkspaceCon *workspace = get_existing_workspace_by_name(num);
     if (workspace) {
         return workspace;
     }
 
-     LOG(fmt::sprintf("Creating new workspace \"%s\"\n", num));
+    LOG(fmt::sprintf("Creating new workspace \"%s\"\n", num));
 
     /* We set workspace->num to the number if this workspace’s name begins with
      * a positive number. Otherwise it’s a named ws and num will be 1. */
-    const int parsed_num = utils::ws_name_to_number(num);
+    int const parsed_num = utils::ws_name_to_number(num);
 
     Output *o = this->get_assigned_output(num, parsed_num);
     OutputCon *output = o ? o->con : nullptr;
@@ -247,13 +244,13 @@ WorkspaceCon* WorkspaceManager::workspace_get_or_create(const std::string &num) 
  * container.
  *
  */
-WorkspaceCon* WorkspaceManager::create_workspace_on_output(Output *output, Con *content) {
+WorkspaceCon *WorkspaceManager::create_workspace_on_output(Output *output, Con *content) {
     /* add a workspace to this output */
     bool exists = true;
     auto *ws = new WorkspaceCon();
 
     /* try the configured workspace bindings first to find a free name */
-    for (const auto &target_name : configManager.config->binding_workspace_names) {
+    for (auto const &target_name : configManager.config->binding_workspace_names) {
         /* Ensure that this workspace is not assigned to a different output —
          * otherwise we would create it, then move it over to its output, then
          * find a new workspace, etc… */
@@ -262,7 +259,7 @@ WorkspaceCon* WorkspaceManager::create_workspace_on_output(Output *output, Con *
             continue;
         }
 
-        const int num = utils::ws_name_to_number(target_name);
+        int const num = utils::ws_name_to_number(target_name);
         exists = (num == -1)
                      ? get_existing_workspace_by_name(target_name)
                      : get_existing_workspace_by_num(num);
@@ -271,7 +268,7 @@ WorkspaceCon* WorkspaceManager::create_workspace_on_output(Output *output, Con *
             /* Set ->num to the number of the workspace, if the name actually
              * is a number or starts with a number */
             ws->num = num;
-            DLOG(fmt::sprintf("Used number %d for workspace with name %s\n",  ws->num, ws->name));
+            DLOG(fmt::sprintf("Used number %d for workspace with name %s\n", ws->num, ws->name));
 
             break;
         }
@@ -285,7 +282,7 @@ WorkspaceCon* WorkspaceManager::create_workspace_on_output(Output *output, Con *
             c++;
             Output *assigned = this->get_assigned_output(c);
             exists = (get_existing_workspace_by_num(c) || (assigned && assigned != output));
-            DLOG(fmt::sprintf("result for ws %d: exists = %d\n",  c, exists));
+            DLOG(fmt::sprintf("result for ws %d: exists = %d\n", c, exists));
         }
         ws->num = c;
         ws->name = fmt::format("{}", c);
@@ -325,7 +322,7 @@ bool workspace_is_visible(Con *ws) {
  * XXX: we need to clean up all this recursive walking code.
  *
  */
-static Con *_get_sticky(Con *con, const std::string &sticky_group, Con *exclude) {
+static Con *_get_sticky(Con *con, std::string const &sticky_group, Con *exclude) {
     for (auto &current : con->nodes) {
         if (current != exclude &&
             !current->sticky_group.empty() &&
@@ -340,8 +337,8 @@ static Con *_get_sticky(Con *con, const std::string &sticky_group, Con *exclude)
         }
     }
 
-    if (dynamic_cast<WorkspaceCon*>(con) != nullptr) {
-        for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+    if (dynamic_cast<WorkspaceCon *>(con) != nullptr) {
+        for (auto &current : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
             if (current != exclude &&
                 !current->sticky_group.empty() &&
                 current->get_window() != nullptr &&
@@ -358,8 +355,6 @@ static Con *_get_sticky(Con *con, const std::string &sticky_group, Con *exclude)
 
     return nullptr;
 }
-
-
 
 /*
  * Reassigns all child windows in sticky containers. Called when the user
@@ -378,7 +373,7 @@ static void workspace_reassign_sticky(Con *con) {
             continue;
         }
 
-        LOG(fmt::sprintf("Ah, this one is sticky: %s / %p\n",  current->name, fmt::ptr(current)));
+        LOG(fmt::sprintf("Ah, this one is sticky: %s / %p\n", current->name, fmt::ptr(current)));
         /* 2: find a window which we can re-assign */
         OutputCon *output = current->con_get_output();
         Con *src = _get_sticky(output, current->sticky_group, current);
@@ -405,11 +400,10 @@ static void workspace_reassign_sticky(Con *con) {
                 throw std::runtime_error("reassigning sticky window failed");
             }
         }
-        
     }
 
-    if (dynamic_cast<WorkspaceCon*>(con)) {
-        for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+    if (dynamic_cast<WorkspaceCon *>(con)) {
+        for (auto &current : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
             workspace_reassign_sticky(current);
         }
     }
@@ -439,7 +433,7 @@ static void workspace_defer_update_urgent_hint_cb(Con *con) {
  */
 void WorkspaceManager::workspace_show(WorkspaceCon *workspace) {
     Con *current, *old = nullptr;
-    
+
     /* disable fullscreen for the other workspaces and get the workspace we are
      * currently on. */
     for (auto &c : workspace->parent->nodes) {
@@ -511,7 +505,7 @@ void WorkspaceManager::workspace_show(WorkspaceCon *workspace) {
      * client, which will clear the urgency flag too early. Also, there is no
      * way for con_focus() to know about when to clear urgency immediately and
      * when to defer it. */
-    if (old && old->nodes.empty() && dynamic_cast<WorkspaceCon*>(old) != nullptr && dynamic_cast<WorkspaceCon*>(old)->floating_windows.empty()) {
+    if (old && old->nodes.empty() && dynamic_cast<WorkspaceCon *>(old) != nullptr && dynamic_cast<WorkspaceCon *>(old)->floating_windows.empty()) {
         /* check if this workspace is currently visible */
         if (!workspace_is_visible(old)) {
             LOG(fmt::sprintf("Closing old workspace (%p / %s), it is empty\n", fmt::ptr(old), old->name));
@@ -550,7 +544,7 @@ void WorkspaceManager::workspace_show(WorkspaceCon *workspace) {
  * Looks up the workspace by name and switches to it.
  *
  */
-void WorkspaceManager::workspace_show_by_name(const std::string &num) {
+void WorkspaceManager::workspace_show_by_name(std::string const &num) {
     workspace_show(workspace_get_or_create(num));
 }
 
@@ -567,12 +561,12 @@ WorkspaceCon *workspace_next() {
         WorkspaceCon *first_opposite = nullptr;
         auto it = std::ranges::find(current->parent->nodes, current);
         if (std::next(it) == current->parent->nodes.end()) {
-            return dynamic_cast<WorkspaceCon*>(*(++it));
+            return dynamic_cast<WorkspaceCon *>(*(++it));
         }
         bool found_current = false;
         for (auto &output : global.croot->nodes) {
-            for (auto child : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
-                auto workspace_child = dynamic_cast<WorkspaceCon*>(child);
+            for (auto child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
+                auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
                 if (workspace_child == nullptr) {
                     continue;
                 }
@@ -595,8 +589,8 @@ WorkspaceCon *workspace_next() {
         WorkspaceCon *first = nullptr;
         WorkspaceCon *first_opposite = nullptr;
         for (auto &output : global.croot->nodes) {
-            for (auto child : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
-                auto workspace_child = dynamic_cast<WorkspaceCon*>(child);
+            for (auto child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
+                auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
                 if (workspace_child == nullptr) {
                     continue;
                 }
@@ -638,15 +632,15 @@ WorkspaceCon *workspace_prev() {
     if (current->num == -1) {
         /* If named workspace, find previous named workspace. */
         auto c_itr = std::ranges::find(current->parent->nodes, current);
-        prev = c_itr == current->parent->nodes.begin() ? nullptr : dynamic_cast<WorkspaceCon*>(*(--c_itr));
+        prev = c_itr == current->parent->nodes.begin() ? nullptr : dynamic_cast<WorkspaceCon *>(*(--c_itr));
         if (prev && prev->num != -1) {
             prev = nullptr;
         }
         if (!prev) {
             bool found_current = false;
             for (auto &output : global.croot->nodes | std::views::reverse) {
-                for (auto &child : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes | std::views::reverse) {
-                    auto workspace_child = dynamic_cast<WorkspaceCon*>(child);
+                for (auto &child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes | std::views::reverse) {
+                    auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
                     if (workspace_child == nullptr) {
                         continue;
                     }
@@ -667,8 +661,8 @@ WorkspaceCon *workspace_prev() {
     } else {
         /* If numbered workspace, find previous numbered workspace. */
         for (auto &output : global.croot->nodes | std::views::reverse) {
-            for (auto &child : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes | std::views::reverse) {
-                auto workspace_child = dynamic_cast<WorkspaceCon*>(child);
+            for (auto &child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes | std::views::reverse) {
+                auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
                 if (workspace_child == nullptr) {
                     continue;
                 }
@@ -709,11 +703,11 @@ WorkspaceCon *workspace_next_on_output() {
 
     if (current->num == -1) {
         /* If currently a named workspace, find next named workspace. */
-        next = dynamic_cast<WorkspaceCon*>(con::next(current, current->parent->nodes));
+        next = dynamic_cast<WorkspaceCon *>(con::next(current, current->parent->nodes));
     } else {
         /* If currently a numbered workspace, find next numbered workspace. */
-        for (auto &child : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
-            auto workspace_child = dynamic_cast<WorkspaceCon*>(child);
+        for (auto &child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
+            auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
             if (workspace_child == nullptr) {
                 continue;
             }
@@ -732,8 +726,8 @@ WorkspaceCon *workspace_next_on_output() {
     /* Find next named workspace. */
     if (!next) {
         bool found_current = false;
-        for (auto &child : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
-            auto workspace_child = dynamic_cast<WorkspaceCon*>(child);
+        for (auto &child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
+            auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
             if (workspace_child == nullptr) {
                 continue;
             }
@@ -747,8 +741,8 @@ WorkspaceCon *workspace_next_on_output() {
 
     /* Find first workspace. */
     if (!next) {
-        for (auto &child : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
-            auto workspace_child = dynamic_cast<WorkspaceCon*>(child);
+        for (auto &child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
+            auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
             if (workspace_child == nullptr) {
                 continue;
             }
@@ -757,7 +751,7 @@ WorkspaceCon *workspace_next_on_output() {
             }
         }
     }
-    
+
     return next;
 }
 
@@ -769,18 +763,18 @@ WorkspaceCon *workspace_prev_on_output() {
     WorkspaceCon *current = global.focused->con_get_workspace();
     WorkspaceCon *prev = nullptr;
     Con *output = global.focused->con_get_output();
-    DLOG(fmt::sprintf("output = %s\n",  output->name));
+    DLOG(fmt::sprintf("output = %s\n", output->name));
 
     if (current->num == -1) {
         /* If named workspace, find previous named workspace. */
-        prev = dynamic_cast<WorkspaceCon*>(con::previous(current, current->parent->nodes));
+        prev = dynamic_cast<WorkspaceCon *>(con::previous(current, current->parent->nodes));
         if (prev && prev->num != -1) {
             prev = nullptr;
         }
     } else {
         /* If numbered workspace, find previous numbered workspace. */
-        for (auto &child : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes | std::views::reverse) {
-            auto workspace_child = dynamic_cast<WorkspaceCon*>(child);
+        for (auto &child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes | std::views::reverse) {
+            auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
             if (workspace_child == nullptr || workspace_child->num == -1) {
                 continue;
             }
@@ -796,8 +790,8 @@ WorkspaceCon *workspace_prev_on_output() {
     /* Find previous named workspace. */
     if (!prev) {
         bool found_current = false;
-        for (auto &child : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes | std::views::reverse) {
-            auto workspace_child = dynamic_cast<WorkspaceCon*>(child);
+        for (auto &child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes | std::views::reverse) {
+            auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
             if (workspace_child == nullptr) {
                 continue;
             }
@@ -811,8 +805,8 @@ WorkspaceCon *workspace_prev_on_output() {
 
     /* Find last workspace. */
     if (!prev) {
-        for (auto &child : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes | std::views::reverse) {
-            auto workspace_child = dynamic_cast<WorkspaceCon*>(child);
+        for (auto &child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes | std::views::reverse) {
+            auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
             if (workspace_child == nullptr) {
                 continue;
             }
@@ -842,7 +836,7 @@ void WorkspaceManager::workspace_back_and_forth() {
  * Returns the previously focused workspace con, or NULL if unavailable.
  *
  */
-WorkspaceCon* WorkspaceManager::workspace_back_and_forth_get() {
+WorkspaceCon *WorkspaceManager::workspace_back_and_forth_get() {
     if (this->previous_workspace_name.empty()) {
         DLOG("No previous workspace name set.\n");
         return nullptr;
@@ -858,7 +852,7 @@ static bool get_urgency_flag(Con *con) {
         }
     }
 
-    auto workspace = dynamic_cast<WorkspaceCon*>(con);
+    auto workspace = dynamic_cast<WorkspaceCon *>(con);
 
     if (workspace == nullptr) {
         return false;
@@ -875,7 +869,7 @@ static bool get_urgency_flag(Con *con) {
 void workspace_update_urgent_flag(WorkspaceCon *ws) {
     bool old_flag = ws->urgent;
     ws->urgent = get_urgency_flag(ws);
-    DLOG(fmt::sprintf("Workspace urgency flag changed from %d to %d\n",  old_flag, ws->urgent));
+    DLOG(fmt::sprintf("Workspace urgency flag changed from %d to %d\n", old_flag, ws->urgent));
 
     if (old_flag != ws->urgent) {
         global.ipcManager->ipc_send_workspace_event("urgent", ws, nullptr);
@@ -906,11 +900,11 @@ void ws_force_orientation(Con *ws, orientation_t orientation) {
     }
 
     split->set_focus_order(focus_order);
-    //free(focus_order); TODO: do we need to free?
+    // free(focus_order); TODO: do we need to free?
 
     /* 4: switch workspace layout */
     ws->layout = (orientation == HORIZ) ? L_SPLITH : L_SPLITV;
-    DLOG(fmt::sprintf("split->layout = %d, ws->layout = %d\n",  std::to_underlying(split->layout), std::to_underlying(ws->layout)));
+    DLOG(fmt::sprintf("split->layout = %d, ws->layout = %d\n", std::to_underlying(split->layout), std::to_underlying(ws->layout)));
 
     /* 5: attach the new split container to the workspace */
     DLOG(fmt::sprintf("Attaching new split (%p) to ws (%p)\n", fmt::ptr(split), fmt::ptr(ws)));
@@ -983,7 +977,7 @@ Con *workspace_encapsulate(Con *ws) {
     }
 
     new_con->set_focus_order(focus_order);
-    //free(focus_order); TODO: do we need to free?
+    // free(focus_order); TODO: do we need to free?
 
     new_con->con_attach(ws, true);
 
@@ -994,7 +988,7 @@ Con *workspace_encapsulate(Con *ws) {
  * Move the given workspace to the specified output.
  */
 void WorkspaceManager::workspace_move_to_output(WorkspaceCon *ws, Output *output) {
-     DLOG(fmt::sprintf("Moving workspace %p / %s to output %p / \"%s\".\n", fmt::ptr(ws), ws->name, fmt::ptr(output), output->output_primary_name()));
+    DLOG(fmt::sprintf("Moving workspace %p / %s to output %p / \"%s\".\n", fmt::ptr(ws), ws->name, fmt::ptr(output), output->output_primary_name()));
 
     Output *current_output = get_output_for_con(ws);
     Con *content = output->con->output_get_content();
@@ -1014,14 +1008,14 @@ void WorkspaceManager::workspace_move_to_output(WorkspaceCon *ws, Output *output
 
     bool workspace_was_visible = workspace_is_visible(ws);
     if (ws->parent->con_num_children() == 1) {
-         DLOG(fmt::sprintf("Creating a new workspace to replace \"%s\" (last on its output).\n", ws->name));
+        DLOG(fmt::sprintf("Creating a new workspace to replace \"%s\" (last on its output).\n", ws->name));
 
         /* check if we can find a workspace assigned to this output */
         bool used_assignment = false;
-        for (const auto &assignment : this->configs_for_output(current_output)) {
+        for (auto const &assignment : this->configs_for_output(current_output)) {
             /* check if this workspace's name or num is already attached to the tree */
-            const int num = utils::ws_name_to_number(assignment.name);
-            const bool attached = (num == -1)
+            int const num = utils::ws_name_to_number(assignment.name);
+            bool const attached = (num == -1)
                                       ? get_existing_workspace_by_name(assignment.name)
                                       : get_existing_workspace_by_num(num);
             if (attached) {
@@ -1029,7 +1023,7 @@ void WorkspaceManager::workspace_move_to_output(WorkspaceCon *ws, Output *output
             }
 
             /* so create the workspace referenced to by this assignment */
-            DLOG(fmt::sprintf("Creating workspace from assignment %s.\n",  assignment.name));
+            DLOG(fmt::sprintf("Creating workspace from assignment %s.\n", assignment.name));
             workspace_get_or_create(assignment.name);
             used_assignment = true;
             break;
@@ -1050,7 +1044,7 @@ void WorkspaceManager::workspace_move_to_output(WorkspaceCon *ws, Output *output
     if (workspace_was_visible) {
         /* The workspace which we just detached was visible, so focus the next
          * one in the focus-stack. */
-        WorkspaceCon *focus_ws = dynamic_cast<WorkspaceCon*>(con::first(old_content->focused));
+        WorkspaceCon *focus_ws = dynamic_cast<WorkspaceCon *>(con::first(old_content->focused));
         DLOG(fmt::sprintf("workspace was visible, focusing %p / %s now\n", fmt::ptr(focus_ws), focus_ws->name));
         workspace_show(focus_ws);
     }

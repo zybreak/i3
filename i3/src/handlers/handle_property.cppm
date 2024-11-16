@@ -24,14 +24,14 @@ export namespace handle_property {
      * given window.
      *
      */
-    std::optional<window_class> window_update_class(xcb_get_property_reply_t * prop);
+    std::optional<window_class> window_update_class(xcb_get_property_reply_t* prop);
 
     /*
      * Updates the name by using _NET_WM_NAME (encoded in UTF-8) for the given
      * window. Further updates using window_update_name_legacy will be ignored.
      *
      */
-    std::optional<std::string> window_update_name(xcb_get_property_reply_t * prop);
+    std::optional<std::string> window_update_name(xcb_get_property_reply_t* prop);
 
     /*
      * Updates the name by using WM_NAME (encoded in COMPOUND_TEXT). We do not
@@ -40,43 +40,43 @@ export namespace handle_property {
      * window_update_name()).
      *
      */
-    std::optional<std::string> window_update_name_legacy(xcb_get_property_reply_t * prop);
+    std::optional<std::string> window_update_name_legacy(xcb_get_property_reply_t* prop);
 
     /*
      * Updates the CLIENT_LEADER (logical parent window).
      *
      */
-    std::optional<xcb_window_t> window_update_leader(xcb_get_property_reply_t * prop);
+    std::optional<xcb_window_t> window_update_leader(xcb_get_property_reply_t* prop);
 
     /*
      * Updates the TRANSIENT_FOR (logical parent window).
      *
      */
-    std::optional<xcb_window_t> window_update_transient_for(xcb_get_property_reply_t * prop);
+    std::optional<xcb_window_t> window_update_transient_for(xcb_get_property_reply_t* prop);
 
     /*
      * Updates the _NET_WM_STRUT_PARTIAL (reserved pixels at the screen edges)
      *
      */
-    std::optional<reservedpx> window_update_strut_partial(xcb_get_property_reply_t * prop);
+    std::optional<reservedpx> window_update_strut_partial(xcb_get_property_reply_t* prop);
 
     /*
      * Updates the WM_WINDOW_ROLE
      *
      */
-    std::optional<std::string> window_update_role(xcb_get_property_reply_t * prop);
+    std::optional<std::string> window_update_role(xcb_get_property_reply_t* prop);
 
     /*
      * Updates the _NET_WM_WINDOW_TYPE property.
      *
      */
-    std::optional<xcb_atom_t> window_update_type(xcb_get_property_reply_t * reply);
+    std::optional<xcb_atom_t> window_update_type(xcb_get_property_reply_t* reply);
 
     /*
      * Updates the WM_HINTS (we only care about the input focus handling part).
      *
      */
-    std::optional<window_hints> window_update_hints(xcb_get_property_reply_t * prop);
+    std::optional<window_hints> window_update_hints(xcb_get_property_reply_t* prop);
 
     /*
      * Updates the MOTIF_WM_HINTS. The container's border style should be set to
@@ -90,11 +90,11 @@ export namespace handle_property {
      * it is still in use by popular widget toolkits such as GTK+ and Java AWT.
      *
      */
-    std::optional<uint32_t> window_update_motif_hints(xcb_get_property_reply_t * prop);
+    std::optional<uint32_t> window_update_motif_hints(xcb_get_property_reply_t* prop);
 
     /*
      * Updates the WM_CLIENT_MACHINE
      *
      */
-    std::optional<std::string> window_update_machine(xcb_get_property_reply_t * prop);
-}
+    std::optional<std::string> window_update_machine(xcb_get_property_reply_t* prop);
+}  // namespace handle_property

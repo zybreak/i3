@@ -110,7 +110,8 @@ void EventHandler::setup_term_handlers() {
     }
 }
 
-EventHandler::EventHandler(X &x, PropertyHandlers &handlers) : handlers(handlers), x(x) {
+EventHandler::EventHandler(X &x, PropertyHandlers &handlers)
+    : handlers(handlers), x(x) {
     /* Initialize the libev event loop. This needs to be done before loading
      * the config file because the parser will install an ev_child watcher
      * for the nagbar when config errors are found. */
@@ -135,7 +136,7 @@ void EventHandler::loop() {
 }
 
 EventHandler::~EventHandler() {
-    //ev_loop_destroy(global.main_loop);
-    // Since we cannot guarantee this is destroyed after other classes usin main_loop, lets not delete it here
-    // Solution would be to add explicit dependencies to this class from those.
+    // ev_loop_destroy(global.main_loop);
+    //  Since we cannot guarantee this is destroyed after other classes usin main_loop, lets not delete it here
+    //  Solution would be to add explicit dependencies to this class from those.
 }

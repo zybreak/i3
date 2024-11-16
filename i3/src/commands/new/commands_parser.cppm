@@ -45,5 +45,5 @@ import :commands_listener;
  * Free the returned CommandResult with command_result_free().
  */
 export namespace i3_commands_new {
-    CommandResult parse_command(const std::string &input, command_parser_data &&data, BaseCommandsApplier &applier);
+    CommandResult parse_command(std::string const &input, command_parser_data &&data, BaseCommandsApplier &applier);
 }

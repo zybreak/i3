@@ -17,7 +17,6 @@ import std;
 import log;
 import i3ipc;
 
-
 /*
  * Make all parent containers urgent if con is urgent or clear the urgent flag
  * of all parent containers if there are no more urgent children left.
@@ -32,23 +31,23 @@ void WorkspaceCon::con_update_parents_urgency() {
 
 void WorkspaceCon::con_attach(Con *parent, bool ignore_focus, Con *previous_con) {
     this->parent = parent;
-    auto previous = dynamic_cast<WorkspaceCon*>(previous_con);
+    auto previous = dynamic_cast<WorkspaceCon *>(previous_con);
     WorkspaceCon *current = previous;
     auto &focused = parent->focused;
 
     /* Workspaces are handled differently: they need to be inserted at the
      * right position. */
-    DLOG(fmt::sprintf("it's a workspace. num = %d\n",  this->num));
+    DLOG(fmt::sprintf("it's a workspace. num = %d\n", this->num));
     if (this->num == -1 || parent->nodes.empty()) {
         parent->nodes.push_back(this);
     } else {
-        current = dynamic_cast<WorkspaceCon*>(con::first(parent->nodes));
+        current = dynamic_cast<WorkspaceCon *>(con::first(parent->nodes));
         if (this->num < current->num) {
             /* we need to insert the container at the beginning */
             parent->nodes.push_front(this);
         } else {
             while (current && current->num != -1 && this->num > current->num) {
-                current = dynamic_cast<WorkspaceCon*>(con::next(current, parent->nodes));
+                current = dynamic_cast<WorkspaceCon *>(con::next(current, parent->nodes));
                 if (current == con::last(parent->nodes)) {
                     current = nullptr;
                     break;
@@ -78,7 +77,7 @@ FloatingCon *WorkspaceCon::con_inside_floating() {
  * This function changes the layout of a given container. Use it to handle
  * special cases like changing a whole workspace to stacked/tabbed (creates a
  * new split container before).
- * 
+ *
  * Users can focus workspaces, but not any higher in the hierarchy.
  * Focus on the workspace is a special case, since in every other case, the
  * user means "change the layout of the parent split container".
@@ -87,7 +86,7 @@ FloatingCon *WorkspaceCon::con_inside_floating() {
 void WorkspaceCon::con_set_layout(layout_t layout) {
     WorkspaceCon *con = this;
     DLOG(fmt::sprintf("con_set_layout(%p, %d), con->type = %d\n",
-            fmt::ptr(con), std::to_underlying(layout), std::to_underlying(con->type)));
+                      fmt::ptr(con), std::to_underlying(layout), std::to_underlying(con->type)));
 
     /* We fill in last_split_layout when switching to a different layout
      * since there are many places in the code that don’t use
@@ -104,7 +103,7 @@ void WorkspaceCon::con_set_layout(layout_t layout) {
         layout_t ws_layout = (layout == L_STACKED || layout == L_TABBED) ? layout : L_DEFAULT;
         DLOG(fmt::sprintf("Setting workspace_layout to %d\n", std::to_underlying(ws_layout)));
         con->workspace_layout = ws_layout;
-        DLOG(fmt::sprintf("Setting layout to %d\n",  std::to_underlying(layout)));
+        DLOG(fmt::sprintf("Setting layout to %d\n", std::to_underlying(layout)));
 
         if (layout == L_DEFAULT) {
             /* Special case: the layout formerly known as "default" (in combination
@@ -159,7 +158,7 @@ void WorkspaceCon::on_remove_child() {
     /* Every container 'above' (in the hierarchy) the workspace content should
      * not be closed when the last child was removed */
     if (this->parent != nullptr && this->parent->type == CT_OUTPUT) {
-        DLOG(fmt::sprintf("not handling, type = %d, name = %s\n",  std::to_underlying(this->type), this->name));
+        DLOG(fmt::sprintf("not handling, type = %d, name = %s\n", std::to_underlying(this->type), this->name));
         return;
     }
 
@@ -181,4 +180,3 @@ void WorkspaceCon::on_remove_child() {
 bool WorkspaceCon::con_has_children() const {
     return (!this->con_is_leaf() || !this->floating_windows.empty());
 }
-

@@ -7,7 +7,7 @@ module i3;
 import rect;
 import log;
 
-static std::string orientation(Con const * const con) {
+static std::string orientation(Con const *const con) {
     if (!con->con_is_split()) {
         return "none";
     } else {
@@ -20,16 +20,15 @@ static std::string orientation(Con const * const con) {
 }
 
 static void to_json(nlohmann::json &j, gaps_t const &gaps) {
-   j = {
-           { "inner", gaps.inner },
-           // TODO: the i3ipc Python modules recognize gaps, but only inner/outer
-           // This is currently here to preserve compatibility with that
-           { "outer", gaps.top },
-           { "top", gaps.top },
-           { "right", gaps.right },
-           { "bottom", gaps.bottom },
-           { "left", gaps.left }
-   }; 
+    j = {
+        {"inner", gaps.inner},
+        // TODO: the i3ipc Python modules recognize gaps, but only inner/outer
+        // This is currently here to preserve compatibility with that
+        {"outer", gaps.top},
+        {"top", gaps.top},
+        {"right", gaps.right},
+        {"bottom", gaps.bottom},
+        {"left", gaps.left}};
 }
 
 static void to_json(nlohmann::json &j, Match const *match) {
@@ -55,7 +54,7 @@ static void to_json(nlohmann::json &j, Match const *match) {
     }
 }
 
-static std::string window_type(i3Window const * const window) {
+static std::string window_type(i3Window const *const window) {
     if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NORMAL]) {
         return "normal";
     } else if (window->window_type == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK]) {
@@ -83,7 +82,7 @@ static std::string window_type(i3Window const * const window) {
     }
 }
 
-static void dump_window(nlohmann::json &j, i3Window const * const window, bool const inplace_restart) {
+static void dump_window(nlohmann::json &j, i3Window const *const window, bool const inplace_restart) {
     j["window"] = window->id;
     j["window_type"] = window_type(window);
 
@@ -118,7 +117,7 @@ static void dump_window(nlohmann::json &j, i3Window const * const window, bool c
     }
 }
 
-static std::string type(Con const * const con) {
+static std::string type(Con const *const con) {
     switch (con->type) {
         case con_type_t::CT_ROOT:
             return "root";
@@ -137,7 +136,7 @@ static std::string type(Con const * const con) {
     }
 }
 
-static std::string layout(Con const * const con) {
+static std::string layout(Con const *const con) {
     switch (con->layout) {
         case layout_t::L_DEFAULT:
             throw std::runtime_error("About to dump layout=default, this is a bug in the code.");
@@ -158,7 +157,7 @@ static std::string layout(Con const * const con) {
     }
 }
 
-static std::string workspace_layout(WorkspaceCon const * const con) {
+static std::string workspace_layout(WorkspaceCon const *const con) {
     switch (con->workspace_layout) {
         case layout_t::L_DEFAULT:
             return "default";
@@ -167,11 +166,11 @@ static std::string workspace_layout(WorkspaceCon const * const con) {
         case layout_t::L_TABBED:
             return "tabbed";
         default:
-            throw std::runtime_error(std::format("About to dump workspace_layout={} (none of default/stacked/tabbed), this is a bug.",  std::to_underlying(con->workspace_layout)));
+            throw std::runtime_error(std::format("About to dump workspace_layout={} (none of default/stacked/tabbed), this is a bug.", std::to_underlying(con->workspace_layout)));
     }
 }
 
-static std::string border_style(Con const * const con) {
+static std::string border_style(Con const *const con) {
     switch (con->border_style) {
         case border_style_t::BS_NORMAL:
             return "normal";
@@ -184,7 +183,7 @@ static std::string border_style(Con const * const con) {
     }
 }
 
-static std::string floating(Con const * const con) {
+static std::string floating(Con const *const con) {
     switch (con->floating) {
         case con_floating_t::FLOATING_AUTO_OFF:
             return "auto_off";
@@ -199,7 +198,7 @@ static std::string floating(Con const * const con) {
     }
 }
 
-static nlohmann::json get_swallows(Con * con, bool inplace_restart) {
+static nlohmann::json get_swallows(Con *con, bool inplace_restart) {
     auto swallows = nlohmann::json::array();
     for (auto &match : con->swallow) {
         /* We will generate a new restart_mode match specification after this
@@ -214,16 +213,16 @@ static nlohmann::json get_swallows(Con * con, bool inplace_restart) {
     if (inplace_restart) {
         if (con->get_window() != nullptr) {
             swallows.push_back({
-                    {"id", con->get_window()->id},
-                    {"restart_mode", true},
+                {"id", con->get_window()->id},
+                {"restart_mode", true},
             });
         }
     }
-    
+
     return swallows;
 }
 
-static void handle_deco_rect(nlohmann::json &j, Con * con) {
+static void handle_deco_rect(nlohmann::json &j, Con *con) {
     if (con_draw_decoration_into_frame(con)) {
         Rect simulated_deco_rect = con->deco_rect;
         simulated_deco_rect.x = con->rect.x - con->parent->rect.x;
@@ -235,7 +234,7 @@ static void handle_deco_rect(nlohmann::json &j, Con * con) {
     }
 }
 
-static nlohmann::json dump_base_node(Con * con, bool inplace_restart) {
+static nlohmann::json dump_base_node(Con *con, bool inplace_restart) {
     nlohmann::json j;
 
     j["id"] = (uintptr_t)con;
@@ -311,7 +310,7 @@ static nlohmann::json dump_root_node(RootCon *rootCon, bool inplace_restart) {
 
 static nlohmann::json dump_output_node(OutputCon *outputCon, bool inplace_restart) {
     nlohmann::json j = dump_base_node(outputCon, inplace_restart);
-   
+
     return j;
 }
 
@@ -346,28 +345,28 @@ static nlohmann::json dump_workspace_con(WorkspaceCon *workspaceCon, bool inplac
     j["num"] = workspaceCon->num;
     j["gaps"] = workspaceCon->gaps;
     j["floating_nodes"] = workspaceCon->floating_windows |
-            std::views::transform([&inplace_restart](FloatingCon *node) { return dump_node(node, inplace_restart); }) |
-            std::ranges::to<std::vector>();
+                          std::views::transform([&inplace_restart](FloatingCon *node) { return dump_node(node, inplace_restart); }) |
+                          std::ranges::to<std::vector>();
 
     j["output"] = workspaceCon->con_get_output()->name;
 
     return j;
 }
 
-nlohmann::json dump_node(Con * con, bool inplace_restart) {
+nlohmann::json dump_node(Con *con, bool inplace_restart) {
     nlohmann::json j;
 
-    if (auto rootCon = dynamic_cast<RootCon*>(con); rootCon != nullptr) {
+    if (auto rootCon = dynamic_cast<RootCon *>(con); rootCon != nullptr) {
         j = dump_root_node(rootCon, inplace_restart);
-    } else if (auto outputCon = dynamic_cast<OutputCon*>(con); outputCon != nullptr) {
+    } else if (auto outputCon = dynamic_cast<OutputCon *>(con); outputCon != nullptr) {
         j = dump_output_node(outputCon, inplace_restart);
-    } else if (auto conCon = dynamic_cast<ConCon*>(con); conCon != nullptr) {
+    } else if (auto conCon = dynamic_cast<ConCon *>(con); conCon != nullptr) {
         j = dump_con_con(conCon, inplace_restart);
-    } else if (auto floatingCon = dynamic_cast<FloatingCon*>(con); floatingCon != nullptr) {
+    } else if (auto floatingCon = dynamic_cast<FloatingCon *>(con); floatingCon != nullptr) {
         j = dump_floating_con(floatingCon, inplace_restart);
-    } else if (auto dockCon = dynamic_cast<DockCon*>(con); dockCon != nullptr) {
+    } else if (auto dockCon = dynamic_cast<DockCon *>(con); dockCon != nullptr) {
         j = dump_dock_con(dockCon, inplace_restart);
-    } else if (auto workspaceCon = dynamic_cast<WorkspaceCon*>(con); workspaceCon != nullptr) {
+    } else if (auto workspaceCon = dynamic_cast<WorkspaceCon *>(con); workspaceCon != nullptr) {
         j = dump_workspace_con(workspaceCon, inplace_restart);
     } else {
         throw std::runtime_error(std::format("Unhandled \"type\": {}", std::to_underlying(con->type)));

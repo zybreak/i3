@@ -3,9 +3,6 @@ export module i3:internal;
 import std;
 
 export {
-
-
-
     /**
      * Bitmask for matching XCB_XKB_GROUP_1 to XCB_XKB_GROUP_4.
      */
@@ -117,8 +114,8 @@ export {
         int right{0};
         int bottom{0};
         int left{0};
-        
-        auto operator<=>(const gaps_t&) const = default;
+
+        auto operator<=>(gaps_t const&) const = default;
     };
 
     enum gaps_mask_t : int {

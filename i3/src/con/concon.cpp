@@ -18,13 +18,16 @@ import std;
 import log;
 import rect;
 
-ConCon::ConCon() : ConCon(nullptr, false) {
+ConCon::ConCon()
+    : ConCon(nullptr, false) {
 }
 
-ConCon::ConCon(i3Window *window) : ConCon(window, false) {
+ConCon::ConCon(i3Window* window)
+    : ConCon(window, false) {
 }
 
-ConCon::ConCon(i3Window *window, bool skeleton) : Con(skeleton) {
+ConCon::ConCon(i3Window* window, bool skeleton)
+    : Con(skeleton) {
     this->type = CT_CON;
     if (window) {
         this->window.reset(window);

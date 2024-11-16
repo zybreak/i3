@@ -27,7 +27,7 @@ void *srealloc(void *ptr, size_t size) {
     return result;
 }
 
-char *sstrdup(const char *str) {
+char *sstrdup(char const *str) {
     char *result = strdup(str);
     if (result == nullptr) {
         err(EXIT_FAILURE, "strdup()");
@@ -35,7 +35,7 @@ char *sstrdup(const char *str) {
     return result;
 }
 
-char *sstrndup(const char *str, size_t size) {
+char *sstrndup(char const *str, size_t size) {
     char *result = strndup(str, size);
     if (result == nullptr) {
         err(EXIT_FAILURE, "strndup()");
@@ -43,7 +43,7 @@ char *sstrndup(const char *str, size_t size) {
     return result;
 }
 
-int sasprintf(char **strp, const char *fmt, ...) {
+int sasprintf(char **strp, char const *fmt, ...) {
     va_list args;
     int result;
 

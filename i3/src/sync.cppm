@@ -19,7 +19,7 @@ import :x;
 import :atoms;
 
 export void sync_respond(X *x, xcb_window_t window, uint32_t rnd) {
-    DLOG(fmt::sprintf("[i3 sync protocol] Sending random value %d back to X11 window 0x%08x\n",  rnd, window));
+    DLOG(fmt::sprintf("[i3 sync protocol] Sending random value %d back to X11 window 0x%08x\n", rnd, window));
 
     xcb_client_message_event_t ev{};
 
@@ -33,4 +33,3 @@ export void sync_respond(X *x, xcb_window_t window, uint32_t rnd) {
     xcb_send_event(**x, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)&ev);
     xcb_flush(**x);
 }
-

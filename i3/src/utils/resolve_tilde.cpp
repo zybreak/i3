@@ -20,7 +20,7 @@ namespace utils {
      * or multiple matches are found, it just returns a copy of path as given.
      *
      */
-    std::string resolve_tilde(const std::string_view path) {
+    std::string resolve_tilde(std::string_view const path) {
         static glob_t globbuf{};
         std::string result;
 
@@ -45,4 +45,4 @@ namespace utils {
 
         return result;
     }
-}
+}  // namespace utils

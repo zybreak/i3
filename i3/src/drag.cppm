@@ -20,7 +20,7 @@ class X;
 
 export {
     /** Callback for dragging */
-    using callback_t = std::function<void(Con *, const Rect&, uint32_t, uint32_t, const xcb_button_press_event_t *)>;
+    using callback_t = std::function<void(Con *, Rect const &, uint32_t, uint32_t, xcb_button_press_event_t const *)>;
 
     /**
      * This is the return value of a drag operation like drag_pointer.
@@ -44,13 +44,15 @@ export {
         DRAG_REVERT,
         DRAG_ABORT
     };
-    
+
     class InputManager {
       private:
         X &x;
         bool drain_drag_events(EV_P_ struct drag_x11_cb *dragloop);
+
       public:
-        InputManager(X &x) : x(x) {};
+        InputManager(X &x)
+            : x(x) {};
         /**
          * This function grabs your pointer and keyboard and lets you drag stuff around
          * (borders). Every time you move your mouse, an XCB_MOTION_NOTIFY event will
@@ -63,7 +65,7 @@ export {
          * callback will not be called until then.
          *
          */
-        drag_result_t drag_pointer(Con *con, const xcb_button_press_event_t *event,
+        drag_result_t drag_pointer(Con *con, xcb_button_press_event_t const *event,
                                    xcb_window_t confine_to, int cursor,
                                    bool use_threshold, callback_t callback);
     };

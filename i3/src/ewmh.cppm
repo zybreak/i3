@@ -51,7 +51,7 @@ export {
      * Updates _NET_WM_VISIBLE_NAME.
      *
      */
-    void ewmh_update_visible_name(xcb_window_t window, const char *name);
+    void ewmh_update_visible_name(xcb_window_t window, char const *name);
 
     /**
      * Updates the _NET_CLIENT_LIST hint. Used for window listers.

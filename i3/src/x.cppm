@@ -82,8 +82,7 @@ export {
             : conn(conn) {
         }
 
-       public:
-
+      public:
         /**
          * The EWMH support window that is used to indicate that an EWMH-compliant
          * window manager is present. This window is created when i3 starts and
@@ -126,7 +125,7 @@ export {
 
         int shape_base{-1};
         bool shape_supported{true};
-        
+
         explicit X();
         virtual ~X() = default;
 
@@ -201,7 +200,7 @@ export {
      * Kills the given X11 window using WM_DELETE_WINDOW (if supported).
      *
      */
-    void x_window_kill(xcb_connection_t *c, xcb_window_t window, kill_window_t kill_window);
+    void x_window_kill(xcb_connection_t * c, xcb_window_t window, kill_window_t kill_window);
 
     /**
      * Draws the decoration of the given container onto its parent.
@@ -245,7 +244,7 @@ export {
      * i3 windows in xwininfo -root -all.
      *
      */
-    void x_set_name(Con * con, const std::string &name);
+    void x_set_name(Con * con, std::string const &name);
 
     /**
      * Sets up i3 specific atoms (I3_SOCKET_PATH and I3_CONFIG_PATH)

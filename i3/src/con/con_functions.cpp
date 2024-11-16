@@ -62,7 +62,7 @@ void con_force_split_parents_redraw(Con *con) {
 }
 
 namespace con {
-    Con *first(std::deque<Con*> &queue) {
+    Con *first(std::deque<Con *> &queue) {
         if (queue.empty()) {
             return nullptr;
         }
@@ -70,7 +70,7 @@ namespace con {
         return queue.front();
     }
 
-    Con *next(Con *con, std::deque<Con*> &queue) {
+    Con *next(Con *con, std::deque<Con *> &queue) {
         auto c_itr = std::ranges::find(queue, con);
         if (c_itr == queue.end()) {
             return nullptr;
@@ -79,7 +79,7 @@ namespace con {
         return (std::next(c_itr) == queue.end()) ? nullptr : *(++c_itr);
     }
 
-    Con *previous(Con *con, std::deque<Con*> &queue) {
+    Con *previous(Con *con, std::deque<Con *> &queue) {
         auto c_itr = std::ranges::find(queue, con);
         if (c_itr == queue.end()) {
             return nullptr;
@@ -88,14 +88,14 @@ namespace con {
         return (c_itr == queue.begin()) ? nullptr : *(--c_itr);
     }
 
-    Con *last(std::deque<Con*> &queue) {
+    Con *last(std::deque<Con *> &queue) {
         if (queue.empty()) {
             return nullptr;
         }
 
         return queue.back();
     }
-}
+}  // namespace con
 
 /*
  *
@@ -118,8 +118,8 @@ static bool con_has_urgent_child(Con *con) {
  *
  */
 ConCon *con_by_window_id(xcb_window_t window) {
-    for (const auto &c : global.all_cons) {
-        auto con = dynamic_cast<ConCon*>(c);
+    for (auto const &c : global.all_cons) {
+        auto con = dynamic_cast<ConCon *>(c);
         if (con && con->get_window() != nullptr && con->get_window()->id == window) {
             return con;
         }
@@ -133,7 +133,7 @@ ConCon *con_by_window_id(xcb_window_t window) {
  *
  */
 Con *con_by_frame_id(xcb_window_t frame) {
-    for (const auto &con : global.all_cons) {
+    for (auto const &con : global.all_cons) {
         if (con->frame->id == frame) {
             return con;
         }
@@ -154,7 +154,7 @@ bool con_find_transient_for_window(Con *start, xcb_window_t target) {
            transient_con->get_window() != nullptr &&
            transient_con->get_window()->transient_for != XCB_NONE) {
         DLOG(fmt::sprintf("transient_con = 0x%08x, transient_con->window->transient_for = 0x%08x, target = 0x%08x\n",
-             transient_con->get_window()->id, transient_con->get_window()->transient_for, target));
+                          transient_con->get_window()->id, transient_con->get_window()->transient_for, target));
         if (transient_con->get_window()->transient_for == target) {
             return true;
         }
@@ -181,8 +181,8 @@ bool con_find_transient_for_window(Con *start, xcb_window_t target) {
  * TODO: priority
  *
  */
-template<typename List>
-static Con* _con_for_window(List &list, i3Window const *window, Match **store_match) {
+template <typename List>
+static Con *_con_for_window(List &list, i3Window const *window, Match **store_match) {
     for (auto &child : list) {
         for (auto &match : child->swallow) {
             if (!match->match_matches_window(window)) {
@@ -198,7 +198,7 @@ static Con* _con_for_window(List &list, i3Window const *window, Match **store_ma
             return result;
         }
     }
-    
+
     return nullptr;
 }
 
@@ -212,7 +212,7 @@ Con *con_for_window(Con const *con, i3Window const *window, Match **store_match)
         return result;
     }
 
-    if (auto ws = dynamic_cast<const WorkspaceCon*>(con); ws) {
+    if (auto ws = dynamic_cast<WorkspaceCon const *>(con); ws) {
         if (Con *result = _con_for_window(ws->floating_windows, window, store_match); result != nullptr) {
             return result;
         }
@@ -251,7 +251,7 @@ void con_toggle_fullscreen(Con *con, int fullscreen_mode) {
 static void con_set_fullscreen_mode(xcb_connection_t *conn, Con *con, fullscreen_mode_t fullscreen_mode) {
     con->fullscreen_mode = fullscreen_mode;
 
-    DLOG(fmt::sprintf("mode now: %d\n",  std::to_underlying(con->fullscreen_mode)));
+    DLOG(fmt::sprintf("mode now: %d\n", std::to_underlying(con->fullscreen_mode)));
 
     /* Send an ipc window "fullscreen_mode" event */
     global.ipcManager->ipc_send_window_event("fullscreen_mode", con);
@@ -431,9 +431,9 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
         /* Take the relative coordinates of the current output, then add them
          * to the coordinate space of the correct output */
         if (fix_coordinates && con->type == CT_FLOATING_CON) {
-            floating_fix_coordinates(dynamic_cast<FloatingCon*>(con), source_output->rect, dest_output->rect);
+            floating_fix_coordinates(dynamic_cast<FloatingCon *>(con), source_output->rect, dest_output->rect);
         } else {
-            DLOG(fmt::sprintf("Not fixing coordinates, fix_coordinates flag = %d\n",  fix_coordinates));
+            DLOG(fmt::sprintf("Not fixing coordinates, fix_coordinates flag = %d\n", fix_coordinates));
         }
     }
 
@@ -445,7 +445,7 @@ static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fi
      * moving the parent with command criteria.
      */
     Con *fullscreen = target_ws->con_get_fullscreen_con(CF_OUTPUT);
-    const bool con_has_fullscreen = con->fullscreen_mode != CF_NONE ||
+    bool const con_has_fullscreen = con->fullscreen_mode != CF_NONE ||
                                     con->con_get_fullscreen_con(CF_GLOBAL) ||
                                     con->con_get_fullscreen_con(CF_OUTPUT);
     if (con_has_fullscreen && fullscreen != nullptr) {
@@ -546,7 +546,7 @@ bool con_move_to_target(Con *con, Con *target) {
 
     if (target->type == CT_WORKSPACE && target->con_is_leaf()) {
         DLOG("target container is an empty workspace, simply moving the container there.\n");
-        con_move_to_workspace(con, dynamic_cast<WorkspaceCon*>(target), true, false, false);
+        con_move_to_workspace(con, dynamic_cast<WorkspaceCon *>(target), true, false, false);
         return true;
     }
 
@@ -606,7 +606,7 @@ void con_move_to_output(Con *con, Output *output, bool fix_coordinates) {
     auto ws = std::ranges::find_if(output->con->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
     assert(ws != output->con->output_get_content()->nodes.end());
     DLOG(fmt::sprintf("Moving con %p to output %s\n", fmt::ptr(con), output->output_primary_name()));
-    con_move_to_workspace(con, dynamic_cast<WorkspaceCon*>(*ws), fix_coordinates, false, false);
+    con_move_to_workspace(con, dynamic_cast<WorkspaceCon *>(*ws), fix_coordinates, false, false);
 }
 
 /*
@@ -615,7 +615,7 @@ void con_move_to_output(Con *con, Output *output, bool fix_coordinates) {
  * container).
  *
  */
-orientation_t con_orientation(Con const * const con) {
+orientation_t con_orientation(Con const *const con) {
     switch (con->layout) {
         case layout_t::L_SPLITV:
         /* stacking containers behave like they are in vertical orientation */
@@ -648,7 +648,7 @@ Con *con_next_focused(Con *con) {
     /* dock clients cannot be focused, so we focus the workspace instead */
     if (con->parent->type == CT_DOCKAREA) {
         DLOG("selecting workspace for dock client\n");
-        return con_descend_focused(dynamic_cast<OutputCon*>(con->parent->parent)->output_get_content());
+        return con_descend_focused(dynamic_cast<OutputCon *>(con->parent->parent)->output_get_content());
     }
     if (con->con_is_floating()) {
         con = con->parent;
@@ -804,7 +804,7 @@ static bool has_outer_gaps(gaps_t gaps) {
  * the parent container (for stacked/tabbed containers).
  *
  */
-bool con_draw_decoration_into_frame(Con const * const con) {
+bool con_draw_decoration_into_frame(Con const *const con) {
     return con->con_is_leaf() &&
            con_border_style(con) == border_style_t::BS_NORMAL &&
            (con->parent == nullptr ||
@@ -812,7 +812,7 @@ bool con_draw_decoration_into_frame(Con const * const con) {
              con->parent->layout != layout_t::L_STACKED));
 }
 
-static Rect con_border_style_rect_without_title(Con const * const con) {
+static Rect con_border_style_rect_without_title(Con const *const con) {
     if ((global.configManager->config->smart_borders == SMART_BORDERS_ON && con->con_get_workspace()->con_num_visible_children() <= 1) ||
         (global.configManager->config->smart_borders == SMART_BORDERS_NO_GAPS && !has_outer_gaps(calculate_effective_gaps(con))) ||
         (global.configManager->config->hide_edge_borders == HEBM_SMART && con->con_get_workspace()->con_num_visible_children() <= 1) ||
@@ -823,7 +823,7 @@ static Rect con_border_style_rect_without_title(Con const * const con) {
 
     adjacent_t borders_to_hide = ADJ_NONE;
     int border_width = con->current_border_width;
-    DLOG(fmt::sprintf("The border width for con is set to: %d\n",  con->current_border_width));
+    DLOG(fmt::sprintf("The border width for con is set to: %d\n", con->current_border_width));
     Rect result;
     if (con->current_border_width < 0) {
         if (con->con_is_floating()) {
@@ -832,7 +832,7 @@ static Rect con_border_style_rect_without_title(Con const * const con) {
             border_width = global.configManager->config->default_border_width;
         }
     }
-    DLOG(fmt::sprintf("Effective border width is set to: %d\n",  border_width));
+    DLOG(fmt::sprintf("Effective border width is set to: %d\n", border_width));
     /* Shortcut to avoid calling con_adjacent_borders() on dock containers. */
     border_style_t border_style = con_border_style(con);
     if (border_style == border_style_t::BS_NONE) {
@@ -874,11 +874,11 @@ static Rect con_border_style_rect_without_title(Con const * const con) {
  * amount of pixels for normal, 1pixel and borderless are different).
  *
  */
-Rect con_border_style_rect(Con const * const con) {
+Rect con_border_style_rect(Con const *const con) {
     Rect result = con_border_style_rect_without_title(con);
     if (con_border_style(con) == border_style_t::BS_NORMAL &&
         con_draw_decoration_into_frame(con)) {
-        const int deco_height = render_deco_height();
+        int const deco_height = render_deco_height();
         result.y += deco_height;
         result.height -= deco_height;
     }
@@ -889,7 +889,7 @@ Rect con_border_style_rect(Con const * const con) {
  * Returns adjacent borders of the window. We need this if hide_edge_borders is
  * enabled.
  */
-adjacent_t con_adjacent_borders(Con const * const con) {
+adjacent_t con_adjacent_borders(Con const *const con) {
     adjacent_t result = adjacent_t::ADJ_NONE;
     /* Floating windows are never adjacent to any other window, so
        don’t hide their border(s). This prevents bug #998. */
@@ -923,7 +923,7 @@ adjacent_t con_adjacent_borders(Con const * const con) {
  * For children of a CT_DOCKAREA, the border style is always none.
  *
  */
-border_style_t con_border_style(Con const * const con) {
+border_style_t con_border_style(Con const *const con) {
     if (con->fullscreen_mode == fullscreen_mode_t::CF_OUTPUT || con->fullscreen_mode == fullscreen_mode_t::CF_GLOBAL) {
         DLOG("this one is fullscreen! overriding BS_NONE\n");
         return border_style_t::BS_NONE;
@@ -1034,7 +1034,7 @@ bool con_fullscreen_permits_focusing(Con *con) {
     /* If fullscreen is per-output, the focus being in a different workspace is
      * sufficient to guarantee that change won't leave fullscreen in bad shape. */
     if (fs->fullscreen_mode == CF_OUTPUT &&
-            con->con_get_workspace() != fs->con_get_workspace()) {
+        con->con_get_workspace() != fs->con_get_workspace()) {
         return true;
     }
 

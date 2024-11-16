@@ -41,8 +41,8 @@ using namespace antlr4;
 class ipc_client;
 
 class ErrorListener : public BaseErrorListener {
-    void syntaxError(Recognizer *recognizer, Token * offendingSymbol, size_t line, size_t charPositionInLine,
-                     const std::string &msg, std::exception_ptr e) override {
+    void syntaxError(Recognizer *recognizer, Token *offendingSymbol, size_t line, size_t charPositionInLine,
+                     std::string const &msg, std::exception_ptr e) override {
         std::cout << "ERROR " << fmt::sprintf("(%d:%d): ", line, charPositionInLine) << msg << std::endl;
     }
 };
@@ -54,7 +54,7 @@ class ErrorListener : public BaseErrorListener {
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult i3_commands_new::parse_command(const std::string &input, command_parser_data &&data, BaseCommandsApplier &applier) {
+CommandResult i3_commands_new::parse_command(std::string const &input, command_parser_data &&data, BaseCommandsApplier &applier) {
     std::string padded_input = fmt::sprintf("$(%s)", input);
     ANTLRInputStream stream{padded_input};
     commandsLexer lexer{&stream};
@@ -66,7 +66,7 @@ CommandResult i3_commands_new::parse_command(const std::string &input, command_p
     CommonTokenStream tokens{&lexer};
     commandsGrammar parser{&tokens};
 
-    //parser.setErrorHandler(new BailErrorStrategy());
+    // parser.setErrorHandler(new BailErrorStrategy());
     parser.removeErrorListeners();
     parser.addErrorListener(&pListener);
 
@@ -76,7 +76,7 @@ CommandResult i3_commands_new::parse_command(const std::string &input, command_p
         throw std::runtime_error("we got a problem, sir");
     }
 
-    //cout << tree->toStringTree(&parser, true) << endl << endl;
+    // cout << tree->toStringTree(&parser, true) << endl << endl;
 
     CommandsListener listener{applier, data.gen, data.client};
     tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);

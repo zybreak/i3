@@ -21,7 +21,7 @@ static xcb_window_t create_drop_indicator(Rect rect);
  * Converts direction to a string representation.
  *
  */
-const char *direction_to_string(direction_t direction) {
+char const *direction_to_string(direction_t direction) {
     switch (direction) {
         case D_LEFT:
             return "left";
@@ -39,7 +39,7 @@ const char *direction_to_string(direction_t direction) {
  * Converts position to a string representation.
  *
  */
-static const char *position_to_string(position_t position) {
+static char const *position_to_string(position_t position) {
     switch (position) {
         case BEFORE:
             return "before";
@@ -85,8 +85,8 @@ bool PropertyHandlers::has_drop_targets() {
     /* In addition to tiling containers themselves, an visible but empty
      * workspace (in a multi-monitor scenario) also is a drop target. */
     for (auto &output : global.croot->focused) {
-        auto visible_ws = std::ranges::find_if(dynamic_cast<OutputCon*>(output)->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
-        if (visible_ws != dynamic_cast<OutputCon*>(output)->output_get_content()->nodes.end() && (*visible_ws)->con_num_children() == 0) {
+        auto visible_ws = std::ranges::find_if(dynamic_cast<OutputCon *>(output)->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
+        if (visible_ws != dynamic_cast<OutputCon *>(output)->output_get_content()->nodes.end() && (*visible_ws)->con_num_children() == 0) {
             drop_targets++;
         }
     }
@@ -99,7 +99,7 @@ bool PropertyHandlers::has_drop_targets() {
  *
  */
 static Con *find_drop_target(uint32_t x, uint32_t y) {
-    for (const auto &con : global.all_cons) {
+    for (auto const &con : global.all_cons) {
         Rect rect = con->rect;
         if (!rect.rect_contains(x, y) ||
             !is_tiling_drop_target(con)) {
@@ -121,8 +121,8 @@ static Con *find_drop_target(uint32_t x, uint32_t y) {
 }
 
 enum drop_type_t { DT_SIBLING,
-               DT_CENTER,
-               DT_PARENT
+                   DT_CENTER,
+                   DT_PARENT
 };
 
 struct callback_params {
@@ -153,7 +153,7 @@ static Rect adjust_rect(Rect rect, direction_t direction, uint32_t threshold) {
 }
 
 static bool con_on_side_of_parent(Con *con, direction_t direction) {
-    const orientation_t orientation = orientation_from_direction(direction);
+    orientation_t const orientation = orientation_from_direction(direction);
     direction_t reverse_direction;
     switch (direction) {
         case direction_t::D_LEFT:
@@ -174,14 +174,14 @@ static bool con_on_side_of_parent(Con *con, direction_t direction) {
             con_descend_direction(con->parent, reverse_direction) == con);
 }
 
-static void create_indicator(drop_type_t drop_type, direction_t direction, Con *target, Rect rect, bool draw_window, Con *con, const Rect&, uint32_t new_x, uint32_t new_y, \
-                          const xcb_button_press_event_t *event, const callback_params *params) {
+static void create_indicator(drop_type_t drop_type, direction_t direction, Con *target, Rect rect, bool draw_window, Con *con, Rect const &, uint32_t new_x, uint32_t new_y,
+                             xcb_button_press_event_t const *event, callback_params const *params) {
     if (draw_window) {
         if (*(params->indicator) == 0) {
             *(params->indicator) = create_drop_indicator(rect);
         } else {
-            const uint32_t values[4] = {rect.x, rect.y, rect.width, rect.height};
-            const uint32_t mask = XCB_CONFIG_WINDOW_X |
+            uint32_t const values[4] = {rect.x, rect.y, rect.width, rect.height};
+            uint32_t const mask = XCB_CONFIG_WINDOW_X |
                                   XCB_CONFIG_WINDOW_Y |
                                   XCB_CONFIG_WINDOW_WIDTH |
                                   XCB_CONFIG_WINDOW_HEIGHT;
@@ -237,15 +237,15 @@ static xcb_window_t create_drop_indicator(Rect rect) {
  * passed out using the callback params.
  *
  */
-static void drag_callback(Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y, const xcb_button_press_event_t *event, callback_params const *params) {
+static void drag_callback(Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y, xcb_button_press_event_t const *event, callback_params const *params) {
     /* 30% of the container (minus the parent indicator) is used to drop the
      * dragged container as a sibling to the target */
-    const double sibling_indicator_percent_of_rect = 0.3;
+    double const sibling_indicator_percent_of_rect = 0.3;
     /* Use the base decoration height and add a few pixels. This makes the
      * outer indicator generally thin but at least thick enough to cover
      * container titles */
-    const double parent_indicator_max_size = render_deco_height() + logical_px(global.x->root_screen, 5);
-    
+    double const parent_indicator_max_size = render_deco_height() + logical_px(global.x->root_screen, 5);
+
     Con *target = find_drop_target(new_x, new_y);
     if (target == nullptr) {
         return;
@@ -263,9 +263,9 @@ static void drag_callback(Con *con, const Rect &old_rect, uint32_t new_x, uint32
 
     /* Define the thresholds in pixels. The drop type depends on the cursor
      * position. */
-    const uint32_t min_rect_dimension = std::min(rect.width, rect.height);
-    const uint32_t sibling_indicator_size = std::max(logical_px(global.x->root_screen, 2), static_cast<long>(sibling_indicator_percent_of_rect * min_rect_dimension));
-    const uint32_t parent_indicator_size = std::min(
+    uint32_t const min_rect_dimension = std::min(rect.width, rect.height);
+    uint32_t const sibling_indicator_size = std::max(logical_px(global.x->root_screen, 2), static_cast<long>(sibling_indicator_percent_of_rect * min_rect_dimension));
+    uint32_t const parent_indicator_size = std::min(
         static_cast<uint32_t>(parent_indicator_max_size),
         /* For small containers, start where the sibling indicator finishes.
          * This is always at least 1 pixel. We use min() to not override the
@@ -273,11 +273,11 @@ static void drag_callback(Con *con, const Rect &old_rect, uint32_t new_x, uint32
         sibling_indicator_size - 1);
 
     /* Find which edge the cursor is closer to. */
-    const uint32_t d_left = new_x - rect.x;
-    const uint32_t d_top = new_y - rect.y;
-    const uint32_t d_right = rect.x + rect.width - new_x;
-    const uint32_t d_bottom = rect.y + rect.height - new_y;
-    const uint32_t d_min = std::min(std::min(d_left, d_right), std::min(d_top, d_bottom));
+    uint32_t const d_left = new_x - rect.x;
+    uint32_t const d_top = new_y - rect.y;
+    uint32_t const d_right = rect.x + rect.width - new_x;
+    uint32_t const d_bottom = rect.y + rect.height - new_y;
+    uint32_t const d_min = std::min(std::min(d_left, d_right), std::min(d_top, d_bottom));
     /* And move the container towards that direction. */
     if (d_left == d_min) {
         direction = D_LEFT;
@@ -292,9 +292,9 @@ static void drag_callback(Con *con, const Rect &old_rect, uint32_t new_x, uint32
         ELOG("min() is broken\n");
         std::terminate();
     }
-    const bool target_parent = (d_min < parent_indicator_size &&
+    bool const target_parent = (d_min < parent_indicator_size &&
                                 con_on_side_of_parent(target, direction));
-    const bool target_sibling = (d_min < sibling_indicator_size);
+    bool const target_sibling = (d_min < sibling_indicator_size);
     drop_type = target_parent ? DT_PARENT : (target_sibling ? DT_SIBLING : DT_CENTER);
 
     /* target == con makes sense only when we are moving away from target's parent. */
@@ -344,8 +344,8 @@ void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bo
     direction_t direction;
     drop_type_t drop_type;
     xcb_window_t indicator = 0;
-    const callback_params params{.indicator = &indicator,.target = &target, .direction = &direction, .drop_type = &drop_type};
-    auto cb = [&params](Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y, const xcb_button_press_event_t *event) {
+    callback_params const params{.indicator = &indicator, .target = &target, .direction = &direction, .drop_type = &drop_type};
+    auto cb = [&params](Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y, xcb_button_press_event_t const *event) {
         drag_callback(con, old_rect, new_x, new_y, event, &params);
     };
 
@@ -362,9 +362,9 @@ void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bo
         return;
     }
 
-    const orientation_t orientation = orientation_from_direction(direction);
-    const position_t position = position_from_direction(direction);
-    const layout_t layout = orientation == VERT ? L_SPLITV : L_SPLITH;
+    orientation_t const orientation = orientation_from_direction(direction);
+    position_t const position = position_from_direction(direction);
+    layout_t const layout = orientation == VERT ? L_SPLITV : L_SPLITH;
     con_disable_fullscreen(con);
     switch (drop_type) {
         case DT_CENTER:
@@ -391,12 +391,12 @@ void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bo
             global.ipcManager->ipc_send_window_event("move", con);
             break;
         case DT_PARENT: {
-            const bool parent_tabbed_or_stacked = (target->parent->layout == L_TABBED || target->parent->layout == L_STACKED);
+            bool const parent_tabbed_or_stacked = (target->parent->layout == L_TABBED || target->parent->layout == L_STACKED);
             DLOG(fmt::sprintf("drop %s (%s) of %s%p\n",
-                 direction_to_string(direction),
-                 position_to_string(position),
-                 parent_tabbed_or_stacked ? "tabbed/stacked " : "",
-                 fmt::ptr(target)));
+                              direction_to_string(direction),
+                              position_to_string(position),
+                              parent_tabbed_or_stacked ? "tabbed/stacked " : "",
+                              fmt::ptr(target)));
             if (parent_tabbed_or_stacked) {
                 /* When dealing with tabbed/stacked the target can be in the
                  * middle of the container. Thus, after a directional move, con

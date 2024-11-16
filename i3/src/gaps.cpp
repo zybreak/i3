@@ -18,7 +18,7 @@ import utils;
 /**
  * Calculates the effective gap sizes for a container.
  */
-gaps_t calculate_effective_gaps(Con const * const con) {
+gaps_t calculate_effective_gaps(Con const *const con) {
     WorkspaceCon *workspace = con->con_get_workspace();
     if (workspace == nullptr) {
         return gaps_t{};
@@ -34,7 +34,7 @@ gaps_t calculate_effective_gaps(Con const * const con) {
     }
 
     gaps_t gaps{};
-    
+
     gaps.inner = (workspace->gaps.inner + global.configManager->config->gaps.inner);
 
     if (global.configManager->config->smart_gaps != SMART_GAPS_INVERSE_OUTER || one_child) {
@@ -61,7 +61,7 @@ bool gaps_should_inset_con(Con *con, int children) {
         return false;
     }
 
-    const bool leaf_or_stacked_tabbed =
+    bool const leaf_or_stacked_tabbed =
         con->con_is_leaf() ||
         (con->layout == L_STACKED || con->layout == L_TABBED);
 
@@ -122,7 +122,7 @@ bool gaps_has_adjacent_container(Con *con, direction_t direction) {
 gaps_t gaps_for_workspace(WorkspaceCon *ws) {
     gaps_t gaps = (gaps_t){0, 0, 0, 0, 0};
     gaps_mask_t mask = gaps_mask_t::GAPS_INNER;
-    
+
     auto c = global.workspaceManager->get_workspace_config(ws);
     if (c) {
         gaps = c->gaps;
@@ -158,7 +158,7 @@ gaps_t gaps_for_workspace(WorkspaceCon *ws) {
  */
 void gaps_reapply_workspace_assignments() {
     for (auto &output : global.croot->nodes) {
-        Con *content = dynamic_cast<OutputCon*>(output)->output_get_content();
+        Con *content = dynamic_cast<OutputCon *>(output)->output_get_content();
         for (auto &workspace : content->nodes) {
             WorkspaceCon *ws = dynamic_cast<WorkspaceCon *>(workspace);
             if (ws == nullptr)

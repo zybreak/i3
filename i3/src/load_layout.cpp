@@ -25,7 +25,7 @@ struct parser_context {
     Con *to_focus{nullptr};
 };
 
-static void from_json(const nlohmann::json& j, gaps_t& p) {
+static void from_json(nlohmann::json const &j, gaps_t &p) {
     if (j.contains("inner")) {
         j.at("inner").get_to(p.inner);
     }
@@ -48,7 +48,6 @@ static void from_json(const nlohmann::json& j, gaps_t& p) {
  *
  */
 bool json_validate(std::istream &&fb) {
-
     setlocale(LC_NUMERIC, "C");
     bool valid = nlohmann::json::accept(fb, true);
     setlocale(LC_NUMERIC, "");
@@ -68,7 +67,7 @@ json_content_t json_determine_content(std::istream &&fb) {
         if (!j.contains("type")) {
             return json_content_t::JSON_CONTENT_CON;
         } else if (!j["type"].is_string()) {
-            return json_content_t::JSON_CONTENT_UNKNOWN; 
+            return json_content_t::JSON_CONTENT_UNKNOWN;
         }
         std::string type = j.at("type");
         if (type == "workspace") {
@@ -82,14 +81,17 @@ json_content_t json_determine_content(std::istream &&fb) {
     }
 }
 
-static Con* extract_con(nlohmann::json &j, Con *parent, parser_context &ctx);
+static Con *extract_con(nlohmann::json &j, Con *parent, parser_context &ctx);
 static void con_massage(Con *con);
 
 static void extract_basecon(nlohmann::json &j, Con *con, Con *parent, parser_context &ctx) {
-    if (j.contains("name")) j["name"].get_to(con->name);
-    if (j.contains("title_format")) j["title_format"].get_to(con->title_format);
-    if (j.contains("sticky_group")) j["sticky_group"].get_to(con->sticky_group);
-    
+    if (j.contains("name"))
+        j["name"].get_to(con->name);
+    if (j.contains("title_format"))
+        j["title_format"].get_to(con->title_format);
+    if (j.contains("sticky_group"))
+        j["sticky_group"].get_to(con->sticky_group);
+
     if (j.contains("orientation")) {
         /* Upgrade path from older versions of i3 (doing an inplace restart
          * to a newer version):
@@ -107,7 +109,7 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent, parser_con
             LOG(std::format("Unhandled orientation: {}", orientation));
         }
     }
-    
+
     if (j.contains("border")) {
         std::string buf = j["border"].get<std::string>();
         if (buf == "none") {
@@ -127,7 +129,7 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent, parser_con
             LOG(std::format("Unhandled \"border\": {}", buf));
         }
     }
-    
+
     if (j.contains("layout")) {
         std::string buf = j["layout"].get<std::string>();
         if (buf == "default") {
@@ -149,7 +151,7 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent, parser_con
             LOG(std::format("Unhandled \"layout\": {}", buf));
         }
     }
-   
+
     if (j.contains("last_split_layout")) {
         std::string buf = j["last_split_layout"].get<std::string>();
         if (buf == "splith") {
@@ -160,7 +162,7 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent, parser_con
             LOG(std::format("Unhandled \"last_splitlayout\": {}", buf));
         }
     }
-   
+
     if (j.contains("floating")) {
         std::string buf = j["floating"].get<std::string>();
         if (buf == "auto_off") {
@@ -173,7 +175,7 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent, parser_con
             con->floating = FLOATING_USER_ON;
         }
     }
-    
+
     if (j.contains("percent")) {
         con->percent = j["percent"];
     }
@@ -250,7 +252,7 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent, parser_con
         }
         /* Clear the list of focus mappings */
         for (auto mapping = std::rbegin(focus_mappings); mapping != std::rend(focus_mappings); mapping++) {
-            LOG(fmt::sprintf("focus (reverse) %d\n",  (*mapping)));
+            LOG(fmt::sprintf("focus (reverse) %d\n", (*mapping)));
             auto focus_it = std::ranges::find_if(con->focused, [&mapping](Con *c) { return c->old_id == *mapping; });
             if (focus_it != con->focused.end()) {
                 Con *c = *focus_it;
@@ -279,28 +281,27 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent, parser_con
             global.x->con_init(child);
         }
     }
-
 }
 
-static RootCon* extract_rootcon(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static RootCon *extract_rootcon(nlohmann::json &j, Con *parent, parser_context &ctx) {
     auto *con = new RootCon{true};
     extract_basecon(j, con, parent, ctx);
 
     if (j.contains("previous_workspace_name")) {
         global.workspaceManager->previous_workspace_name = j["previous_workspace_name"].get<std::string>();
     }
-    
+
     return con;
 }
 
-static OutputCon* extract_outputcon(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static OutputCon *extract_outputcon(nlohmann::json &j, Con *parent, parser_context &ctx) {
     auto *con = new OutputCon{true};
     extract_basecon(j, con, parent, ctx);
 
     return con;
 }
 
-static ConCon* extract_concon(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static ConCon *extract_concon(nlohmann::json &j, Con *parent, parser_context &ctx) {
     auto *con = new ConCon{nullptr, true};
     extract_basecon(j, con, parent, ctx);
 
@@ -319,21 +320,21 @@ static ConCon* extract_concon(nlohmann::json &j, Con *parent, parser_context &ct
     return con;
 }
 
-static FloatingCon* extract_floatingcon(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static FloatingCon *extract_floatingcon(nlohmann::json &j, Con *parent, parser_context &ctx) {
     auto *con = new FloatingCon{true};
     extract_basecon(j, con, parent, ctx);
 
     return con;
 }
 
-static DockCon* extract_dockcon(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static DockCon *extract_dockcon(nlohmann::json &j, Con *parent, parser_context &ctx) {
     auto *con = new DockCon{true};
     extract_basecon(j, con, parent, ctx);
 
     return con;
 }
 
-static WorkspaceCon* extract_workspacecon(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static WorkspaceCon *extract_workspacecon(nlohmann::json &j, Con *parent, parser_context &ctx) {
     auto *con = new WorkspaceCon{true};
     extract_basecon(j, con, parent, ctx);
 
@@ -350,15 +351,15 @@ static WorkspaceCon* extract_workspacecon(nlohmann::json &j, Con *parent, parser
         }
     }
 
-    if (j.contains("num")) con->num = j["num"];
-
+    if (j.contains("num"))
+        con->num = j["num"];
 
     if (j.contains("floating_nodes")) {
         for (auto &child_json : j["floating_nodes"]) {
             DLOG("New floating_node\n");
             Con *child_con = extract_con(child_json, con, ctx);
-            
-            if (auto *child = dynamic_cast<FloatingCon*>(child_con); child != nullptr) {
+
+            if (auto *child = dynamic_cast<FloatingCon *>(child_con); child != nullptr) {
                 child->name.clear();
                 DLOG(fmt::sprintf("Parent is workspace = %p\n", fmt::ptr(con)));
 
@@ -376,32 +377,31 @@ static WorkspaceCon* extract_workspacecon(nlohmann::json &j, Con *parent, parser
 
     if (j.contains("gaps")) {
         j.at("gaps").get_to(con->gaps);
-       
     }
 
     return con;
 }
 
-static Con* extract_con(nlohmann::json &j, Con *parent, parser_context &ctx) {
-   std::string type = j.value("type", "con");
-   Con *con{};
-   
-   if (type == "root") {
-       con = extract_rootcon(j, parent, ctx);
-   } else if (type == "output") {
-       con = extract_outputcon(j, parent, ctx);
-   } else if (type == "con") {
-       con = extract_concon(j, parent, ctx);
-   } else if (type == "floating_con") {
-       con = extract_floatingcon(j, parent, ctx);
-   } else if (type == "dockarea") {
-       con = extract_dockcon(j, parent, ctx);
-   } else if (type == "workspace") {
-       con = extract_workspacecon(j, parent, ctx);
-   } else {
-       LOG(std::format("Unhandled \"type\": {}", type));
-       con = extract_concon(j, parent, ctx);
-   }
+static Con *extract_con(nlohmann::json &j, Con *parent, parser_context &ctx) {
+    std::string type = j.value("type", "con");
+    Con *con{};
+
+    if (type == "root") {
+        con = extract_rootcon(j, parent, ctx);
+    } else if (type == "output") {
+        con = extract_outputcon(j, parent, ctx);
+    } else if (type == "con") {
+        con = extract_concon(j, parent, ctx);
+    } else if (type == "floating_con") {
+        con = extract_floatingcon(j, parent, ctx);
+    } else if (type == "dockarea") {
+        con = extract_dockcon(j, parent, ctx);
+    } else if (type == "workspace") {
+        con = extract_workspacecon(j, parent, ctx);
+    } else {
+        LOG(std::format("Unhandled \"type\": {}", type));
+        con = extract_concon(j, parent, ctx);
+    }
 
     return con;
 }
@@ -422,7 +422,7 @@ static void con_massage(Con *con) {
 
     if (con->type == con_type_t::CT_WORKSPACE) {
         /* Ensure the workspace has a name. */
-        DLOG(fmt::sprintf("Attaching workspace. name = %s\n",  con->name));
+        DLOG(fmt::sprintf("Attaching workspace. name = %s\n", con->name));
         if (con->name.empty()) {
             con->name = "unnamed";
         }
@@ -436,7 +436,7 @@ static void con_massage(Con *con) {
         }
 
         /* Set num accordingly so that i3bar will properly sort it. */
-        auto ws = dynamic_cast<WorkspaceCon*>(con);
+        auto ws = dynamic_cast<WorkspaceCon *>(con);
         ws->num = utils::ws_name_to_number(con->name);
     }
 
@@ -456,7 +456,7 @@ static void con_massage(Con *con) {
         if (con->rect == Rect{}) {
             DLOG("Geometry not set, combining children\n");
             for (auto &child : con->nodes) {
-                DLOG(fmt::sprintf("child geometry: %d x %d\n",  child->get_geometry().width, child->get_geometry().height));
+                DLOG(fmt::sprintf("child geometry: %d x %d\n", child->get_geometry().width, child->get_geometry().height));
                 con->rect.width += child->get_geometry().width;
                 con->rect.height = std::max(con->rect.height, child->get_geometry().height);
             }
@@ -467,13 +467,13 @@ static void con_massage(Con *con) {
 
     /* Fix erroneous JSON input regarding floating containers to avoid
      * crashing, see #3901. */
-    const con_floating_t old_floating_mode = con->floating;
+    con_floating_t const old_floating_mode = con->floating;
     if (std::to_underlying(old_floating_mode) >= std::to_underlying(con_floating_t::FLOATING_AUTO_ON) && con->parent->type != con_type_t::CT_FLOATING_CON) {
         LOG("Fixing floating node without CT_FLOATING_CON parent\n");
 
         /* Force floating_enable to work */
         con->floating = con_floating_t::FLOATING_AUTO_OFF;
-        floating_enable(dynamic_cast<ConCon*>(con), false);
+        floating_enable(dynamic_cast<ConCon *>(con), false);
         con->floating = old_floating_mode;
     }
 }
@@ -486,7 +486,7 @@ void tree_append_json(Con *parent, std::istream &&fb) {
 
         LOG("attaching");
         con->con_attach(parent, true);
-        
+
         con_massage(con);
 
         /* In case not all containers were restored, we need to fix the
@@ -497,10 +497,10 @@ void tree_append_json(Con *parent, std::istream &&fb) {
         if (ctx.to_focus != nullptr) {
             ctx.to_focus->con_activate();
         }
-        
+
         LOG("Creating window\n");
         global.x->con_init(con);
     } catch (std::exception &e) {
-        ELOG(fmt::sprintf("JSON parsing error: %s\n",  e.what()));
+        ELOG(fmt::sprintf("JSON parsing error: %s\n", e.what()));
     }
 }

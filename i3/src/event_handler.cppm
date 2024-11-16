@@ -12,7 +12,7 @@ import :x;
 export {
     // TODO: zybreak Rename to Event or EventLoop or something
     class EventHandler {
-       private:
+      private:
         PropertyHandlers &handlers;
         X &x;
         /* We keep the xcb_prepare watcher around to be able to enable and disable it
@@ -20,10 +20,10 @@ export {
         ev_prepare *xcb_prepare;
         ev_io *xcb_watcher;
         void xcb_prepare_cb(EV_P_ ev_prepare *w, int revents);
-       public:
 
+      public:
         EventHandler() = delete;
-        EventHandler(const EventHandler &) = delete;
+        EventHandler(EventHandler const &) = delete;
         EventHandler(X &x, PropertyHandlers &handlers);
         ~EventHandler();
 

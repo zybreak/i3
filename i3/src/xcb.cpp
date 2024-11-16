@@ -40,7 +40,7 @@ xcb_window_t create_window(xcb_connection_t *conn, Rect dims,
     xcb_void_cookie_t gc_cookie = xcb_create_window(conn,
                                                     depth,
                                                     result,                                  /* the window id */
-                                                    global.x->root,                                    /* parent == root */
+                                                    global.x->root,                          /* parent == root */
                                                     dims.x, dims.y, dims.width, dims.height, /* dimensions */
                                                     0,                                       /* border = 0, we draw our own */
                                                     window_class,
@@ -50,7 +50,7 @@ xcb_window_t create_window(xcb_connection_t *conn, Rect dims,
 
     xcb_generic_error_t *error = xcb_request_check(conn, gc_cookie);
     if (error != nullptr) {
-        ELOG(fmt::sprintf("Could not create window. Error code: %d.\n",  error->error_code));
+        ELOG(fmt::sprintf("Could not create window. Error code: %d.\n", error->error_code));
     }
 
     /* Set the cursor */
@@ -95,7 +95,7 @@ void fake_absolute_configure_notify(Con *con) {
 
     DLOG(fmt::sprintf("fake rect = (%d, %d, %d, %d)\n", generatedEvent.x, generatedEvent.y, generatedEvent.width, generatedEvent.height));
 
-    xcb_send_event(**global.x, false, con->get_window()->id, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *) &generatedEvent);
+    xcb_send_event(**global.x, false, con->get_window()->id, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *)&generatedEvent);
     xcb_flush(**global.x);
 }
 
@@ -257,15 +257,15 @@ void xcb_remove_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_a
     xcb_grab_server(conn);
 
     xcb_get_property_reply_t *reply =
-            xcb_get_property_reply(conn,
-                                   xcb_get_property(conn, false, window, property, XCB_GET_PROPERTY_TYPE_ANY, 0, 4096),
-                                 nullptr);
+        xcb_get_property_reply(conn,
+                               xcb_get_property(conn, false, window, property, XCB_GET_PROPERTY_TYPE_ANY, 0, 4096),
+                               nullptr);
     if (reply == nullptr || xcb_get_property_value_length(reply) == 0) {
         free(reply);
         xcb_ungrab_server(conn);
         return;
     }
-    auto *atoms = (xcb_atom_t*)xcb_get_property_value(reply);
+    auto *atoms = (xcb_atom_t *)xcb_get_property_value(reply);
     if (atoms == nullptr) {
         free(reply);
         xcb_ungrab_server(conn);
@@ -273,7 +273,7 @@ void xcb_remove_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_a
     }
 
     {
-        const int current_size = xcb_get_property_value_length(reply) / (reply->format / 8);
+        int const current_size = xcb_get_property_value_length(reply) / (reply->format / 8);
         std::vector<xcb_atom_t> values{};
         values.reserve(current_size);
         for (int i = 0; i < current_size; i++) {
@@ -296,6 +296,6 @@ void xcb_remove_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_a
 void xcb_grab_buttons(xcb_window_t window, std::set<int> &buttons) {
     for (int i : buttons) {
         global.x->conn->grab_button(false, window, XCB_EVENT_MASK_BUTTON_PRESS, XCB_GRAB_MODE_SYNC,
-                        XCB_GRAB_MODE_ASYNC, global.x->root, XCB_NONE, i, XCB_BUTTON_MASK_ANY);
+                                    XCB_GRAB_MODE_ASYNC, global.x->root, XCB_NONE, i, XCB_BUTTON_MASK_ANY);
     }
 }

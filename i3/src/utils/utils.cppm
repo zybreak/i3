@@ -6,18 +6,17 @@ export module utils;
 import std;
 
 export namespace utils {
-    
+
     /*
      * Parses the workspace name as a number. Returns -1 if the workspace should be
      * interpreted as a "named workspace".
      *
      */
-    __attribute__((pure))
-    int ws_name_to_number(const std::string &name) {
+    __attribute__((pure)) int ws_name_to_number(std::string const &name) {
         /* positive integers and zero are interpreted as numbers */
         try {
             return std::stoi(name, nullptr, 10);
-        } catch (const std::logic_error &e) {
+        } catch (std::logic_error const &e) {
             return -1;
         }
     }
@@ -27,7 +26,7 @@ export namespace utils {
      * This is a convenience wrapper checking the parsing result. It returns true
      * if the number could be parsed.
      */
-    bool parse_long(const char *str, long *out, int base) {
+    bool parse_long(char const *str, long *out, int base) {
         char *end = nullptr;
         long result = std::strtol(str, &end, base);
         if (result == LONG_MIN || result == LONG_MAX || result < 0 || (end != nullptr && *end != '\0')) {
@@ -45,14 +44,12 @@ export namespace utils {
      * size, or NULL if -1 is returned.
      *
      */
-    std::ifstream slurp(const std::filesystem::path &path) {
-
-
+    std::ifstream slurp(std::filesystem::path const &path) {
         std::ifstream fileStream(path);
         if (!fileStream) {
             throw std::runtime_error(std::format("Cannot open file \"{}\"", path.native()));
         }
-        
+
         return fileStream;
     }
 
@@ -62,7 +59,7 @@ export namespace utils {
      * or multiple matches are found, it just returns a copy of path as given.
      *
      */
-    std::string resolve_tilde(const std::string_view path);
+    std::string resolve_tilde(std::string_view const path);
 
     /**
      * Parses a string (or word, if as_word is true). Extracted out of
@@ -71,13 +68,13 @@ export namespace utils {
      *
      */
     std::optional<std::string> parse_string(std::string::const_iterator &walk, bool as_word);
-}
+}  // namespace utils
 
 /**
  * Reports whether str represents the enabled state (1, yes, true, …).
  *
  */
-export bool boolstr(const char *str);
+export bool boolstr(char const *str);
 
 /**
  * Safe-wrapper around realloc which exits if realloc returns NULL (meaning
@@ -91,33 +88,33 @@ export void *srealloc(void *ptr, size_t size);
  * there is no more memory available)
  *
  */
-export char *sstrdup(const char *str);
+export char *sstrdup(char const *str);
 
 /**
  * Safe-wrapper around strndup which exits if strndup returns NULL (meaning that
  * there is no more memory available)
  *
  */
-export char *sstrndup(const char *str, size_t size);
+export char *sstrndup(char const *str, size_t size);
 
 /**
  * Safe-wrapper around asprintf which exits if it returns -1 (meaning that
  * there is no more memory available)
  *
  */
-export int sasprintf(char **strp, const char *fmt, ...);
+export int sasprintf(char **strp, char const *fmt, ...);
 
 /**
  * Returns the name of a temporary file with the specified prefix.
  *
  */
-export std::optional<std::string> get_process_filename(const char *prefix);
+export std::optional<std::string> get_process_filename(char const *prefix);
 
 /**
  * Emulates mkdir -p (creates any missing folders)
  *
  */
-export bool mkdirp(const std::filesystem::path &path, std::filesystem::perms mode);
+export bool mkdirp(std::filesystem::path const &path, std::filesystem::perms mode);
 
 /**
  * Puts the given socket file descriptor into non-blocking mode or dies if
@@ -136,7 +133,7 @@ export void set_nonblock(int sockfd);
  * This has to be done by the caller.
  *
  */
-export uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *hex);
+export uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, char const *hex);
 
 /* Represents a color split by color channel. */
 export struct color_t {
@@ -148,9 +145,8 @@ export struct color_t {
     /* The colorpixel we use for direct XCB calls. */
     uint32_t colorpixel;
 
-    auto operator<=>(const color_t &r) const = default;
+    auto operator<=>(color_t const &r) const = default;
 };
-
 
 /**
  * Part of the struct Config. It makes sense to group colors for background,
@@ -163,6 +159,6 @@ export struct Colortriple {
     color_t text;
     color_t indicator;
     color_t child_border;
-    
-    auto operator<=>(const Colortriple &r) const = default;
+
+    auto operator<=>(Colortriple const &r) const = default;
 };

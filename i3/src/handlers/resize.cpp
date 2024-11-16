@@ -33,11 +33,11 @@ struct callback_params {
     bool *threshold_exceeded;
 };
 
-static void resize_callback(Con *con, const Rect&, uint32_t new_x, uint32_t new_y,
-                            const xcb_button_press_event_t *event, callback_params const *params) {
+static void resize_callback(Con *con, Rect const &, uint32_t new_x, uint32_t new_y,
+                            xcb_button_press_event_t const *event, callback_params const *params) {
     Con *output = params->output;
-    DLOG(fmt::sprintf("new x = %d, y = %d\n",  new_x, new_y));
-    
+    DLOG(fmt::sprintf("new x = %d, y = %d\n", new_x, new_y));
+
     if (!*params->threshold_exceeded) {
         xcb_map_window(**global.x, params->helpwin);
         /* Warp pointer in the same way as resize_graphical_handler() would do
@@ -77,8 +77,8 @@ static void resize_callback(Con *con, const Rect&, uint32_t new_x, uint32_t new_
 }
 
 void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orientation_t orientation,
-                              const xcb_button_press_event_t *event,
-                              bool use_threshold) {
+                                                xcb_button_press_event_t const *event,
+                                                bool use_threshold) {
     Con *output = first->con_get_output();
     DLOG(fmt::sprintf("x = %d, width = %d\n", output->rect.x, output->rect.width));
     DLOG(fmt::sprintf("first = %p / %s\n", fmt::ptr(first), first->name));
@@ -95,7 +95,7 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
 
     /* Open a new window, the resizebar. Grab the pointer and move the window
      * around as the user moves the pointer. */
-    xcb_window_t grabwin = create_window((xcb_connection_t*)**global.x, output->rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
+    xcb_window_t grabwin = create_window((xcb_connection_t *)**global.x, output->rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
                                          XCB_WINDOW_CLASS_INPUT_ONLY, XCURSOR_CURSOR_POINTER, true, mask, values);
 
     /* Keep track of the coordinate orthogonal to motion so we can determine the
@@ -115,9 +115,9 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
     if (orientation == HORIZ) {
         helprect.width = logical_px(global.x->root_screen, 2);
         helprect.height = second->rect.height;
-        const uint32_t ffirst_right = ffirst->rect.x + ffirst->rect.width;
-        const uint32_t gap = (fsecond->rect.x - ffirst_right);
-        const uint32_t middle = fsecond->rect.x - (gap / 2);
+        uint32_t const ffirst_right = ffirst->rect.x + ffirst->rect.width;
+        uint32_t const gap = (fsecond->rect.x - ffirst_right);
+        uint32_t const middle = fsecond->rect.x - (gap / 2);
         DLOG(fmt::sprintf("ffirst->rect = {.x = %u, .width = %u}\n", ffirst->rect.x, ffirst->rect.width));
         DLOG(fmt::sprintf("fsecond->rect = {.x = %u, .width = %u}\n", fsecond->rect.x, fsecond->rect.width));
         DLOG(fmt::sprintf("gap = %u, middle = %u\n", gap, middle));
@@ -125,9 +125,9 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
     } else {
         helprect.width = second->rect.width;
         helprect.height = logical_px(global.x->root_screen, 2);
-        const uint32_t ffirst_bottom = ffirst->rect.y + ffirst->rect.height;
-        const uint32_t gap = (fsecond->rect.y - ffirst_bottom);
-        const uint32_t middle = fsecond->rect.y - (gap / 2);
+        uint32_t const ffirst_bottom = ffirst->rect.y + ffirst->rect.height;
+        uint32_t const gap = (fsecond->rect.y - ffirst_bottom);
+        uint32_t const middle = fsecond->rect.y - (gap / 2);
         DLOG(fmt::sprintf("ffirst->rect = {.y = %u, .height = %u}\n", ffirst->rect.y, ffirst->rect.height));
         DLOG(fmt::sprintf("fsecond->rect = {.y = %u, .height = %u}\n", fsecond->rect.y, fsecond->rect.height));
         DLOG(fmt::sprintf("gap = %u, middle = %u\n", gap, middle));
@@ -140,7 +140,7 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
     mask |= XCB_CW_OVERRIDE_REDIRECT;
     values[1] = 1;
 
-    xcb_window_t helpwin = create_window((xcb_connection_t*)**global.x, helprect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
+    xcb_window_t helpwin = create_window((xcb_connection_t *)**global.x, helprect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
                                          XCB_WINDOW_CLASS_INPUT_OUTPUT, (orientation == HORIZ ? XCURSOR_CURSOR_RESIZE_HORIZONTAL : XCURSOR_CURSOR_RESIZE_VERTICAL), false, mask, values);
 
     if (!use_threshold) {
@@ -169,11 +169,11 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
      * runs its own event-loop) in case if there are unrendered updates. */
     tree_render();
 
-    auto cb = [&params](Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y,
-                        const xcb_button_press_event_t *event) {
-      resize_callback(con, old_rect, new_x, new_y, event, &params);
+    auto cb = [&params](Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y,
+                        xcb_button_press_event_t const *event) {
+        resize_callback(con, old_rect, new_x, new_y, event, &params);
     };
-    
+
     /* `drag_pointer' blocks until the drag is completed. */
     drag_result_t drag_result = inputManager.drag_pointer(nullptr, event, grabwin, 0, use_threshold, cb);
 
@@ -187,7 +187,7 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
     }
 
     int pixels = (new_position - initial_position);
-    DLOG(fmt::sprintf("Done, pixels = %d\n",  pixels));
+    DLOG(fmt::sprintf("Done, pixels = %d\n", pixels));
 
     /* No change; no action needed. */
     if (pixels == 0) {
@@ -197,7 +197,7 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
     /* if we got thus far, the containers must have valid percentages. */
     assert(first->percent > 0.0);
     assert(second->percent > 0.0);
-    const bool result = resize_neighboring_cons(first, second, pixels, 0);
+    bool const result = resize_neighboring_cons(first, second, pixels, 0);
     DLOG(fmt::sprintf("Graphical resize %s: first->percent = %f, second->percent = %f.\n",
-         result ? "successful" : "failed", first->percent, second->percent));
+                      result ? "successful" : "failed", first->percent, second->percent));
 }

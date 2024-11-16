@@ -13,5 +13,4 @@ class Con;
 export module i3:tiling_drag;
 
 export {
-
 }

@@ -19,7 +19,7 @@ using namespace std::literals;
 
 static string unquote(std::string &&quoted) {
     if (quoted.starts_with("\"") && quoted.ends_with("\"")) {
-        return quoted.substr(1, quoted.length()-2);
+        return quoted.substr(1, quoted.length() - 2);
     } else {
         return quoted;
     }
@@ -33,7 +33,7 @@ static string toString(antlr4::tree::ParseTree *p) {
         str.append(" ");
     } else {
         for (auto *c : p->children) {
-            if (dynamic_cast<configGrammar::Command_execContext*>(p) != nullptr) {
+            if (dynamic_cast<configGrammar::Command_execContext *>(p) != nullptr) {
                 str.append(toString(c));
             } else {
                 str.append(unquote(toString(c)));
@@ -46,26 +46,26 @@ static string toString(antlr4::tree::ParseTree *p) {
 }
 
 class VariableListener : public configGrammarBaseListener {
-private:
-    const BaseResourceDatabase &resourceDatabase;
-public:
+  private:
+    BaseResourceDatabase const &resourceDatabase;
+
+  public:
     std::map<std::string, std::string> variables{};
 
-    explicit VariableListener(const BaseResourceDatabase &rd) : resourceDatabase(rd) {
+    explicit VariableListener(BaseResourceDatabase const &rd)
+        : resourceDatabase(rd) {
     }
 
     void enterSet(configGrammar::SetContext *ctx) override {
         auto variable = ctx->VAR()->getText();
-        const string quoted = unquote(ctx->STRING()->getText());
+        string const quoted = unquote(ctx->STRING()->getText());
 
         variables[variable] = quoted;
     }
-
 };
 
 class StatementListener : public configGrammarBaseListener {
-
-private:
+  private:
     BaseConfigApplier &applier;
     std::map<std::string, std::string> variables;
     bool inMode = false;
@@ -90,14 +90,14 @@ private:
         return replaced;
     }
 
-    criteria_state* handle_criteria(configGrammar::CriteriaContext *pContext) {
-        criteria_state* st = applier.criteria_create(0);
+    criteria_state *handle_criteria(configGrammar::CriteriaContext *pContext) {
+        criteria_state *st = applier.criteria_create(0);
 
         for (auto &c : pContext->criterion()) {
             if (c->value_criterion() != nullptr) {
                 applier.criteria_add(st,
-                    c->value_criterion()->children[0]->getText().c_str(),
-                    unquote(c->value_criterion()->children[2]->getText()).c_str());
+                                     c->value_criterion()->children[0]->getText().c_str(),
+                                     unquote(c->value_criterion()->children[2]->getText()).c_str());
             } else {
                 applier.criteria_add(st, c->children[0]->getText().c_str(), nullptr);
             }
@@ -106,15 +106,16 @@ private:
         return st;
     }
 
-public:
-    StatementListener(BaseConfigApplier &listener, std::map<std::string, std::string> &&variables) : applier{listener}, variables{variables} {
+  public:
+    StatementListener(BaseConfigApplier &listener, std::map<std::string, std::string> &&variables)
+        : applier{listener}, variables{variables} {
         for (auto &v : variables) {
             DLOG(fmt::format("set {} = \"{}\"", v.first, v.second));
         }
     }
 
     void enterExec(configGrammar::ExecContext *ctx) override {
-        const string text = replace_var(ctx->children[0]->getText());
+        string const text = replace_var(ctx->children[0]->getText());
         auto options = ctx->OPTION();
         auto no_startup_id = std::ranges::find_if(options, [](auto *x) { return x->getText() == "--no-startup-id"; }) != options.end();
 
@@ -122,19 +123,19 @@ public:
 
         applier.exec(text, no_startup_id, arguments);
     }
-    
+
     void enterExec_always(configGrammar::Exec_alwaysContext *ctx) override {
-        const string text = replace_var(ctx->children[0]->getText());
+        string const text = replace_var(ctx->children[0]->getText());
         auto options = ctx->OPTION();
         auto no_startup_id = std::ranges::find_if(options, [](auto *x) { return x->getText() == "--no-startup-id"; }) != options.end();
-        
+
         auto arguments = replace_var(unquote(ctx->STRING()->getText()));
 
         applier.exec(text, no_startup_id, arguments);
     }
 
     void enterPopup_during_fullscreen(configGrammar::Popup_during_fullscreenContext *ctx) override {
-        const string value = replace_var(unquote(ctx->STRING()->getText()));
+        string const value = replace_var(unquote(ctx->STRING()->getText()));
         applier.popup_during_fullscreen(value);
     }
 
@@ -222,9 +223,7 @@ public:
     }
 
     void enterFor_window(configGrammar::For_windowContext *ctx) override {
-        auto arguments = ctx->commands()->command()
-                    | std::ranges::views::transform([](auto *x) { return toString(x); })
-                    | std::ranges::to<std::vector<std::string>>();
+        auto arguments = ctx->commands()->command() | std::ranges::views::transform([](auto *x) { return toString(x); }) | std::ranges::to<std::vector<std::string>>();
 
         auto match = handle_criteria(ctx->criteria());
         for (auto argument : arguments) {
@@ -282,13 +281,11 @@ public:
     void enterBinding(configGrammar::BindingContext *ctx) override {
         auto bindtype = replace_var(ctx->children[0]->getText());
 
-        auto options = ctx->OPTION() | std::ranges::views::transform([](const auto &opt) { return opt->getText(); }) | std::ranges::to<std::vector<std::string>>();
+        auto options = ctx->OPTION() | std::ranges::views::transform([](auto const &opt) { return opt->getText(); }) | std::ranges::to<std::vector<std::string>>();
 
-        auto commands = ctx->commands()->command()
-                       | std::ranges::views::transform([](auto *x) { return toString(x); })
-                       | std::ranges::to<std::vector<std::string>>();
+        auto commands = ctx->commands()->command() | std::ranges::views::transform([](auto *x) { return toString(x); }) | std::ranges::to<std::vector<std::string>>();
 
-        auto release = std::ranges::find_if(options, [](const auto &opt) { return opt == "--release"; }) != options.end();
+        auto release = std::ranges::find_if(options, [](auto const &opt) { return opt == "--release"; }) != options.end();
 
         auto border = std::ranges::find_if(options, [](auto &text) { return text == "--border"; }) != options.end();
 
@@ -321,50 +318,50 @@ public:
         }
     }
 
-    void enterEveryRule(antlr4::ParserRuleContext *ctx) override {}
+    void enterEveryRule(antlr4::ParserRuleContext *ctx) override {
+    }
 
-    void visitTerminal(antlr4::tree::TerminalNode *node) override {}
+    void visitTerminal(antlr4::tree::TerminalNode *node) override {
+    }
 
     void visitErrorNode(antlr4::tree::ErrorNode *node) override {
         ELOG(node->getText());
         throw std::runtime_error("error");
     }
-
 };
 
-NewParser::NewParser(std::filesystem::path, std::istream &stream, BaseResourceDatabase &rd, BaseConfigApplier &applier) : BaseParser(applier, rd), stream(stream)  {
+NewParser::NewParser(std::filesystem::path, std::istream &stream, BaseResourceDatabase &rd, BaseConfigApplier &applier)
+    : BaseParser(applier, rd), stream(stream) {
 }
 
 class ErrorListener : public BaseErrorListener {
-    void syntaxError(Recognizer *recognizer, Token * offendingSymbol, size_t line, size_t charPositionInLine,
-                             const std::string &msg, std::exception_ptr e) override {
+    void syntaxError(Recognizer *recognizer, Token *offendingSymbol, size_t line, size_t charPositionInLine,
+                     std::string const &msg, std::exception_ptr e) override {
         std::string errormsg = fmt::sprintf("(%d:%d): %s", line, charPositionInLine, msg);
         throw std::runtime_error(errormsg);
     }
-
 };
 
 void NewParser::parse_file() {
-
     ANTLRInputStream input{stream};
     configLexer lexer{&input};
     std::shared_ptr<BailErrorStrategy> handler = std::make_shared<BailErrorStrategy>();
 
-    //lexer.removeErrorListeners();
-    //ErrorListener pListener{};
-    //lexer.addErrorListener(&pListener);
+    // lexer.removeErrorListeners();
+    // ErrorListener pListener{};
+    // lexer.addErrorListener(&pListener);
 
     CommonTokenStream tokens{&lexer};
-    
+
     if (lexer.getNumberOfSyntaxErrors() > 0) {
         throw std::runtime_error("we got a problem, sir");
     }
-    
+
     configGrammar parser{&tokens};
 
     parser.setErrorHandler(handler);
-    //parser.removeErrorListeners();
-    //parser.addErrorListener(&pListener);
+    // parser.removeErrorListeners();
+    // parser.addErrorListener(&pListener);
 
     auto tree = parser.config();
 
@@ -372,7 +369,7 @@ void NewParser::parse_file() {
         throw std::runtime_error("we got a problem, sir");
     }
 
-    //cout << tree->toStringTree(&parser, true) << endl << endl;
+    // cout << tree->toStringTree(&parser, true) << endl << endl;
 
     // 1st pass, store all variables
     VariableListener variableListener{resourceDatabase};

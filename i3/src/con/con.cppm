@@ -34,7 +34,7 @@ export {
         uint32_t w;
         uint32_t h;
 
-        auto operator<=>(const width_height &r) const = default;
+        auto operator<=>(width_height const &r) const = default;
     };
 
     /**
@@ -53,7 +53,7 @@ export {
         layout_t parent_layout;
         bool con_is_leaf;
 
-        auto operator<=>(const deco_render_params &r) const = default;
+        auto operator<=>(deco_render_params const &r) const = default;
     };
 
     class WorkspaceCon;
@@ -78,7 +78,6 @@ export {
      */
     class Con {
       private:
-
         /**
          * Make all parent containers urgent if con is urgent or clear the urgent flag
          * of all parent containers if there are no more urgent children left.
@@ -90,7 +89,7 @@ export {
         ev_timer *urgency_timer{};
         std::function<void(Con *)> urgency_timer_cb{};
 
-    public:
+      public:
         bool mapped{};
 
         /* Should this container be marked urgent? This gets set when the window
@@ -187,9 +186,9 @@ export {
 
         /* The colormap for this con if a custom one is used. */
         xcb_colormap_t colormap{};
-        
+
         void stop_urgency_timer();
-        void start_urgency_timer(float after, float repeat, std::function<void(Con*)> cb);
+        void start_urgency_timer(float after, float repeat, std::function<void(Con *)> cb);
 
         /** callbacks */
         virtual void on_remove_child();
@@ -414,25 +413,25 @@ export {
          *
          */
         void con_set_urgency(bool urgent);
-        
-        virtual i3Window* get_window() {
+
+        virtual i3Window *get_window() {
             return nullptr;
         }
-        
-        virtual Rect& get_geometry() {
+
+        virtual Rect &get_geometry() {
             static Rect r{};
             return r;
         }
-        
-        virtual Rect& get_window_rect() {
+
+        virtual Rect &get_window_rect() {
             static Rect r{};
             return r;
         }
-        
+
         virtual int get_window_icon_padding() {
             return -1;
         }
-        
+
         Con() = delete;
 
         /**
@@ -441,18 +440,17 @@ export {
          */
         virtual ~Con();
 
-    protected:
+      protected:
         /**
          * Create a new container (and attach it to the given parent, if not NULL).
          * This function only initializes the data structures.
          *
          */
         explicit Con(bool skeleton);
-
     };
 
     class RootCon : public Con {
-       public:
+      public:
         RootCon(bool skeleton = false)
             : Con(skeleton) {
             this->type = CT_ROOT;
@@ -462,12 +460,12 @@ export {
         void con_set_layout(layout_t layout) override {
             throw std::domain_error("Cannot change layout of root");
         }
-        
+
         void on_remove_child() override;
     };
 
     class OutputCon : public Con {
-       public:
+      public:
         OutputCon(bool skeleton = false)
             : Con(skeleton) {
             this->type = CT_OUTPUT;
@@ -488,7 +486,7 @@ export {
     };
 
     class ConCon : public Con {
-    private:
+      private:
         /** The position and size of the actual client window. These coordinates are
          * relative to the container's rect. */
         Rect window_rect{};
@@ -500,19 +498,18 @@ export {
         int window_icon_padding{-1};
         std::unique_ptr<i3Window> window{};
 
-    public:
-
+      public:
         bool con_has_managed_window() override;
         bool con_accepts_window() override;
         int get_window_icon_padding() override;
         void set_window_icon_padding(int padding);
-        i3Window* get_window() override;
-        i3Window* release_window();
-        void set_window(i3Window* _window);
+        i3Window *get_window() override;
+        i3Window *release_window();
+        void set_window(i3Window *_window);
         void set_geometry(Rect _geometry);
-        Rect& get_geometry() override;
+        Rect &get_geometry() override;
         void set_window_rect(Rect _window_rect);
-        Rect& get_window_rect() override;
+        Rect &get_window_rect() override;
 
         ConCon();
         explicit ConCon(i3Window *window);
@@ -521,7 +518,7 @@ export {
 
     /* Wrap a floating ConCon in a FloatingCon. */
     class FloatingCon : public Con {
-       public:
+      public:
         FloatingCon(bool skeleton = false)
             : Con(skeleton) {
             this->type = CT_FLOATING_CON;
@@ -532,13 +529,13 @@ export {
     };
 
     class DockCon : public Con {
-       public:
+      public:
         DockCon(bool skeleton = false)
             : Con(skeleton) {
             this->type = CT_DOCKAREA;
             this->layout = L_DOCKAREA;
         }
-        
+
         FloatingCon *con_inside_floating() override;
 
         void con_set_layout(layout_t layout) override {
@@ -549,9 +546,10 @@ export {
     };
 
     class WorkspaceCon : public Con {
-       private:
+      private:
         void con_update_parents_urgency() override;
-       public:
+
+      public:
         /* Only workspace-containers can have floating clients */
         std::deque<FloatingCon *> floating_windows{};
         /* workspace_layout is only for type == CT_WORKSPACE cons. When you change
@@ -574,13 +572,13 @@ export {
             this->type = CT_WORKSPACE;
             this->workspace_layout = L_DEFAULT;
         }
-        
+
         void con_attach(Con *parent, bool ignore_focus, Con *previous = nullptr) override;
-        
+
         FloatingCon *con_inside_floating() override;
 
         void con_set_layout(layout_t layout) override;
-        
+
         void on_remove_child() override;
 
         bool con_has_children() const override;
@@ -610,22 +608,20 @@ export {
      */
     Con *con_by_frame_id(xcb_window_t frame);
 
-
     /**
      * Start from a container and traverse the transient_for linked list. Returns
      * true if target window is found in the list. Protects againsts potential
      * cycles.
      *
      */
-    bool con_find_transient_for_window(Con *start, xcb_window_t target);
-
+    bool con_find_transient_for_window(Con * start, xcb_window_t target);
 
     /**
      * Returns the first container below 'con' which wants to swallow this window
      * TODO: priority
      *
      */
-    Con *con_for_window(Con const * con, i3Window const * window, Match * *store_match);
+    Con *con_for_window(Con const *con, i3Window const *window, Match **store_match);
 
     /**
      * Toggles fullscreen mode for the given container. Fullscreen mode will not be
@@ -676,7 +672,7 @@ export {
      */
     void con_move_to_output(Con * con, Output * output, bool fix_coordinates);
 
-    bool con_move_to_target(Con *con, Con *target);
+    bool con_move_to_target(Con * con, Con * target);
 
     /**
      * Returns the orientation of the given container (for stacked containers,
@@ -684,7 +680,7 @@ export {
      * container).
      *
      */
-    orientation_t con_orientation(Con const * const con);
+    orientation_t con_orientation(Con const *const con);
 
     /**
      * Returns the container which will be focused next when the given container
@@ -726,7 +722,7 @@ export {
      * the parent container (for stacked/tabbed containers).
      *
      */
-    bool con_draw_decoration_into_frame(Con const * const con);
+    bool con_draw_decoration_into_frame(Con const *const con);
 
     /**
      * Returns a "relative" Rect which contains the amount of pixels that need to
@@ -734,13 +730,13 @@ export {
      * amount of pixels for normal, 1pixel and borderless are different).
      *
      */
-    Rect con_border_style_rect(Con const * const con);
+    Rect con_border_style_rect(Con const *const con);
 
     /**
      * Returns adjacent borders of the window. We need this if hide_edge_borders is
      * enabled.
      */
-    adjacent_t con_adjacent_borders(Con const * const con);
+    adjacent_t con_adjacent_borders(Con const *const con);
 
     /**
      * Use this function to get a container’s border style. This is important
@@ -752,14 +748,14 @@ export {
      * For children of a CT_DOCKAREA, the border style is always none.
      *
      */
-    border_style_t con_border_style(Con const * const con);
+    border_style_t con_border_style(Con const *const con);
 
     /**
      * Sets the given border style on con, correctly keeping the position/size of a
      * floating window.
      *
      */
-    void con_set_border_style(Con *con, border_style_t border_style, int border_width);
+    void con_set_border_style(Con * con, border_style_t border_style, int border_width);
 
     /**
      * Returns true if changing the focus to con would be allowed considering
@@ -813,5 +809,5 @@ export {
      * Returns true if the container is within any stacked/tabbed split container.
      *
      */
-    bool con_inside_stacked_or_tabbed(Con *con);
+    bool con_inside_stacked_or_tabbed(Con * con);
 }

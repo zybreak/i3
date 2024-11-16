@@ -4,8 +4,8 @@ export module rect;
 
 import std;
 
-using std::uint32_t;
 using std::int32_t;
+using std::uint32_t;
 
 export {
     /**
@@ -19,7 +19,7 @@ export {
      *
      */
     class Rect {
-       public:
+      public:
         uint32_t x{};
         uint32_t y{};
         uint32_t width{};
@@ -30,18 +30,18 @@ export {
         /*friend bool operator==(const Rect &a, const Rect &b) {
             return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
         }*/
-        Rect operator+(const Rect &r) const;
-        Rect &operator+=(const Rect &r);
-        Rect operator-(const Rect &r) const;
-        Rect &operator-=(const Rect &r);
+        Rect operator+(Rect const &r) const;
+        Rect &operator+=(Rect const &r);
+        Rect operator-(Rect const &r) const;
+        Rect &operator-=(Rect const &r);
     };
 
-    void to_json(nlohmann::json &j, Rect const &r) {
+    void to_json(nlohmann::json & j, Rect const &r) {
         j = {
-                { "x", r.x },
-                { "y", r.y },
-                { "width", r.width },
-                { "height", r.height },
+            {"x", r.x},
+            {"y", r.y},
+            {"width", r.width},
+            {"height", r.height},
         };
     }
 
@@ -51,7 +51,6 @@ export {
         j.at("width").get_to(r.width);
         j.at("height").get_to(r.height);
     }
-
 }
 
 bool Rect::rect_contains(uint32_t _x, uint32_t _y) {
@@ -61,16 +60,15 @@ bool Rect::rect_contains(uint32_t _x, uint32_t _y) {
             _y <= (this->y + this->height));
 }
 
-Rect Rect::operator+(const Rect &r) const {
+Rect Rect::operator+(Rect const &r) const {
     return {
         this->x + r.x,
         this->y + r.y,
         this->width + r.width,
-        this->height + r.height
-    };
+        this->height + r.height};
 }
 
-Rect& Rect::operator+=(const Rect &r) {
+Rect &Rect::operator+=(Rect const &r) {
     this->x += r.x;
     this->y += r.y;
     this->width += r.width;
@@ -79,16 +77,15 @@ Rect& Rect::operator+=(const Rect &r) {
     return *this;
 }
 
-Rect Rect::operator-(const Rect &r) const {
+Rect Rect::operator-(Rect const &r) const {
     return {
         this->x - r.x,
         this->y - r.y,
         this->width - r.width,
-        this->height - r.height
-    };
+        this->height - r.height};
 }
 
-Rect& Rect::operator-=(const Rect &r) {
+Rect &Rect::operator-=(Rect const &r) {
     this->x -= r.x;
     this->y -= r.y;
     this->width -= r.width;

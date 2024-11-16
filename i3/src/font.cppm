@@ -18,7 +18,7 @@ export {
      *
      */
     class i3Font {
-       private: 
+      private:
         xcb_visualtype_t *root_visual_type;
         xcb_connection_t *conn;
         xcb_screen_t *root_screen;
@@ -28,7 +28,7 @@ export {
         double pango_font_blue;
         double pango_font_alpha;
 
-    public:
+      public:
         /** The height of the font, built from font_ascent + font_descent */
         int height{};
 
@@ -38,14 +38,14 @@ export {
         /** The pango font description */
         std::unique_ptr<PangoFontDescription, decltype(&freeFontDesc)> pango_desc{nullptr, &freeFontDesc};
 
-        i3Font(xcb_connection_t *conn, xcb_screen_t *root_screen, const std::string pattern);
+        i3Font(xcb_connection_t *conn, xcb_screen_t *root_screen, std::string const pattern);
 
         /**
          * Predict the text width in pixels for the given text. Text must be
          * specified as an i3String.
          *
          */
-        int predict_text_width(const std::string &text) const;
+        int predict_text_width(std::string const &text) const;
 
         /**
          * Draws text onto the specified X drawable (normally a pixmap) at the
@@ -57,7 +57,7 @@ export {
          * Text must be specified as an i3String.
          *
          */
-        void draw_text(const std::string &text, xcb_drawable_t drawable, xcb_gcontext_t gc,
+        void draw_text(std::string const &text, xcb_drawable_t drawable, xcb_gcontext_t gc,
                        cairo_surface_t *surface, int x, int y, int max_width) const;
 
         /**
@@ -73,6 +73,5 @@ export {
      * font was previously loaded, it will be freed.
      *
      */
-    std::unique_ptr<i3Font> load_font(xcb_connection_t *conn, xcb_screen_t *root_screen, const std::string pattern);
-    
+    std::unique_ptr<i3Font> load_font(xcb_connection_t * conn, xcb_screen_t * root_screen, std::string const pattern);
 }

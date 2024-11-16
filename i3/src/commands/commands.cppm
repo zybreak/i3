@@ -15,5 +15,5 @@ export {
      *
      * Free the returned CommandResult with command_result_free().
      */
-    CommandResult parse_command(const std::string &input, command_parser_data &&data, BaseCommandsApplier *applier);
+    CommandResult parse_command(std::string const &input, command_parser_data &&data, BaseCommandsApplier *applier);
 }

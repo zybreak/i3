@@ -23,7 +23,7 @@ static void draw_util_set_source_color(surface_t *surface, color_t color);
 
 /* We need to flush cairo surfaces twice to avoid an assertion bug. See #1989
  * and https://bugs.freedesktop.org/show_bug.cgi?id=92455. */
-static inline void CAIRO_SURFACE_FLUSH(cairo_surface_t *surface) {
+inline static void CAIRO_SURFACE_FLUSH(cairo_surface_t *surface) {
     cairo_surface_flush(surface);
     cairo_surface_flush(surface);
 }
@@ -108,14 +108,15 @@ uint16_t get_visual_depth(xcb_visualid_t visual_id) {
     return 0;
 }
 
-surface_t::surface_t(xcb_connection_t *conn, xcb_drawable_t drawable, xcb_visualtype_t *_visual, int width, int height) : conn(conn), id(drawable), width(width), height(height) {
+surface_t::surface_t(xcb_connection_t *conn, xcb_drawable_t drawable, xcb_visualtype_t *_visual, int width, int height)
+    : conn(conn), id(drawable), width(width), height(height) {
     xcb_visualtype_t *visual;
     if (_visual == nullptr) {
         visual = global.x->visual_type;
     } else {
         visual = _visual;
     }
-    
+
     gc = get_gc(conn, get_visual_depth(visual->visual_id), drawable, &owns_gc);
     surface = cairo_xcb_surface_create(conn, id, visual, width, height);
     cr = cairo_create(surface);
@@ -132,7 +133,7 @@ surface_t::~surface_t() {
     }
     if (status != CAIRO_STATUS_SUCCESS) {
         LOG(fmt::sprintf("Found cairo context in an error status while freeing, error %d is %s",
-                std::to_underlying(status), cairo_status_to_string(status)));
+                         std::to_underlying(status), cairo_status_to_string(status)));
     }
 
     if (this->owns_gc) {
@@ -146,13 +147,13 @@ surface_t::~surface_t() {
  * Resize the surface to the given size.
  *
  */
-surface_t* surface_t::draw_util_surface_set_size(int width, int height) {
+surface_t *surface_t::draw_util_surface_set_size(int width, int height) {
     surface_t *surface = this;
-    
+
     surface->width = width;
     surface->height = height;
     cairo_xcb_surface_set_size(surface->surface, width, height);
-    
+
     return this;
 }
 
@@ -161,7 +162,7 @@ surface_t* surface_t::draw_util_surface_set_size(int width, int height) {
  * Note that the input must begin with a hash sign, e.g., "#3fbc59".
  *
  */
-color_t draw_util_hex_to_color(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *color) {
+color_t draw_util_hex_to_color(xcb_connection_t *conn, xcb_screen_t *root_screen, char const *color) {
     if (strlen(color) < 6 || color[0] != '#') {
         ELOG(fmt::sprintf("Could not parse color: %s\n", color));
         return draw_util_hex_to_color(conn, root_screen, "#A9A9A9");
@@ -207,7 +208,7 @@ static void draw_util_set_source_color(surface_t *surface, color_t color) {
  * drawing are used. This will be the case when using XCB to draw text.
  *
  */
-surface_t* surface_t::draw_util_text(i3Font &font, std::string &text, color_t fg_color, color_t bg_color, int x, int y, int max_width) {
+surface_t *surface_t::draw_util_text(i3Font &font, std::string &text, color_t fg_color, color_t bg_color, int x, int y, int max_width) {
     /* Flush any changes before we draw the text as this might use XCB directly. */
     CAIRO_SURFACE_FLUSH(this->surface);
 
@@ -216,7 +217,7 @@ surface_t* surface_t::draw_util_text(i3Font &font, std::string &text, color_t fg
 
     /* Notify cairo that we (possibly) used another way to draw on the surface. */
     cairo_surface_mark_dirty(this->surface);
-    
+
     return this;
 }
 
@@ -226,15 +227,15 @@ surface_t* surface_t::draw_util_text(i3Font &font, std::string &text, color_t fg
  * surface as well as restoring the cairo state.
  *
  */
-surface_t* surface_t::draw_util_image(cairo_surface_t *image, int x, int y, int width, int height) {
+surface_t *surface_t::draw_util_image(cairo_surface_t *image, int x, int y, int width, int height) {
     surface_t *surface = this;
 
     cairo_save(surface->cr);
 
     cairo_translate(surface->cr, x, y);
 
-    const int src_width = cairo_image_surface_get_width(image);
-    const int src_height = cairo_image_surface_get_height(image);
+    int const src_width = cairo_image_surface_get_width(image);
+    int const src_height = cairo_image_surface_get_height(image);
     double scale = std::min(static_cast<double>(width) / src_width, static_cast<double>(height) / src_height);
     cairo_scale(surface->cr, scale, scale);
 
@@ -242,7 +243,7 @@ surface_t* surface_t::draw_util_image(cairo_surface_t *image, int x, int y, int 
     cairo_paint(surface->cr);
 
     cairo_restore(surface->cr);
-    
+
     return this;
 }
 
@@ -252,7 +253,7 @@ surface_t* surface_t::draw_util_image(cairo_surface_t *image, int x, int y, int 
  * surface as well as restoring the cairo state.
  *
  */
-surface_t* surface_t::draw_util_rectangle(color_t color, double x, double y, double w, double h) {
+surface_t *surface_t::draw_util_rectangle(color_t color, double x, double y, double w, double h) {
     surface_t *surface = this;
 
     cairo_save(surface->cr);
@@ -271,7 +272,7 @@ surface_t* surface_t::draw_util_rectangle(color_t color, double x, double y, dou
     CAIRO_SURFACE_FLUSH(surface->surface);
 
     cairo_restore(surface->cr);
-    
+
     return this;
 }
 
@@ -279,7 +280,7 @@ surface_t* surface_t::draw_util_rectangle(color_t color, double x, double y, dou
  * Clears a surface with the given color.
  *
  */
-surface_t* surface_t::draw_util_clear_surface(color_t color) {
+surface_t *surface_t::draw_util_clear_surface(color_t color) {
     surface_t *surface = this;
 
     cairo_save(surface->cr);
@@ -297,7 +298,7 @@ surface_t* surface_t::draw_util_clear_surface(color_t color) {
     CAIRO_SURFACE_FLUSH(surface->surface);
 
     cairo_restore(surface->cr);
-    
+
     return this;
 }
 

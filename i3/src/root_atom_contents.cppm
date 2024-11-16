@@ -14,7 +14,7 @@ import utils;
  * established.
  *
  */
-export std::optional<std::string> root_atom_contents(const char *atomname, xcb_connection_t *provided_conn, int screen) {
+export std::optional<std::string> root_atom_contents(char const *atomname, xcb_connection_t *provided_conn, int screen) {
     xcb_intern_atom_cookie_t atom_cookie;
     xcb_intern_atom_reply_t *atom_reply;
     char *content = nullptr;

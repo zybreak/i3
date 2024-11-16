@@ -20,7 +20,6 @@ class Con;
 class ConfigurationManager;
 
 export {
-    
     /**
      * Calls to ipc_shutdown() should provide a reason for the shutdown.
      */
@@ -28,7 +27,7 @@ export {
         SHUTDOWN_REASON_RESTART,
         SHUTDOWN_REASON_EXIT
     };
-    
+
     class ipc_client {
       public:
         using callback = void (*)(ev_loop *loop, ev_io *w, int revents);
@@ -46,26 +45,27 @@ export {
         ev_timer *timeout{};
         uint8_t *buffer{};
         size_t buffer_size{};
-    
+
         ipc_client() = delete;
         ipc_client(ipc_client const &) = delete;
         ipc_client operator=(ipc_client const &) = delete;
 
         ipc_client(int fd, callback read_callback_t, callback write_callback_t);
         ~ipc_client();
-    
+
         bool operator==(ipc_client const &o) {
             return this->fd == o.fd;
         }
-    
+
         bool operator!=(ipc_client const &o) {
             return this->fd != o.fd;
         }
     };
-    
+
     class IPCManager {
         friend void ipc_receive_message(EV_P_ ev_io *w, int revents);
         friend void ipc_client_timeout(EV_P_ ev_timer *w, int revents);
+
       private:
         std::vector<std::unique_ptr<ipc_client>> all_clients{};
         ev_io *ipc_io;
@@ -73,6 +73,7 @@ export {
         std::tuple<std::string, int> create_socket(std::string filename);
         void ipc_send_shutdown_event(shutdown_reason_t reason);
         void free_ipc_client(ipc_client &client, int exempt_fd = -1);
+
       public:
         std::optional<std::string> current_socketpath{};
         int ipc_socket{-1};
@@ -82,7 +83,7 @@ export {
         void operator=(IPCManager const &) = delete;
         IPCManager(IPCManager &&other) = delete;
         void operator=(IPCManager &&) = delete;
-        
+
         int create_socket();
         /* Listen to the IPC socket for clients */
         void listen();
@@ -95,14 +96,14 @@ export {
          *
          */
         ipc_client *ipc_new_client_on_fd(int fd);
-        
+
         /**
          * Sends the specified event to all IPC clients which are currently connected
          * and subscribed to this kind of event.
          *
          */
-        void ipc_send_event(std::string const event, uint32_t message_type, const std::string &payload);
-        
+        void ipc_send_event(std::string const event, uint32_t message_type, std::string const &payload);
+
         /**
          * Calls shutdown() on each socket and closes it. This function is to be called
          * when exiting or restarting only!
@@ -111,25 +112,24 @@ export {
          *
          */
         void ipc_shutdown(shutdown_reason_t reason, int exempt_fd = -1);
-        
+
         /**
          * For the workspace events we send, along with the usual "change" field, also
          * the workspace container in "current". For focus events, we send the
          * previously focused workspace in "old".
          */
-        void ipc_send_workspace_event(const char *change, Con *current, Con *old);
-        
+        void ipc_send_workspace_event(char const *change, Con *current, Con *old);
+
         /**
          * For the window events we send, along the usual "change" field,
          * also the window container, in "container".
          */
-        void ipc_send_window_event(const char *property, Con *con);
-        
+        void ipc_send_window_event(char const *property, Con *con);
+
         /**
          * For the binding events, we send the serialized binding struct.
          */
-        void ipc_send_binding_event(const char *event_type, Binding *bind, const char *modename);
-        
+        void ipc_send_binding_event(char const *event_type, Binding *bind, char const *modename);
     };
 
     /*
@@ -150,7 +150,7 @@ export {
      * Generates a json workspace event. Returns a dynamically allocated yajl
      * generator. Free with yajl_gen_free().
      */
-    nlohmann::json ipc_marshal_workspace_event(const char *change, Con *current, Con *old);
+    nlohmann::json ipc_marshal_workspace_event(char const *change, Con *current, Con *old);
 
     /**
      * For the barconfig update events, we send the serialized barconfig.

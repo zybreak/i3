@@ -30,7 +30,7 @@ static std::vector<std::unique_ptr<Colorpixel>> colorpixels{};
  * This has to be done by the caller.
  *
  */
-uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, const char *hex) {
+uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, char const *hex) {
     char alpha[2];
     if (strlen(hex) == strlen("#rrggbbaa")) {
         alpha[0] = hex[7];
@@ -60,7 +60,7 @@ uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, const
             return colorpixel->pixel;
     }
 
-#define RGB_8_TO_16(i) (65535 * ((i)&0xFF) / 255)
+#define RGB_8_TO_16(i) (65535 * ((i) & 0xFF) / 255)
     int r16 = RGB_8_TO_16(r);
     int g16 = RGB_8_TO_16(g);
     int b16 = RGB_8_TO_16(b);
@@ -71,7 +71,7 @@ uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, const
                                   nullptr);
 
     if (!reply) {
-        //LOG("Could not allocate color\n");
+        // LOG("Could not allocate color\n");
         exit(1);
     }
 

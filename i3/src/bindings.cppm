@@ -34,7 +34,7 @@ export {
      * The name of the default mode.
      *
      */
-    const std::string DEFAULT_BINDING_MODE = "default";
+    std::string const DEFAULT_BINDING_MODE = "default";
 
     /**
      * Stores a resolved keycode (from a keysym), including the modifier mask. Will
@@ -48,9 +48,9 @@ export {
         Binding_Keycode(xcb_keycode_t keycode, i3_event_state_mask_t modifiers)
             : keycode(keycode), modifiers(modifiers) {
         }
-        
-        auto operator<=>(const Binding_Keycode &) const = default;
-        bool operator==(const Binding_Keycode &) const = default;
+
+        auto operator<=>(Binding_Keycode const &) const = default;
+        bool operator==(Binding_Keycode const &) const = default;
     };
 
     enum binding_upon_t {
@@ -114,17 +114,16 @@ export {
         /** Command, like in command mode */
         std::string command{};
 
-
-        auto operator<=>(const Binding &) const = default;
+        auto operator<=>(Binding const &) const = default;
     };
-    
+
     /**
      * Adds a binding from config parameters given as strings and returns a
      * pointer to the binding structure. Returns NULL if the input code could not
      * be parsed.
      *
      */
-    void configure_binding(Config *config, std::string_view bindtype, std::string_view modifiers, std::string_view input_code,
+    void configure_binding(Config * config, std::string_view bindtype, std::string_view modifiers, std::string_view input_code,
                            bool release, bool border, bool whole_window,
                            bool exclude_titlebar, std::string_view command, std::string_view modename,
                            bool pango_markup);
@@ -160,13 +159,13 @@ export {
      * Translates keysymbols to keycodes for all bindings which use keysyms.
      *
      */
-    void translate_keysyms(Keymap const & keymap);
+    void translate_keysyms(Keymap const &keymap);
 
     /**
      * Switches the key bindings to the given mode, if the mode exists
      *
      */
-    void switch_mode(const std::string new_mode);
+    void switch_mode(std::string const new_mode);
 
     /**
      * Reorders bindings by event_state_mask descendingly so that get_binding()
@@ -181,7 +180,7 @@ export {
      * keybinding.
      *
      */
-    void reorder_bindings(Config* config);
+    void reorder_bindings(Config * config);
 
     /**
      * Checks for duplicate key bindings (the same keycode or keysym is configured
@@ -190,7 +189,7 @@ export {
      * i3-nagbar.
      *
      */
-    bool has_duplicate_bindings(Config *config);
+    bool has_duplicate_bindings(Config * config);
 
     /**
      * Runs the given binding and handles parse errors. If con is passed, it will

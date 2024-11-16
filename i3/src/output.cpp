@@ -18,7 +18,7 @@ import std;
  * output name.
  *
  */
-Output* Output::get_output_from_string(const std::string &output_str) {
+Output *Output::get_output_from_string(std::string const &output_str) {
     if (output_str == "current") {
         return get_output_for_con(global.focused);
     } else if (output_str == "left") {
@@ -40,7 +40,7 @@ Output* Output::get_output_from_string(const std::string &output_str) {
  */
 std::string Output::output_primary_name() const {
     std::string name = this->names.front();
-    
+
     return name;
 }
 
@@ -66,12 +66,12 @@ Output *get_output_for_con(Con *con) {
  */
 void output_push_sticky_windows(Con *old_focus) {
     for (auto &output : global.croot->focused) {
-        auto visible_ws = std::ranges::find_if(dynamic_cast<OutputCon*>(output)->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
+        auto visible_ws = std::ranges::find_if(dynamic_cast<OutputCon *>(output)->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
 
         /* We use this loop instead of TAILQ_FOREACH to avoid problems if the
          * sticky window was the last window on that workspace as moving it in
          * this case will close the workspace. */
-        for (auto &current_ws : dynamic_cast<OutputCon*>(output)->output_get_content()->focused) {
+        for (auto &current_ws : dynamic_cast<OutputCon *>(output)->output_get_content()->focused) {
             /* Since moving the windows actually removes them from the list of
              * floating windows on this workspace, here too we need to use
              * another loop than TAILQ_FOREACH. */
@@ -81,7 +81,7 @@ void output_push_sticky_windows(Con *old_focus) {
                 }
 
                 bool ignore_focus = (old_focus == nullptr) || (current != old_focus->parent);
-                con_move_to_workspace(current, dynamic_cast<WorkspaceCon*>(*visible_ws), true, false, ignore_focus);
+                con_move_to_workspace(current, dynamic_cast<WorkspaceCon *>(*visible_ws), true, false, ignore_focus);
                 if (!ignore_focus) {
                     WorkspaceCon *current_ws = global.focused->con_get_workspace();
                     con_descend_focused(current)->con_activate();

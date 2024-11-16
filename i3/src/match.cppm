@@ -59,7 +59,7 @@ export {
      *
      */
     class Match {
-       public:
+      public:
         std::unique_ptr<Regex> title{};
         std::unique_ptr<Regex> application{};
         std::unique_ptr<Regex> window_class{};
@@ -69,7 +69,7 @@ export {
         std::unique_ptr<Regex> machine{};
         xcb_atom_t window_type{UINT32_MAX};
         match_urgent_t urgent{match_urgent_t::U_DONTCHECK};
-        match_dock_t dock {match_dock_t::M_NODOCK};
+        match_dock_t dock{match_dock_t::M_NODOCK};
         xcb_window_t id{0};
         match_window_mode_t window_mode{match_window_mode_t::WM_ANY};
         Con *con_id{nullptr};
@@ -95,7 +95,7 @@ export {
          * Interprets a ctype=cvalue pair and adds it to the given match specification.
          *
          */
-        void parse_property(const char *ctype, const char *cvalue);
+        void parse_property(char const *ctype, char const *cvalue);
 
         /**
          * Check if a match is empty. This is necessary while parsing commands to see

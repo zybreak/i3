@@ -32,7 +32,7 @@ struct render_params {
     /* The computed height for decorations. */
     int deco_height{};
     /* Container rect, subtract container border. This is the actually usable space
-         * inside this container for clients. */
+     * inside this container for clients. */
     Rect rect{};
     /* The number of children of the container which is being rendered. */
     unsigned long children{};
@@ -76,7 +76,7 @@ void render_con(Con *con) {
         .children = con->con_num_children()};
 
     DLOG(fmt::sprintf("Rendering node %p / %s / layout %d / children %d\n", fmt::ptr(con), con->name,
-                     std::to_underlying(con->layout), params.children));
+                      std::to_underlying(con->layout), params.children));
 
     if (con->type == CT_WORKSPACE) {
         gaps_t gaps = calculate_effective_gaps(con);
@@ -130,7 +130,7 @@ void render_con(Con *con) {
             DLOG(fmt::sprintf("deco_rect.height = %d\n", con->deco_rect.height));
             Rect bsr = con_border_style_rect(con);
             DLOG(fmt::sprintf("bsr at %dx%d with size %dx%d\n",
-                 bsr.x, bsr.y, bsr.width, bsr.height));
+                              bsr.x, bsr.y, bsr.width, bsr.height));
 
             inset += bsr;
         }
@@ -149,7 +149,7 @@ void render_con(Con *con) {
          * code was removed. See also https://bugs.i3wm.org/540 */
 
         DLOG(fmt::sprintf("child will be at %dx%d with size %dx%d\n",
-             inset.x, inset.y, inset.width, inset.height));
+                          inset.x, inset.y, inset.width, inset.height));
     }
 
     /* Check for fullscreen nodes */
@@ -181,7 +181,7 @@ void render_con(Con *con) {
     if (con->layout == L_OUTPUT) {
         render_output(con);
     } else if (con->type == CT_ROOT) {
-        render_root(dynamic_cast<RootCon*>(con), fullscreen);
+        render_root(dynamic_cast<RootCon *>(con), fullscreen);
     } else {
         for (auto &child : con->nodes) {
             assert(params.children > 0);
@@ -223,9 +223,9 @@ void render_con(Con *con) {
             for (auto &it : con->focused | std::views::reverse) {
                 x_raise_con(it);
             }
-            //for (auto it = con->focused.rbegin(); it != con->focused.rend(); ++it) {
-            //    x_raise_con(*it);
-            //}
+            // for (auto it = con->focused.rbegin(); it != con->focused.rend(); ++it) {
+            //     x_raise_con(*it);
+            // }
             Con *child = con::first(con->focused);
             if (child != nullptr) {
                 /* By rendering the stacked container again, we handle the case
@@ -289,7 +289,7 @@ static void render_root(RootCon *con, Con *fullscreen) {
     DLOG("Rendering floating windows:\n");
     for (auto &output : con->nodes) {
         /* Get the active workspace of that output */
-        Con *content = dynamic_cast<OutputCon*>(output)->output_get_content();
+        Con *content = dynamic_cast<OutputCon *>(output)->output_get_content();
         if (!content || content->focused.empty()) {
             DLOG("Skipping this output because it is currently being destroyed.\n");
             continue;
@@ -314,14 +314,14 @@ static void render_root(RootCon *con, Con *fullscreen) {
                     Con *floating_child = con_descend_focused(child);
                     if (con_find_transient_for_window(floating_child, fullscreen->get_window()->id)) {
                         DLOG(fmt::sprintf("Rendering floating child even though in fullscreen mode: "
-                             "floating->transient_for (0x%08x) --> fullscreen->id (0x%08x)\n",
-                             floating_child->get_window()->transient_for, fullscreen->get_window()->id));
+                                          "floating->transient_for (0x%08x) --> fullscreen->id (0x%08x)\n",
+                                          floating_child->get_window()->transient_for, fullscreen->get_window()->id));
                     } else {
                         continue;
                     }
                 }
                 DLOG(fmt::sprintf("floating child at (%d,%d) with %d x %d\n",
-                     child->rect.x, child->rect.y, child->rect.width, child->rect.height));
+                                  child->rect.x, child->rect.y, child->rect.width, child->rect.height));
                 x_raise_con(child);
                 render_con(child);
             }

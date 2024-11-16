@@ -16,7 +16,6 @@ import rect;
 class Con;
 
 export {
-
     /**
      * "Renders" the given container (and its children), meaning that all rects are
      * updated correctly. Note that this function does not call any xcb_*

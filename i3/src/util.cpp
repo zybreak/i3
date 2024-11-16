@@ -31,12 +31,11 @@ import std;
 import utils;
 import log;
 
-
 /*
  * Goes through the list of arguments (for exec()) and add/replace the given option,
  * including the option name, its argument, and the option character.
  */
-std::vector<std::string> add_argument(std::vector<std::string> &original, const char *opt_char, const char *opt_arg, const char *opt_name) {
+std::vector<std::string> add_argument(std::vector<std::string> &original, char const *opt_char, char const *opt_arg, char const *opt_name) {
     int num_args = original.size();
     std::vector<std::string> result{};
     result.reserve(num_args + 3);
@@ -58,8 +57,10 @@ std::vector<std::string> add_argument(std::vector<std::string> &original, const 
     }
 
     /* add the arguments we'll replace */
-    if (opt_char != nullptr) result.push_back(opt_char);
-    if (opt_arg != nullptr) result.push_back(opt_arg);
+    if (opt_char != nullptr)
+        result.push_back(opt_char);
+    if (opt_arg != nullptr)
+        result.push_back(opt_arg);
 
     return result;
 }
@@ -87,15 +88,15 @@ static std::string store_restart_layout() {
     if (!std::filesystem::exists(base)) {
         DLOG(fmt::sprintf("Creating \"%s\" for storing the restart layout\n", base.native()));
         using std::filesystem::perms;
-        const perms DEFAULT_DIR_MODE =
-                perms::owner_all | perms::group_read | perms::group_exec | perms::others_read | perms::others_exec;
+        perms const DEFAULT_DIR_MODE =
+            perms::owner_all | perms::group_read | perms::group_exec | perms::others_read | perms::others_exec;
         if (!mkdirp(base, DEFAULT_DIR_MODE)) {
             ELOG(fmt::sprintf("Could not create \"%s\" for storing the restart layout, layout will be lost.\n",
-                    base.native()));
+                              base.native()));
             return "";
         }
     }
-    
+
     std::ofstream outFile(p, std::ios::out | std::ios::trunc);
     if (!outFile) {
         ELOG("could not open file");
@@ -103,7 +104,6 @@ static std::string store_restart_layout() {
     }
 
     outFile << dump_node(global.croot, true) << std::endl;
-
 
     return filename;
 }
@@ -121,7 +121,7 @@ void i3_restart(bool forget_layout) {
 
     global.ipcManager->ipc_shutdown(shutdown_reason_t::SHUTDOWN_REASON_RESTART);
 
-     LOG(fmt::sprintf("restarting \"%s\"...\n", global.start_argv.front()));
+    LOG(fmt::sprintf("restarting \"%s\"...\n", global.start_argv.front()));
     /* make sure -a is in the argument list or add it */
     global.start_argv = add_argument(global.start_argv, "-a", nullptr, nullptr);
 
@@ -138,14 +138,14 @@ void i3_restart(bool forget_layout) {
             global.start_argv = add_argument(global.start_argv, "--restart", restart_filename.c_str(), "-r");
         }
     }
-    
-    char* argv[global.start_argv.size() + 1];
-    
+
+    char *argv[global.start_argv.size() + 1];
+
     for (int i = 0; i < global.start_argv.size(); i++) {
-        argv[i] = (char*)global.start_argv[i].c_str();
+        argv[i] = (char *)global.start_argv[i].c_str();
     }
     argv[global.start_argv.size()] = nullptr;
-    
+
     execvp(argv[0], argv);
 
     /* not reached */

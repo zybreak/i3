@@ -14,8 +14,7 @@ import log;
  * Emulates mkdir -p (creates any missing folders)
  *
  */
-bool mkdirp(const std::filesystem::path &path, std::filesystem::perms mode) {
-
+bool mkdirp(std::filesystem::path const &path, std::filesystem::perms mode) {
     std::error_code ec;
     if (!std::filesystem::create_directories(path, ec)) {
         ELOG(std::format("mkdir({}) failed: {}\n", path.native(), ec.message()));

@@ -72,7 +72,7 @@ static void start_config_error_nagbar(bool has_errors) {
  * the list of modes.
  *
  */
-static void mode_from_name(Config *config, const std::string &name, bool pango_markup, Binding &binding) {
+static void mode_from_name(Config *config, std::string const &name, bool pango_markup, Binding &binding) {
     /* Try to find the mode in the list of modes and return it */
     auto mode_it = config->modes.find(name);
 
@@ -94,10 +94,10 @@ static void mode_from_name(Config *config, const std::string &name, bool pango_m
  * be parsed.
  *
  */
-void configure_binding(Config *config, const std::string_view bindtype, const std::string_view modifiers, const std::string_view input_code,
-                           bool release, bool border, bool whole_window,
-                           bool exclude_titlebar, const std::string_view command, const std::string_view modename,
-                           bool pango_markup) {
+void configure_binding(Config *config, std::string_view const bindtype, std::string_view const modifiers, std::string_view const input_code,
+                       bool release, bool border, bool whole_window,
+                       bool exclude_titlebar, std::string_view const command, std::string_view const modename,
+                       bool pango_markup) {
     DLOG(fmt::sprintf("Binding bindtype %s, modifiers %s, input code %s, release %s\n", bindtype, modifiers, input_code, release ? "true" : "false"));
 
     Binding new_binding{};
@@ -107,14 +107,14 @@ void configure_binding(Config *config, const std::string_view bindtype, const st
     new_binding.exclude_titlebar = exclude_titlebar;
     if (strcmp(bindtype.data(), "bindsym") == 0) {
         new_binding.input_type = (strncasecmp(input_code.data(), "button", (sizeof("button") - 1)) == 0
-                                       ? B_MOUSE
-                                       : B_KEYBOARD);
+                                      ? B_MOUSE
+                                      : B_KEYBOARD);
 
         new_binding.symbol = input_code.data();
     } else {
         long keycode;
         if (!utils::parse_long(input_code.data(), &keycode, 10)) {
-             ELOG(fmt::sprintf("Could not parse \"%s\" as an input code, ignoring this binding.\n", input_code.data()));
+            ELOG(fmt::sprintf("Could not parse \"%s\" as an input code, ignoring this binding.\n", input_code.data()));
             return;
         }
 
@@ -143,7 +143,7 @@ void configure_binding(Config *config, const std::string_view bindtype, const st
     mode_from_name(config, modename.data(), pango_markup, new_binding);
 }
 
-static bool binding_in_current_group(const Binding &bind) {
+static bool binding_in_current_group(Binding const &bind) {
     /* If no bits are set, the binding should be installed in every group. */
     if ((bind.event_state_mask >> 16) == I3_XKB_GROUP_MASK_ANY) {
         return true;
@@ -175,12 +175,12 @@ static void grab_keycode_for_binding(x_connection *conn, Binding &bind, uint32_t
 
     std::ranges::for_each(mod_list, [&](uint32_t mod) {
         conn->grab_key(
-                     0,
-                     global.x->root,
-                     mod,
-                     keycode,
-                     XCB_GRAB_MODE_SYNC,
-                     XCB_GRAB_MODE_ASYNC);
+            0,
+            global.x->root,
+            mod,
+            keycode,
+            XCB_GRAB_MODE_SYNC,
+            XCB_GRAB_MODE_ASYNC);
     });
 }
 
@@ -215,8 +215,8 @@ void grab_all_keys(x_connection *conn) {
             continue;
         }
 
-        for (const auto& binding_keycode : bind.keycodes) {
-            const int keycode = binding_keycode.keycode;
+        for (auto const &binding_keycode : bind.keycodes) {
+            int const keycode = binding_keycode.keycode;
             auto mods = (binding_keycode.modifiers & 0xFFFF);
             DLOG(fmt::sprintf("Binding %p Grabbing keycode %d with mods %d\n", fmt::ptr(&bind), keycode, mods));
             conn->grab_key(0, global.x->root, mods, keycode, XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_ASYNC);
@@ -233,7 +233,7 @@ void regrab_all_buttons(x_connection *conn) {
     auto buttons = bindings_get_buttons_to_grab();
     conn->grab_server();
 
-    for (const auto &con : global.all_cons) {
+    for (auto const &con : global.all_cons) {
         if (con->get_window() == nullptr) {
             continue;
         }
@@ -266,17 +266,17 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
         }
     }
 
-    const uint32_t xkb_group_state = (state_filtered & 0xFFFF0000);
-    const uint32_t modifiers_state = (state_filtered & 0x0000FFFF);
+    uint32_t const xkb_group_state = (state_filtered & 0xFFFF0000);
+    uint32_t const modifiers_state = (state_filtered & 0x0000FFFF);
     for (auto &bind : global.configManager->config->current_mode()->bindings) {
         if (bind.input_type != input_type) {
             continue;
         }
 
-        const uint32_t xkb_group_mask = (bind.event_state_mask & 0xFFFF0000);
-        const bool groups_match = ((xkb_group_state & xkb_group_mask) == xkb_group_mask);
+        uint32_t const xkb_group_mask = (bind.event_state_mask & 0xFFFF0000);
+        bool const groups_match = ((xkb_group_state & xkb_group_mask) == xkb_group_mask);
         if (!groups_match) {
-            DLOG(fmt::sprintf("skipping binding %p because XKB groups do not match\n",  fmt::ptr(&bind)));
+            DLOG(fmt::sprintf("skipping binding %p because XKB groups do not match\n", fmt::ptr(&bind)));
             continue;
         }
 
@@ -287,10 +287,10 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
         if (input_type == B_KEYBOARD && !bind.symbol.empty()) {
             auto input_keycode = static_cast<xcb_keycode_t>(input_code);
             for (auto &binding_keycode : bind.keycodes) {
-                const uint32_t modifiers_mask = (binding_keycode.modifiers & 0x0000FFFF);
-                const bool mods_match = (modifiers_mask == modifiers_state);
+                uint32_t const modifiers_mask = (binding_keycode.modifiers & 0x0000FFFF);
+                bool const mods_match = (modifiers_mask == modifiers_state);
                 DLOG(fmt::sprintf("binding_keycode->modifiers = %d, modifiers_mask = %d, modifiers_state = %d, mods_match = %s\n",
-                     binding_keycode.modifiers, modifiers_mask, modifiers_state, (mods_match ? "yes" : "no")));
+                                  binding_keycode.modifiers, modifiers_mask, modifiers_state, (mods_match ? "yes" : "no")));
                 if (binding_keycode.keycode == input_keycode &&
                     (mods_match || (bind.release == B_UPON_KEYRELEASE_IGNORE_MODS && is_release))) {
                     found_keycode = true;
@@ -304,10 +304,10 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
             }
 
             for (auto &binding_keycode : bind.keycodes) {
-                const uint32_t modifiers_mask = (binding_keycode.modifiers & 0x0000FFFF);
-                const bool mods_match = (modifiers_mask == modifiers_state);
+                uint32_t const modifiers_mask = (binding_keycode.modifiers & 0x0000FFFF);
+                bool const mods_match = (modifiers_mask == modifiers_state);
                 DLOG(fmt::sprintf("binding_keycode->modifiers = %d, modifiers_mask = %d, modifiers_state = %d, mods_match = %s\n",
-                     binding_keycode.modifiers, modifiers_mask, modifiers_state, (mods_match ? "yes" : "no")));
+                                  binding_keycode.modifiers, modifiers_mask, modifiers_state, (mods_match ? "yes" : "no")));
                 if (mods_match || (bind.release == B_UPON_KEYRELEASE_IGNORE_MODS && is_release)) {
                     found_keycode = true;
                     break;
@@ -353,20 +353,20 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
  *
  */
 Binding *get_binding_from_xcb_event(xcb_generic_event_t *event) {
-    const bool is_release = (event->response_type == XCB_KEY_RELEASE ||
+    bool const is_release = (event->response_type == XCB_KEY_RELEASE ||
                              event->response_type == XCB_BUTTON_RELEASE);
 
-    const input_type_t input_type = ((event->response_type == XCB_BUTTON_RELEASE ||
+    input_type_t const input_type = ((event->response_type == XCB_BUTTON_RELEASE ||
                                       event->response_type == XCB_BUTTON_PRESS)
                                          ? B_MOUSE
                                          : B_KEYBOARD);
 
-    const uint16_t event_state = ((xcb_key_press_event_t *)event)->state;
-    const uint16_t event_detail = ((xcb_key_press_event_t *)event)->detail;
+    uint16_t const event_state = ((xcb_key_press_event_t *)event)->state;
+    uint16_t const event_detail = ((xcb_key_press_event_t *)event)->detail;
 
     /* Remove the CapsLock bit */
     i3_event_state_mask_t state_filtered = event_state & ~XCB_MOD_MASK_LOCK;
-    DLOG(fmt::sprintf("(removed capslock, state = 0x%x)\n",  state_filtered));
+    DLOG(fmt::sprintf("(removed capslock, state = 0x%x)\n", state_filtered));
     /* Transform the keyboard_group from bit 13 and bit 14 into an
      * i3_xkb_group_mask_t, so that get_binding() can just bitwise AND the
      * configured bindings against |state_filtered|.
@@ -391,7 +391,7 @@ Binding *get_binding_from_xcb_event(xcb_generic_event_t *event) {
             break;
     }
     state_filtered &= ~0x6000;
-    DLOG(fmt::sprintf("(transformed keyboard group, state = 0x%x)\n",  state_filtered));
+    DLOG(fmt::sprintf("(transformed keyboard group, state = 0x%x)\n", state_filtered));
     return get_binding(state_filtered, is_release, event_detail, input_type);
 }
 
@@ -402,13 +402,13 @@ Binding *get_binding_from_xcb_event(xcb_generic_event_t *event) {
  *
  */
 static void add_keycode_if_matches(xkb_keymap *keymap, xkb_keycode_t key, void *data) {
-    const struct resolve *resolving = (struct resolve*)data;
+    const struct resolve *resolving = (struct resolve *)data;
     struct xkb_state *numlock_state = resolving->xkb_state_numlock;
     xkb_keysym_t sym = xkb_state_key_get_one_sym(resolving->state, key);
     if (sym != resolving->keysym) {
         /* Check if Shift was specified, and try resolving the symbol without
          * shift, so that “bindsym $mod+Shift+a nop” actually works. */
-        const xkb_layout_index_t layout = xkb_state_key_get_layout(resolving->state, key);
+        xkb_layout_index_t const layout = xkb_state_key_get_layout(resolving->state, key);
         if (layout == XKB_LAYOUT_INVALID) {
             return;
         }
@@ -457,7 +457,7 @@ static void add_keycode_if_matches(xkb_keymap *keymap, xkb_keycode_t key, void *
             bind->keycodes.emplace_back(code3, mods3);
         } else {
             DLOG(fmt::sprintf("Skipping automatic numlock fallback, key %d resolves to 0x%x with numlock\n",
-                 key, sym_numlock));
+                              key, sym_numlock));
         }
     }
 }
@@ -466,7 +466,7 @@ static void add_keycode_if_matches(xkb_keymap *keymap, xkb_keycode_t key, void *
  * Translates keysymbols to keycodes for all bindings which use keysyms.
  *
  */
-void translate_keysyms(Keymap const & keymap) {
+void translate_keysyms(Keymap const &keymap) {
     try {
         auto resolved = keymap.resolve();
 
@@ -542,7 +542,7 @@ void translate_keysyms(Keymap const & keymap) {
 
             if (bind.keycode > 0) {
                 /* We need to specify modifiers for the keycode binding (numlock
-             * fallback). */
+                 * fallback). */
                 bind.keycodes.clear();
 
                 Binding *bind1 = &bind;
@@ -557,11 +557,11 @@ void translate_keysyms(Keymap const & keymap) {
                 bind2->keycodes.emplace_back(code1, mods1);
 
                 /* If this binding is not explicitly for NumLock, check whether we need to
-             * add a fallback. */
+                 * add a fallback. */
                 if ((bind.event_state_mask & global.x->xcb_numlock_mask) != global.x->xcb_numlock_mask) {
                     /* Check whether the keycode results in the same keysym when NumLock is
-                 * active. If so, grab the key with NumLock as well, so that users don’t
-                 * need to duplicate every key binding with an additional Mod2 specified.
+                     * active. If so, grab the key with NumLock as well, so that users don’t
+                     * need to duplicate every key binding with an additional Mod2 specified.
                      */
                     xkb_keysym_t sym = xkb_state_key_get_one_sym(dummy_state, bind.keycode);
                     xkb_keysym_t sym_numlock = xkb_state_key_get_one_sym(dummy_state_numlock, bind.keycode);
@@ -587,7 +587,7 @@ void translate_keysyms(Keymap const & keymap) {
             }
 
             /* We need to translate the symbol to a keycode */
-        const xkb_keysym_t keysym = xkb_keysym_from_name(bind.symbol.c_str(), XKB_KEYSYM_NO_FLAGS);
+            xkb_keysym_t const keysym = xkb_keysym_from_name(bind.symbol.c_str(), XKB_KEYSYM_NO_FLAGS);
             if (keysym == XKB_KEY_NoSymbol) {
                 ELOG(fmt::sprintf("Could not translate string to key symbol: \"%s\"\n",
                                   bind.symbol));
@@ -645,15 +645,15 @@ void translate_keysyms(Keymap const & keymap) {
  * Switches the key bindings to the given mode, if the mode exists
  *
  */
-void switch_mode(const std::string new_mode) {
-    DLOG(fmt::sprintf("Switching to mode %s\n",  new_mode));
-   
+void switch_mode(std::string const new_mode) {
+    DLOG(fmt::sprintf("Switching to mode %s\n", new_mode));
+
     auto it = global.configManager->config->modes.find(new_mode);
     if (it == global.configManager->config->modes.end()) {
         ELOG("Mode not found\n");
         return;
     }
-    
+
     auto &mode = it->second;
 
     ungrab_all_keys(*global.x);
@@ -690,7 +690,7 @@ void switch_mode(const std::string new_mode) {
  */
 void reorder_bindings(Config *config) {
     std::ranges::for_each(config->modes, [](auto &mode) {
-        std::ranges::sort(mode.second.bindings, [](const auto &first, const auto &second) {
+        std::ranges::sort(mode.second.bindings, [](auto const &first, auto const &second) {
             if (first.event_state_mask < second.event_state_mask) {
                 return 1;
             } else if (first.event_state_mask == second.event_state_mask) {
@@ -758,11 +758,11 @@ bool has_duplicate_bindings(Config *config) {
 
             has_errors = true;
             if (current.keycode != 0) {
-                 ELOG(fmt::sprintf("Duplicate keybinding in config file:\n  state mask 0x%x with keycode %d, command \"%s\"\n",
-                     current.event_state_mask, current.keycode, current.command));
+                ELOG(fmt::sprintf("Duplicate keybinding in config file:\n  state mask 0x%x with keycode %d, command \"%s\"\n",
+                                  current.event_state_mask, current.keycode, current.command));
             } else {
-                 ELOG(fmt::sprintf("Duplicate keybinding in config file:\n  state mask 0x%x with keysym %s, command \"%s\"\n",
-                     current.event_state_mask, current.symbol, current.command));
+                ELOG(fmt::sprintf("Duplicate keybinding in config file:\n  state mask 0x%x with keysym %s, command \"%s\"\n",
+                                  current.event_state_mask, current.symbol, current.command));
             }
         }
     }
@@ -821,7 +821,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
  */
 std::set<int> bindings_get_buttons_to_grab() {
     /* We always return buttons 1 through 3. */
-    std::set<int> buffer = { 1, 2, 3 };
+    std::set<int> buffer = {1, 2, 3};
 
     for (auto &bind : global.configManager->config->current_mode()->bindings) {
         /* We are only interested in whole window mouse bindings. */

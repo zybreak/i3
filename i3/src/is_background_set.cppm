@@ -36,7 +36,7 @@ static cairo_region_t *unobscured_region(x_connection *conn, xcb_window_t window
     }
 
     /* Get information about children */
-    const uint16_t n_children = tree->children_len;
+    uint16_t const n_children = tree->children_len;
     xcb_window_t *children = xcb_query_tree_children(tree);
 
     std::vector<xcb_get_geometry_cookie_t> geometries{};

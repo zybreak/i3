@@ -33,7 +33,7 @@ struct drag_x11_cb {
     Con *con;
 
     /* The original event that initiated the drag. */
-    const xcb_button_press_event_t *event;
+    xcb_button_press_event_t const *event;
 
     /* The dimensions of con when the loop was started. */
     Rect old_rect;
@@ -52,7 +52,7 @@ struct drag_x11_cb {
 static bool threshold_exceeded(uint32_t x1, uint32_t y1,
                                uint32_t x2, uint32_t y2) {
     /* The threshold is about the height of one window decoration. */
-    const uint32_t threshold = logical_px(global.x->root_screen, 15);
+    uint32_t const threshold = logical_px(global.x->root_screen, 15);
     return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) > threshold * threshold;
 }
 
@@ -65,7 +65,7 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
         if (event->response_type == 0) {
             auto *error = (xcb_generic_error_t *)event;
             DLOG(fmt::sprintf("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
-                 error->sequence, error->error_code));
+                              error->sequence, error->error_code));
             free(event);
             continue;
         }
@@ -89,7 +89,7 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
                 ConCon *con = con_by_window_id(unmap_event->window);
 
                 if (con != nullptr) {
-                    DLOG(fmt::sprintf("UnmapNotify for window 0x%08x (container %p)\n",  unmap_event->window, fmt::ptr(con)));
+                    DLOG(fmt::sprintf("UnmapNotify for window 0x%08x (container %p)\n", unmap_event->window, fmt::ptr(con)));
 
                     if (con->con_get_workspace() == global.focused->con_get_workspace()) {
                         DLOG("UnmapNotify for a managed window on the current workspace, aborting\n");
@@ -176,9 +176,9 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
  * callback will not be called until then.
  *
  */
-drag_result_t InputManager::drag_pointer(Con *con, const xcb_button_press_event_t *event,
-                           xcb_window_t confine_to, int cursor,
-                           bool use_threshold, callback_t callback) {
+drag_result_t InputManager::drag_pointer(Con *con, xcb_button_press_event_t const *event,
+                                         xcb_window_t confine_to, int cursor,
+                                         bool use_threshold, callback_t callback) {
     xcb_cursor_t xcursor = cursor ? x.xcursor_get_cursor(static_cast<xcursor_cursor_t>(cursor)) : XCB_NONE;
 
     /* Grab the pointer */
@@ -188,7 +188,7 @@ drag_result_t InputManager::drag_pointer(Con *con, const xcb_button_press_event_
 
     cookie = xcb_grab_pointer(*x,
                               false,                                                         /* get all pointer events specified by the following mask */
-                              x.root,                                                          /* grab the root window */
+                              x.root,                                                        /* grab the root window */
                               XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION, /* which events to let through */
                               XCB_GRAB_MODE_ASYNC,                                           /* pointer events should continue as normal */
                               XCB_GRAB_MODE_ASYNC,                                           /* keyboard mode */
@@ -197,7 +197,7 @@ drag_result_t InputManager::drag_pointer(Con *con, const xcb_button_press_event_
                               XCB_CURRENT_TIME);
 
     if ((reply = xcb_grab_pointer_reply(*x, cookie, &error)) == nullptr) {
-        ELOG(fmt::sprintf("Could not grab pointer (error_code = %d)\n",  error->error_code));
+        ELOG(fmt::sprintf("Could not grab pointer (error_code = %d)\n", error->error_code));
         free(error);
         return DRAG_ABORT;
     }
@@ -209,15 +209,15 @@ drag_result_t InputManager::drag_pointer(Con *con, const xcb_button_press_event_
     xcb_grab_keyboard_reply_t *keyb_reply;
 
     keyb_cookie = xcb_grab_keyboard(*x,
-                                    false, /* get all keyboard events */
-                                    x.root,  /* grab the root window */
+                                    false,               /* get all keyboard events */
+                                    x.root,              /* grab the root window */
                                     XCB_CURRENT_TIME,
                                     XCB_GRAB_MODE_ASYNC, /* continue processing pointer events as normal */
                                     XCB_GRAB_MODE_ASYNC  /* keyboard mode */
     );
 
     if ((keyb_reply = xcb_grab_keyboard_reply(*x, keyb_cookie, &error)) == nullptr) {
-        ELOG(fmt::sprintf("Could not grab keyboard (error_code = %d)\n",  error->error_code));
+        ELOG(fmt::sprintf("Could not grab keyboard (error_code = %d)\n", error->error_code));
         free(error);
         xcb_ungrab_pointer(*x, XCB_CURRENT_TIME);
         return DRAG_ABORT;
@@ -234,8 +234,7 @@ drag_result_t InputManager::drag_pointer(Con *con, const xcb_button_press_event_
         .event = event,
         .callback = callback,
         .threshold_exceeded = !use_threshold,
-        .xcursor = xcursor
-    };
+        .xcursor = xcursor};
     ev_prepare *prepare = &loop.prepare;
     if (con) {
         loop.old_rect = con->rect;

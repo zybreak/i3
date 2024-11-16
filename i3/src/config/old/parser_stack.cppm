@@ -3,7 +3,7 @@ export module i3_config_old:parser_stack;
 export {
     struct stack_entry {
         /* Just a pointer, not dynamically allocated. */
-        const char *identifier;
+        char const *identifier;
         enum {
             STACK_STR = 0,
             STACK_LONG = 1,
@@ -19,9 +19,9 @@ export {
     };
 
     void clear_stack(stack & ctx);
-    const char *get_string(stack & stack, const char *identifier);
-    long get_long(stack & stack, const char *identifier);
-    void push_long(stack & ctx, const char *identifier, long num);
-    void push_string(stack & stack, const char *identifier, char *str);
-    void push_string_append(stack & ctx, const char *identifier, const char *str);
+    char const *get_string(stack & stack, char const *identifier);
+    long get_long(stack & stack, char const *identifier);
+    void push_long(stack & ctx, char const *identifier, long num);
+    void push_string(stack & stack, char const *identifier, char *str);
+    void push_string_append(stack & ctx, char const *identifier, char const *str);
 }

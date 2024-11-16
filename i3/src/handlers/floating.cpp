@@ -12,12 +12,12 @@ import utils;
 import log;
 import rect;
 
-static void drag_window_callback(Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y,
-                                 const xcb_button_press_event_t *event) {
+static void drag_window_callback(Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y,
+                                 xcb_button_press_event_t const *event) {
     /* Reposition the client correctly while moving */
     con->rect.x = old_rect.x + (new_x - event->root_x);
     con->rect.y = old_rect.y + (new_y - event->root_y);
-    
+
     render_con(con);
     x_push_node(con);
     xcb_flush(**global.x);
@@ -36,9 +36,9 @@ static void drag_window_callback(Con *con, const Rect &old_rect, uint32_t new_x,
  * Calls the drag_pointer function with the drag_window callback
  *
  */
-void PropertyHandlers::floating_drag_window(Con *con, const xcb_button_press_event_t *event, bool use_threshold) {
+void PropertyHandlers::floating_drag_window(Con *con, xcb_button_press_event_t const *event, bool use_threshold) {
     DLOG("floating_drag_window\n");
-    
+
     /* Push changes before dragging, so that the window gets raised now and not
      * after the user releases the mouse button */
     tree_render();
@@ -71,12 +71,12 @@ void PropertyHandlers::floating_drag_window(Con *con, const xcb_button_press_eve
  *
  */
 struct resize_window_callback_params {
-    const border_t corner;
-    const bool proportional;
+    border_t const corner;
+    bool const proportional;
 };
 
-static void resize_window_callback(Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y,
-                                   const xcb_button_press_event_t *event, const resize_window_callback_params *params) {
+static void resize_window_callback(Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y,
+                                   xcb_button_press_event_t const *event, resize_window_callback_params const *params) {
     border_t corner = params->corner;
 
     int32_t dest_x = con->rect.x;
@@ -134,10 +134,10 @@ static void resize_window_callback(Con *con, const Rect &old_rect, uint32_t new_
  * Calls the drag_pointer function with the resize_window callback
  *
  */
-void PropertyHandlers::floating_resize_window(Con *con, const bool proportional,
-                            const xcb_button_press_event_t *event) {
+void PropertyHandlers::floating_resize_window(Con *con, bool const proportional,
+                                              xcb_button_press_event_t const *event) {
     DLOG("floating_resize_window\n");
-    
+
     /* Push changes before resizing, so that the window gets raised now and not
      * after the user releases the mouse button */
     tree_render();
@@ -166,8 +166,8 @@ void PropertyHandlers::floating_resize_window(Con *con, const bool proportional,
     /* get the initial rect in case of revert/cancel */
     Rect initial_rect = con->rect;
 
-    auto cb = [&params](Con *con, const Rect &old_rect, uint32_t new_x, uint32_t new_y,
-                        const xcb_button_press_event_t *event) {
+    auto cb = [&params](Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y,
+                        xcb_button_press_event_t const *event) {
         resize_window_callback(con, old_rect, new_x, new_y, event, &params);
     };
     drag_result_t drag_result = inputManager.drag_pointer(con, event, XCB_NONE, cursor, false, cb);

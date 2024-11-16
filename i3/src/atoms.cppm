@@ -69,7 +69,7 @@ export namespace i3 {
     };
 
     std::map<Atom, xcb_atom_t> atoms{};
-}
+}  // namespace i3
 
 /* Setup NetWM atoms */
 export void setup_atoms(X &x);

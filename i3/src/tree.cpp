@@ -35,8 +35,8 @@ import program_arguments;
  * Loads tree from 'path' (used for in-place restarts).
  *
  */
-bool tree_restore(const std::filesystem::path path, const xcb_get_geometry_reply_t *geometry) {
-    //auto globbed = utils::resolve_tilde(path);
+bool tree_restore(std::filesystem::path const path, xcb_get_geometry_reply_t const *geometry) {
+    // auto globbed = utils::resolve_tilde(path);
     if (!std::filesystem::exists(path)) {
         LOG(std::format("{} does not exist, not restoring tree", path.native()));
         return false;
@@ -45,11 +45,10 @@ bool tree_restore(const std::filesystem::path path, const xcb_get_geometry_reply
     try {
         global.croot = new RootCon();
         global.croot->rect = {
-                static_cast<uint32_t>(geometry->x),
-                static_cast<uint32_t>(geometry->y),
-                geometry->width,
-                geometry->height
-        };
+            static_cast<uint32_t>(geometry->x),
+            static_cast<uint32_t>(geometry->y),
+            geometry->width,
+            geometry->height};
         global.focused = global.croot;
 
         try {
@@ -60,7 +59,7 @@ bool tree_restore(const std::filesystem::path path, const xcb_get_geometry_reply
         }
 
         DLOG("appended tree, using new root\n");
-        global.croot = dynamic_cast<RootCon*>(con::first(global.croot->nodes));
+        global.croot = dynamic_cast<RootCon *>(con::first(global.croot->nodes));
         if (!global.croot) {
             /* tree_append_json failed. Continuing here would segfault. */
             return false;
@@ -73,7 +72,7 @@ bool tree_restore(const std::filesystem::path path, const xcb_get_geometry_reply
 
         restore_open_placeholder_windows(global.croot);
         return true;
-        
+
     } catch (...) {
         return false;
     }
@@ -84,24 +83,24 @@ bool tree_restore(const std::filesystem::path path, const xcb_get_geometry_reply
  * root node are created in randr.c for each Output.
  *
  */
-void tree_init(const xcb_get_geometry_reply_t *geometry) {
+void tree_init(xcb_get_geometry_reply_t const *geometry) {
     global.croot = new RootCon();
     global.croot->layout = L_SPLITH;
     global.croot->rect = {
         static_cast<uint32_t>(geometry->x),
         static_cast<uint32_t>(geometry->y),
         geometry->width,
-        geometry->height
-    };
+        geometry->height};
 }
 
-TreeManager::TreeManager(X &x) : x(x) {
+TreeManager::TreeManager(X &x)
+    : x(x) {
     auto greply = x.conn->get_geometry(x.root).get();
     if (greply == nullptr) {
         throw std::runtime_error("Could not get geometry of the root window, exiting");
     }
     DLOG(fmt::sprintf("root geometry reply: (%d, %d) %d x %d\n", greply->x, greply->y, greply->width, greply->height));
-    
+
     bool needs_tree_init = true;
     if (global.args->layout_path) {
         LOG(fmt::format("Trying to restore the layout from \"{}\".", global.args->layout_path->native()));
@@ -120,7 +119,7 @@ TreeManager::TreeManager(X &x) : x(x) {
     }
 }
 
-static Con* _focused() {
+static Con *_focused() {
     /* every focusable Con has a parent (outputs have parent root) */
     Con *con = global.focused->parent;
     /* If the parent is an output, we are on a workspace. In this case,
@@ -138,11 +137,11 @@ static Con* _focused() {
             con = con->parent;
         }
     }
-    
+
     DLOG(fmt::sprintf("con = %p\n", fmt::ptr(con)));
 
     assert(con != nullptr);
-    
+
     return con;
 }
 
@@ -199,7 +198,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
         return false;
     }
 
-    if (ConCon *con2 = dynamic_cast<ConCon*>(con); con2 != nullptr && con2->get_window() != nullptr) {
+    if (ConCon *con2 = dynamic_cast<ConCon *>(con); con2 != nullptr && con2->get_window() != nullptr) {
         if (kill_window != kill_window_t::DONT_KILL_WINDOW) {
             x_window_kill(**global.x, con2->get_window()->id, kill_window);
             return false;
@@ -278,7 +277,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
     x_con_kill(con);
 
     if (ws == con) {
-        DLOG(fmt::sprintf("Closing workspace container %s, updating EWMH atoms\n",  ws->name));
+        DLOG(fmt::sprintf("Closing workspace container %s, updating EWMH atoms\n", ws->name));
         ewmh_update_desktop_properties();
     }
 
@@ -313,7 +312,7 @@ void tree_split(Con *con, orientation_t orientation) {
         if (con->con_num_children() < 2) {
             if (con->con_num_children() == 0) {
                 DLOG("Changing workspace_layout to L_DEFAULT\n");
-                dynamic_cast<WorkspaceCon*>(con)->workspace_layout = L_DEFAULT;
+                dynamic_cast<WorkspaceCon *>(con)->workspace_layout = L_DEFAULT;
             }
             DLOG("Changing orientation of workspace\n");
             con->layout = (orientation == HORIZ) ? L_SPLITH : L_SPLITV;
@@ -409,7 +408,6 @@ bool level_down() {
 }
 
 static void mark_unmapped(Con *con) {
-
     con->mapped = false;
     for (auto &current : con->nodes) {
         mark_unmapped(current);
@@ -417,7 +415,7 @@ static void mark_unmapped(Con *con) {
     if (con->type == CT_WORKSPACE) {
         /* We need to call mark_unmapped on floating nodes as well since we can
          * make containers floating. */
-        for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+        for (auto &current : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
             mark_unmapped(current);
         }
     }
@@ -452,19 +450,19 @@ static Con *get_tree_next_workspace(Con *con, direction_t direction) {
 
     // Use the center of the container instead of the left/top edges, to make
     // this work with negative gaps. See https://github.com/i3/i3/issues/5293
-    const uint32_t x = con->rect.x + (con->rect.width / 2);
-    const uint32_t y = con->rect.y + (con->rect.height / 2);
+    uint32_t const x = con->rect.x + (con->rect.width / 2);
+    uint32_t const y = con->rect.y + (con->rect.height / 2);
     Output *current_output = global.randr->get_output_containing(x, y);
     if (!current_output) {
         return nullptr;
     }
-    DLOG(fmt::sprintf("Current output is %s\n",  current_output->output_primary_name()));
+    DLOG(fmt::sprintf("Current output is %s\n", current_output->output_primary_name()));
 
     Output *next_output = global.randr->get_output_next(direction, current_output, CLOSEST_OUTPUT);
     if (!next_output) {
         return nullptr;
     }
-    DLOG(fmt::sprintf("Next output is %s\n",  next_output->output_primary_name()));
+    DLOG(fmt::sprintf("Next output is %s\n", next_output->output_primary_name()));
 
     /* Find visible workspace on next output */
     auto workspace = std::ranges::find_if(next_output->con->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
@@ -478,8 +476,8 @@ static Con *get_tree_next_workspace(Con *con, direction_t direction) {
  *
  */
 static Con *get_tree_next(Con *con, direction_t direction) {
-    const bool previous = position_from_direction(direction) == BEFORE;
-    const orientation_t orientation = orientation_from_direction(direction);
+    bool const previous = position_from_direction(direction) == BEFORE;
+    orientation_t const orientation = orientation_from_direction(direction);
 
     Con *first_wrap = nullptr;
 
@@ -504,8 +502,8 @@ static Con *get_tree_next(Con *con, direction_t direction) {
 
         Con *const parent = con->parent;
         if (con->type == CT_FLOATING_CON) {
-            auto floating_parent = dynamic_cast<WorkspaceCon*>(parent);
-            std::deque<FloatingCon*> floating_windows{};
+            auto floating_parent = dynamic_cast<WorkspaceCon *>(parent);
+            std::deque<FloatingCon *> floating_windows{};
             if (floating_parent) {
                 floating_windows = floating_parent->floating_windows;
             }
@@ -529,7 +527,7 @@ static Con *get_tree_next(Con *con, direction_t direction) {
                 } else {
                     next = (std::next(con_it) == floating_windows.end()) ? nullptr : *std::next(con_it);
                 }
-            } else if ((con_it+1) == floating_windows.end()) {
+            } else if ((con_it + 1) == floating_windows.end()) {
                 if (previous) {
                     next = (con_it == floating_windows.begin()) ? nullptr : *std::prev(con_it);
                 } else {
@@ -605,14 +603,14 @@ void tree_next(Con *con, direction_t direction) {
             }
         }
 
-        global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon*>(next));
+        global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon *>(next));
         focus->con_activate();
         x_set_warp_to(focus->rect);
         return;
     } else if (next->type == CT_FLOATING_CON) {
         /* Raise the floating window on top of other windows preserving relative
          * stack order */
-        WorkspaceCon *parent = dynamic_cast<WorkspaceCon*>(next->parent);
+        WorkspaceCon *parent = dynamic_cast<WorkspaceCon *>(next->parent);
         while (parent->floating_windows.back() != next) {
             FloatingCon *last = parent->floating_windows.back();
             parent->floating_windows.pop_back();
@@ -662,8 +660,8 @@ void tree_flatten(Con *con) {
             tree_flatten(current);
         }
 
-        if (dynamic_cast<WorkspaceCon*>(con)) {
-            for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+        if (dynamic_cast<WorkspaceCon *>(con)) {
+            for (auto &current : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
                 tree_flatten(current);
             }
         }
@@ -677,8 +675,8 @@ void tree_flatten(Con *con) {
             tree_flatten(current);
         }
 
-        if (dynamic_cast<WorkspaceCon*>(con)) {
-            for (auto &c : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+        if (dynamic_cast<WorkspaceCon *>(con)) {
+            for (auto &c : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
                 tree_flatten(c);
             }
         }
@@ -702,8 +700,8 @@ void tree_flatten(Con *con) {
             tree_flatten(current);
         }
 
-        if (dynamic_cast<WorkspaceCon*>(con)) {
-            for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+        if (dynamic_cast<WorkspaceCon *>(con)) {
+            for (auto &current : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
                 tree_flatten(current);
             }
         }

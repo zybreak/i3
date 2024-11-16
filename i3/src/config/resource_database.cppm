@@ -11,9 +11,10 @@ import log;
 export class ResourceDatabase : public BaseResourceDatabase {
     xcb_xrm_database_t *database = nullptr;
     xcb_connection_t *conn;
-   public:
 
-    explicit ResourceDatabase(xcb_connection_t *conn) : conn(conn) {
+  public:
+    explicit ResourceDatabase(xcb_connection_t *conn)
+        : conn(conn) {
         assert(conn != nullptr);
     }
 
@@ -37,14 +38,14 @@ export class ResourceDatabase : public BaseResourceDatabase {
         xcb_xrm_resource_get_string(database, name.data(), nullptr, &resource);
 
         if (resource == nullptr) {
-            DLOG(fmt::sprintf("Could not get resource '%s', using fallback '%s'.\n",  name, fallback));
+            DLOG(fmt::sprintf("Could not get resource '%s', using fallback '%s'.\n", name, fallback));
             return fallback.data();
         }
-        
+
         std::string resource_str = resource;
-        
+
         free(resource);
-        
+
         return resource_str;
     }
 

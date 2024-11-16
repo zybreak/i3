@@ -15,13 +15,13 @@ module i3;
 
 import std;
 import log;
- 
+
 /*
  * Returns the content container below the given output container.
  *
  */
 ConCon* OutputCon::output_get_content() {
-    for (auto &child : this->nodes) {
+    for (auto& child : this->nodes) {
         if (child->type == CT_CON) {
             return dynamic_cast<ConCon*>(child);
         }
@@ -32,5 +32,5 @@ ConCon* OutputCon::output_get_content() {
 
 void OutputCon::on_remove_child() {
     DLOG("on_remove_child\n");
-    DLOG(fmt::sprintf("not handling, type = %d, name = %s\n",  std::to_underlying(this->type), this->name));
+    DLOG(fmt::sprintf("not handling, type = %d, name = %s\n", std::to_underlying(this->type), this->name));
 }

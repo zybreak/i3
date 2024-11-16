@@ -19,18 +19,18 @@ import rect;
 import :internal;
 
 /* from X11/keysymdef.h */
-export const uint32_t XCB_NUM_LOCK = 0xff7f;
+export uint32_t const XCB_NUM_LOCK = 0xff7f;
 
 /* The event masks are defined here because we don’t only set them once but we
    need to set slight variations of them (without XCB_EVENT_MASK_ENTER_WINDOW
    while rendering the layout) */
 /** The XCB_CW_EVENT_MASK for the child (= real window) */
-export const uint32_t CHILD_EVENT_MASK = (XCB_EVENT_MASK_PROPERTY_CHANGE |
+export uint32_t const CHILD_EVENT_MASK = (XCB_EVENT_MASK_PROPERTY_CHANGE |
                                           XCB_EVENT_MASK_STRUCTURE_NOTIFY |
                                           XCB_EVENT_MASK_FOCUS_CHANGE);
 
 /** The XCB_CW_EVENT_MASK for its frame */
-export const uint32_t FRAME_EVENT_MASK = (XCB_EVENT_MASK_BUTTON_PRESS | /* …mouse is pressed/released */
+export uint32_t const FRAME_EVENT_MASK = (XCB_EVENT_MASK_BUTTON_PRESS |          /* …mouse is pressed/released */
                                           XCB_EVENT_MASK_BUTTON_RELEASE |
                                           XCB_EVENT_MASK_POINTER_MOTION |        /* …mouse is moved */
                                           XCB_EVENT_MASK_EXPOSURE |              /* …our window needs to be redrawn */
@@ -39,7 +39,7 @@ export const uint32_t FRAME_EVENT_MASK = (XCB_EVENT_MASK_BUTTON_PRESS | /* …mo
                                           XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY |   /* …subwindows get notifies */
                                           XCB_EVENT_MASK_ENTER_WINDOW);          /* …user moves cursor inside our window */
 
-export const uint32_t ROOT_EVENT_MASK = (XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
+export uint32_t const ROOT_EVENT_MASK = (XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT |
                                          XCB_EVENT_MASK_BUTTON_PRESS |
                                          XCB_EVENT_MASK_STRUCTURE_NOTIFY | /* when the user adds a screen (e.g. video \
                                                                             * projector), the root window gets a      \
@@ -55,7 +55,7 @@ export {
      * generating an ID and checking for errors.
      *
      */
-    xcb_window_t create_window(xcb_connection_t *conn, Rect dims,
+    xcb_window_t create_window(xcb_connection_t * conn, Rect dims,
                                uint16_t depth, xcb_visualid_t visual, uint16_t window_class,
                                enum xcursor_cursor_t cursor, bool map, uint32_t mask, uint32_t *values);
 

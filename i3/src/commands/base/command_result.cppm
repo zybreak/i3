@@ -18,7 +18,7 @@ import std;
  * true.
  */
 export class CommandResult {
-   public:
+  public:
     bool parse_error;
     /* the error_message is currently only set for parse errors */
     std::string error_message;

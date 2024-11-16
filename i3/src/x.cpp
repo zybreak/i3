@@ -37,15 +37,15 @@ void X::xcursor_load_cursors() {
     if (xcb_cursor_context_new(**global.x, global.x->root_screen, &ctx) < 0) {
         errx(EXIT_FAILURE, "Cannot allocate xcursor context");
     }
-    cursors[XCURSOR_CURSOR_POINTER] = xcb_cursor_load_cursor(ctx, "left_ptr");;
-    cursors[XCURSOR_CURSOR_RESIZE_HORIZONTAL] = xcb_cursor_load_cursor(ctx, "sb_h_double_arrow");;
-    cursors[XCURSOR_CURSOR_RESIZE_VERTICAL] = xcb_cursor_load_cursor(ctx, "sb_v_double_arrow");;
-    cursors[XCURSOR_CURSOR_WATCH] = xcb_cursor_load_cursor(ctx, "watch");;
-    cursors[XCURSOR_CURSOR_MOVE] = xcb_cursor_load_cursor(ctx, "fleur");;
-    cursors[XCURSOR_CURSOR_TOP_LEFT_CORNER] = xcb_cursor_load_cursor(ctx, "top_left_corner");;
-    cursors[XCURSOR_CURSOR_TOP_RIGHT_CORNER] = xcb_cursor_load_cursor(ctx, "top_right_corner");;
-    cursors[XCURSOR_CURSOR_BOTTOM_LEFT_CORNER] = xcb_cursor_load_cursor(ctx, "bottom_left_corner");;
-    cursors[XCURSOR_CURSOR_BOTTOM_RIGHT_CORNER] = xcb_cursor_load_cursor(ctx, "bottom_right_corner");;
+    cursors[XCURSOR_CURSOR_POINTER] = xcb_cursor_load_cursor(ctx, "left_ptr");
+    cursors[XCURSOR_CURSOR_RESIZE_HORIZONTAL] = xcb_cursor_load_cursor(ctx, "sb_h_double_arrow");
+    cursors[XCURSOR_CURSOR_RESIZE_VERTICAL] = xcb_cursor_load_cursor(ctx, "sb_v_double_arrow");
+    cursors[XCURSOR_CURSOR_WATCH] = xcb_cursor_load_cursor(ctx, "watch");
+    cursors[XCURSOR_CURSOR_MOVE] = xcb_cursor_load_cursor(ctx, "fleur");
+    cursors[XCURSOR_CURSOR_TOP_LEFT_CORNER] = xcb_cursor_load_cursor(ctx, "top_left_corner");
+    cursors[XCURSOR_CURSOR_TOP_RIGHT_CORNER] = xcb_cursor_load_cursor(ctx, "top_right_corner");
+    cursors[XCURSOR_CURSOR_BOTTOM_LEFT_CORNER] = xcb_cursor_load_cursor(ctx, "bottom_left_corner");
+    cursors[XCURSOR_CURSOR_BOTTOM_RIGHT_CORNER] = xcb_cursor_load_cursor(ctx, "bottom_right_corner");
 }
 
 /*
@@ -65,7 +65,7 @@ xcb_cursor_t X::xcursor_get_cursor(xcursor_cursor_t c) {
     return cursors.at(c);
 }
 
-xcb_visualtype_t* X::get_visual_type_for_root() {
+xcb_visualtype_t *X::get_visual_type_for_root() {
     auto vt = xcb_aux_find_visual_by_attrs(root_screen, -1, 32);
     if (vt != nullptr) {
         root_depth = xcb_aux_get_depth_of_visual(root_screen, vt->visual_id);
@@ -73,13 +73,13 @@ xcb_visualtype_t* X::get_visual_type_for_root() {
 
         try {
             xpp::x::create_colormap_checked(*this->conn,
-                XCB_COLORMAP_ALLOC_NONE,
-                colormap,
-                root,
-                vt->visual_id);
+                                            XCB_COLORMAP_ALLOC_NONE,
+                                            colormap,
+                                            root,
+                                            vt->visual_id);
 
         } catch (std::exception &e) {
-            ELOG(fmt::sprintf("Could not create colormap. Error: %s\n",  e.what()));
+            ELOG(fmt::sprintf("Could not create colormap. Error: %s\n", e.what()));
             exit(EXIT_FAILURE);
         }
     } else {
@@ -89,7 +89,8 @@ xcb_visualtype_t* X::get_visual_type_for_root() {
     return vt;
 }
 
-X::X() : conn(new x_connection()) {
+X::X()
+    : conn(new x_connection()) {
     this->conn_screen = conn->default_screen();
     this->root_screen = conn->screen_of_display(this->conn_screen);
     this->root = conn->root();
@@ -100,8 +101,8 @@ X::X() : conn(new x_connection()) {
 
     DLOG(fmt::sprintf("root_depth = %d, visual_id = 0x%08x.\n", root_depth, visual_type->visual_id));
     DLOG(fmt::sprintf("root_screen->height_in_pixels = %d, root_screen->height_in_millimeters = %d\n",
-        root_screen->height_in_pixels, root_screen->height_in_millimeters));
-    DLOG(fmt::sprintf("One logical pixel corresponds to %ld physical pixels on this display.\n",  logical_px(root_screen, 1)));
+                      root_screen->height_in_pixels, root_screen->height_in_millimeters));
+    DLOG(fmt::sprintf("One logical pixel corresponds to %ld physical pixels on this display.\n", logical_px(root_screen, 1)));
 
     /* Check for Shape extension. We want to handle input shapes which is
      * introduced in 1.1. */
@@ -113,7 +114,7 @@ X::X() : conn(new x_connection()) {
     } else {
         shape_supported = false;
     }
-    
+
     if (!shape_supported) {
         DLOG("shape 1.1 is not present on this server\n");
     }
@@ -134,7 +135,7 @@ static con_state *state_for_frame(xcb_window_t window) {
     }
 
     /* TODO: better error handling? */
-    ELOG(fmt::sprintf("No state found for window 0x%08x\n",  window));
+    ELOG(fmt::sprintf("No state found for window 0x%08x\n", window));
     std::terminate();
     return nullptr;
 }
@@ -208,10 +209,10 @@ void X::con_init(Con *con, std::optional<xcb_drawable_t> id) {
 
     Rect dims = {(uint32_t)-15, (uint32_t)-15, 10, 10};
     if (id) {
-        con->frame = std::make_unique<surface_t>((xcb_connection_t*)*this->conn, *id, get_visualtype_by_id(visual), dims.width, dims.height);
+        con->frame = std::make_unique<surface_t>((xcb_connection_t *)*this->conn, *id, get_visualtype_by_id(visual), dims.width, dims.height);
     } else {
-        xcb_window_t frame_id = create_window((xcb_connection_t*)*this->conn, dims, con->depth, visual, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER, false, mask, values);
-        con->frame = std::make_unique<surface_t>((xcb_connection_t*)*this->conn, frame_id, get_visualtype_by_id(visual), dims.width, dims.height);
+        xcb_window_t frame_id = create_window((xcb_connection_t *)*this->conn, dims, con->depth, visual, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER, false, mask, values);
+        con->frame = std::make_unique<surface_t>((xcb_connection_t *)*this->conn, frame_id, get_visualtype_by_id(visual), dims.width, dims.height);
     }
     xcb_change_property(*this->conn,
                         XCB_PROP_MODE_REPLACE,
@@ -226,12 +227,12 @@ void X::con_init(Con *con, std::optional<xcb_drawable_t> id) {
     state->id = con->frame->id;
     state->mapped = false;
     state->initial = true;
-    DLOG(fmt::sprintf("Adding window 0x%08x to lists\n",  state->id));
+    DLOG(fmt::sprintf("Adding window 0x%08x to lists\n", state->id));
 
     this->state_head.push_front(state);
     this->old_state_head.push_front(state);
     this->initial_mapping_head.push_back(state);
-    DLOG(fmt::sprintf("adding new state for window id 0x%08x\n",  state->id));
+    DLOG(fmt::sprintf("adding new state for window id 0x%08x\n", state->id));
 }
 
 /*
@@ -251,7 +252,6 @@ void x_reparent_child(Con *con, Con *old) {
 }
 
 static xcb_drawable_t _x_con_kill(Con *con) {
-
     if (con->colormap != XCB_NONE) {
         xcb_free_colormap(**global.x, con->colormap);
     }
@@ -260,10 +260,10 @@ static xcb_drawable_t _x_con_kill(Con *con) {
         xcb_free_pixmap(**global.x, con->frame_buffer->id);
         con->frame_buffer.reset();
     }
-    
+
     if (con->frame) {
         auto frame_id = con->frame->id;
-        
+
         con_state *state = state_for_frame(frame_id);
         std::erase(global.x->state_head, state);
         std::erase(global.x->old_state_head, state);
@@ -278,10 +278,10 @@ static xcb_drawable_t _x_con_kill(Con *con) {
         if (frame_id == global.x->last_focused) {
             global.x->last_focused = XCB_NONE;
         }
-        
+
         return frame_id;
     }
-    
+
     return 0;
 }
 
@@ -337,10 +337,10 @@ void x_window_kill(xcb_connection_t *c, xcb_window_t window, kill_window_t kill_
     /* if this window does not support WM_DELETE_WINDOW, we kill it the hard way */
     if (!window_supports_protocol(window, i3::atoms[i3::Atom::WM_DELETE_WINDOW])) {
         if (kill_window == kill_window_t::KILL_WINDOW) {
-            LOG(fmt::sprintf("Killing specific window 0x%08x\n",  window));
+            LOG(fmt::sprintf("Killing specific window 0x%08x\n", window));
             xcb_destroy_window(**global.x, window);
         } else {
-            LOG(fmt::sprintf("Killing the X11 client which owns window 0x%08x\n",  window));
+            LOG(fmt::sprintf("Killing the X11 client which owns window 0x%08x\n", window));
             xcb_kill_client(**global.x, window);
         }
         return;
@@ -366,19 +366,19 @@ static void x_draw_title_border(Con *con, surface_t *dest_surface) {
 
     /* Left */
     dest_surface->draw_util_rectangle(p.color->border,
-                        dr->x, dr->y, 1, dr->height);
+                                      dr->x, dr->y, 1, dr->height);
 
     /* Right */
     dest_surface->draw_util_rectangle(p.color->border,
-                        dr->x + dr->width - 1, dr->y, 1, dr->height);
+                                      dr->x + dr->width - 1, dr->y, 1, dr->height);
 
     /* Top */
     dest_surface->draw_util_rectangle(p.color->border,
-                        dr->x, dr->y, dr->width, 1);
+                                      dr->x, dr->y, dr->width, 1);
 
     /* Bottom */
     dest_surface->draw_util_rectangle(p.color->border,
-                        dr->x, dr->y + dr->height - 1, dr->width, 1);
+                                      dr->x, dr->y + dr->height - 1, dr->width, 1);
 }
 
 /*
@@ -433,7 +433,7 @@ static size_t x_get_border_rectangles(Con *con, xcb_rectangle_t rectangles[4]) {
     return count;
 }
 
-static Colortriple* get_color(Con *con, bool leaf) {
+static Colortriple *get_color(Con *con, bool leaf) {
     Con *parent = con->parent;
     /* find out which colors to use */
     if (con->urgent) {
@@ -491,7 +491,7 @@ void x_draw_decoration(Con *con) {
 
     Rect *r = &(con->rect);
     Rect *w = &(con->get_window_rect());
-    
+
     /* 1: build deco_params and compare with cache */
     auto p = std::make_unique<deco_render_params>();
 
@@ -533,16 +533,16 @@ void x_draw_decoration(Con *con) {
 
         /* top area */
         con->frame_buffer->draw_util_rectangle(global.configManager->config->client.background,
-                            0, 0, r->width, w->y);
+                                               0, 0, r->width, w->y);
         /* bottom area */
         con->frame_buffer->draw_util_rectangle(global.configManager->config->client.background,
-                            0, w->y + w->height, r->width, r->height - (w->y + w->height));
+                                               0, w->y + w->height, r->width, r->height - (w->y + w->height));
         /* left area */
         con->frame_buffer->draw_util_rectangle(global.configManager->config->client.background,
-                            0, 0, w->x, r->height);
+                                               0, 0, w->x, r->height);
         /* right area */
         con->frame_buffer->draw_util_rectangle(global.configManager->config->client.background,
-                            w->x + w->width, 0, r->width - (w->x + w->width), r->height);
+                                               w->x + w->width, 0, r->width - (w->x + w->width), r->height);
     }
 
     /* 3: draw a rectangle in border color around the client */
@@ -554,10 +554,10 @@ void x_draw_decoration(Con *con) {
         size_t rectangles_count = x_get_border_rectangles(con, rectangles);
         for (size_t i = 0; i < rectangles_count; i++) {
             con->frame_buffer->draw_util_rectangle(con->deco_render_params->color->child_border,
-                                rectangles[i].x,
-                                rectangles[i].y,
-                                rectangles[i].width,
-                                rectangles[i].height);
+                                                   rectangles[i].x,
+                                                   rectangles[i].y,
+                                                   rectangles[i].width,
+                                                   rectangles[i].height);
         }
 
         /* Highlight the side of the border at which the next window will be
@@ -570,10 +570,10 @@ void x_draw_decoration(Con *con) {
             con->parent->type != CT_FLOATING_CON) {
             if (con->deco_render_params->parent_layout == L_SPLITH) {
                 con->frame_buffer->draw_util_rectangle(con->deco_render_params->color->indicator,
-                                    r->width + (br.width + br.x), br.y, -(br.width + br.x), r->height + br.height);
+                                                       r->width + (br.width + br.x), br.y, -(br.width + br.x), r->height + br.height);
             } else if (con->deco_render_params->parent_layout == L_SPLITV) {
                 con->frame_buffer->draw_util_rectangle(con->deco_render_params->color->indicator,
-                                    br.x, r->height + (br.height + br.y), r->width + br.width, -(br.height + br.y));
+                                                       br.x, r->height + (br.height + br.y), r->width + br.width, -(br.height + br.y));
             }
         }
     }
@@ -593,7 +593,7 @@ void x_draw_decoration(Con *con) {
         draw_util_copy_surface(con->frame_buffer.get(), con->frame.get(), 0, 0, 0, 0, con->rect.width, con->rect.height);
         return;
     }
-    
+
     DLOG(fmt::sprintf("dest_surface %p is %d x %d (id=0x%08x)\n", fmt::ptr(dest_surface), dest_surface->width, dest_surface->height, dest_surface->id));
 
     /* For the first child, we clear the parent pixmap to ensure there's no
@@ -612,9 +612,9 @@ void x_draw_decoration(Con *con) {
 
     /* 4: paint the bar */
     DLOG(fmt::sprintf("con->deco_rect = (x=%d, y=%d, w=%d, h=%d) for con->name=%s\n",
-         con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height, con->name));
+                      con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height, con->name));
     dest_surface->draw_util_rectangle(con->deco_render_params->color->background,
-                        con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height);
+                                      con->deco_rect.x, con->deco_rect.y, con->deco_rect.width, con->deco_rect.height);
 
     /* 5: draw title border */
     x_draw_title_border(con, dest_surface);
@@ -624,8 +624,8 @@ void x_draw_decoration(Con *con) {
 
     i3Window *win = con->get_window();
 
-    const int deco_width = static_cast<int>(con->deco_rect.width);
-    const int title_padding = logical_px(global.x->root_screen, 2);
+    int const deco_width = static_cast<int>(con->deco_rect.width);
+    int const title_padding = logical_px(global.x->root_screen, 2);
 
     int mark_width = 0;
 
@@ -649,7 +649,7 @@ void x_draw_decoration(Con *con) {
     int icon_size = std::max(0, static_cast<int>(con->deco_rect.height - logical_px(global.x->root_screen, 2)));
     int icon_padding = logical_px(global.x->root_screen, std::max(1, con->get_window_icon_padding()));
     int total_icon_space = icon_size + 2 * icon_padding;
-    const bool has_icon = (con->get_window_icon_padding() > -1) && win && win->icon && (total_icon_space < deco_width);
+    bool const has_icon = (con->get_window_icon_padding() > -1) && win && win->icon && (total_icon_space < deco_width);
     if (!has_icon) {
         icon_size = icon_padding = total_icon_space = 0;
     }
@@ -690,10 +690,10 @@ void x_draw_decoration(Con *con) {
     }
 
     dest_surface->draw_util_text(*global.configManager->config->font, title,
-                   con->deco_render_params->color->text, con->deco_render_params->color->background,
-                   con->deco_rect.x + title_offset_x,
-                   con->deco_rect.y + text_offset_y,
-                   deco_width - mark_width - 2 * title_padding - total_icon_space);
+                                 con->deco_render_params->color->text, con->deco_render_params->color->background,
+                                 con->deco_rect.x + title_offset_x,
+                                 con->deco_rect.y + text_offset_y,
+                                 deco_width - mark_width - 2 * title_padding - total_icon_space);
     if (has_icon) {
         dest_surface->draw_util_image(
             win->icon->data(),
@@ -714,7 +714,7 @@ void x_draw_decoration(Con *con) {
  *
  */
 void x_deco_recurse(Con *con) {
-    bool leaf = con->nodes.empty() && (dynamic_cast<WorkspaceCon*>(con) == nullptr || dynamic_cast<WorkspaceCon*>(con)->floating_windows.empty());
+    bool leaf = con->nodes.empty() && (dynamic_cast<WorkspaceCon *>(con) == nullptr || dynamic_cast<WorkspaceCon *>(con)->floating_windows.empty());
     con_state *state = state_for_frame(con->frame->id);
 
     if (!leaf) {
@@ -722,8 +722,8 @@ void x_deco_recurse(Con *con) {
             x_deco_recurse(current);
         }
 
-        if (dynamic_cast<WorkspaceCon*>(con)) {
-            for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+        if (dynamic_cast<WorkspaceCon *>(con)) {
+            for (auto &current : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
                 x_deco_recurse(current);
             }
         }
@@ -751,7 +751,7 @@ static void set_hidden_state(Con *con) {
     con_state *state = state_for_frame(con->frame->id);
     bool should_be_hidden = con->con_is_hidden();
     if (should_be_hidden == state->is_hidden) {
-            return;
+        return;
     }
 
     if (should_be_hidden) {
@@ -770,7 +770,6 @@ static void set_hidden_state(Con *con) {
  * shape of the frame borders.
  */
 static void x_shape_frame(ConCon *con, xcb_shape_sk_t shape_kind) {
-
     xcb_shape_combine(**global.x, XCB_SHAPE_SO_SET, shape_kind, shape_kind,
                       con->frame->id,
                       con->get_window_rect().x + con->border_width,
@@ -888,7 +887,7 @@ void x_push_node(Con *con) {
     state = state_for_frame(con->frame->id);
 
     if (state->name.empty()) {
-        DLOG(fmt::sprintf("pushing name %s for con %p\n",  state->name, fmt::ptr(con)));
+        DLOG(fmt::sprintf("pushing name %s for con %p\n", state->name, fmt::ptr(con)));
 
         xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->frame->id,
                             XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8, state->name.length(), state->name.c_str());
@@ -941,7 +940,7 @@ void x_push_node(Con *con) {
 
         con->ignore_unmap++;
         DLOG(fmt::sprintf("ignore_unmap for reparenting of con %p (win 0x%08x) is now %d\n",
-             fmt::ptr(con), con->get_window()->id, con->ignore_unmap));
+                          fmt::ptr(con), con->get_window()->id, con->ignore_unmap));
 
         need_reshape = true;
     }
@@ -961,7 +960,7 @@ void x_push_node(Con *con) {
                              con->layout == L_STACKED ||
                              con->layout == L_TABBED);
     DLOG(fmt::sprintf("Con %p (layout %d), is_pixmap_needed = %s, rect.height = %d\n",
-         fmt::ptr(con), std::to_underlying(con->layout), is_pixmap_needed ? "yes" : "no", con->rect.height));
+                      fmt::ptr(con), std::to_underlying(con->layout), is_pixmap_needed ? "yes" : "no", con->rect.height));
 
     /* The root con and output cons will never require a pixmap. In particular for the
      * __i3 output, this will likely not work anyway because it might be ridiculously
@@ -974,7 +973,7 @@ void x_push_node(Con *con) {
     /* Set new position if rect changed (and if height > 0) or if the pixmap
      * needs to be recreated */
     if ((is_pixmap_needed && !con->frame_buffer) || (state->rect != rect &&
-                                                                   rect.height > 0)) {
+                                                     rect.height > 0)) {
         /* We first create the new pixmap, then render to it, set it as the
          * background and only afterwards change the window size. This reduces
          * flickering. */
@@ -1013,7 +1012,7 @@ void x_push_node(Con *con) {
             DLOG(fmt::sprintf("creating %d x %d pixmap for con %p (con->frame_buffer.id = (pixmap_t)0x%08x) (con->frame.id (drawable_t)0x%08x)\n", width, height, fmt::ptr(con), id, con->frame->id));
             xcb_create_pixmap(**global.x, win_depth, id, con->frame->id, width, height);
             con->frame_buffer = std::make_unique<surface_t>(**global.x, id,
-                                   get_visualtype_by_id(get_visualid_by_depth(win_depth)), width, height);
+                                                            get_visualtype_by_id(get_visualid_by_depth(win_depth)), width, height);
             con->frame_buffer->draw_util_clear_surface((color_t){.red = 0.0, .green = 0.0, .blue = 0.0});
 
             /* For the graphics context, we disable GraphicsExposure events.
@@ -1040,7 +1039,7 @@ void x_push_node(Con *con) {
             }
         }
 
-        DLOG(fmt::sprintf("setting rect (%d, %d, %d, %d)\n",  rect.x, rect.y, rect.width, rect.height));
+        DLOG(fmt::sprintf("setting rect (%d, %d, %d, %d)\n", rect.x, rect.y, rect.width, rect.height));
         /* flush to ensure that the following commands are sent in a single
          * buffer and will be processed directly afterwards (the contents of a
          * window get lost when resizing it, therefore we want to provide it as
@@ -1060,13 +1059,13 @@ void x_push_node(Con *con) {
     if (con->get_window() != nullptr &&
         state->window_rect != con->get_window_rect()) {
         DLOG(fmt::sprintf("setting window rect (%d, %d, %d, %d)\n",
-             con->get_window_rect().x, con->get_window_rect().y, con->get_window_rect().width, con->get_window_rect().height));
+                          con->get_window_rect().x, con->get_window_rect().y, con->get_window_rect().width, con->get_window_rect().height));
         xcb_set_window_rect(**global.x, con->get_window()->id, con->get_window_rect());
         state->window_rect = con->get_window_rect();
         fake_notify = true;
     }
 
-    if (auto concon = dynamic_cast<ConCon*>(con); concon != nullptr) {
+    if (auto concon = dynamic_cast<ConCon *>(con); concon != nullptr) {
         set_shape_state(concon, need_reshape);
     }
 
@@ -1093,7 +1092,7 @@ void x_push_node(Con *con) {
              * mapped */
             values[0] = CHILD_EVENT_MASK;
             xcb_change_window_attributes(**global.x, con->get_window()->id, XCB_CW_EVENT_MASK, values);
-            DLOG(fmt::sprintf("mapping child window (serial %d)\n",  cookie.sequence));
+            DLOG(fmt::sprintf("mapping child window (serial %d)\n", cookie.sequence));
             state->child_mapped = true;
         }
 
@@ -1106,7 +1105,7 @@ void x_push_node(Con *con) {
         draw_util_copy_surface(con->frame_buffer.get(), con->frame.get(), 0, 0, 0, 0, con->rect.width, con->rect.height);
         xcb_flush(**global.x);
 
-        DLOG(fmt::sprintf("mapping container %08x (serial %d)\n",  con->frame->id, cookie.sequence));
+        DLOG(fmt::sprintf("mapping container %08x (serial %d)\n", con->frame->id, cookie.sequence));
         state->mapped = con->mapped;
     }
 
@@ -1171,8 +1170,8 @@ static void x_push_node_unmaps(Con *con) {
         x_push_node_unmaps(current);
     }
 
-    if (dynamic_cast<WorkspaceCon*>(con)) {
-        for (auto &current : dynamic_cast<WorkspaceCon*>(con)->floating_windows) {
+    if (dynamic_cast<WorkspaceCon *>(con)) {
+        for (auto &current : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
             x_push_node_unmaps(current);
         }
     }
@@ -1188,7 +1187,7 @@ static bool is_con_attached(Con *con) {
         return false;
     }
 
-    return std::ranges::any_of(con->parent->nodes, [&con](Con* current){ return current == con;});
+    return std::ranges::any_of(con->parent->nodes, [&con](Con *current) { return current == con; });
 }
 
 /*
@@ -1267,7 +1266,7 @@ void x_push_changes(Con *con) {
     /* If we re-stacked something (or a new window appeared), we need to update
      * the _NET_CLIENT_LIST and _NET_CLIENT_LIST_STACKING hints */
     if (stacking_changed) {
-        DLOG(fmt::sprintf("Client list changed (%i clients)\n",  cnt));
+        DLOG(fmt::sprintf("Client list changed (%i clients)\n", cnt));
         ewmh_update_client_list_stacking(client_list_windows.data(), client_list_windows.size());
 
         auto walk = client_list_windows.begin();
@@ -1333,7 +1332,7 @@ void x_push_changes(Con *con) {
                 global.focused->get_window()->needs_take_focus &&
                 global.focused->get_window()->doesnt_accept_focus) {
                 DLOG(fmt::sprintf("Updating focus by sending WM_TAKE_FOCUS to window 0x%08x (focused: %p / %s)\n",
-                     to_focus, fmt::ptr(global.focused), global.focused->name));
+                                  to_focus, fmt::ptr(global.focused), global.focused->name));
                 send_take_focus(to_focus, global.last_timestamp);
 
                 change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->get_window()->id : XCB_WINDOW_NONE), global.x->last_focused);
@@ -1370,7 +1369,7 @@ void x_push_changes(Con *con) {
     if (global.x->focused_id == XCB_NONE) {
         /* If we still have no window to focus, we focus the EWMH window instead. We use this rather than the
          * root window in order to avoid an X11 fallback mechanism causing a ghosting effect (see #1378). */
-        DLOG(fmt::sprintf("Still no window focused, better set focus to the EWMH support window (%d)\n",  global.x->ewmh_window));
+        DLOG(fmt::sprintf("Still no window focused, better set focus to the EWMH support window (%d)\n", global.x->ewmh_window));
         xcb_set_input_focus(**global.x, XCB_INPUT_FOCUS_POINTER_ROOT, global.x->ewmh_window, global.last_timestamp);
         change_ewmh_focus(XCB_WINDOW_NONE, global.x->last_focused);
 
@@ -1426,7 +1425,7 @@ void x_raise_con(Con *con) {
  * i3 windows in xwininfo -root -all.
  *
  */
-void x_set_name(Con *con, const std::string &name) {
+void x_set_name(Con *con, std::string const &name) {
     con_state *state;
 
     if ((state = state_for_frame(con->frame->id)) == nullptr) {
@@ -1444,7 +1443,7 @@ void x_set_name(Con *con, const std::string &name) {
 void x_set_i3_atoms() {
     pid_t pid = getpid();
     std::string current_configpath = global.configManager->config->current_configpath;
-    
+
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_SOCKET_PATH], i3::atoms[i3::Atom::UTF8_STRING], 8,
                         global.current_socketpath.length(),
                         global.current_socketpath.c_str());
@@ -1497,7 +1496,7 @@ void x_set_shape(ConCon *con, xcb_shape_sk_t kind, bool enable) {
             break;
         default:
             ELOG(fmt::sprintf("Received unknown shape event kind for con %p. This is a bug.\n",
-                 fmt::ptr(con)));
+                              fmt::ptr(con)));
             return;
     }
 

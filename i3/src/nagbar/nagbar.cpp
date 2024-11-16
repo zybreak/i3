@@ -5,7 +5,7 @@ module;
 #include <sys/stat.h>
 #include <sys/types.h>
 
-//#include "config_parser.h"
+// #include "config_parser.h"
 
 #include <libgen.h>
 #include <sys/wait.h>
@@ -28,8 +28,8 @@ import std;
 import utils;
 import log;
 
-static const button_t *get_button_at(const std::vector<button_t> &buttons, int16_t x, int16_t y) {
-    for (const auto &button : buttons) {
+static button_t const *get_button_at(std::vector<button_t> const &buttons, int16_t x, int16_t y) {
+    for (auto const &button : buttons) {
         if (x >= (button.x) && x <= (button.x + button.width)) {
             return &button;
         }
@@ -38,9 +38,8 @@ static const button_t *get_button_at(const std::vector<button_t> &buttons, int16
     return nullptr;
 }
 
-
 class Nagbar {
-   private:
+  private:
     xcb_connection_t *conn;
     std::unique_ptr<surface_t> bar{};
     button_t btn_close;
@@ -75,10 +74,9 @@ class Nagbar {
         xcb_flush(conn);
     }
 
-
     void nagbar_handle_button_press(xcb_button_press_event_t *event) {
         LOG(fmt::sprintf("button pressed on x = %d, y = %d\n",
-            event->event_x, event->event_y));
+                         event->event_x, event->event_y));
         /* TODO: set a flag for the button, re-render */
     }
 
@@ -89,14 +87,14 @@ class Nagbar {
      */
     void handle_button_release(xcb_button_release_event_t *event) {
         LOG(fmt::sprintf("button released on x = %d, y = %d\n",
-            event->event_x, event->event_y));
+                         event->event_x, event->event_y));
         /* If the user hits the close button, we exit(0) */
         if (event->event_x >= btn_close.x && event->event_x < btn_close.x + btn_close.width) {
-            //running = false;
+            // running = false;
             window_kill();
             return;
         }
-        const button_t *button = get_button_at(buttons, event->event_x, event->event_y);
+        button_t const *button = get_button_at(buttons, event->event_x, event->event_y);
         if (!button) {
             return;
         }
@@ -165,21 +163,21 @@ class Nagbar {
 
         /* draw border */
         bar->draw_util_rectangle(color_border,
-                            position - button->width,
-                            MSG_PADDING - BTN_PADDING - BTN_BORDER,
-                            button->width,
-                            font->height + 2 * BTN_PADDING + 2 * BTN_BORDER);
+                                 position - button->width,
+                                 MSG_PADDING - BTN_PADDING - BTN_BORDER,
+                                 button->width,
+                                 font->height + 2 * BTN_PADDING + 2 * BTN_BORDER);
         /* draw background */
         bar->draw_util_rectangle(color_button_background,
-                            position - button->width + BTN_BORDER,
-                            MSG_PADDING - BTN_PADDING,
-                            text_width + 2 * BTN_PADDING,
-                            font->height + 2 * BTN_PADDING);
+                                 position - button->width + BTN_BORDER,
+                                 MSG_PADDING - BTN_PADDING,
+                                 text_width + 2 * BTN_PADDING,
+                                 font->height + 2 * BTN_PADDING);
         /* draw label */
         bar->draw_util_text(*font, button->label, color_text, color_button_background,
-                       position - button->width + BTN_BORDER + BTN_PADDING,
-                       MSG_PADDING,
-                       200);
+                            position - button->width + BTN_BORDER + BTN_PADDING,
+                            MSG_PADDING,
+                            200);
         return button->width;
     }
 
@@ -230,7 +228,7 @@ class Nagbar {
         }
 
         LOG(fmt::sprintf("Found primary output on position x = %i / y = %i / w = %i / h = %i.\n",
-            crtc->x, crtc->y, crtc->width, crtc->height));
+                         crtc->x, crtc->y, crtc->width, crtc->height));
         if (crtc->width == 0 || crtc->height == 0) {
             LOG("Primary output is not active, ignoring it.\n");
             free(res);
@@ -244,7 +242,6 @@ class Nagbar {
         free(primary);
     }
 
-
     /*
      * Handles expose events (redraws of the window) and rendering in general. Will
      * be called from the code with event == NULL or from X with event != NULL.
@@ -255,8 +252,8 @@ class Nagbar {
         bar->draw_util_clear_surface(color_background);
         /* draw message */
         bar->draw_util_text(*font, prompt, color_text, color_background,
-                       MSG_PADDING, MSG_PADDING,
-                       bar->width - 2 * MSG_PADDING);
+                            MSG_PADDING, MSG_PADDING,
+                            bar->width - 2 * MSG_PADDING);
 
         int position = bar->width - (MSG_PADDING - BTN_BORDER - BTN_PADDING);
 
@@ -277,12 +274,11 @@ class Nagbar {
         return 1;
     }
 
-
-   public:
-
+  public:
     Nagbar() = delete;
 
-    Nagbar(bar_type_t bar_type, std::string prompt, std::string pattern, std::vector<button_t> &buttons) : prompt(prompt), buttons(buttons) {
+    Nagbar(bar_type_t bar_type, std::string prompt, std::string pattern, std::vector<button_t> &buttons)
+        : prompt(prompt), buttons(buttons) {
         btn_close.label = "X";
 
         int screens;
@@ -292,12 +288,12 @@ class Nagbar {
         }
 
         /* Init startup notification. */
-        //SnDisplay *sndisplay = sn_xcb_display_new(conn, nullptr, nullptr);
-        //SnLauncheeContext *sncontext = sn_launchee_context_new_from_environment(sndisplay, screens);
-        //sn_display_unref(sndisplay);
+        // SnDisplay *sndisplay = sn_xcb_display_new(conn, nullptr, nullptr);
+        // SnLauncheeContext *sncontext = sn_launchee_context_new_from_environment(sndisplay, screens);
+        // sn_display_unref(sndisplay);
 
         root_screen = xcb_aux_get_screen(conn, screens);
-        //global.x->root = root_screen->root;
+        // global.x->root = root_screen->root;
 
         if (bar_type == bar_type_t::TYPE_ERROR) {
             /* Red theme for error messages */
@@ -368,16 +364,16 @@ class Nagbar {
             conn,
             XCB_COPY_FROM_PARENT,
             win,                                                 /* the window id */
-            global.x->root,                                                /* parent == root */
+            global.x->root,                                      /* parent == root */
             win_pos.x, win_pos.y, win_pos.width, win_pos.height, /* dimensions */
             0,                                                   /* x11 border = 0, we draw our own */
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
-            XCB_WINDOW_CLASS_COPY_FROM_PARENT, /* copy visual from parent */
+            XCB_WINDOW_CLASS_COPY_FROM_PARENT,                   /* copy visual from parent */
             mask,
             mask_list);
-        //if (sncontext) {
-        //    sn_launchee_context_setup_window(sncontext, win);
-        //}
+        // if (sncontext) {
+        //     sn_launchee_context_setup_window(sncontext, win);
+        // }
 
         /* Map the window (make it visible) */
         xcb_map_window(conn, win);
@@ -444,10 +440,10 @@ class Nagbar {
         bar = std::make_unique<surface_t>(conn, win, get_visualtype(root_screen), win_pos.width, win_pos.height);
 
         /* Startup complete. */
-        //if (sncontext) {
-        //    sn_launchee_context_complete(sncontext);
-        //    sn_launchee_context_unref(sncontext);
-        //}
+        // if (sncontext) {
+        //     sn_launchee_context_complete(sncontext);
+        //     sn_launchee_context_unref(sncontext);
+        // }
     }
 
     void start_event_loop() {
@@ -509,7 +505,6 @@ static void draw_nagbar(std::string prompt,
                         bar_type_t bar_type,
                         bool position_on_primary,
                         std::string pattern) {
-
     Nagbar nagbar{bar_type, prompt, pattern, buttons};
 
     nagbar.create_window(position_on_primary);

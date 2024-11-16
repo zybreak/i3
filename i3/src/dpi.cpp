@@ -19,16 +19,14 @@ static double init_dpi_fallback(xcb_screen_t *root_screen) {
     return static_cast<double>(root_screen->height_in_pixels) * 25.4 / static_cast<double>(root_screen->height_in_millimeters);
 }
 
-struct database_free
-{
-    void operator()(xcb_xrm_database_t* database) {
+struct database_free {
+    void operator()(xcb_xrm_database_t *database) {
         xcb_xrm_database_free(database);
     }
 };
 
-struct ptr_free
-{
-    void operator()(void* p) {
+struct ptr_free {
+    void operator()(void *p) {
         free(p);
     }
 };
@@ -57,12 +55,12 @@ static double _init_dpi(xcb_connection_t *conn) {
     char *endptr;
     double in_dpi = strtod(resource.get(), &endptr);
     if (in_dpi == HUGE_VAL || dpi < 0 || *endptr != '\0' || endptr == resource.get()) {
-         ELOG(fmt::sprintf("Xft.dpi = %s is an invalid number and couldn't be parsed.\n",  *resource));
+        ELOG(fmt::sprintf("Xft.dpi = %s is an invalid number and couldn't be parsed.\n", *resource));
         return 0;
     }
     double _dpi = std::round(in_dpi);
 
-     DLOG(fmt::sprintf("Found Xft.dpi = %f.\n",  _dpi));
+    DLOG(fmt::sprintf("Found Xft.dpi = %f.\n", _dpi));
 
     return _dpi;
 }
@@ -78,7 +76,7 @@ void init_dpi(xcb_connection_t *conn, xcb_screen_t *root_screen) {
     if (dpi == 0) {
         DLOG("Using fallback for calculating DPI.\n");
         dpi = init_dpi_fallback(root_screen);
-         DLOG(fmt::sprintf("Using dpi = %f\n",  dpi));
+        DLOG(fmt::sprintf("Using dpi = %f\n", dpi));
     }
 }
 
@@ -96,7 +94,7 @@ double get_dpi_value() {
  * screen, e.g. 5 pixels on a 227 DPI MacBook Pro 13" Retina screen.
  *
  */
-long logical_px(xcb_screen_t *root_screen, const long logical) {
+long logical_px(xcb_screen_t *root_screen, long const logical) {
     if (root_screen == nullptr) {
         /* Dpi info may not be available when parsing a config without an X
          * server, such as for config file validation. */

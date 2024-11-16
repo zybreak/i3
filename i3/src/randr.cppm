@@ -30,11 +30,11 @@ export {
     };
 
     class RandR {
-       private:
-         X &x;
-         ConfigurationManager &configManager;
-         WorkspaceManager &workspaceManager;
-         
+      private:
+        X &x;
+        ConfigurationManager &configManager;
+        WorkspaceManager &workspaceManager;
+
         /* Pointer to the result of the query for primary output */
         xcb_randr_output_t primary;
         /* This is the output covering the root window */
@@ -87,7 +87,7 @@ export {
 
         void fallback_to_root_output();
 
-    public:
+      public:
         int randr_base{-1};
 
         /* Stores all outputs available in your current session. */
@@ -98,7 +98,7 @@ export {
          * If require_active is true, only active outputs are considered.
          *
          */
-        virtual Output *get_output_by_name(const std::string &name, const bool require_active);
+        virtual Output *get_output_by_name(std::string const &name, bool const require_active);
 
         /*
          * Returns the first output which is active.
@@ -149,28 +149,28 @@ export {
          *
          */
         void randr_query_outputs();
-        
+
         /**
          * Returns the active output which contains the midpoint of the given rect. If
          * such an output doesn't exist, returns the output which contains most of the
          * rectangle or NULL if there is no output which intersects with it.
          *
          */
-        Output* get_output_from_rect(Rect rect);
-        
+        Output *get_output_from_rect(Rect rect);
+
         /**
          * Disables the output and moves its content.
          *
          */
-        void randr_disable_output(Output * output);
-        
+        void randr_disable_output(Output *output);
+
         /*
          * We have just established a connection to the X server and need the initial
          * XRandR information to setup workspaces for each screen.
          *
          */
         RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &workspaceManager, TreeManager &treeManager);
-        
+
         virtual ~RandR() = default;
     };
 

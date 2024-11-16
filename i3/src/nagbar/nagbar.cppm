@@ -5,8 +5,8 @@ export module i3:nagbar;
 
 import std;
 
-using std::uint32_t;
 using std::uint16_t;
+using std::uint32_t;
 
 export {
     enum class bar_type_t {
@@ -15,7 +15,7 @@ export {
     };
 
     class button_t {
-       public:
+      public:
         std::string label{};
         std::string action{};
         int16_t x{};
@@ -24,7 +24,9 @@ export {
 
         button_t() = default;
 
-        button_t(std::string label, std::string action, bool terminal) : label(std::move(label)), action(std::move(action)), terminal(terminal) {}
+        button_t(std::string label, std::string action, bool terminal)
+            : label(std::move(label)), action(std::move(action)), terminal(terminal) {
+        }
     };
 
     /**
@@ -35,7 +37,7 @@ export {
      * kill_nagbar() to kill the bar later on.
      *
      */
-    void start_nagbar(pid_t *nagbar_pid,
+    void start_nagbar(pid_t * nagbar_pid,
                       std::vector<button_t> buttons,
                       std::string prompt,
                       std::string pattern,

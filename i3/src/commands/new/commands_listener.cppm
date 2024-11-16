@@ -36,58 +36,57 @@ import i3_commands_base;
 class ipc_client;
 
 export class CommandsListener : public commandsGrammarBaseListener {
-   private:
+  private:
     CommandsResultIR command_output;
     criteria_state *criteria_state;
     BaseCommandsApplier &cmd;
-    
-   public:
+
+  public:
     CommandsListener(BaseCommandsApplier &commandsApplier, nlohmann::json *json_gen, ipc_client *ipc_client);
-    
+
     void enterCommand_move(commandsGrammar::Command_moveContext *ctx) override;
-    
-    void enterCommand_exec(commandsGrammar::Command_execContext * ctx) override;
 
-    void enterCommand_exit(commandsGrammar::Command_exitContext * ctx) override;
+    void enterCommand_exec(commandsGrammar::Command_execContext *ctx) override;
 
-    void enterCommand_kill(commandsGrammar::Command_killContext * ctx) override;
+    void enterCommand_exit(commandsGrammar::Command_exitContext *ctx) override;
 
-    void enterCommand_fullscreen(commandsGrammar::Command_fullscreenContext * ctx) override;
+    void enterCommand_kill(commandsGrammar::Command_killContext *ctx) override;
 
-    void enterCommand_sticky(commandsGrammar::Command_stickyContext * ctx) override;
+    void enterCommand_fullscreen(commandsGrammar::Command_fullscreenContext *ctx) override;
 
-    void enterCommand_debuglog(commandsGrammar::Command_debuglogContext * ctx) override;
+    void enterCommand_sticky(commandsGrammar::Command_stickyContext *ctx) override;
 
-    void enterCommand_border(commandsGrammar::Command_borderContext * ctx) override;
+    void enterCommand_debuglog(commandsGrammar::Command_debuglogContext *ctx) override;
 
-    void enterCommand_layout(commandsGrammar::Command_layoutContext * ctx) override;
+    void enterCommand_border(commandsGrammar::Command_borderContext *ctx) override;
 
-    void enterCommand_append_layout(commandsGrammar::Command_append_layoutContext * ctx) override;
+    void enterCommand_layout(commandsGrammar::Command_layoutContext *ctx) override;
 
-    void enterCommand_workspace(commandsGrammar::Command_workspaceContext * ctx) override;
+    void enterCommand_append_layout(commandsGrammar::Command_append_layoutContext *ctx) override;
 
-    void enterCommand_focus(commandsGrammar::Command_focusContext * ctx) override;
+    void enterCommand_workspace(commandsGrammar::Command_workspaceContext *ctx) override;
 
-    void enterCommand_split(commandsGrammar::Command_splitContext * ctx) override;
+    void enterCommand_focus(commandsGrammar::Command_focusContext *ctx) override;
 
-    void enterCommand_floating(commandsGrammar::Command_floatingContext * ctx) override;
+    void enterCommand_split(commandsGrammar::Command_splitContext *ctx) override;
 
-    void enterCommand_resize(commandsGrammar::Command_resizeContext * ctx) override;
+    void enterCommand_floating(commandsGrammar::Command_floatingContext *ctx) override;
 
-    void enterCommand_rename(commandsGrammar::Command_renameContext * ctx) override;
+    void enterCommand_resize(commandsGrammar::Command_resizeContext *ctx) override;
 
-    void enterCommand_nop(commandsGrammar::Command_nopContext * ctx) override;
+    void enterCommand_rename(commandsGrammar::Command_renameContext *ctx) override;
 
-    void enterCommand_reload(commandsGrammar::Command_reloadContext * ctx) override;
+    void enterCommand_nop(commandsGrammar::Command_nopContext *ctx) override;
 
-    void enterCommand_restart(commandsGrammar::Command_restartContext * ctx) override;
+    void enterCommand_reload(commandsGrammar::Command_reloadContext *ctx) override;
 
-    void enterCommand_mode(commandsGrammar::Command_modeContext * ctx) override;
+    void enterCommand_restart(commandsGrammar::Command_restartContext *ctx) override;
 
-    void enterCommand_open(commandsGrammar::Command_openContext * ctx) override;
+    void enterCommand_mode(commandsGrammar::Command_modeContext *ctx) override;
 
-    void enterCommand_title_format(commandsGrammar::Command_title_formatContext * ctx) override;
+    void enterCommand_open(commandsGrammar::Command_openContext *ctx) override;
 
-    void enterCommand_title_window_icon(commandsGrammar::Command_title_window_iconContext * ctx) override;
+    void enterCommand_title_format(commandsGrammar::Command_title_formatContext *ctx) override;
 
+    void enterCommand_title_window_icon(commandsGrammar::Command_title_window_iconContext *ctx) override;
 };

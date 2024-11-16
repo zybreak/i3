@@ -1,13 +1,13 @@
 /*
-* vim:ts=4:sw=4:expandtab
-*
-* i3 - an improved dynamic tiling window manager
-* © 2009 Michael Stapelberg and contributors (see also: LICENSE)
-*
-* handlers.c: Small handlers for various events (keypresses, focus changes,
-*             …).
-*
-*/
+ * vim:ts=4:sw=4:expandtab
+ *
+ * i3 - an improved dynamic tiling window manager
+ * © 2009 Michael Stapelberg and contributors (see also: LICENSE)
+ *
+ * handlers.c: Small handlers for various events (keypresses, focus changes,
+ *             …).
+ *
+ */
 module;
 #include <xcb/xcb.h>
 #include <xcb/xcb_icccm.h>
@@ -25,7 +25,7 @@ import rect;
 import :output;
 import utils;
 
-static bool window_name_changed(const i3Window *window, std::string &old_name) {
+static bool window_name_changed(i3Window const *window, std::string &old_name) {
     if ((old_name.empty()) && (window->name.empty())) {
         return false;
     }
@@ -283,7 +283,7 @@ static bool handle_windowicon_change(ConCon *con, xcb_get_property_reply_t *prop
 }
 
 /* Returns false if the event could not be processed (e.g. the window could not
-     * be found), true otherwise */
+ * be found), true otherwise */
 using cb_property_handler_t = bool (*)(ConCon *con, xcb_get_property_reply_t *property);
 
 struct property_handler_t {
@@ -320,8 +320,7 @@ void PropertyHandlers::property_notify(xcb_property_notify_event_t *event) {
         {i3::atoms[i3::Atom::I3_FLOATING_WINDOW], {i3::atoms[i3::Atom::I3_FLOATING_WINDOW], UINT_MAX, handle_i3_floating}},
         {XCB_ATOM_WM_CLIENT_MACHINE, {XCB_ATOM_WM_CLIENT_MACHINE, 128, handle_machine_change}},
         {i3::atoms[i3::Atom::_MOTIF_WM_HINTS], {i3::atoms[i3::Atom::_MOTIF_WM_HINTS], 5 * sizeof(uint64_t), handle_motif_hints_change}},
-        {i3::atoms[i3::Atom::_NET_WM_ICON], {i3::atoms[i3::Atom::_NET_WM_ICON], UINT_MAX, handle_windowicon_change}}
-    };
+        {i3::atoms[i3::Atom::_NET_WM_ICON], {i3::atoms[i3::Atom::_NET_WM_ICON], UINT_MAX, handle_windowicon_change}}};
 
     auto it = property_handlers.find(atom);
 

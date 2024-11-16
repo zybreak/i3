@@ -13,7 +13,7 @@ module utils;
  * Reports whether str represents the enabled state (1, yes, true, …).
  *
  */
-bool boolstr(const char *str) {
+bool boolstr(char const *str) {
     return (strcasecmp(str, "1") == 0 ||
             strcasecmp(str, "yes") == 0 ||
             strcasecmp(str, "true") == 0 ||

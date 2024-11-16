@@ -21,7 +21,7 @@ import log;
  * Returns the name of a temporary file with the specified prefix.
  *
  */
-std::optional<std::string> get_process_filename(const char *prefix) {
+std::optional<std::string> get_process_filename(char const *prefix) {
     /* dir stores the directory path for this and all subsequent calls so that
      * we only create a temporary directory once per i3 instance. */
     static std::optional<std::string> dir{};
@@ -36,14 +36,14 @@ std::optional<std::string> get_process_filename(const char *prefix) {
                 dir = new_dir;
             } else {
                 ELOG(std::format("Check permissions of $XDG_RUNTIME_DIR = '{}'",
-                     getenv("XDG_RUNTIME_DIR")));
+                                 getenv("XDG_RUNTIME_DIR")));
             }
         }
-        
+
         /* If not, we create a (secure) temp directory using the template
          * /tmp/i3-<user>.XXXXXX */
         struct passwd *pw = getpwuid(getuid());
-        const char *username = pw ? pw->pw_name : "unknown";
+        char const *username = pw ? pw->pw_name : "unknown";
         std::string new_dir = std::format("/tmp/i3-{}.XXXXXX", username);
         /* mkdtemp modifies dir */
         if (mkdtemp(new_dir.data()) != nullptr) {

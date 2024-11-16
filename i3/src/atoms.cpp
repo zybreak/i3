@@ -5,7 +5,7 @@ module i3;
 
 import log;
 
-static const std::array I3_ATOMS {
+static std::array const I3_ATOMS{
     std::make_pair(i3::Atom::_NET_SUPPORTED, "_NET_SUPPORTED"),
     std::make_pair(i3::Atom::_NET_SUPPORTING_WM_CHECK, "_NET_SUPPORTING_WM_CHECK"),
     std::make_pair(i3::Atom::_NET_WM_NAME, "_NET_WM_NAME"),
@@ -62,8 +62,7 @@ static const std::array I3_ATOMS {
     std::make_pair(i3::Atom::_NET_FRAME_EXTENTS, "_NET_FRAME_EXTENTS"),
     std::make_pair(i3::Atom::_MOTIF_WM_HINTS, "_MOTIF_WM_HINTS"),
     std::make_pair(i3::Atom::WM_CHANGE_STATE, "WM_CHANGE_STATE"),
-    std::make_pair(i3::Atom::MANAGER, "MANAGER")
-};
+    std::make_pair(i3::Atom::MANAGER, "MANAGER")};
 
 /* Setup NetWM atoms */
 void setup_atoms(X &x) {

@@ -19,9 +19,8 @@ import :internal;
 
 /* TODO: move stuff used by more than one module into utils/ */
 export {
+    std::vector<std::string> add_argument(std::vector<std::string> & original, char const *opt_char, char const *opt_arg, char const *opt_name);
 
-    std::vector<std::string> add_argument(std::vector<std::string> &original, const char *opt_char, const char *opt_arg, const char *opt_name);
-    
     /**
      * Restart i3 in-place
      * appends -a to argument list to disable autostart
@@ -53,7 +52,7 @@ export {
      * A utility function to convert a string containing the group and modifiers to
      * the corresponding bit mask.
      */
-    i3_event_state_mask_t event_state_from_str(const char *str) {
+    i3_event_state_mask_t event_state_from_str(char const *str) {
         /* It might be better to use strtok() here, but the simpler strstr() should
          * do for now. */
         i3_event_state_mask_t result = 0;

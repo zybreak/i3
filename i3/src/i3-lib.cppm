@@ -60,8 +60,7 @@ export namespace i3 {
 }
 
 export class Global {
-
-public:
+  public:
     Global() = default;
     Global(Global const &) = delete;
     Global &operator=(Global const &) = delete;
@@ -84,7 +83,7 @@ public:
     ConfigurationManager *configManager;
     ApplicationLauncher *applicationLauncher;
     IPCManager *ipcManager;
-    
+
     program_arguments *args;
 
     /* The original value of RLIMIT_CORE when i3 was started. We need to restore
@@ -107,7 +106,7 @@ public:
     EventHandler *eventHandler;
     struct ev_loop *main_loop;
 
-    static Global& instance() {
+    static Global &instance() {
         static Global inst{};
 
         return inst;

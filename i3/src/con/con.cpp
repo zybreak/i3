@@ -69,7 +69,7 @@ Con::Con(bool skeleton) {
  */
 Con::~Con() {
     this->stop_urgency_timer();
-    
+
     auto it = std::ranges::find(global.all_cons, this);
 
     if (it != global.all_cons.end()) {
@@ -83,7 +83,7 @@ Con::~Con() {
  * Like strcasecmp but considers the case where either string is NULL.
  *
  */
-static int strcasecmp_nullable(const char *a, const char *b) {
+static int strcasecmp_nullable(char const *a, char const *b) {
     if (a == b) {
         return 0;
     }
@@ -119,9 +119,9 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
          * their declaration order in the config file. See #3491. */
         current = nullptr;
         for (auto &loop : nodes) {
-            int result = strcasecmp_nullable(dynamic_cast<ConCon*>(this)->get_window()->class_class.c_str(), dynamic_cast<ConCon*>(loop)->get_window()->class_class.c_str());
+            int result = strcasecmp_nullable(dynamic_cast<ConCon *>(this)->get_window()->class_class.c_str(), dynamic_cast<ConCon *>(loop)->get_window()->class_class.c_str());
             if (result == 0) {
-                result = strcasecmp_nullable(dynamic_cast<ConCon*>(this)->get_window()->class_instance.c_str(), dynamic_cast<ConCon*>(loop)->get_window()->class_instance.c_str());
+                result = strcasecmp_nullable(dynamic_cast<ConCon *>(this)->get_window()->class_instance.c_str(), dynamic_cast<ConCon *>(loop)->get_window()->class_instance.c_str());
             }
             if (result < 0) {
                 current = loop;
@@ -161,9 +161,9 @@ void Con::con_attach(Con *parent, bool ignore_focus, Con *previous) {
      */
     if (this->get_window() != nullptr &&
         parent->type == CT_WORKSPACE &&
-        dynamic_cast<WorkspaceCon*>(parent)->workspace_layout != L_DEFAULT) {
+        dynamic_cast<WorkspaceCon *>(parent)->workspace_layout != L_DEFAULT) {
         DLOG("Parent is a workspace. Applying default layout...\n");
-        Con *target = workspace_attach_to(dynamic_cast<WorkspaceCon*>(parent));
+        Con *target = workspace_attach_to(dynamic_cast<WorkspaceCon *>(parent));
 
         /* Attach the original con to this new split con instead */
         nodes = target->nodes;
@@ -443,7 +443,7 @@ bool Con::con_accepts_window() {
  * node is on.
  *
  */
-OutputCon* Con::con_get_output() const {
+OutputCon *Con::con_get_output() const {
     Con const *result = this;
     while (result != nullptr && result->type != con_type_t::CT_OUTPUT) {
         result = result->parent;
@@ -453,18 +453,18 @@ OutputCon* Con::con_get_output() const {
     if (result == nullptr) {
         throw std::runtime_error("Output not found");
     }
-    return dynamic_cast<OutputCon*>(const_cast<Con*>(result));
+    return dynamic_cast<OutputCon *>(const_cast<Con *>(result));
 }
 
 /*
  * Gets the workspace container this node is on.
  *
  */
-WorkspaceCon* Con::con_get_workspace() const {
+WorkspaceCon *Con::con_get_workspace() const {
     Con const *result = this;
     while (result != nullptr) {
         if (result->type == con_type_t::CT_WORKSPACE) {
-            return dynamic_cast<WorkspaceCon*>(const_cast<Con*>(result));
+            return dynamic_cast<WorkspaceCon *>(const_cast<Con *>(result));
         } else {
             result = result->parent;
         }
@@ -477,7 +477,7 @@ WorkspaceCon* Con::con_get_workspace() const {
  * 'orientation'. Aborts when it comes across a floating_con.
  *
  */
-Con* Con::con_parent_with_orientation(orientation_t orientation) {
+Con *Con::con_parent_with_orientation(orientation_t orientation) {
     DLOG(fmt::sprintf("Searching for parent of Con %p with orientation %d\n", fmt::ptr(this), std::to_underlying(orientation)));
     Con *parent = this->parent;
     if (parent->type == CT_FLOATING_CON) {
@@ -505,8 +505,8 @@ Con* Con::con_parent_with_orientation(orientation_t orientation) {
  * Returns the first fullscreen node below this node.
  *
  */
-Con* Con::con_get_fullscreen_con(fullscreen_mode_t fullscreen_mode) {
-    std::deque<Con*> bfs{};
+Con *Con::con_get_fullscreen_con(fullscreen_mode_t fullscreen_mode) {
+    std::deque<Con *> bfs{};
     bfs.push_back(this);
 
     while (!bfs.empty()) {
@@ -523,8 +523,8 @@ Con* Con::con_get_fullscreen_con(fullscreen_mode_t fullscreen_mode) {
             bfs.push_back(child);
         }
 
-        if (dynamic_cast<WorkspaceCon*>(current) != nullptr) {
-            for (auto child : dynamic_cast<WorkspaceCon*>(current)->floating_windows) {
+        if (dynamic_cast<WorkspaceCon *>(current) != nullptr) {
+            for (auto child : dynamic_cast<WorkspaceCon *>(current)->floating_windows) {
                 bfs.push_back(child);
             }
         }
@@ -539,7 +539,7 @@ Con* Con::con_get_fullscreen_con(fullscreen_mode_t fullscreen_mode) {
  * fullscreen container in the workspace.
  *
  */
-Con* Con::con_get_fullscreen_covering_ws() {
+Con *Con::con_get_fullscreen_covering_ws() {
     Con *fs = global.croot->con_get_fullscreen_con(CF_GLOBAL);
     if (!fs) {
         return this->con_get_fullscreen_con(CF_OUTPUT);
@@ -576,7 +576,7 @@ bool Con::con_is_docked() const {
  * container. It returns the FLOATING_CON container.
  *
  */
-FloatingCon* Con::con_inside_floating() {
+FloatingCon *Con::con_inside_floating() {
     if (this->floating >= FLOATING_AUTO_ON) {
         return dynamic_cast<FloatingCon *>(this->parent);
     }
@@ -629,8 +629,8 @@ bool Con::exists() {
  * containers inside it, ordered from higher focus order to lowest.
  *
  */
-std::vector<Con*> Con::get_focus_order() {
-    std::vector<Con*> focus_order;
+std::vector<Con *> Con::get_focus_order() {
+    std::vector<Con *> focus_order;
     focus_order.reserve(focused.size());
     for (auto &current : focused) {
         focus_order.push_back(current);
@@ -646,7 +646,7 @@ std::vector<Con*> Con::get_focus_order() {
  * in the new focus stack if container is not a workspace.
  *
  */
-void Con::set_focus_order(std::vector<Con*> focus_order) {
+void Con::set_focus_order(std::vector<Con *> focus_order) {
     auto focus_heads = this->focused.size();
     this->focused.clear();
 
@@ -680,7 +680,7 @@ int Con::con_num_visible_children() {
         /* Visible leaf nodes are a child. */
         if (!current->con_is_hidden() && current->con_is_leaf()) {
             children++;
-        /* All other containers need to be recursed. */
+            /* All other containers need to be recursed. */
         } else {
             children += current->con_num_visible_children();
         }
@@ -703,8 +703,8 @@ int Con::con_num_windows() {
         num += current->con_num_windows();
     }
 
-    if (dynamic_cast<WorkspaceCon*>(this) != nullptr) {
-        for (auto &current : dynamic_cast<WorkspaceCon*>(this)->floating_windows) {
+    if (dynamic_cast<WorkspaceCon *>(this) != nullptr) {
+        for (auto &current : dynamic_cast<WorkspaceCon *>(this)->floating_windows) {
             num += current->con_num_windows();
         }
     }
@@ -767,7 +767,7 @@ void Con::con_fix_percent() {
  */
 void Con::con_set_layout(layout_t layout) {
     DLOG(fmt::sprintf("con_set_layout(%p, %d), con->type = %d\n",
-         fmt::ptr(this), std::to_underlying(layout), std::to_underlying(this->type)));
+                      fmt::ptr(this), std::to_underlying(layout), std::to_underlying(this->type)));
 
     Con *con = this->parent;
 
@@ -807,7 +807,7 @@ void Con::on_remove_child() {
     /* Every container 'above' (in the hierarchy) the workspace content should
      * not be closed when the last child was removed */
     if (this->parent != nullptr && this->parent->type == CT_OUTPUT) {
-        DLOG(fmt::sprintf("not handling, type = %d, name = %s\n",  std::to_underlying(this->type), this->name));
+        DLOG(fmt::sprintf("not handling, type = %d, name = %s\n", std::to_underlying(this->type), this->name));
         return;
     }
 
@@ -851,7 +851,7 @@ void Con::stop_urgency_timer() {
     if (this->urgency_timer == nullptr) {
         return;
     }
-    
+
     DLOG(fmt::sprintf("Removing urgency timer of con %p\n", fmt::ptr(this)));
     ev_timer_stop(global.main_loop, this->urgency_timer);
     delete this->urgency_timer;
@@ -862,21 +862,21 @@ void Con::stop_urgency_timer() {
 void Con::start_urgency_timer(float after, float repeat, std::function<void(Con *con)> cb) {
     if (this->urgency_timer == nullptr) {
         DLOG(fmt::sprintf("Deferring reset of urgency flag of con %p on newly shown workspace %p\n",
-                fmt::ptr(this), fmt::ptr(con_get_workspace())));
+                          fmt::ptr(this), fmt::ptr(con_get_workspace())));
         this->urgency_timer = new ev_timer{};
         this->urgency_timer_cb = cb;
         this->urgency_timer->data = this;
         auto _cb = [](EV_P_ ev_timer *w, int revents) {
-            Con *con = static_cast<Con*>(w->data);
+            Con *con = static_cast<Con *>(w->data);
             con->urgency_timer_cb(con);
         };
-        
+
         /* use a repeating timer to allow for easy resets */
         ev_timer_init(this->urgency_timer, _cb, after, repeat);
         ev_timer_start(global.main_loop, this->urgency_timer);
     } else {
         DLOG(fmt::sprintf("Resetting urgency timer of con %p on workspace %p\n",
-                fmt::ptr(this), fmt::ptr(con_get_workspace())));
+                          fmt::ptr(this), fmt::ptr(con_get_workspace())));
         ev_timer_again(global.main_loop, this->urgency_timer);
     }
 }
@@ -887,13 +887,13 @@ void Con::start_urgency_timer(float after, float repeat, std::function<void(Con 
  */
 void Con::con_set_urgency(bool urgent) {
     Con *con = this;
-    
+
     if (urgent && global.focused == con) {
         DLOG("Ignoring urgency flag for current client\n");
         return;
     }
 
-    const bool old_urgent = con->urgent;
+    bool const old_urgent = con->urgent;
 
     if (con->urgency_timer == nullptr) {
         con->urgent = urgent;
@@ -918,7 +918,7 @@ void Con::con_set_urgency(bool urgent) {
     }
 
     if (con->urgent != old_urgent) {
-        LOG(fmt::sprintf("Urgency flag changed to %d\n",  con->urgent));
+        LOG(fmt::sprintf("Urgency flag changed to %d\n", con->urgent));
         global.ipcManager->ipc_send_window_event("urgent", con);
     }
 }

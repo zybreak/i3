@@ -35,9 +35,9 @@ import :output;
 import utils;
 import i3ipc;
 
-static const uint32_t _NET_WM_STATE_REMOVE = 0;
-static const uint32_t _NET_WM_STATE_ADD = 1;
-static const uint32_t _NET_WM_STATE_TOGGLE = 2;
+static uint32_t const _NET_WM_STATE_REMOVE = 0;
+static uint32_t const _NET_WM_STATE_ADD = 1;
+static uint32_t const _NET_WM_STATE_TOGGLE = 2;
 
 /*
  * Adds the given sequence to the list of events which are ignored.
@@ -47,7 +47,7 @@ static const uint32_t _NET_WM_STATE_TOGGLE = 2;
  * Every ignored sequence number gets garbage collected after 5 seconds.
  *
  */
-void PropertyHandlers::add_ignore_event(const int sequence, const int response_type) {
+void PropertyHandlers::add_ignore_event(int const sequence, int const response_type) {
     std::lock_guard<std::mutex> guard(mtx);
     auto event = std::make_unique<Ignore_Event>();
 
@@ -62,19 +62,19 @@ void PropertyHandlers::add_ignore_event(const int sequence, const int response_t
  * Checks if the given sequence is ignored and returns true if so.
  *
  */
-bool PropertyHandlers::event_is_ignored(const int sequence, const int response_type) {
+bool PropertyHandlers::event_is_ignored(int const sequence, int const response_type) {
     using namespace std::literals;
     std::lock_guard<std::mutex> guard(mtx);
 
     auto now = std::chrono::system_clock::now();
-    ignore_events.erase(std::remove_if(ignore_events.begin(), ignore_events.end(), [now](const auto &it) { return (now - it->added) > 5s; }), ignore_events.end());
+    ignore_events.erase(std::remove_if(ignore_events.begin(), ignore_events.end(), [now](auto const &it) { return (now - it->added) > 5s; }), ignore_events.end());
 
     return std::any_of(
         ignore_events.begin(),
         ignore_events.end(),
-        [&response_type, &sequence](const auto &event) {
-            return (event->sequence == sequence && (event->response_type == -1 || event->response_type == response_type));
-        });
+        [&response_type, &sequence](auto const &event) {
+        return (event->sequence == sequence && (event->response_type == -1 || event->response_type == response_type));
+    });
 }
 
 /*
@@ -284,7 +284,7 @@ void PropertyHandlers::handle_map_request(xcb_map_request_event_t *event) {
             DLOG(fmt::format("Could not manage window = 0x%08x, has override redirect", event->window));
             return;
         }
-        
+
         manage_window(event->window, attr->visual);
     } catch (...) {
         DLOG(fmt::format("Could not manage window = 0x%08x", event->window));
@@ -578,27 +578,27 @@ void PropertyHandlers::handle_expose_event(xcb_expose_event_t *event) {
     /* Since we render to our surface on every change anyways, expose events
      * only tell us that the X server lost (parts of) the window contents. */
     draw_util_copy_surface(parent->frame_buffer.get(), parent->frame.get(),
-            0, 0, 0, 0, parent->rect.width, parent->rect.height);
+                           0, 0, 0, 0, parent->rect.width, parent->rect.height);
     xcb_flush(**global.x);
 }
 
-static const uint32_t _NET_WM_MOVERESIZE_SIZE_TOPLEFT = 0;
-static const uint32_t _NET_WM_MOVERESIZE_SIZE_TOP = 1;
-static const uint32_t _NET_WM_MOVERESIZE_SIZE_TOPRIGHT = 2;
-static const uint32_t _NET_WM_MOVERESIZE_SIZE_RIGHT = 3;
-static const uint32_t _NET_WM_MOVERESIZE_SIZE_BOTTOMRIGHT = 4;
-static const uint32_t _NET_WM_MOVERESIZE_SIZE_BOTTOM = 5;
-static const uint32_t _NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT = 6;
-static const uint32_t _NET_WM_MOVERESIZE_SIZE_LEFT = 7;
-static const uint32_t _NET_WM_MOVERESIZE_MOVE = 8;           /* movement only */
-static const uint32_t _NET_WM_MOVERESIZE_SIZE_KEYBOARD = 9;  /* size via keyboard */
-static const uint32_t _NET_WM_MOVERESIZE_MOVE_KEYBOARD = 10; /* move via keyboard */
-static const uint32_t _NET_WM_MOVERESIZE_CANCEL = 11;        /* cancel operation */
+static uint32_t const _NET_WM_MOVERESIZE_SIZE_TOPLEFT = 0;
+static uint32_t const _NET_WM_MOVERESIZE_SIZE_TOP = 1;
+static uint32_t const _NET_WM_MOVERESIZE_SIZE_TOPRIGHT = 2;
+static uint32_t const _NET_WM_MOVERESIZE_SIZE_RIGHT = 3;
+static uint32_t const _NET_WM_MOVERESIZE_SIZE_BOTTOMRIGHT = 4;
+static uint32_t const _NET_WM_MOVERESIZE_SIZE_BOTTOM = 5;
+static uint32_t const _NET_WM_MOVERESIZE_SIZE_BOTTOMLEFT = 6;
+static uint32_t const _NET_WM_MOVERESIZE_SIZE_LEFT = 7;
+static uint32_t const _NET_WM_MOVERESIZE_MOVE = 8;           /* movement only */
+static uint32_t const _NET_WM_MOVERESIZE_SIZE_KEYBOARD = 9;  /* size via keyboard */
+static uint32_t const _NET_WM_MOVERESIZE_MOVE_KEYBOARD = 10; /* move via keyboard */
+static uint32_t const _NET_WM_MOVERESIZE_CANCEL = 11;        /* cancel operation */
 
-static const uint32_t _NET_MOVERESIZE_WINDOW_X = (1 << 8);
-static const uint32_t _NET_MOVERESIZE_WINDOW_Y = (1 << 9);
-static const uint32_t _NET_MOVERESIZE_WINDOW_WIDTH = (1 << 10);
-static const uint32_t _NET_MOVERESIZE_WINDOW_HEIGHT = (1 << 11);
+static uint32_t const _NET_MOVERESIZE_WINDOW_X = (1 << 8);
+static uint32_t const _NET_MOVERESIZE_WINDOW_Y = (1 << 9);
+static uint32_t const _NET_MOVERESIZE_WINDOW_WIDTH = (1 << 10);
+static uint32_t const _NET_MOVERESIZE_WINDOW_HEIGHT = (1 << 11);
 
 /*
  * Handles FocusIn events which are generated by clients (i3’s focus changes
@@ -661,7 +661,7 @@ void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
  */
 void PropertyHandlers::handle_focus_out(xcb_focus_in_event_t *event) {
     ConCon *con = con_by_window_id(event->event);
-    const char *window_name, *mode, *detail;
+    char const *window_name, *mode, *detail;
 
     if (con != nullptr) {
         window_name = con->name.c_str();
@@ -762,9 +762,8 @@ static void handle_selection_clear(xcb_selection_clear_event_t *event) {
  * received from X11
  *
  */
-PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb, InputManager &inputManager, ApplicationLauncher &applicationLauncher, IPCManager &ipcManager) : x{x}, workspaceManager(workspaceManager), configManager(configManager), randr(randr), xkb(xkb), inputManager(inputManager), ipcManager(ipcManager) {
-
-
+PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb, InputManager &inputManager, ApplicationLauncher &applicationLauncher, IPCManager &ipcManager)
+    : x{x}, workspaceManager(workspaceManager), configManager(configManager), randr(randr), xkb(xkb), inputManager(inputManager), ipcManager(ipcManager) {
 }
 
 /*
@@ -774,7 +773,7 @@ PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, Con
  *
  */
 void PropertyHandlers::handle_key_press(xcb_key_press_event_t *event) {
-    const bool key_release = (event->response_type == XCB_KEY_RELEASE);
+    bool const key_release = (event->response_type == XCB_KEY_RELEASE);
 
     global.last_timestamp = event->time;
 
@@ -844,7 +843,7 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
     }
 
     if (x.shape_supported && type == x.shape_base + XCB_SHAPE_NOTIFY) {
-        auto *shape = reinterpret_cast<xcb_shape_notify_event_t*>(event);
+        auto *shape = reinterpret_cast<xcb_shape_notify_event_t *>(event);
 
         DLOG(fmt::sprintf("shape_notify_event for window 0x%08x, shape_kind = %d, shaped = %d\n",
                           shape->affected_window, shape->shape_kind, shape->shaped));

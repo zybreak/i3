@@ -13,11 +13,10 @@ export module i3:gaps;
 import :internal;
 
 export {
-
     /**
      * Calculates the effective gap sizes for a container.
      */
-    gaps_t calculate_effective_gaps(Con const * const con);
+    gaps_t calculate_effective_gaps(Con const* const con);
 
     /*
      * Decides whether the container should be inset.

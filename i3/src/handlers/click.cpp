@@ -81,7 +81,7 @@ static bool tiling_resize_for_border(PropertyHandlers &handlers, Con *con, borde
         second = tmp;
     }
 
-    const orientation_t orientation = ((border == BORDER_LEFT || border == BORDER_RIGHT) ? HORIZ : VERT);
+    orientation_t const orientation = ((border == BORDER_LEFT || border == BORDER_RIGHT) ? HORIZ : VERT);
 
     handlers.resize_graphical_handler(first, second, orientation, event, use_threshold);
 
@@ -137,12 +137,12 @@ static bool floating_mod_on_tiled_client(PropertyHandlers &handlers, Con *con, x
  * Finds out which border was clicked on and calls tiling_resize_for_border().
  *
  */
-static bool tiling_resize(PropertyHandlers &handlers, Con *con, xcb_button_press_event_t *event, const click_destination_t dest, bool use_threshold) {
+static bool tiling_resize(PropertyHandlers &handlers, Con *con, xcb_button_press_event_t *event, click_destination_t const dest, bool use_threshold) {
     /* check if this was a click on the window border (and on which one) */
     Rect bsr = con_border_style_rect(con);
     DLOG(fmt::sprintf("BORDER x = %d, y = %d for con %p, window 0x%08x\n",
                       event->event_x, event->event_y, fmt::ptr(con), event->event));
-    //DLOG(fmt::sprintf("checks for right >= %d\n", con->get_window_rect().x + con->get_window_rect().width));
+    // DLOG(fmt::sprintf("checks for right >= %d\n", con->get_window_rect().x + con->get_window_rect().width));
     if (dest == CLICK_DECORATION) {
         return tiling_resize_for_border(handlers, con, BORDER_TOP, event, use_threshold);
     } else if (dest == CLICK_BORDER) {
@@ -154,8 +154,8 @@ static bool tiling_resize(PropertyHandlers &handlers, Con *con, xcb_button_press
         event->event_y >= static_cast<int32_t>(bsr.y) && event->event_y <= static_cast<int32_t>(con->rect.height + bsr.height))
         return tiling_resize_for_border(handlers, con, BORDER_LEFT, event, false);
 
-    auto concon = dynamic_cast<ConCon*>(con);
-   
+    auto concon = dynamic_cast<ConCon *>(con);
+
     if (concon) {
         if (event->event_x >= static_cast<int32_t>(concon->get_window_rect().x + concon->get_window_rect().width) &&
             event->event_y >= static_cast<int32_t>(bsr.y) &&
@@ -182,7 +182,7 @@ static void allow_replay_pointer(xcb_timestamp_t time) {
  * functions for resizing/dragging.
  *
  */
-void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, const bool mod_pressed, const click_destination_t dest) {
+void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, bool const mod_pressed, click_destination_t const dest) {
     DLOG(fmt::sprintf("--> click properties: mod = %d, destination = %d\n", mod_pressed ? 1 : 0, std::to_underlying(dest)));
     DLOG(fmt::sprintf("--> OUTCOME = %p\n", fmt::ptr(con)));
     DLOG(fmt::sprintf("type = %d, name = %s\n", std::to_underlying(con->type), con->name));
@@ -221,7 +221,7 @@ void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, co
     WorkspaceCon *focused_workspace = global.focused->con_get_workspace();
 
     if (!ws) {
-        ws = dynamic_cast<WorkspaceCon*>(con::first(con->con_get_output()->output_get_content()->focused));
+        ws = dynamic_cast<WorkspaceCon *>(con::first(con->con_get_output()->output_get_content()->focused));
         if (!ws) {
             allow_replay_pointer(event->time);
             return;
@@ -230,13 +230,13 @@ void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, co
 
     /* get the floating con */
     Con *floatingcon = con->con_inside_floating();
-    const bool proportional = (event->state & XCB_KEY_BUT_MASK_SHIFT) == XCB_KEY_BUT_MASK_SHIFT;
-    const bool in_stacked = (con->parent->layout == L_STACKED || con->parent->layout == L_TABBED);
-    const bool was_focused = global.focused == con;
-    const bool is_left_click = (event->detail == XCB_BUTTON_CLICK_LEFT);
-    const bool is_right_click = (event->detail == XCB_BUTTON_CLICK_RIGHT);
-    const bool is_left_or_right_click = (is_left_click || is_right_click);
-    const bool is_scroll = (event->detail == XCB_BUTTON_SCROLL_UP ||
+    bool const proportional = (event->state & XCB_KEY_BUT_MASK_SHIFT) == XCB_KEY_BUT_MASK_SHIFT;
+    bool const in_stacked = (con->parent->layout == L_STACKED || con->parent->layout == L_TABBED);
+    bool const was_focused = global.focused == con;
+    bool const is_left_click = (event->detail == XCB_BUTTON_CLICK_LEFT);
+    bool const is_right_click = (event->detail == XCB_BUTTON_CLICK_RIGHT);
+    bool const is_left_or_right_click = (is_left_click || is_right_click);
+    bool const is_scroll = (event->detail == XCB_BUTTON_SCROLL_UP ||
                             event->detail == XCB_BUTTON_SCROLL_DOWN ||
                             event->detail == XCB_BUTTON_SCROLL_LEFT ||
                             event->detail == XCB_BUTTON_SCROLL_RIGHT);
@@ -250,7 +250,7 @@ void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, co
         /* Use the focused child of the tabbed / stacked container, not the
          * container the user scrolled on. */
         Con *current = con::first(con->parent->focused);
-        const position_t direction =
+        position_t const direction =
             (event->detail == XCB_BUTTON_SCROLL_UP || event->detail == XCB_BUTTON_SCROLL_LEFT) ? BEFORE : AFTER;
         Con *next = get_tree_next_sibling(current, direction);
         auto p = con_descend_focused(next ? next : current);
@@ -263,9 +263,9 @@ void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, co
     /* 2: floating modifier pressed, initiate a drag */
     if (mod_pressed && is_left_click && !floatingcon &&
         (configManager.config->tiling_drag == TILING_DRAG_MODIFIER ||
-        configManager.config->tiling_drag == TILING_DRAG_MODIFIER_OR_TITLEBAR) &&
+         configManager.config->tiling_drag == TILING_DRAG_MODIFIER_OR_TITLEBAR) &&
         has_drop_targets()) {
-        const bool use_threshold = !mod_pressed;
+        bool const use_threshold = !mod_pressed;
         tiling_drag(con, event, use_threshold);
         allow_replay_pointer(event->time);
         return;
@@ -348,7 +348,7 @@ void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, co
           (mod_pressed || dest == CLICK_DECORATION))) &&
         has_drop_targets()) {
         allow_replay_pointer(event->time);
-        const bool use_threshold = !mod_pressed;
+        bool const use_threshold = !mod_pressed;
         tiling_drag(con, event, use_threshold);
         return;
     }
@@ -390,8 +390,8 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
 
     global.last_timestamp = event->time;
 
-    const uint32_t mod = (configManager.config->floating_modifier & 0xFFFF);
-    const bool mod_pressed = (mod != 0 && (event->state & mod) == mod);
+    uint32_t const mod = (configManager.config->floating_modifier & 0xFFFF);
+    bool const mod_pressed = (mod != 0 && (event->state & mod) == mod);
     DLOG(fmt::sprintf("floating_mod = %d, detail = %d\n", mod_pressed, event->detail));
     if (ConCon *con = con_by_window_id(event->event)) {
         route_click(con, event, mod_pressed, CLICK_INSIDE);
@@ -416,11 +416,11 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
             OutputCon *output;
             WorkspaceCon *ws;
             for (auto &c : global.croot->nodes) {
-                output = dynamic_cast<OutputCon*>(c);
+                output = dynamic_cast<OutputCon *>(c);
                 if (!output->rect.rect_contains(event->event_x, event->event_y))
                     continue;
 
-                ws = dynamic_cast<WorkspaceCon*>(con::first(output->output_get_content()->focused));
+                ws = dynamic_cast<WorkspaceCon *>(con::first(output->output_get_content()->focused));
                 if (ws != global.focused->con_get_workspace()) {
                     workspaceManager.workspace_show(ws);
                     tree_render();

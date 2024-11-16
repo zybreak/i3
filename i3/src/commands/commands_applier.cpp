@@ -42,7 +42,7 @@ static direction_t direction_from_orientation_position(orientation_t orientation
  * layout name.
  *
  */
-static bool layout_from_name(const char *layout_str, layout_t *out) {
+static bool layout_from_name(char const *layout_str, layout_t *out) {
     if (strcmp(layout_str, "default") == 0) {
         *out = L_DEFAULT;
         return true;
@@ -68,7 +68,7 @@ static char to_lower(char c) {
     return std::tolower(static_cast<unsigned char>(c));
 }
 
-static bool starts_with(const std::string_view str, const std::string_view prefix) {
+static bool starts_with(std::string_view const str, std::string_view const prefix) {
     if (prefix.length() > str.length()) {
         return false;
     }
@@ -77,26 +77,21 @@ static bool starts_with(const std::string_view str, const std::string_view prefi
     auto str_end = str_begin + prefix.size();
 
     return std::ranges::equal(prefix, std::ranges::subrange(str_begin, str_end),
-            [](char a, char b) { return to_lower(a) == to_lower(b); });
+                              [](char a, char b) { return to_lower(a) == to_lower(b); });
 }
 
 static void ysuccess(nlohmann::json *json_gen, bool success) {
     if (json_gen != nullptr) {
-        json_gen->push_back({
-                { "success", success }
-        });
+        json_gen->push_back({{"success", success}});
     }
 }
 
 static void yerror(nlohmann::json *json_gen, std::string message) {
     if (json_gen != nullptr) {
-        json_gen->push_back({
-                { "success", false },
-                { "error", message }
-        });
+        json_gen->push_back({{"success", false},
+                             {"error", message}});
     }
 }
-
 
 /*
  * Checks whether we switched to a new workspace and returns false in that case,
@@ -105,7 +100,7 @@ static void yerror(nlohmann::json *json_gen, std::string message) {
  * and return true, signaling that no further workspace switching should occur in the calling function.
  *
  */
-static bool maybe_back_and_forth(CommandsResultIR &cmd_output, const char *name) {
+static bool maybe_back_and_forth(CommandsResultIR &cmd_output, char const *name) {
     WorkspaceCon *ws = global.focused->con_get_workspace();
 
     /* If we switched to a different workspace, do nothing */
@@ -153,13 +148,11 @@ static WorkspaceCon *maybe_auto_back_and_forth_workspace(WorkspaceCon *workspace
  * every command.
  */
 static void HANDLE_EMPTY_MATCH(struct criteria_state *criteria_state) {
-
     if (criteria_state->current_match.match_is_empty()) {
         criteria_state->owindows.clear();
         criteria_state->owindows.push_back(global.focused);
     }
 }
-
 
 /*
  * This function toggles the layout of a given container. toggle_mode can be
@@ -168,7 +161,7 @@ static void HANDLE_EMPTY_MATCH(struct criteria_state *criteria_state) {
  * layouts).
  *
  */
-static void con_toggle_layout(Con *con, const char *toggle_mode) {
+static void con_toggle_layout(Con *con, char const *toggle_mode) {
     Con *parent = con;
     /* Users can focus workspaces, but not any higher in the hierarchy.
      * Focus on the workspace is a special case, since in every other case, the
@@ -177,7 +170,7 @@ static void con_toggle_layout(Con *con, const char *toggle_mode) {
         parent = con->parent;
     DLOG(fmt::sprintf("con_toggle_layout(%p, %s), parent = %p\n", fmt::ptr(con), toggle_mode, fmt::ptr(parent)));
 
-    const char delim[] = " ";
+    char const delim[] = " ";
 
     if (strcasecmp(toggle_mode, "split") == 0 || strstr(toggle_mode, delim)) {
         /* L_DEFAULT is used as a placeholder value to distinguish if
@@ -204,7 +197,7 @@ static void con_toggle_layout(Con *con, const char *toggle_mode) {
             } else {
                 bool success = layout_from_name(cur_tok, &layout);
                 if (!success || layout == L_DEFAULT) {
-                    ELOG(fmt::sprintf("The token '%s' was not recognized and has been skipped.\n",  cur_tok));
+                    ELOG(fmt::sprintf("The token '%s' was not recognized and has been skipped.\n", cur_tok));
                     continue;
                 }
             }
@@ -252,8 +245,7 @@ static void con_toggle_layout(Con *con, const char *toggle_mode) {
     }
 }
 
-
-criteria_state* CommandsApplier::create_criteria_state(int _state) {
+criteria_state *CommandsApplier::create_criteria_state(int _state) {
     return new criteria_state(_state);
 };
 
@@ -263,7 +255,7 @@ criteria_state* CommandsApplier::create_criteria_state(int _state) {
  *
  */
 void CommandsApplier::criteria_init(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
-    //DLOG(fmt::sprintf("Initializing criteria, current_match = %p\n",  (void*)criteria_state->current_match));
+    // DLOG(fmt::sprintf("Initializing criteria, current_match = %p\n",  (void*)criteria_state->current_match));
     criteria_state->current_match = Match();
     criteria_state->owindows.clear();
 }
@@ -316,7 +308,7 @@ void CommandsApplier::criteria_match_windows(struct criteria_state *criteria_sta
         }
     }
 
-    for (auto *c: criteria_state->owindows) {
+    for (auto *c : criteria_state->owindows) {
         DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(c), c->name));
     }
 }
@@ -326,12 +318,12 @@ void CommandsApplier::criteria_match_windows(struct criteria_state *criteria_sta
  * specification.
  *
  */
-void CommandsApplier::criteria_add(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *ctype, const char *cvalue) {
+void CommandsApplier::criteria_add(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *ctype, char const *cvalue) {
     criteria_state->current_match.parse_property(ctype, cvalue);
 }
 
 static void move_matches_to_workspace(struct criteria_state *criteria_state, WorkspaceCon *ws) {
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
         con_move_to_workspace(current, ws, true, false, false);
     }
@@ -365,8 +357,8 @@ static void CHECK_MOVE_CON_TO_WORKSPACE(struct criteria_state *criteria_state) {
  * next|prev|next_on_output|prev_on_output|current'.
  *
  */
-void CommandsApplier::move_con_to_workspace(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *which) {
-    DLOG(fmt::sprintf("which=%s\n",  which));
+void CommandsApplier::move_con_to_workspace(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *which) {
+    DLOG(fmt::sprintf("which=%s\n", which));
 
     CHECK_MOVE_CON_TO_WORKSPACE(criteria_state);
 
@@ -416,14 +408,14 @@ void CommandsApplier::move_con_to_workspace_back_and_forth(struct criteria_state
  * Implementation of 'move [--no-auto-back-and-forth] [window|container] [to] workspace <name>'.
  *
  */
-void CommandsApplier::move_con_to_workspace_name(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *name, const char *no_auto_back_and_forth) {
+void CommandsApplier::move_con_to_workspace_name(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *name, char const *no_auto_back_and_forth) {
     if (strncasecmp(name, "__", strlen("__")) == 0) {
         throw std::runtime_error(fmt::sprintf("You cannot move containers to i3-internal workspaces (\"%s\").", name));
     }
 
     CHECK_MOVE_CON_TO_WORKSPACE(criteria_state);
 
-    LOG(fmt::sprintf("should move window to workspace %s\n",  name));
+    LOG(fmt::sprintf("should move window to workspace %s\n", name));
     /* get the workspace */
     WorkspaceCon *ws = global.workspaceManager->workspace_get_or_create(name);
 
@@ -435,17 +427,17 @@ void CommandsApplier::move_con_to_workspace_name(struct criteria_state *criteria
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen,  true);
+    ysuccess(cmd_output.json_gen, true);
 }
 
 /*
  * Implementation of 'move [--no-auto-back-and-forth] [window|container] [to] workspace number <name>'.
  *
  */
-void CommandsApplier::move_con_to_workspace_number(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *which, const char *no_auto_back_and_forth) {
+void CommandsApplier::move_con_to_workspace_number(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *which, char const *no_auto_back_and_forth) {
     CHECK_MOVE_CON_TO_WORKSPACE(criteria_state);
 
-    LOG(fmt::sprintf("should move window to workspace %s\n",  which));
+    LOG(fmt::sprintf("should move window to workspace %s\n", which));
 
     int parsed_num = utils::ws_name_to_number(which);
     if (parsed_num == -1) {
@@ -466,14 +458,14 @@ void CommandsApplier::move_con_to_workspace_number(struct criteria_state *criter
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen,  true);
+    ysuccess(cmd_output.json_gen, true);
 }
 
 /*
  * Convert a string direction ("left", "right", etc.) to a direction_t. Assumes
  * valid direction string.
  */
-static direction_t parse_direction(const char *str) {
+static direction_t parse_direction(char const *str) {
     if (strcmp(str, "left") == 0) {
         return D_LEFT;
     } else if (strcmp(str, "right") == 0) {
@@ -488,7 +480,7 @@ static direction_t parse_direction(const char *str) {
     }
 }
 
-static void resize_floating(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *direction_str, Con *floating_con, int px) {
+static void resize_floating(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *direction_str, Con *floating_con, int px) {
     Rect old_rect = floating_con->rect;
     Con *focused_con = con_descend_focused(floating_con);
 
@@ -505,7 +497,7 @@ static void resize_floating(struct criteria_state *criteria_state, CommandsResul
     /* ensure that resize will take place even if pixel increment is smaller than
      * height increment or width increment.
      * fixes #1011 */
-    const i3Window *window = focused_con->get_window();
+    i3Window const *window = focused_con->get_window();
     if (window != nullptr) {
         if (orientation == VERT) {
             if (px < 0) {
@@ -542,7 +534,7 @@ static void resize_floating(struct criteria_state *criteria_state, CommandsResul
     }
 }
 
-static bool cmd_resize_tiling_direction(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *current, const char *direction, int px, int ppt) {
+static bool cmd_resize_tiling_direction(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *current, char const *direction, int px, int ppt) {
     Con *second = nullptr;
     Con *first = current;
     direction_t search_direction = parse_direction(direction);
@@ -561,7 +553,7 @@ static bool cmd_resize_tiling_direction(struct criteria_state *criteria_state, C
     return resize_neighboring_cons(first, second, px, ppt);
 }
 
-static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *current, const char *direction, int px, double ppt) {
+static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *current, char const *direction, int px, double ppt) {
     LOG("width/height resize\n");
 
     /* get the appropriate current container (skip stacked/tabbed cons) */
@@ -575,9 +567,9 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
 
     /* get the default percentage */
     int children = current->parent->con_num_children();
-    LOG(fmt::sprintf("ins. %d children\n",  children));
+    LOG(fmt::sprintf("ins. %d children\n", children));
     double percentage = 1.0 / children;
-    LOG(fmt::sprintf("default percentage = %f\n",  percentage));
+    LOG(fmt::sprintf("default percentage = %f\n", percentage));
 
     /* Ensure all the other children have a percentage set. */
     for (auto &child : current->parent->nodes) {
@@ -592,7 +584,7 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
         new_current_percent = current->percent + ppt;
     } else {
         /* Convert px change to change in percentages */
-        ppt = (double) px / (double) con_rect_size_in_orientation(current->parent);
+        ppt = (double)px / (double)con_rect_size_in_orientation(current->parent);
         new_current_percent = current->percent + ppt;
     }
     subtract_percent = ppt / (children - 1);
@@ -601,8 +593,8 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
         return false;
     }
 
-    LOG(fmt::sprintf("new_current_percent = %f\n",  new_current_percent));
-    LOG(fmt::sprintf("subtract_percent = %f\n",  subtract_percent));
+    LOG(fmt::sprintf("new_current_percent = %f\n", new_current_percent));
+    LOG(fmt::sprintf("subtract_percent = %f\n", subtract_percent));
     /* Ensure that the new percentages are positive. */
     if (subtract_percent >= 0.0) {
         for (auto &child : current->parent->nodes) {
@@ -611,14 +603,14 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
             }
             if (child->percent - subtract_percent < percent_for_1px(child)) {
                 yerror(cmd_output.json_gen, fmt::sprintf("Not resizing, already at minimum size (child %p would end up with a size of %.f", fmt::ptr(child),
-                       child->percent - subtract_percent));
+                                                         child->percent - subtract_percent));
                 return false;
             }
         }
     }
 
     current->percent = new_current_percent;
-    LOG(fmt::sprintf("current->percent after = %f\n",  current->percent));
+    LOG(fmt::sprintf("current->percent after = %f\n", current->percent));
 
     for (auto &child : current->parent->nodes) {
         if (child == current)
@@ -634,8 +626,8 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
  * Implementation of 'resize grow|shrink <direction> [<px> px] [or <ppt> ppt]'.
  *
  */
-void CommandsApplier::resize(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *way, const char *direction, long resize_px, long resize_ppt) {
-    DLOG(fmt::sprintf("resizing in way %s, direction %s, px %ld or ppt %ld\n",  way, direction, resize_px, resize_ppt));
+void CommandsApplier::resize(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *way, char const *direction, long resize_px, long resize_ppt) {
+    DLOG(fmt::sprintf("resizing in way %s, direction %s, px %ld or ppt %ld\n", way, direction, resize_px, resize_ppt));
     if (strcmp(way, "shrink") == 0) {
         resize_px *= -1;
         resize_ppt *= -1;
@@ -643,7 +635,7 @@ void CommandsApplier::resize(struct criteria_state *criteria_state, CommandsResu
 
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         /* Don't handle dock windows (issue #1201) */
         if (current->get_window() && current->get_window()->dock != window_dock_t::W_NODOCK) {
             DLOG(fmt::sprintf("This is a dock window. Not resizing (con = %p)\n)", fmt::ptr(current)));
@@ -656,7 +648,7 @@ void CommandsApplier::resize(struct criteria_state *criteria_state, CommandsResu
         } else {
             if (strcmp(direction, "width") == 0 ||
                 strcmp(direction, "height") == 0) {
-                const double ppt = (double) resize_ppt / 100.0;
+                double const ppt = (double)resize_ppt / 100.0;
                 if (!cmd_resize_tiling_width_height(criteria_state, cmd_output,
                                                     current, direction,
                                                     resize_px, ppt)) {
@@ -674,13 +666,13 @@ void CommandsApplier::resize(struct criteria_state *criteria_state, CommandsResu
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen,  true);
+    ysuccess(cmd_output.json_gen, true);
 }
 
 static bool
 resize_set_tiling(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *target, orientation_t resize_orientation, bool is_ppt, long target_size) {
     direction_t search_direction;
-    const char *mode;
+    char const *mode;
     if (resize_orientation == HORIZ) {
         search_direction = D_LEFT;
         mode = "width";
@@ -697,7 +689,7 @@ resize_set_tiling(struct criteria_state *criteria_state, CommandsResultIR &cmd_o
     double ppt = 0.0;
     int px = 0;
     if (is_ppt) {
-        ppt = (double) target_size / 100.0 - target->percent;
+        ppt = (double)target_size / 100.0 - target->percent;
     } else {
         px = target_size - (resize_orientation == HORIZ ? target->rect.width : target->rect.height);
     }
@@ -711,8 +703,8 @@ resize_set_tiling(struct criteria_state *criteria_state, CommandsResultIR &cmd_o
  * Implementation of 'resize set <width> [px | ppt] <height> [px | ppt]'.
  *
  */
-void CommandsApplier::resize_set(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, long cwidth, const char *mode_width, long cheight, const char *mode_height) {
-    DLOG(fmt::sprintf("resizing to %ld %s x %ld %s\n",  cwidth, mode_width, cheight, mode_height));
+void CommandsApplier::resize_set(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, long cwidth, char const *mode_width, long cheight, char const *mode_height) {
+    DLOG(fmt::sprintf("resizing to %ld %s x %ld %s\n", cwidth, mode_width, cheight, mode_height));
     if (cwidth < 0 || cheight < 0) {
         throw std::runtime_error("Dimensions cannot be negative.");
     }
@@ -720,19 +712,19 @@ void CommandsApplier::resize_set(struct criteria_state *criteria_state, Commands
     HANDLE_EMPTY_MATCH(criteria_state);
 
     bool success = true;
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         Con *floating_con;
         if ((floating_con = current->con_inside_floating())) {
             Con *output = floating_con->con_get_output();
             if (cwidth == 0) {
                 cwidth = floating_con->rect.width;
             } else if (mode_width && strcmp(mode_width, "ppt") == 0) {
-                cwidth = output->rect.width * ((double) cwidth / 100.0);
+                cwidth = output->rect.width * ((double)cwidth / 100.0);
             }
             if (cheight == 0) {
                 cheight = floating_con->rect.height;
             } else if (mode_height && strcmp(mode_height, "ppt") == 0) {
-                cheight = output->rect.height * ((double) cheight / 100.0);
+                cheight = output->rect.height * ((double)cheight / 100.0);
             }
             floating_resize(floating_con, cwidth, cheight);
         } else {
@@ -755,7 +747,7 @@ void CommandsApplier::resize_set(struct criteria_state *criteria_state, Commands
     }
 
     cmd_output.needs_tree_render = true;
-    ysuccess(cmd_output.json_gen,  success);
+    ysuccess(cmd_output.json_gen, success);
 }
 
 static int border_width_from_style(border_style_t border_style, long border_width, Con *con) {
@@ -766,7 +758,7 @@ static int border_width_from_style(border_style_t border_style, long border_widt
         return logical_px(global.x->root_screen, border_width);
     }
 
-    const bool is_floating = con->con_inside_floating() != nullptr;
+    bool const is_floating = con->con_inside_floating() != nullptr;
     /* Load the configured defaults. */
     if (is_floating && border_style == global.configManager->config->default_floating_border) {
         return global.configManager->config->default_floating_border_width;
@@ -782,12 +774,12 @@ static int border_width_from_style(border_style_t border_style, long border_widt
  * Implementation of 'border normal|pixel [<n>]', 'border none|1pixel|toggle'.
  *
  */
-void CommandsApplier::border(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *border_style_str, long border_width) {
-    DLOG(fmt::sprintf("border style should be changed to %s with border width %ld\n",  border_style_str, border_width));
+void CommandsApplier::border(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *border_style_str, long border_width) {
+    DLOG(fmt::sprintf("border style should be changed to %s with border width %ld\n", border_style_str, border_width));
 
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
 
         border_style_t border_style;
@@ -805,35 +797,35 @@ void CommandsApplier::border(struct criteria_state *criteria_state, CommandsResu
 
         /* User changed the border */
         current->max_user_border_style = border_style;
-        const int con_border_width = border_width_from_style(border_style, border_width, current);
+        int const con_border_width = border_width_from_style(border_style, border_width, current);
         con_set_border_style(current, border_style, con_border_width);
     }
 
     cmd_output.needs_tree_render = true;
-    ysuccess(cmd_output.json_gen,  true);
+    ysuccess(cmd_output.json_gen, true);
 }
 
 /*
  * Implementation of 'nop <comment>'.
  *
  */
-void CommandsApplier::nop(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *comment) {
+void CommandsApplier::nop(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *comment) {
     LOG("-------------------------------------------------\n");
-    LOG(fmt::sprintf("  NOP: %.4000s\n",  (comment != nullptr) ? comment : ""));
+    LOG(fmt::sprintf("  NOP: %.4000s\n", (comment != nullptr) ? comment : ""));
     LOG("-------------------------------------------------\n");
-    ysuccess(cmd_output.json_gen,  true);
+    ysuccess(cmd_output.json_gen, true);
 }
 
 /*
  * Implementation of 'append_layout <path>'.
  *
  */
-void CommandsApplier::append_layout(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *cpath) {
-     LOG(fmt::sprintf("Appending layout \"%s\"\n", cpath));
+void CommandsApplier::append_layout(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *cpath) {
+    LOG(fmt::sprintf("Appending layout \"%s\"\n", cpath));
 
     /* Make sure we allow paths like '~/.i3/layout.json' */
-    //auto path = utils::resolve_tilde(cpath);
-    //std::string buf = utils::slurp(cpath);
+    // auto path = utils::resolve_tilde(cpath);
+    // std::string buf = utils::slurp(cpath);
 
     if (!json_validate(utils::slurp(cpath))) {
         ELOG(fmt::format("Could not parse \"{}\" as JSON, not loading.", cpath));
@@ -841,7 +833,7 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
     }
 
     json_content_t content = json_determine_content(utils::slurp(cpath));
-    //LOG(fmt::sprintf("JSON content = %d\n",  content));
+    // LOG(fmt::sprintf("JSON content = %d\n",  content));
     if (content == JSON_CONTENT_UNKNOWN) {
         ELOG(fmt::format("Could not determine the contents of \"{}\", not loading.", cpath));
         throw std::runtime_error(fmt::format("Could not determine the contents of \"{}\".", cpath));
@@ -862,8 +854,8 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
     DLOG(fmt::sprintf("Appending to parent=%p instead of focused=%p\n", fmt::ptr(parent), fmt::ptr(global.focused)));
     try {
         tree_append_json(parent, utils::slurp(cpath));
-        ysuccess(cmd_output.json_gen,  true);
-    } catch (const std::exception &e) {
+        ysuccess(cmd_output.json_gen, true);
+    } catch (std::exception const &e) {
         /* Note that we continue executing since tree_append_json() has
          * side-effects — user-provided layouts can be partly valid, partly
          * invalid, leading to half of the placeholder containers being
@@ -899,10 +891,10 @@ static void disable_global_fullscreen() {
  * Implementation of 'workspace next|prev|next_on_output|prev_on_output'.
  *
  */
-void CommandsApplier::workspace(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *which) {
+void CommandsApplier::workspace(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *which) {
     WorkspaceCon *ws;
 
-    DLOG(fmt::sprintf("which=%s\n",  which));
+    DLOG(fmt::sprintf("which=%s\n", which));
 
     disable_global_fullscreen();
 
@@ -922,15 +914,15 @@ void CommandsApplier::workspace(struct criteria_state *criteria_state, CommandsR
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen,  true);
+    ysuccess(cmd_output.json_gen, true);
 }
 
 /*
  * Implementation of 'workspace [--no-auto-back-and-forth] number <name>'
  *
  */
-void CommandsApplier::workspace_number(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *which, const char *_no_auto_back_and_forth) {
-    const bool no_auto_back_and_forth = (_no_auto_back_and_forth != nullptr);
+void CommandsApplier::workspace_number(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *which, char const *_no_auto_back_and_forth) {
+    bool const no_auto_back_and_forth = (_no_auto_back_and_forth != nullptr);
 
     disable_global_fullscreen();
 
@@ -941,21 +933,21 @@ void CommandsApplier::workspace_number(struct criteria_state *criteria_state, Co
 
     WorkspaceCon *workspace = get_existing_workspace_by_num(parsed_num);
     if (!workspace) {
-        LOG(fmt::sprintf("There is no workspace with number %ld, creating a new one.\n",  parsed_num));
-        ysuccess(cmd_output.json_gen,  true);
+        LOG(fmt::sprintf("There is no workspace with number %ld, creating a new one.\n", parsed_num));
+        ysuccess(cmd_output.json_gen, true);
         global.workspaceManager->workspace_show_by_name(which);
         cmd_output.needs_tree_render = true;
         return;
     }
     if (!no_auto_back_and_forth && maybe_back_and_forth(cmd_output, workspace->name.c_str())) {
-        ysuccess(cmd_output.json_gen,  true);
+        ysuccess(cmd_output.json_gen, true);
         return;
     }
     global.workspaceManager->workspace_show(workspace);
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen,  true);
+    ysuccess(cmd_output.json_gen, true);
 }
 
 /*
@@ -969,15 +961,15 @@ void CommandsApplier::workspace_back_and_forth(struct criteria_state *criteria_s
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen,  true);
+    ysuccess(cmd_output.json_gen, true);
 }
 
 /*
  * Implementation of 'workspace [--no-auto-back-and-forth] <name>'
  *
  */
-void CommandsApplier::workspace_name(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *name, const char *_no_auto_back_and_forth) {
-    const bool no_auto_back_and_forth = (_no_auto_back_and_forth != nullptr);
+void CommandsApplier::workspace_name(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *name, char const *_no_auto_back_and_forth) {
+    bool const no_auto_back_and_forth = (_no_auto_back_and_forth != nullptr);
 
     if (strncasecmp(name, "__", strlen("__")) == 0) {
         throw std::runtime_error(fmt::sprintf("You cannot switch to the i3-internal workspaces (\"%s\").", name));
@@ -985,9 +977,9 @@ void CommandsApplier::workspace_name(struct criteria_state *criteria_state, Comm
 
     disable_global_fullscreen();
 
-    DLOG(fmt::sprintf("should switch to workspace %s\n",  name));
+    DLOG(fmt::sprintf("should switch to workspace %s\n", name));
     if (!no_auto_back_and_forth && maybe_back_and_forth(cmd_output, name)) {
-        ysuccess(cmd_output.json_gen,  true);
+        ysuccess(cmd_output.json_gen, true);
         return;
     }
     global.workspaceManager->workspace_show_by_name(name);
@@ -1001,20 +993,20 @@ void CommandsApplier::workspace_name(struct criteria_state *criteria_state, Comm
  * Implementation of 'mode <string>'.
  *
  */
-void CommandsApplier::mode(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *mode) {
-    DLOG(fmt::sprintf("mode=%s\n",  mode));
+void CommandsApplier::mode(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *mode) {
+    DLOG(fmt::sprintf("mode=%s\n", mode));
     switch_mode(mode);
 
     // XXX: default reply for now, make this a better reply
     ysuccess(cmd_output.json_gen, true);
 }
 
-static void user_output_names_add(std::vector<std::string> &list, const char *name) {
-    const bool get_non_primary = (strcasecmp("nonprimary", name) == 0);
+static void user_output_names_add(std::vector<std::string> &list, char const *name) {
+    bool const get_non_primary = (strcasecmp("nonprimary", name) == 0);
     if (get_non_primary || strcmp(name, "next") == 0) {
         /* "next" (or "nonprimary") here work like a wildcard: It "expands" to
          * all available (or non-primary) outputs. */
-        for (Output *output: global.randr->outputs) {
+        for (Output *output : global.randr->outputs) {
             list.emplace_back(output->output_primary_name());
         }
         return;
@@ -1030,10 +1022,10 @@ static Output *user_output_names_find_next(std::vector<std::string> &names, Outp
     for (auto uo = names.begin(); uo != names.end(); ++uo) {
         if (!target_output) {
             /* The first available output from the list is used in 2 cases:
-                 * 1. When we must wrap around the user list. For example, if
-                 * user specifies outputs A B C and C is `current_output`.
-                 * 2. When the current output is not in the user list. For
-                 * example, user specifies A B C and D is `current_output`.
+             * 1. When we must wrap around the user list. For example, if
+             * user specifies outputs A B C and C is `current_output`.
+             * 2. When the current output is not in the user list. For
+             * example, user specifies A B C and D is `current_output`.
              */
             target_output = current_output->get_output_from_string(*uo);
         }
@@ -1041,12 +1033,12 @@ static Output *user_output_names_find_next(std::vector<std::string> &names, Outp
             /* The current output is in the user list */
             while (true) {
                 /* This corrupts the outer loop but it is ok since we are
-                     * going to break anyway. */
+                 * going to break anyway. */
                 auto next = ++uo;
                 if (next == names.end()) {
                     /* We reached the end of the list. We should use the
-                         * first available output that, if it exists, is
-                         * already saved in target_output. */
+                     * first available output that, if it exists, is
+                     * already saved in target_output. */
                     break;
                 }
                 Output *out = current_output->get_output_from_string(*next);
@@ -1056,7 +1048,6 @@ static Output *user_output_names_find_next(std::vector<std::string> &names, Outp
             }
             break;
         }
-
     }
 
     return target_output;
@@ -1066,7 +1057,7 @@ static Output *user_output_names_find_next(std::vector<std::string> &names, Outp
  * Implementation of 'move [window|container|workspace] [to] output <strings>'.
  *
  */
-void CommandsApplier::move_con_to_output(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *name, bool move_workspace) {
+void CommandsApplier::move_con_to_output(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *name, bool move_workspace) {
     /* Initialize a data structure that is used to save multiple user-specified
      * output names since this function is called multiple types for each
      * command call. */
@@ -1084,7 +1075,7 @@ void CommandsApplier::move_con_to_output(struct criteria_state *criteria_state, 
     }
 
     bool success = false;
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         WorkspaceCon *ws = current->con_get_workspace();
 
         Output *current_output = get_output_for_con(ws);
@@ -1111,22 +1102,22 @@ void CommandsApplier::move_con_to_output(struct criteria_state *criteria_state, 
  * Implementation of 'floating enable|disable|toggle'
  *
  */
-void CommandsApplier::floating(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *floating_mode) {
-    DLOG(fmt::sprintf("floating_mode=%s\n",  floating_mode));
+void CommandsApplier::floating(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *floating_mode) {
+    DLOG(fmt::sprintf("floating_mode=%s\n", floating_mode));
 
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
         if (strcmp(floating_mode, "toggle") == 0) {
             DLOG("should toggle mode\n");
-            toggle_floating_mode(dynamic_cast<ConCon*>(current), false);
+            toggle_floating_mode(dynamic_cast<ConCon *>(current), false);
         } else {
-            DLOG(fmt::sprintf("should switch mode to %s\n",  floating_mode));
+            DLOG(fmt::sprintf("should switch mode to %s\n", floating_mode));
             if (strcmp(floating_mode, "enable") == 0) {
-                floating_enable(dynamic_cast<ConCon*>(current), false);
+                floating_enable(dynamic_cast<ConCon *>(current), false);
             } else {
-                floating_disable(dynamic_cast<ConCon*>(current));
+                floating_disable(dynamic_cast<ConCon *>(current));
             }
         }
     }
@@ -1140,11 +1131,11 @@ void CommandsApplier::floating(struct criteria_state *criteria_state, CommandsRe
  * Implementation of 'split v|h|t|vertical|horizontal|toggle'.
  *
  */
-void CommandsApplier::split(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *direction) {
+void CommandsApplier::split(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *direction) {
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    LOG(fmt::sprintf("splitting in direction %c\n",  direction[0]));
-    for (auto current: criteria_state->owindows) {
+    LOG(fmt::sprintf("splitting in direction %c\n", direction[0]));
+    for (auto current : criteria_state->owindows) {
         if (current->con_is_docked()) {
             ELOG("Cannot split a docked container, skipping.\n");
             continue;
@@ -1178,11 +1169,11 @@ void CommandsApplier::split(struct criteria_state *criteria_state, CommandsResul
  * Implementation of 'kill [window|client]'.
  *
  */
-void CommandsApplier::kill(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *kill_mode_str) {
+void CommandsApplier::kill(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *kill_mode_str) {
     if (kill_mode_str == nullptr)
         kill_mode_str = "window";
 
-    DLOG(fmt::sprintf("kill_mode=%s\n",  kill_mode_str));
+    DLOG(fmt::sprintf("kill_mode=%s\n", kill_mode_str));
 
     int kill_mode;
     if (strcmp(kill_mode_str, "window") == 0)
@@ -1195,8 +1186,8 @@ void CommandsApplier::kill(struct criteria_state *criteria_state, CommandsResult
 
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    for (auto current: criteria_state->owindows) {
-        current->con_close((kill_window_t) kill_mode);
+    for (auto current : criteria_state->owindows) {
+        current->con_close((kill_window_t)kill_mode);
     }
 
     cmd_output.needs_tree_render = true;
@@ -1208,7 +1199,7 @@ void CommandsApplier::kill(struct criteria_state *criteria_state, CommandsResult
  * Implementation of 'exec [--no-startup-id] <command>'.
  *
  */
-void CommandsApplier::exec(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *nosn, const char *command) {
+void CommandsApplier::exec(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *nosn, char const *command) {
     bool no_startup_id = (nosn != nullptr);
 
     HANDLE_EMPTY_MATCH(criteria_state);
@@ -1216,13 +1207,13 @@ void CommandsApplier::exec(struct criteria_state *criteria_state, CommandsResult
     int count = criteria_state->owindows.size();
 
     if (count > 1) {
-         LOG(fmt::sprintf("WARNING: Your criteria for the exec command match %d containers, "
-            "so the command will execute this many times.\n",
-            count));
+        LOG(fmt::sprintf("WARNING: Your criteria for the exec command match %d containers, "
+                         "so the command will execute this many times.\n",
+                         count));
     }
 
     for (auto it = criteria_state->owindows.begin(); it != criteria_state->owindows.end(); ++it) {
-        DLOG(fmt::sprintf("should execute %s, no_startup_id = %d\n",  command, no_startup_id));
+        DLOG(fmt::sprintf("should execute %s, no_startup_id = %d\n", command, no_startup_id));
         global.applicationLauncher->start_application(command, no_startup_id);
     }
 
@@ -1233,9 +1224,9 @@ static void CMD_FOCUS_WARN_CHILDREN(struct criteria_state *criteria_state) {
     int count = criteria_state->owindows.size();
 
     if (count > 1) {
-         LOG(fmt::sprintf("WARNING: Your criteria for the focus command matches %d containers, "
-            "while only exactly one container can be focused at a time.\n",
-            count));
+        LOG(fmt::sprintf("WARNING: Your criteria for the focus command matches %d containers, "
+                         "while only exactly one container can be focused at a time.\n",
+                         count));
     }
 }
 
@@ -1243,7 +1234,7 @@ static void CMD_FOCUS_WARN_CHILDREN(struct criteria_state *criteria_state) {
  * Implementation of 'focus left|right|up|down|next|prev'.
  *
  */
-void CommandsApplier::focus_direction(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *direction_str) {
+void CommandsApplier::focus_direction(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *direction_str) {
     HANDLE_EMPTY_MATCH(criteria_state);
     CMD_FOCUS_WARN_CHILDREN(criteria_state);
 
@@ -1259,7 +1250,7 @@ void CommandsApplier::focus_direction(struct criteria_state *criteria_state, Com
         direction = parse_direction(direction_str);
     }
 
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         WorkspaceCon *ws = current->con_get_workspace();
         if (!ws) {
             continue;
@@ -1280,12 +1271,12 @@ void CommandsApplier::focus_direction(struct criteria_state *criteria_state, Com
  * Implementation of 'focus next|prev sibling'
  *
  */
-void CommandsApplier::focus_sibling(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *direction_str) {
+void CommandsApplier::focus_sibling(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *direction_str) {
     HANDLE_EMPTY_MATCH(criteria_state);
     CMD_FOCUS_WARN_CHILDREN(criteria_state);
 
-    const position_t direction = (starts_with(direction_str, "prev")) ? BEFORE : AFTER;
-    for (auto current: criteria_state->owindows) {
+    position_t const direction = (starts_with(direction_str, "prev")) ? BEFORE : AFTER;
+    for (auto current : criteria_state->owindows) {
         WorkspaceCon *ws = current->con_get_workspace();
         if (!ws) {
             continue;
@@ -1297,7 +1288,7 @@ void CommandsApplier::focus_sibling(struct criteria_state *criteria_state, Comma
                  * workspace change happens properly. However, workspace_show
                  * descends focus so we also have to put focus on the workspace
                  * itself to maintain consistency. See #3997. */
-                global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon*>(next));
+                global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon *>(next));
                 next->con_focus();
             } else {
                 next->con_activate();
@@ -1314,8 +1305,8 @@ void CommandsApplier::focus_sibling(struct criteria_state *criteria_state, Comma
  * Implementation of 'focus tiling|floating|mode_toggle'.
  *
  */
-void CommandsApplier::focus_window_mode(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *window_mode) {
-    DLOG(fmt::sprintf("window_mode = %s\n",  window_mode));
+void CommandsApplier::focus_window_mode(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *window_mode) {
+    DLOG(fmt::sprintf("window_mode = %s\n", window_mode));
 
     bool to_floating = false;
     if (strcmp(window_mode, "mode_toggle") == 0) {
@@ -1350,8 +1341,8 @@ void CommandsApplier::focus_window_mode(struct criteria_state *criteria_state, C
  * Implementation of 'focus parent|child'.
  *
  */
-void CommandsApplier::focus_level(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *level) {
-    DLOG(fmt::sprintf("level = %s\n",  level));
+void CommandsApplier::focus_level(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *level) {
+    DLOG(fmt::sprintf("level = %s\n", level));
     bool success = false;
 
     /* Focusing the parent can only be allowed if the newly
@@ -1365,7 +1356,7 @@ void CommandsApplier::focus_level(struct criteria_state *criteria_state, Command
         }
     }
 
-        /* Focusing a child should always be allowed. */
+    /* Focusing a child should always be allowed. */
     else
         success = level_down();
 
@@ -1379,7 +1370,7 @@ void CommandsApplier::focus_level(struct criteria_state *criteria_state, Command
  *
  */
 void CommandsApplier::focus(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, bool focus_workspace) {
-    //DLOG(fmt::sprintf("current_match = %p\n", fmt::ptr(criteria_state->current_match)));
+    // DLOG(fmt::sprintf("current_match = %p\n", fmt::ptr(criteria_state->current_match)));
 
     if (criteria_state->current_match.match_is_empty()) {
         ELOG("You have to specify which window/container should be focused.\n");
@@ -1392,7 +1383,7 @@ void CommandsApplier::focus(struct criteria_state *criteria_state, CommandsResul
 
     CMD_FOCUS_WARN_CHILDREN(criteria_state);
 
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         WorkspaceCon *ws = current->con_get_workspace();
         /* If no workspace could be found, this was a dock window.
          * Just skip it, you cannot focus dock windows. */
@@ -1420,13 +1411,13 @@ void CommandsApplier::focus(struct criteria_state *criteria_state, CommandsResul
  *                   'fullscreen disable'
  *
  */
-void CommandsApplier::fullscreen(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *action, const char *fullscreen_mode) {
+void CommandsApplier::fullscreen(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *action, char const *fullscreen_mode) {
     fullscreen_mode_t mode = strcmp(fullscreen_mode, "global") == 0 ? CF_GLOBAL : CF_OUTPUT;
-    DLOG(fmt::sprintf("%s fullscreen, mode = %s\n",  action, fullscreen_mode));
+    DLOG(fmt::sprintf("%s fullscreen, mode = %s\n", action, fullscreen_mode));
 
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
         if (strcmp(action, "toggle") == 0) {
             con_toggle_fullscreen(current, mode);
@@ -1446,11 +1437,11 @@ void CommandsApplier::fullscreen(struct criteria_state *criteria_state, Commands
  * Implementation of 'sticky enable|disable|toggle'.
  *
  */
-void CommandsApplier::sticky(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *action) {
-    DLOG(fmt::sprintf("%s sticky on window\n",  action));
+void CommandsApplier::sticky(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *action) {
+    DLOG(fmt::sprintf("%s sticky on window\n", action));
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         if (current->get_window() == nullptr) {
             ELOG(fmt::sprintf("only containers holding a window can be made sticky, skipping con = %p\n", fmt::ptr(current)));
             continue;
@@ -1483,32 +1474,32 @@ void CommandsApplier::sticky(struct criteria_state *criteria_state, CommandsResu
  * Implementation of 'move <direction> [<amount> [px|ppt]]'.
  *
  */
-void CommandsApplier::move_direction(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *direction_str, long amount, const char *mode) {
+void CommandsApplier::move_direction(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *direction_str, long amount, char const *mode) {
     HANDLE_EMPTY_MATCH(criteria_state);
 
     direction_t direction = parse_direction(direction_str);
 
-    const bool is_ppt = mode && strcmp(mode, "ppt") == 0;
+    bool const is_ppt = mode && strcmp(mode, "ppt") == 0;
 
-    DLOG(fmt::sprintf("moving in direction %s, %ld %s\n",  direction_str, amount, mode));
-    for (auto current: criteria_state->owindows) {
+    DLOG(fmt::sprintf("moving in direction %s, %ld %s\n", direction_str, amount, mode));
+    for (auto current : criteria_state->owindows) {
         if (current->con_is_floating()) {
-            DLOG(fmt::sprintf("floating move with %ld %s\n",  amount, mode));
+            DLOG(fmt::sprintf("floating move with %ld %s\n", amount, mode));
             Rect newrect = current->parent->rect;
             Con *output = current->con_get_output();
 
             switch (direction) {
                 case D_LEFT:
-                    newrect.x -= is_ppt ? output->rect.width * ((double) amount / 100.0) : amount;
+                    newrect.x -= is_ppt ? output->rect.width * ((double)amount / 100.0) : amount;
                     break;
                 case D_RIGHT:
-                    newrect.x += is_ppt ? output->rect.width * ((double) amount / 100.0) : amount;
+                    newrect.x += is_ppt ? output->rect.width * ((double)amount / 100.0) : amount;
                     break;
                 case D_UP:
-                    newrect.y -= is_ppt ? output->rect.height * ((double) amount / 100.0) : amount;
+                    newrect.y -= is_ppt ? output->rect.height * ((double)amount / 100.0) : amount;
                     break;
                 case D_DOWN:
-                    newrect.y += is_ppt ? output->rect.height * ((double) amount / 100.0) : amount;
+                    newrect.y += is_ppt ? output->rect.height * ((double)amount / 100.0) : amount;
                     break;
             }
 
@@ -1527,7 +1518,7 @@ void CommandsApplier::move_direction(struct criteria_state *criteria_state, Comm
  * Implementation of 'layout default|stacked|stacking|tabbed|splitv|splith'.
  *
  */
-void CommandsApplier::layout(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *layout_str) {
+void CommandsApplier::layout(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *layout_str) {
     HANDLE_EMPTY_MATCH(criteria_state);
 
     layout_t layout;
@@ -1535,9 +1526,9 @@ void CommandsApplier::layout(struct criteria_state *criteria_state, CommandsResu
         throw std::runtime_error(fmt::sprintf("Unknown layout \"%s\", this is a mismatch between code and parser spec.", layout_str));
     }
 
-    DLOG(fmt::sprintf("changing layout to %s (%d)\n",  layout_str, std::to_underlying(layout)));
+    DLOG(fmt::sprintf("changing layout to %s (%d)\n", layout_str, std::to_underlying(layout)));
 
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         if (current->con_is_docked()) {
             ELOG("cannot change layout of a docked container, skipping it.\n");
             continue;
@@ -1556,17 +1547,17 @@ void CommandsApplier::layout(struct criteria_state *criteria_state, CommandsResu
  * Implementation of 'layout toggle [all|split]'.
  *
  */
-void CommandsApplier::layout_toggle(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *toggle_mode) {
+void CommandsApplier::layout_toggle(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *toggle_mode) {
     if (toggle_mode == nullptr)
         toggle_mode = "default";
 
-    DLOG(fmt::sprintf("toggling layout (mode = %s)\n",  toggle_mode));
+    DLOG(fmt::sprintf("toggling layout (mode = %s)\n", toggle_mode));
 
     /* check if the match is empty, not if the result is empty */
     if (criteria_state->current_match.match_is_empty())
         con_toggle_layout(global.focused, toggle_mode);
     else {
-        for (auto current: criteria_state->owindows) {
+        for (auto current : criteria_state->owindows) {
             DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
             con_toggle_layout(current, toggle_mode);
         }
@@ -1613,14 +1604,14 @@ void CommandsApplier::reload(struct criteria_state *criteria_state, CommandsResu
         std::string font = "fixed"s;
         start_nagbar(&global.config_error_nagbar_pid, buttons, prompt, font, bar_type_t::TYPE_ERROR, false);
     }
-    
+
     x_set_i3_atoms();
     /* Send an IPC event just in case the ws names have changed */
     global.ipcManager->ipc_send_workspace_event("reload", nullptr, nullptr);
     /* Send an update event for each barconfig just in case it has changed */
-    //for (auto &current: barconfigs) {
-    //    ipc_send_barconfig_update_event(current.get());
-    //}
+    // for (auto &current: barconfigs) {
+    //     ipc_send_barconfig_update_event(current.get());
+    // }
 
     // XXX: default reply for now, make this a better reply
     ysuccess(cmd_output.json_gen, true);
@@ -1635,11 +1626,11 @@ void CommandsApplier::restart(struct criteria_state *criteria_state, CommandsRes
     int exempt_fd = -1;
     if (cmd_output.client != nullptr) {
         exempt_fd = cmd_output.client->fd;
-        LOG(fmt::sprintf("Carrying file descriptor %d across restart\n",  exempt_fd));
+        LOG(fmt::sprintf("Carrying file descriptor %d across restart\n", exempt_fd));
         int flags;
         if ((flags = fcntl(exempt_fd, F_GETFD)) < 0 ||
             fcntl(exempt_fd, F_SETFD, flags & ~FD_CLOEXEC) < 0) {
-            ELOG(fmt::sprintf("Could not disable FD_CLOEXEC on fd %d\n",  exempt_fd));
+            ELOG(fmt::sprintf("Could not disable FD_CLOEXEC on fd %d\n", exempt_fd));
         }
         std::string fdstr{};
         fdstr = fmt::format("{}", exempt_fd);
@@ -1664,11 +1655,8 @@ void CommandsApplier::open(struct criteria_state *criteria_state, CommandsResult
     con->layout = L_SPLITH;
     con->con_activate();
     if (cmd_output.json_gen != nullptr) {
-        cmd_output.json_gen->push_back({
-            { "success", true },
-            { "id", (uintptr_t) con }
-        });
-
+        cmd_output.json_gen->push_back({{"success", true},
+                                        {"id", (uintptr_t)con}});
     }
 
     cmd_output.needs_tree_render = true;
@@ -1678,7 +1666,7 @@ void CommandsApplier::open(struct criteria_state *criteria_state, CommandsResult
  * Implementation of 'focus output <output>'.
  *
  */
-void CommandsApplier::focus_output(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *name) {
+void CommandsApplier::focus_output(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *name) {
     std::vector<std::string> names{};
 
     if (name) {
@@ -1709,7 +1697,7 @@ void CommandsApplier::focus_output(struct criteria_state *criteria_state, Comman
             throw std::runtime_error("BUG: No workspace found on output.");
         }
 
-        global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon*>(*ws));
+        global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon *>(*ws));
     }
 
     cmd_output.needs_tree_render = success;
@@ -1724,12 +1712,12 @@ void CommandsApplier::focus_output(struct criteria_state *criteria_state, Comman
  * Implementation of 'move [window|container] [to] [absolute] position [<pos_x> [px|ppt] <pos_y> [px|ppt]]
  *
  */
-void CommandsApplier::move_window_to_position(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, long x, const char *mode_x, long y, const char *mode_y) {
+void CommandsApplier::move_window_to_position(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, long x, char const *mode_x, long y, char const *mode_y) {
     bool has_error = false;
 
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         if (!current->con_is_floating()) {
             ELOG("Cannot change position. The window/container is not floating\n");
 
@@ -1744,9 +1732,9 @@ void CommandsApplier::move_window_to_position(struct criteria_state *criteria_st
         Rect newrect = current->parent->rect;
         Con *output = current->con_get_output();
 
-        newrect.x = mode_x && strcmp(mode_x, "ppt") == 0 ? output->rect.width * ((double) x / 100.0) : x;
-        newrect.y = mode_y && strcmp(mode_y, "ppt") == 0 ? output->rect.height * ((double) y / 100.0) : y;
-        DLOG(fmt::sprintf("moving to position %d %s %d %s\n",  newrect.x, mode_x, newrect.y, mode_y));
+        newrect.x = mode_x && strcmp(mode_x, "ppt") == 0 ? output->rect.width * ((double)x / 100.0) : x;
+        newrect.y = mode_y && strcmp(mode_y, "ppt") == 0 ? output->rect.height * ((double)y / 100.0) : y;
+        DLOG(fmt::sprintf("moving to position %d %s %d %s\n", newrect.x, mode_x, newrect.y, mode_y));
 
         if (!floating_reposition(current->parent, newrect)) {
             yerror(cmd_output.json_gen, "Cannot move window/container out of bounds.");
@@ -1762,15 +1750,15 @@ void CommandsApplier::move_window_to_position(struct criteria_state *criteria_st
  * Implementation of 'move [window|container] [to] [absolute] position center
  *
  */
-void CommandsApplier::move_window_to_center(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *method) {
+void CommandsApplier::move_window_to_center(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *method) {
     bool has_error = false;
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         Con *floating_con = current->con_inside_floating();
         if (floating_con == nullptr) {
             ELOG(fmt::sprintf("con %p / %s is not floating, cannot move it to the center.\n",
-                 fmt::ptr(current), current->name));
+                              fmt::ptr(current), current->name));
 
             if (!has_error) {
                 yerror(cmd_output.json_gen, "Cannot change position of a window/container because it is not floating.");
@@ -1808,11 +1796,11 @@ void CommandsApplier::move_window_to_center(struct criteria_state *criteria_stat
 void CommandsApplier::move_window_to_mouse(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         Con *floating_con = current->con_inside_floating();
         if (floating_con == nullptr) {
             DLOG(fmt::sprintf("con %p / %s is not floating, cannot move it to the mouse position.\n",
-                 fmt::ptr(current), current->name));
+                              fmt::ptr(current), current->name));
             continue;
         }
 
@@ -1828,11 +1816,11 @@ void CommandsApplier::move_window_to_mouse(struct criteria_state *criteria_state
  * Implementation of 'title_format <format>'
  *
  */
-void CommandsApplier::title_format(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *format) {
-     DLOG(fmt::sprintf("setting title_format to \"%s\"\n", format));
+void CommandsApplier::title_format(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *format) {
+    DLOG(fmt::sprintf("setting title_format to \"%s\"\n", format));
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    for (auto current: criteria_state->owindows) {
+    for (auto current : criteria_state->owindows) {
         DLOG(fmt::sprintf("setting title_format for %p / %s\n", fmt::ptr(current), current->name));
         current->title_format.clear();
 
@@ -1869,7 +1857,7 @@ void CommandsApplier::title_format(struct criteria_state *criteria_state, Comman
  * Implementation of 'title_window_icon <yes|no|toggle>' and 'title_window_icon padding <px>'
  *
  */
-void CommandsApplier::title_window_icon(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *enable, int padding) {
+void CommandsApplier::title_window_icon(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *enable, int padding) {
     bool is_toggle = false;
     if (enable != nullptr) {
         if (strcmp(enable, "toggle") == 0) {
@@ -1878,13 +1866,13 @@ void CommandsApplier::title_window_icon(struct criteria_state *criteria_state, C
             padding = -1;
         }
     }
-    DLOG(fmt::sprintf("setting window_icon=%d\n",  padding));
+    DLOG(fmt::sprintf("setting window_icon=%d\n", padding));
     HANDLE_EMPTY_MATCH(criteria_state);
 
-    for (auto &c: criteria_state->owindows) {
-        auto current = dynamic_cast<ConCon*>(c); // TODO: bad
+    for (auto &c : criteria_state->owindows) {
+        auto current = dynamic_cast<ConCon *>(c);  // TODO: bad
         if (is_toggle) {
-            const int current_padding = current->get_window_icon_padding();
+            int const current_padding = current->get_window_icon_padding();
             if (padding > 0) {
                 if (current_padding < 0) {
                     current->set_window_icon_padding(padding);
@@ -1918,14 +1906,14 @@ void CommandsApplier::title_window_icon(struct criteria_state *criteria_state, C
  * Implementation of 'rename workspace [<name>] to <name>'
  *
  */
-void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *old_name, const char *new_name) {
+void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *old_name, char const *new_name) {
     if (strncasecmp(new_name, "__", strlen("__")) == 0) {
         throw std::runtime_error(fmt::sprintf("Cannot rename workspace to \"%s\": names starting with __ are i3-internal.", new_name));
     }
     if (old_name) {
-         LOG(fmt::sprintf("Renaming workspace \"%s\" to \"%s\"\n", old_name, new_name));
+        LOG(fmt::sprintf("Renaming workspace \"%s\" to \"%s\"\n", old_name, new_name));
     } else {
-         LOG(fmt::sprintf("Renaming current workspace to \"%s\"\n", new_name));
+        LOG(fmt::sprintf("Renaming current workspace to \"%s\"\n", new_name));
     }
 
     WorkspaceCon *workspace;
@@ -1954,7 +1942,7 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
     workspace->name = new_name;
 
     workspace->num = utils::ws_name_to_number(new_name);
-    LOG(fmt::sprintf("num = %d\n",  workspace->num));
+    LOG(fmt::sprintf("num = %d\n", workspace->num));
 
     /* By re-attaching, the sort order will be correct afterwards. */
     Con *previously_focused = global.focused;
@@ -2005,26 +1993,24 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
  * Implementation of 'bar mode dock|hide|invisible|toggle [<bar_id>]'
  *
  */
-void CommandsApplier::bar_mode(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *bar_mode, const char *bar_id) {
-    
+void CommandsApplier::bar_mode(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *bar_mode, char const *bar_id) {
 }
 
 /*
  * Implementation of 'bar hidden_state hide|show|toggle [<bar_id>]'
  *
  */
-void CommandsApplier::bar_hidden_state(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *bar_hidden_state, const char *bar_id) {
-    
+void CommandsApplier::bar_hidden_state(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *bar_hidden_state, char const *bar_id) {
 }
 
 /*
  * Implementation of 'debuglog toggle|on|off'
  *
  */
-void CommandsApplier::debuglog(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *argument) {
+void CommandsApplier::debuglog(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *argument) {
     bool logging = get_debug_logging();
     if (!strcmp(argument, "toggle")) {
-        LOG(fmt::sprintf("%s debug logging\n",  logging ? "Disabling" : "Enabling"));
+        LOG(fmt::sprintf("%s debug logging\n", logging ? "Disabling" : "Enabling"));
         set_debug_logging(!logging);
     } else if (!strcmp(argument, "on") && !logging) {
         LOG("Enabling debug logging\n");
@@ -2041,15 +2027,14 @@ void CommandsApplier::debuglog(struct criteria_state *criteria_state, CommandsRe
  * Implementation of 'nagbar'
  *
  */
-void CommandsApplier::nagbar(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char* type, const char* message, const char* font, const char* primary, const char* labels, const char* actions, const char* terminals) {
+void CommandsApplier::nagbar(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *type, char const *message, char const *font, char const *primary, char const *labels, char const *actions, char const *terminals) {
     std::vector<button_t> buttons{};
 
     if (labels != nullptr) {
         buttons.emplace_back(
-                labels,
-                actions,
-                strcmp(terminals, "true") == 0
-        );
+            labels,
+            actions,
+            strcmp(terminals, "true") == 0);
     }
 
     std::string message_str = message;
@@ -2081,11 +2066,11 @@ static int *gaps_right(gaps_t *gaps) {
 
 using gap_accessor = int *(*)(gaps_t *);
 
-static bool gaps_update(gap_accessor get, const char *scope, const char *mode, int pixels) {
+static bool gaps_update(gap_accessor get, char const *scope, char const *mode, int pixels) {
     DLOG(fmt::sprintf("gaps_update(scope=%s, mode=%s, pixels=%d)\n", scope, mode, pixels));
     WorkspaceCon *workspace = global.focused->con_get_workspace();
 
-    const int global_gap_size = *get(&(global.configManager->config->gaps));
+    int const global_gap_size = *get(&(global.configManager->config->gaps));
     int current_value = global_gap_size;
     if (strcmp(scope, "current") == 0) {
         current_value += *get(&(workspace->gaps));
@@ -2110,7 +2095,7 @@ static bool gaps_update(gap_accessor get, const char *scope, const char *mode, i
 
     /* See https://github.com/Airblader/i3/issues/262 */
     int min_value = 0;
-    const bool is_outer = get(&(global.configManager->config->gaps)) != gaps_inner(&(global.configManager->config->gaps));
+    bool const is_outer = get(&(global.configManager->config->gaps)) != gaps_inner(&(global.configManager->config->gaps));
     if (is_outer) {
         /* Outer gaps can compensate inner gaps. */
         if (strcmp(scope, "all") == 0) {
@@ -2126,8 +2111,8 @@ static bool gaps_update(gap_accessor get, const char *scope, const char *mode, i
 
     if (strcmp(scope, "all") == 0) {
         for (auto &output : global.croot->nodes) {
-            for (auto &ws : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
-                WorkspaceCon *cur_ws = dynamic_cast<WorkspaceCon*>(ws);
+            for (auto &ws : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
+                WorkspaceCon *cur_ws = dynamic_cast<WorkspaceCon *>(ws);
                 int *gaps_value = get(&(cur_ws->gaps));
                 DLOG(fmt::sprintf("current gaps_value = %d\n", *gaps_value));
 
@@ -2163,7 +2148,7 @@ static bool gaps_update(gap_accessor get, const char *scope, const char *mode, i
  * Implementation of 'gaps inner|outer|top|right|bottom|left|horizontal|vertical current|all set|plus|minus|toggle <px>'
  *
  */
-void CommandsApplier::gaps(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, const char *type, const char *scope, const char *mode, const char *value) {
+void CommandsApplier::gaps(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *type, char const *scope, char const *mode, char const *value) {
     int pixels = logical_px(global.x->root_screen, atoi(value));
 
     if (!strcmp(type, "inner")) {

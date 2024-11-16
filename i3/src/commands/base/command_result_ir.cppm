@@ -10,7 +10,7 @@ export module i3_commands_base:command_result_ir;
  * internally use this struct when calling cmd_floating and cmd_border.
  */
 export class CommandsResultIR {
-   public:
+  public:
     BaseCommandsApplier *applier;
 
     /* The JSON generator to append a reply to (may be NULL). */

@@ -31,7 +31,7 @@ import rect;
  * if it was the same
  *
  */
-static bool update_if_necessary(uint32_t *destination, const uint32_t new_value) {
+static bool update_if_necessary(uint32_t *destination, uint32_t const new_value) {
     uint32_t old_value = *destination;
 
     return ((*destination = new_value) != old_value);
@@ -43,7 +43,7 @@ static bool update_if_necessary(uint32_t *destination, const uint32_t new_value)
  * re-scanning.
  *
  */
-Output* RandR::get_output_by_id(xcb_randr_output_t id) {
+Output *RandR::get_output_by_id(xcb_randr_output_t id) {
     for (Output *output : outputs) {
         if (output->id == id) {
             return output;
@@ -58,10 +58,10 @@ Output* RandR::get_output_by_id(xcb_randr_output_t id) {
  * If require_active is true, only active outputs are considered.
  *
  */
-Output* RandR::get_output_by_name(const std::string &name, const bool require_active) {
-    const bool get_primary = "primary" == name;
-    const bool get_non_primary = "nonprimary" == name;
-    
+Output *RandR::get_output_by_name(std::string const &name, bool const require_active) {
+    bool const get_primary = "primary" == name;
+    bool const get_non_primary = "nonprimary" == name;
+
     for (Output *output : outputs) {
         if (require_active && !output->active) {
             continue;
@@ -72,7 +72,7 @@ Output* RandR::get_output_by_name(const std::string &name, const bool require_ac
         if (!output->primary && get_non_primary) {
             return output;
         }
-        
+
         if (std::ranges::find(output->names, name) != output->names.end()) {
             return output;
         }
@@ -85,7 +85,7 @@ Output* RandR::get_output_by_name(const std::string &name, const bool require_ac
  * Returns the first output which is active.
  *
  */
-Output* RandR::get_first_output() {
+Output *RandR::get_first_output() {
     Output *result = nullptr;
 
     for (Output *output : outputs) {
@@ -120,13 +120,13 @@ bool RandR::any_randr_output_active() {
  * if there is no output which contains these coordinates.
  *
  */
-Output* RandR::get_output_containing(uint32_t x, uint32_t y) {
+Output *RandR::get_output_containing(uint32_t x, uint32_t y) {
     for (Output *output : outputs) {
         if (!output->active) {
             continue;
         }
         DLOG(fmt::sprintf("comparing x=%d y=%d with x=%d and y=%d width %d height %d\n",
-             x, y, output->rect.x, output->rect.y, output->rect.width, output->rect.height));
+                          x, y, output->rect.x, output->rect.y, output->rect.width, output->rect.height));
         if (x >= output->rect.x && x < (output->rect.x + output->rect.width) &&
             y >= output->rect.y && y < (output->rect.y + output->rect.height)) {
             return output;
@@ -142,7 +142,7 @@ Output* RandR::get_output_containing(uint32_t x, uint32_t y) {
  * rectangle or NULL if there is no output which intersects with it.
  *
  */
-Output* RandR::get_output_from_rect(Rect rect) {
+Output *RandR::get_output_from_rect(Rect rect) {
     unsigned int mid_x = rect.x + rect.width / 2;
     unsigned int mid_y = rect.y + rect.height / 2;
     Output *output = get_output_containing(mid_x, mid_y);
@@ -155,13 +155,13 @@ Output* RandR::get_output_from_rect(Rect rect) {
  * rect or NULL if there is no output like this.
  *
  */
-Output* RandR::get_output_with_dimensions(Rect rect) {
+Output *RandR::get_output_with_dimensions(Rect rect) {
     for (Output *output : outputs) {
         if (!output->active)
             continue;
         DLOG(fmt::sprintf("comparing x=%d y=%d %dx%d with x=%d and y=%d %dx%d\n",
-             rect.x, rect.y, rect.width, rect.height,
-             output->rect.x, output->rect.y, output->rect.width, output->rect.height));
+                          rect.x, rect.y, rect.width, rect.height,
+                          output->rect.x, output->rect.y, output->rect.width, output->rect.height));
         if (rect.x == output->rect.x && rect.width == output->rect.width &&
             rect.y == output->rect.y && rect.height == output->rect.height)
             return output;
@@ -177,7 +177,7 @@ Output* RandR::get_output_with_dimensions(Rect rect) {
  * Returns the output with the maximum intersecting area.
  *
  */
-Output* RandR::output_containing_rect(Rect rect) {
+Output *RandR::output_containing_rect(Rect rect) {
     int lx = rect.x, uy = rect.y;
     int rx = rect.x + rect.width, by = rect.y + rect.height;
     long max_area = 0;
@@ -188,7 +188,7 @@ Output* RandR::output_containing_rect(Rect rect) {
         int lx_o = static_cast<int>(output->rect.x), uy_o = static_cast<int>(output->rect.y);
         int rx_o = static_cast<int>(output->rect.x + output->rect.width), by_o = static_cast<int>(output->rect.y + output->rect.height);
         DLOG(fmt::sprintf("comparing x=%d y=%d with x=%d and y=%d width %d height %d\n",
-             rect.x, rect.y, output->rect.x, output->rect.y, output->rect.width, output->rect.height));
+                          rect.x, rect.y, output->rect.x, output->rect.y, output->rect.width, output->rect.height));
         int left = std::max(lx, lx_o);
         int right = std::min(rx, rx_o);
         int bottom = std::min(by, by_o);
@@ -232,7 +232,7 @@ Output *get_output_next_wrap(direction_t direction, Output *current) {
     if (!best) {
         best = current;
     }
-    DLOG(fmt::sprintf("current = %s, best = %s\n",  current->output_primary_name(), best->output_primary_name()));
+    DLOG(fmt::sprintf("current = %s, best = %s\n", current->output_primary_name(), best->output_primary_name()));
     return best;
 }
 
@@ -247,7 +247,7 @@ Output *get_output_next_wrap(direction_t direction, Output *current) {
  * specified (note that “current” counts as such an output).
  *
  */
-Output* RandR::get_output_next(direction_t direction, Output *current, output_close_far_t close_far) {
+Output *RandR::get_output_next(direction_t direction, Output *current, output_close_far_t close_far) {
     Rect *cur = &(current->rect),
          *other;
     Output *best = nullptr;
@@ -303,7 +303,7 @@ Output* RandR::get_output_next(direction_t direction, Output *current, output_cl
         }
     }
 
-    DLOG(fmt::sprintf("current = %s, best = %s\n",  current->output_primary_name(), (best ? best->output_primary_name() : "NULL")));
+    DLOG(fmt::sprintf("current = %s, best = %s\n", current->output_primary_name(), (best ? best->output_primary_name() : "NULL")));
     return best;
 }
 
@@ -334,7 +334,7 @@ void output_init_con(Output *output) {
     OutputCon *con = nullptr;
     bool reused = false;
 
-    DLOG(fmt::sprintf("init_con for output %s\n",  output->output_primary_name()));
+    DLOG(fmt::sprintf("init_con for output %s\n", output->output_primary_name()));
 
     /* Search for a Con with that name directly below the root node. There
      * might be one from a restored layout. */
@@ -345,9 +345,9 @@ void output_init_con(Output *output) {
             continue;
         }
 
-        con = dynamic_cast<OutputCon*>(current);
+        con = dynamic_cast<OutputCon *>(current);
         reused = true;
-        DLOG(fmt::sprintf("Using existing con %p / %s\n",  fmt::ptr(con), con->name));
+        DLOG(fmt::sprintf("Using existing con %p / %s\n", fmt::ptr(con), con->name));
         break;
     }
 
@@ -430,28 +430,28 @@ void init_ws_for_output(Output *output) {
      * Note: in order to do that we iterate over all_cons and not using another
      * list that would be updated during iteration by the
      * workspace_move_to_output function. */
-    for (const auto &workspace_con : global.all_cons) {
-        auto *workspace = dynamic_cast<WorkspaceCon*>(workspace_con);
+    for (auto const &workspace_con : global.all_cons) {
+        auto *workspace = dynamic_cast<WorkspaceCon *>(workspace_con);
 
         if (workspace == nullptr) {
             continue;
         }
-        
+
         Output *workspace_out = global.workspaceManager->get_assigned_output(workspace->name, workspace->num);
 
         if (output != workspace_out) {
             continue;
         }
 
-         DLOG(fmt::sprintf("Moving workspace \"%s\" from output \"%s\" to \"%s\" due to assignment\n",
-             workspace->name, get_output_for_con(workspace)->output_primary_name(),
-             output->output_primary_name()));
+        DLOG(fmt::sprintf("Moving workspace \"%s\" from output \"%s\" to \"%s\" due to assignment\n",
+                          workspace->name, get_output_for_con(workspace)->output_primary_name(),
+                          output->output_primary_name()));
 
         /* Need to copy output's rect since content is not yet rendered. We
          * can't call render_con here because render_output only proceeds
          * if a workspace exists. */
         content->rect = output->con->rect;
-        global.workspaceManager->workspace_move_to_output(dynamic_cast<WorkspaceCon*>(workspace), output);
+        global.workspaceManager->workspace_move_to_output(dynamic_cast<WorkspaceCon *>(workspace), output);
     }
 
     /* Temporarily set the focused container, might not be initialized yet. */
@@ -463,7 +463,7 @@ void init_ws_for_output(Output *output) {
          * mode), if they were invisible before, this might not be the case. */
         bool any_visible = std::ranges::any_of(content->nodes, [](auto &child) { return child->fullscreen_mode == CF_OUTPUT; });
         if (!any_visible) {
-            global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon*>(content->nodes.front()));
+            global.workspaceManager->workspace_show(dynamic_cast<WorkspaceCon *>(content->nodes.front()));
         }
         if (previous_focus) {
             global.workspaceManager->workspace_show(previous_focus);
@@ -472,9 +472,9 @@ void init_ws_for_output(Output *output) {
     }
 
     /* otherwise, we create the first assigned ws for this output */
-    for (const auto &assignment : global.workspaceManager->configs_for_output(output)) {
+    for (auto const &assignment : global.workspaceManager->configs_for_output(output)) {
         LOG(fmt::sprintf("Initializing first assigned workspace \"%s\" for output \"%s\"\n",
-                assignment.name, assignment.output));
+                         assignment.name, assignment.output));
         global.workspaceManager->workspace_show_by_name(assignment.name);
         if (previous_focus) {
             global.workspaceManager->workspace_show(previous_focus);
@@ -515,8 +515,8 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
     /* Fix the position of all floating windows on this output.
      * The 'rect' of each workspace will be updated in src/render.c. */
     for (auto &workspace : content->nodes) {
-        if (dynamic_cast<WorkspaceCon*>(workspace)) {
-            for (auto &child : dynamic_cast<WorkspaceCon*>(workspace)->floating_windows) {
+        if (dynamic_cast<WorkspaceCon *>(workspace)) {
+            for (auto &child : dynamic_cast<WorkspaceCon *>(workspace)->floating_windows) {
                 floating_fix_coordinates(child, workspace->rect, output->con->rect);
             }
         }
@@ -526,21 +526,20 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
      * the workspaces and their children depending on output resolution. This is
      * only done for workspaces with maximum one child. */
     if (configManager.config->default_orientation == NO_ORIENTATION) {
-        
         for (auto &workspace_con : content->nodes) {
-            auto workspace = dynamic_cast<WorkspaceCon*>(workspace_con);
+            auto workspace = dynamic_cast<WorkspaceCon *>(workspace_con);
             /* Workspaces with more than one child are left untouched because
              * we do not want to change an existing layout. */
             if (workspace->con_num_children() > 1)
                 continue;
 
             workspace->layout = (output->rect.height > output->rect.width) ? L_SPLITV : L_SPLITH;
-            DLOG(fmt::sprintf("Setting workspace [%d,%s]'s layout to %d.\n",  workspace->num, workspace->name, std::to_underlying(workspace->layout)));
+            DLOG(fmt::sprintf("Setting workspace [%d,%s]'s layout to %d.\n", workspace->num, workspace->name, std::to_underlying(workspace->layout)));
             if (!workspace->nodes.empty()) {
                 auto child = con::first(workspace->nodes);
                 if (child->layout == L_SPLITV || child->layout == L_SPLITH)
                     child->layout = workspace->layout;
-                DLOG(fmt::sprintf("Setting child [%s]'s layout to %d.\n",  child->name, std::to_underlying(child->layout)));
+                DLOG(fmt::sprintf("Setting child [%s]'s layout to %d.\n", child->name, std::to_underlying(child->layout)));
             }
         }
     }
@@ -566,7 +565,7 @@ bool RandR::randr_query_outputs_15() {
         xcb_randr_get_monitors_reply(
             **global.x, xcb_randr_get_monitors(**global.x, global.x->root, true), &err);
     if (err != nullptr) {
-        ELOG(fmt::sprintf("Could not get RandR monitors: X11 error code %d\n",  err->error_code));
+        ELOG(fmt::sprintf("Could not get RandR monitors: X11 error code %d\n", err->error_code));
         free(err);
         /* Fall back to RandR ≤ 1.4 */
         return false;
@@ -581,19 +580,19 @@ bool RandR::randr_query_outputs_15() {
     }
 
     DLOG(fmt::sprintf("%d RandR monitors found (timestamp %d)\n",
-         xcb_randr_get_monitors_monitors_length(monitors),
-         monitors->timestamp));
+                      xcb_randr_get_monitors_monitors_length(monitors),
+                      monitors->timestamp));
 
     xcb_randr_monitor_info_iterator_t iter;
     for (iter = xcb_randr_get_monitors_monitors_iterator(monitors);
          iter.rem;
          xcb_randr_monitor_info_next(&iter)) {
-        const xcb_randr_monitor_info_t *monitor_info = iter.data;
+        xcb_randr_monitor_info_t const *monitor_info = iter.data;
         xcb_get_atom_name_reply_t *atom_reply =
             xcb_get_atom_name_reply(
                 **global.x, xcb_get_atom_name(**global.x, monitor_info->name), &err);
         if (err != nullptr) {
-            ELOG(fmt::sprintf("Could not get RandR monitor name: X11 error code %d\n",  err->error_code));
+            ELOG(fmt::sprintf("Could not get RandR monitor name: X11 error code %d\n", err->error_code));
             free(err);
             continue;
         }
@@ -616,7 +615,7 @@ bool RandR::randr_query_outputs_15() {
                                                     nullptr);
 
                 if (info != nullptr && info->crtc != XCB_NONE) {
-                    std::string oname{reinterpret_cast<char*>(xcb_randr_get_output_info_name(info)), static_cast<std::string::size_type>(xcb_randr_get_output_info_name_length(info))};
+                    std::string oname{reinterpret_cast<char *>(xcb_randr_get_output_info_name(info)), static_cast<std::string::size_type>(xcb_randr_get_output_info_name_length(info))};
 
                     if (name != oname) {
                         new_output->names.insert(new_output->names.begin(), oname);
@@ -641,18 +640,18 @@ bool RandR::randr_query_outputs_15() {
 
         new_output->primary = monitor_info->primary;
 
-        const bool update_x = update_if_necessary(&(new_output->rect.x), monitor_info->x);
-        const bool update_y = update_if_necessary(&(new_output->rect.y), monitor_info->y);
-        const bool update_w = update_if_necessary(&(new_output->rect.width), monitor_info->width);
-        const bool update_h = update_if_necessary(&(new_output->rect.height), monitor_info->height);
+        bool const update_x = update_if_necessary(&(new_output->rect.x), monitor_info->x);
+        bool const update_y = update_if_necessary(&(new_output->rect.y), monitor_info->y);
+        bool const update_w = update_if_necessary(&(new_output->rect.width), monitor_info->width);
+        bool const update_h = update_if_necessary(&(new_output->rect.height), monitor_info->height);
 
         new_output->changed = update_x || update_y || update_w || update_h;
 
         DLOG(fmt::sprintf("name %s, x %d, y %d, width %d px, height %d px, width %d mm, height %d mm, primary %d, automatic %d\n",
-             name,
-             monitor_info->x, monitor_info->y, monitor_info->width, monitor_info->height,
-             monitor_info->width_in_millimeters, monitor_info->height_in_millimeters,
-             monitor_info->primary, monitor_info->automatic));
+                          name,
+                          monitor_info->x, monitor_info->y, monitor_info->width, monitor_info->height,
+                          monitor_info->width_in_millimeters, monitor_info->height_in_millimeters,
+                          monitor_info->primary, monitor_info->automatic));
     }
     free(monitors);
     return true;
@@ -679,9 +678,9 @@ void RandR::handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
     new_output->id = id;
     new_output->primary = (primary == id);
     new_output->names.clear();
-    new_output->names.emplace_back(reinterpret_cast<char*>(xcb_randr_get_output_info_name(output)), static_cast<std::string::size_type>(xcb_randr_get_output_info_name_length(output)));
+    new_output->names.emplace_back(reinterpret_cast<char *>(xcb_randr_get_output_info_name(output)), static_cast<std::string::size_type>(xcb_randr_get_output_info_name_length(output)));
 
-    DLOG(fmt::sprintf("found output with name %s\n",  new_output->output_primary_name()));
+    DLOG(fmt::sprintf("found output with name %s\n", new_output->output_primary_name()));
 
     /* Even if no CRTC is used at the moment, we store the output so that
      * we do not need to change the list ever again (we only update the
@@ -705,16 +704,16 @@ void RandR::handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
     xcb_randr_get_crtc_info_cookie_t icookie = xcb_randr_get_crtc_info(**global.x, output->crtc, cts);
     if ((crtc = xcb_randr_get_crtc_info_reply(**global.x, icookie, nullptr)) == nullptr) {
         DLOG(fmt::sprintf("Skipping output %s: could not get CRTC (%p)\n",
-             new_output->output_primary_name(), fmt::ptr(crtc)));
+                          new_output->output_primary_name(), fmt::ptr(crtc)));
         free(new_output);
         return;
     }
 
-    const bool update_x = update_if_necessary(&(new_output->rect.x), crtc->x);
-    const bool update_y = update_if_necessary(&(new_output->rect.y), crtc->y);
-    const bool update_w = update_if_necessary(&(new_output->rect.width), crtc->width);
-    const bool update_h = update_if_necessary(&(new_output->rect.height), crtc->height);
-    const bool updated = update_x || update_y || update_w || update_h;
+    bool const update_x = update_if_necessary(&(new_output->rect.x), crtc->x);
+    bool const update_y = update_if_necessary(&(new_output->rect.y), crtc->y);
+    bool const update_w = update_if_necessary(&(new_output->rect.width), crtc->width);
+    bool const update_h = update_if_necessary(&(new_output->rect.height), crtc->height);
+    bool const updated = update_x || update_y || update_w || update_h;
     free(crtc);
     new_output->active = (new_output->rect.width != 0 && new_output->rect.height != 0);
     if (!new_output->active) {
@@ -722,8 +721,8 @@ void RandR::handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
         return;
     }
 
-    DLOG(fmt::sprintf("mode: %dx%d+%d+%d\n",  new_output->rect.width, new_output->rect.height,
-         new_output->rect.x, new_output->rect.y));
+    DLOG(fmt::sprintf("mode: %dx%d+%d+%d\n", new_output->rect.width, new_output->rect.height,
+                      new_output->rect.x, new_output->rect.y));
 
     /* If we don’t need to change an existing output or if the output
      * does not exist in the first place, the case is simple: we either
@@ -767,9 +766,9 @@ void RandR::randr_query_outputs_14() {
 
         /* timestamp of the configuration so that we get consistent replies to all
          * requests (if the configuration changes between our different calls) */
-        const xcb_timestamp_t cts = res->config_timestamp;
+        xcb_timestamp_t const cts = res->config_timestamp;
 
-        const int len = res->num_outputs;
+        int const len = res->num_outputs;
 
         /* an output is VGA-1, LVDS-1, etc. (usually physical video outputs) */
         xcb_randr_output_t *randr_outputs = xcb_randr_get_screen_resources_current_outputs(res.get().get());
@@ -784,8 +783,8 @@ void RandR::randr_query_outputs_14() {
 
             handle_output(**global.x, randr_outputs[i], output.get().get(), cts, res.get().get());
         }
-    } catch (const std::exception &e) {
-        ELOG(fmt::sprintf("Could not get RandR outputs: %s\n",  e.what()));
+    } catch (std::exception const &e) {
+        ELOG(fmt::sprintf("Could not get RandR outputs: %s\n", e.what()));
     }
 }
 
@@ -807,7 +806,7 @@ static void move_content(RandR *randr, Con *con) {
     /* 2: iterate through workspaces and re-assign them, fixing the coordinates
      * of floating containers as we go */
     Con *current;
-    Con *old_content = dynamic_cast<OutputCon*>(con) != nullptr ? dynamic_cast<OutputCon*>(con)->output_get_content() : nullptr;
+    Con *old_content = dynamic_cast<OutputCon *>(con) != nullptr ? dynamic_cast<OutputCon *>(con)->output_get_content() : nullptr;
     while (!old_content->nodes.empty()) {
         current = con::first(old_content->nodes);
         if (current != next && current->focused.empty()) {
@@ -821,8 +820,8 @@ static void move_content(RandR *randr, Con *con) {
         DLOG(fmt::sprintf("Re-attaching current = %p / %s\n", fmt::ptr(current), current->name));
         current->con_attach(first_content, false);
         DLOG("Fixing the coordinates of floating containers\n");
-        if (dynamic_cast<WorkspaceCon*>(current)) {
-            for (auto &floating_con : dynamic_cast<WorkspaceCon*>(current)->floating_windows) {
+        if (dynamic_cast<WorkspaceCon *>(current)) {
+            for (auto &floating_con : dynamic_cast<WorkspaceCon *>(current)->floating_windows) {
                 floating_fix_coordinates(floating_con, con->rect, first->rect);
             }
         }
@@ -837,7 +836,7 @@ static void move_content(RandR *randr, Con *con) {
 
     /* 3: move the dock clients to the first output */
     for (auto &c : con->nodes) {
-        auto child = dynamic_cast<DockCon*>(c);
+        auto child = dynamic_cast<DockCon *>(c);
         if (!child) {
             continue;
         }
@@ -892,7 +891,7 @@ void RandR::randr_query_outputs() {
             continue;
         }
         DLOG(fmt::sprintf("output %p / %s, position (%d, %d), checking for clones\n",
-             fmt::ptr(output), output->output_primary_name(), output->rect.x, output->rect.y));
+                          fmt::ptr(output), output->output_primary_name(), output->rect.x, output->rect.y));
 
         for (auto other_it = it; other_it != outputs.end();) {
             auto other = *other_it;
@@ -908,12 +907,12 @@ void RandR::randr_query_outputs() {
             }
 
             DLOG(fmt::sprintf("output %p has the same position, its mode = %d x %d\n",
-                 fmt::ptr(other), other->rect.width, other->rect.height));
+                              fmt::ptr(other), other->rect.width, other->rect.height));
             uint32_t width = std::min(other->rect.width, output->rect.width);
             uint32_t height = std::min(other->rect.height, output->rect.height);
 
-            const bool update_w = update_if_necessary(&(output->rect.width), width);
-            const bool update_h = update_if_necessary(&(output->rect.height), height);
+            bool const update_w = update_if_necessary(&(output->rect.width), width);
+            bool const update_h = update_if_necessary(&(output->rect.height), height);
             if (update_w || update_h) {
                 output->changed = true;
             }
@@ -925,8 +924,8 @@ void RandR::randr_query_outputs() {
             other->to_be_disabled = true;
 
             DLOG(fmt::sprintf("new output mode %d x %d, other mode %d x %d\n",
-                 output->rect.width, output->rect.height,
-                 other->rect.width, other->rect.height));
+                              output->rect.width, output->rect.height,
+                              other->rect.width, other->rect.height));
             other_it++;
         }
         it++;
@@ -938,7 +937,7 @@ void RandR::randr_query_outputs() {
      * LVDS1 gets disabled. */
     for (Output *output : outputs) {
         if (output->active && output->con == nullptr) {
-            DLOG(fmt::sprintf("Need to initialize a Con for output %s\n",  output->output_primary_name()));
+            DLOG(fmt::sprintf("Need to initialize a Con for output %s\n", output->output_primary_name()));
             output_init_con(output);
             output->changed = false;
         }
@@ -951,7 +950,7 @@ void RandR::randr_query_outputs() {
      * at the same time. */
     for (auto &con : global.croot->nodes) {
         if (this->get_output_by_name(con->name, true) == nullptr) {
-            DLOG(fmt::sprintf("No output %s found, moving its old content to first output\n",  con->name));
+            DLOG(fmt::sprintf("No output %s found, moving its old content to first output\n", con->name));
             move_content(this, con);
         }
     }
@@ -978,7 +977,7 @@ void RandR::randr_query_outputs() {
         if (!content->nodes.empty()) {
             continue;
         }
-        DLOG(fmt::sprintf("Should add ws for output %s\n",  output->output_primary_name()));
+        DLOG(fmt::sprintf("Should add ws for output %s\n", output->output_primary_name()));
         init_ws_for_output(output);
     }
 
@@ -988,15 +987,15 @@ void RandR::randr_query_outputs() {
             continue;
         }
 
-        DLOG(fmt::sprintf("Focusing primary output %s\n",  output->output_primary_name()));
+        DLOG(fmt::sprintf("Focusing primary output %s\n", output->output_primary_name()));
         Con *content = output->con->output_get_content();
         Con *ws = con::first(content->focused);
-        workspaceManager.workspace_show(dynamic_cast<WorkspaceCon*>(ws));
+        workspaceManager.workspace_show(dynamic_cast<WorkspaceCon *>(ws));
     }
 
     /* render_layout flushes */
-    //ewmh_update_desktop_properties();
-    //tree_render();
+    // ewmh_update_desktop_properties();
+    // tree_render();
 }
 
 /*
@@ -1007,7 +1006,7 @@ void RandR::randr_disable_output(Output *output) {
     assert(output->to_be_disabled);
 
     output->active = false;
-    DLOG(fmt::sprintf("Output %s disabled, re-assigning workspaces/docks\n",  output->output_primary_name()));
+    DLOG(fmt::sprintf("Output %s disabled, re-assigning workspaces/docks\n", output->output_primary_name()));
 
     if (output->con != nullptr) {
         /* clear the pointer before move_content calls tree_close_internal in which the memory is freed */
@@ -1031,10 +1030,11 @@ void RandR::fallback_to_root_output() {
  * XRandR information to setup workspaces for each screen.
  *
  */
-RandR::RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &workspaceManager, TreeManager &treeManager) : x(x), configManager(configManager), workspaceManager(workspaceManager) {
+RandR::RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &workspaceManager, TreeManager &treeManager)
+    : x(x), configManager(configManager), workspaceManager(workspaceManager) {
     DLOG("Checking for XRandR...\n");
 
-    const xcb_query_extension_reply_t *extreply;
+    xcb_query_extension_reply_t const *extreply;
 
     root_output = create_root_output(x);
     outputs.push_back(root_output);
@@ -1051,7 +1051,7 @@ RandR::RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &worksp
         xcb_randr_query_version_reply(
             *x, xcb_randr_query_version(*x, XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION), &err);
     if (err != nullptr) {
-        ELOG(fmt::sprintf("Could not query RandR version: X11 error code %d\n",  err->error_code));
+        ELOG(fmt::sprintf("Could not query RandR version: X11 error code %d\n", err->error_code));
         free(err);
         fallback_to_root_output();
         return;

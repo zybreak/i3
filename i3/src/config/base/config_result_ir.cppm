@@ -11,7 +11,7 @@ export {
      *
      */
     class ConfigResultIR {
-       public:
+      public:
         BaseParser &parser;
 
         /* The next state to transition to. Passed to the function so that we can

@@ -11,21 +11,21 @@ import std;
 static bool debug_logging = false;
 static bool verbose = false;
 
+static auto is_not_space = [](unsigned char ch) {
+    return !std::isspace(ch);
+};
+
 // trim from start (in place)
 inline void ltrim(std::string &s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
-        return !std::isspace(ch);
-    }));
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), is_not_space));
 }
 
 // trim from end (in place)
 inline void rtrim(std::string &s) {
-    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
-        return !std::isspace(ch);
-    }).base(), s.end());
+    s.erase(std::find_if(s.rbegin(), s.rend(), is_not_space).base(), s.end());
 }
 
-static inline std::string trim(std::string_view s) {
+inline static std::string trim(std::string_view s) {
     std::string c = std::string{s.data()};
     ltrim(c);
     rtrim(c);
@@ -34,11 +34,10 @@ static inline std::string trim(std::string_view s) {
 }
 
 export {
-
     /**
-    * Checks if debug logging is active.
-    *
-    */
+     * Checks if debug logging is active.
+     *
+     */
     bool get_debug_logging() {
         return debug_logging;
     }
@@ -47,7 +46,7 @@ export {
      * Set debug logging.
      *
      */
-    void set_debug_logging(const bool _debug_logging) {
+    void set_debug_logging(bool const _debug_logging) {
         debug_logging = _debug_logging;
 
         if (debug_logging) {
@@ -90,8 +89,8 @@ export {
      * but only if verbose mode is activated.
      */
     void LOG(std::string_view msg, std::source_location loc = std::source_location::current()) {
-        //spdlog::info(msg);
-        //SPDLOG_INFO(msg);
+        // spdlog::info(msg);
+        // SPDLOG_INFO(msg);
         spdlog::default_logger_raw()->log(spdlog::source_loc{loc.file_name(), static_cast<int>(loc.line()), loc.function_name()}, spdlog::level::info, trim(msg));
     }
 
@@ -99,8 +98,8 @@ export {
      * Logs the given message to stdout while prefixing the current time to it.
      */
     void ELOG(std::string_view msg, std::source_location loc = std::source_location::current()) {
-        //spdlog::error(msg);
-        //SPDLOG_ERROR(msg);
+        // spdlog::error(msg);
+        // SPDLOG_ERROR(msg);
         spdlog::default_logger_raw()->log(spdlog::source_loc{loc.file_name(), static_cast<int>(loc.line()), loc.function_name()}, spdlog::level::err, trim(msg));
     }
 
@@ -110,8 +109,8 @@ export {
      * This is to be called by DLOG() which includes filename/linenumber
      */
     void DLOG(std::string_view msg, std::source_location loc = std::source_location::current()) {
-        //spdlog::debug(msg);
-        //SPDLOG_DEBUG(msg);
+        // spdlog::debug(msg);
+        // SPDLOG_DEBUG(msg);
         spdlog::default_logger_raw()->log(spdlog::source_loc{loc.file_name(), static_cast<int>(loc.line()), loc.function_name()}, spdlog::level::debug, trim(msg));
     }
 }

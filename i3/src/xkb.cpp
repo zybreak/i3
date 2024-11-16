@@ -18,7 +18,7 @@ import :xcb;
 
 static int fill_rmlvo_from_root(xkb_rule_names *xkb_names) {
     size_t content_max_words = 256;
-    
+
     auto atom_reply = global.x->conn->intern_atom(0, strlen("_XKB_RULES_NAMES"), "_XKB_RULES_NAMES");
     if (atom_reply->length == 0) {
         return -1;
@@ -44,7 +44,7 @@ static int fill_rmlvo_from_root(xkb_rule_names *xkb_names) {
         return -1;
     }
 
-    const char *walk = (const char *)xcb_get_property_value(prop_reply.get().get());
+    char const *walk = (char const *)xcb_get_property_value(prop_reply.get().get());
     size_t remaining = prop_reply->value_len;
     for (int i = 0; i < 5 && remaining > 0; i++) {
         auto len = strnlen(walk, remaining);
@@ -77,7 +77,7 @@ Keymap::Keymap() {
     if ((context = xkb_context_new(XKB_CONTEXT_NO_FLAGS)) == nullptr) {
         throw std::runtime_error("Could not create xkbcommon context");
     }
-    
+
     int32_t device_id;
     if (global.xkb->xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(**global.x)) > -1) {
         if ((keymap = xkb_x11_keymap_new_from_device(context, **global.x, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
@@ -129,7 +129,7 @@ static uint32_t get_mod_mask_for(uint32_t keysym,
                                  xcb_get_modifier_mapping_reply_t *modmap_reply) {
     xcb_keycode_t *codes, *modmap;
     xcb_keycode_t mod_code;
-    
+
     modmap = xcb_get_modifier_mapping_keycodes(modmap_reply);
 
     /* Get the list of keycodes for the given symbol */
@@ -183,7 +183,8 @@ static uint32_t aio_get_mod_mask_for(X &x, uint32_t keysym, xcb_key_symbols_t *s
     return result;
 }
 
-Keysyms::Keysyms(X &x) : x(x) {
+Keysyms::Keysyms(X &x)
+    : x(x) {
     keysyms = xcb_key_symbols_alloc(*x);
 }
 
@@ -203,7 +204,8 @@ void Xkb::refresh_keyboard_mapping(xcb_mapping_notify_event_t *event) {
     xcb_refresh_keyboard_mapping(keysyms().keysyms, event);
 }
 
-Xkb::Xkb(X &x) : x(x) {
+Xkb::Xkb(X &x)
+    : x(x) {
     x_connection *conn = &*x;
     auto xkb_ext = conn->extension<xpp::xkb::extension>();
     xkb_supported = xkb_ext->present;
@@ -220,24 +222,24 @@ Xkb::Xkb(X &x) : x(x) {
             0xff,
             0xff,
             nullptr);
-        
+
         /* Setting both, XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE and
-             * XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED, will lead to the
-             * X server sending us the full XKB state in KeyPress and KeyRelease:
-             * https://cgit.freedesktop.org/xorg/xserver/tree/xkb/xkbEvents.c?h=xorg-server-1.20.0#n927
-             *
-             * XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT enable detectable autorepeat:
-             * https://www.x.org/releases/current/doc/kbproto/xkbproto.html#Detectable_Autorepeat
-             * This affects bindings using the --release flag: instead of getting multiple KeyRelease
-             * events we get only one event when the key is physically released by the user.
+         * XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED, will lead to the
+         * X server sending us the full XKB state in KeyPress and KeyRelease:
+         * https://cgit.freedesktop.org/xorg/xserver/tree/xkb/xkbEvents.c?h=xorg-server-1.20.0#n927
+         *
+         * XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT enable detectable autorepeat:
+         * https://www.x.org/releases/current/doc/kbproto/xkbproto.html#Detectable_Autorepeat
+         * This affects bindings using the --release flag: instead of getting multiple KeyRelease
+         * events we get only one event when the key is physically released by the user.
          */
-        const uint32_t mask = XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE |
+        uint32_t const mask = XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE |
                               XCB_XKB_PER_CLIENT_FLAG_LOOKUP_STATE_WHEN_GRABBED |
                               XCB_XKB_PER_CLIENT_FLAG_DETECTABLE_AUTO_REPEAT;
         /* The last three parameters are unset because they are only relevant
-             * when using a feature called “automatic reset of boolean controls”:
-             * https://www.x.org/releases/X11R7.7/doc/kbproto/xkbproto.html#Automatic_Reset_of_Boolean_Controls
-             * */
+         * when using a feature called “automatic reset of boolean controls”:
+         * https://www.x.org/releases/X11R7.7/doc/kbproto/xkbproto.html#Automatic_Reset_of_Boolean_Controls
+         * */
         auto pcf_reply = conn->xkb().per_client_flags(XCB_XKB_ID_USE_CORE_KBD, mask, mask, 0, 0, 0);
 
         if (pcf_reply.get() == nullptr || !(pcf_reply->value & (XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE))) {

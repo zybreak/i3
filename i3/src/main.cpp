@@ -33,7 +33,6 @@ struct criteria_state;
 #include <libsn/sn-launcher.h>
 #undef SN_API_NOT_YET_FROZEN
 
-
 #include <fcntl.h>
 #include <libgen.h>
 #include <sys/resource.h>
@@ -110,7 +109,7 @@ static void i3_exit() {
 }
 
 static int parse_restart_fd() {
-    const char *restart_fd = getenv("_I3_RESTART_FD");
+    char const *restart_fd = getenv("_I3_RESTART_FD");
     if (restart_fd == nullptr) {
         return -1;
     }
@@ -147,7 +146,7 @@ void handle_extra_args(int argc, char *argv[]) {
         err(EXIT_FAILURE, "Could not create socket");
     }
 
-    struct sockaddr_un addr {};
+    struct sockaddr_un addr{};
     addr.sun_family = AF_LOCAL;
     strncpy(addr.sun_path, socket_path->c_str(), sizeof(addr.sun_path) - 1);
     if (connect(sockfd, (const struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0) {
@@ -185,7 +184,7 @@ void enable_coredumps() {
     setrlimit(RLIMIT_CORE, &limit);
 }
 
-void do_tree_init(const program_arguments &args, const xcb_get_geometry_reply_t *greply) {
+void do_tree_init(program_arguments const &args, xcb_get_geometry_reply_t const *greply) {
     bool needs_tree_init = true;
     if (args.layout_path) {
         LOG(fmt::format("Trying to restore the layout from \"{}\".", args.layout_path->native()));
@@ -225,7 +224,7 @@ static void set_screenshot_as_wallpaper(x_connection *conn, xcb_screen_t *screen
     conn->flush();
 }
 
-static void force_disable_output(RandR &randr, const program_arguments &args) {
+static void force_disable_output(RandR &randr, program_arguments const &args) {
     if (args.layout_path && randr.randr_base > -1) {
         for (auto &con : global.croot->nodes) {
             for (Output *output : randr.outputs) {
@@ -269,7 +268,7 @@ static Output *get_focused_output() {
 }
 
 static void confirm_restart(IPCManager &ipcManager) {
-    const int restart_fd = parse_restart_fd();
+    int const restart_fd = parse_restart_fd();
     if (restart_fd != -1) {
         DLOG(fmt::sprintf("serving restart fd %d", restart_fd));
         ipc_client *client = ipcManager.ipc_new_client_on_fd(restart_fd);
@@ -341,7 +340,7 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
     /* Get the WM_Sn atom */
     char *atom_name = xcb_atom_name_by_screen("WM", x.conn_screen);
     x.wm_sn_selection_owner = xcb_generate_id(*x);
-    
+
     if (atom_name == nullptr) {
         throw std::runtime_error(fmt::sprintf("xcb_atom_name_by_screen(\"WM\", %d) failed, exiting\n", x.conn_screen));
     }
@@ -374,8 +373,8 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
                       x.root_screen->root_depth,
                       x.wm_sn_selection_owner, /* window id */
                       x.root_screen->root,     /* parent */
-                      -1, -1, 1, 1,          /* geometry */
-                      0,                     /* border width */
+                      -1, -1, 1, 1,            /* geometry */
+                      0,                       /* border width */
                       XCB_WINDOW_CLASS_INPUT_OUTPUT,
                       x.root_screen->root_visual,
                       0, nullptr);
@@ -432,7 +431,7 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
 int main(int argc, char *argv[]) {
     /* Keep a symbol pointing to the I3_VERSION string constant so that we have
      * it in gdb backtraces. */
-    static const char *_i3_version __attribute__((used)) = I3_VERSION;
+    static char const *_i3_version __attribute__((used)) = I3_VERSION;
 
     setlocale(LC_ALL, "");
 
@@ -455,8 +454,8 @@ int main(int argc, char *argv[]) {
     }
     global.new_parser = args.new_parser;
 
-    const auto injector = boost::di::make_injector();
-    auto &configManager = injector.create<ConfigurationManager&>();
+    auto const injector = boost::di::make_injector();
+    auto &configManager = injector.create<ConfigurationManager &>();
 
     if (args.only_check_config) {
         try {
@@ -481,13 +480,13 @@ int main(int argc, char *argv[]) {
     }
 
     LOG(fmt::sprintf("i3 %s starting\n", I3_VERSION));
-    
-    global.assignmentManager = &injector.create<AssignmentManager&>();
-    global.workspaceManager = &injector.create<WorkspaceManager&>();
+
+    global.assignmentManager = &injector.create<AssignmentManager &>();
+    global.workspaceManager = &injector.create<WorkspaceManager &>();
     global.configManager = &configManager;
 
     /* Prefetch X11 extensions that we are interested in. */
-    auto &x = injector.create<X&>();
+    auto &x = injector.create<X &>();
     global.x = &x;
     if (x.conn->connection_has_error()) {
         errx(EXIT_FAILURE, "Cannot open display");
@@ -543,16 +542,16 @@ int main(int argc, char *argv[]) {
             }
         }
     }
-    
-    auto &ipcManager = injector.create<IPCManager&>();
-    
+
+    auto &ipcManager = injector.create<IPCManager &>();
+
     global.ipcManager = &ipcManager;
-    
+
     /* Create the UNIX domain socket for IPC */
     int ipc_socket = ipcManager.create_socket();
 
     aquire_selection(x, last_timestamp);
-    
+
     try {
         uint32_t valueList[]{ROOT_EVENT_MASK};
         x.conn->change_window_attributes_checked(x.root, XCB_CW_EVENT_MASK, valueList);
@@ -567,12 +566,12 @@ int main(int argc, char *argv[]) {
        cursor until the first client is launched). */
     x.xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
 
-    auto &xkb = injector.create<Xkb&>();
+    auto &xkb = injector.create<Xkb &>();
     global.xkb = &xkb;
 
-    auto &propertyHandlers = injector.create<PropertyHandlers&>();
+    auto &propertyHandlers = injector.create<PropertyHandlers &>();
 
-    EventHandler &eventHandler = injector.create<EventHandler&>();
+    EventHandler &eventHandler = injector.create<EventHandler &>();
     global.eventHandler = &eventHandler;
 
     restore_connect();
@@ -587,11 +586,11 @@ int main(int argc, char *argv[]) {
     translate_keysyms(xkb.keymap());
     grab_all_keys(&*x);
 
-    RandR randr = injector.create<RandR&>();
+    RandR randr = injector.create<RandR &>();
     global.randr = &randr;
 
     ewmh_update_desktop_properties();
-    tree_render(); // TODO: is this call needed?
+    tree_render();  // TODO: is this call needed?
 
     /* We need to force disabling outputs which have been loaded from the
      * layout file but are no longer active. This can happen if the output has
@@ -637,8 +636,8 @@ int main(int argc, char *argv[]) {
     /* Ignore SIGPIPE to survive errors when an IPC client disconnects
      * while we are sending them a message */
     signal(SIGPIPE, SIG_IGN);
-    
-    ApplicationLauncher &applicationLauncher = injector.create<ApplicationLauncher&>();
+
+    ApplicationLauncher &applicationLauncher = injector.create<ApplicationLauncher &>();
     global.applicationLauncher = &applicationLauncher;
 
     /* Autostarting exec-lines */

@@ -26,7 +26,7 @@ export {
      *
      */
     class Output {
-       public:
+      public:
         /** Output id, so that we can requery the output directly later */
         xcb_randr_output_t id{};
 
@@ -56,7 +56,7 @@ export {
          * output name.
          *
          */
-        Output *get_output_from_string(const std::string &output_str);
+        Output *get_output_from_string(std::string const &output_str);
 
         /**
          * Retrieves the primary name of an output.

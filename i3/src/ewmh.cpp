@@ -24,7 +24,7 @@ import log;
  */
 void ewmh_update_current_desktop() {
     static uint32_t old_idx = NET_WM_DESKTOP_NONE;
-    const uint32_t idx = ewmh_get_workspace_index(global.focused);
+    uint32_t const idx = ewmh_get_workspace_index(global.focused);
 
     if (idx == old_idx || idx == NET_WM_DESKTOP_NONE) {
         return;
@@ -43,7 +43,7 @@ static void ewmh_update_number_of_desktops() {
     uint32_t idx = 0;
 
     for (auto &output : global.croot->nodes) {
-        idx += dynamic_cast<OutputCon*>(output)->output_get_content()->nodes.size();
+        idx += dynamic_cast<OutputCon *>(output)->output_get_content()->nodes.size();
     }
 
     if (idx == old_idx) {
@@ -64,7 +64,7 @@ static void ewmh_update_desktop_names() {
 
     /* count the size of the property message to set */
     for (auto &output : global.croot->nodes) {
-        for (auto &ws : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
+        for (auto &ws : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
             msg_length += ws->name.length() + 1;
         }
     }
@@ -74,7 +74,7 @@ static void ewmh_update_desktop_names() {
 
     /* fill the buffer with the names of the i3 workspaces */
     for (auto &output : global.croot->nodes) {
-        for (auto &ws : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
+        for (auto &ws : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
             for (size_t i = 0; i < ws->name.length() + 1; i++) {
                 desktop_names.push_back(ws->name[i]);
             }
@@ -93,7 +93,7 @@ static void ewmh_update_desktop_viewport() {
     int num_desktops = 0;
     /* count number of desktops */
     for (auto &output : global.croot->nodes) {
-        num_desktops += dynamic_cast<OutputCon*>(output)->output_get_content()->nodes.size();
+        num_desktops += dynamic_cast<OutputCon *>(output)->output_get_content()->nodes.size();
     }
 
     std::vector<uint32_t> viewports{};
@@ -101,14 +101,14 @@ static void ewmh_update_desktop_viewport() {
 
     /* fill the viewport buffer */
     for (auto output : global.croot->nodes) {
-        for (auto &ws: dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
+        for (auto &ws : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
             viewports.push_back(output->rect.x);
             viewports.push_back(output->rect.y);
         }
     }
 
     xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root,
-        i3::atoms[i3::Atom::_NET_DESKTOP_VIEWPORT], XCB_ATOM_CARDINAL, 32, viewports.size(), viewports.data());
+                        i3::atoms[i3::Atom::_NET_DESKTOP_VIEWPORT], XCB_ATOM_CARDINAL, 32, viewports.size(), viewports.data());
 }
 
 /*
@@ -123,7 +123,7 @@ void ewmh_update_desktop_properties() {
     ewmh_update_wm_desktop();
 }
 
-static void ewmh_update_wm_desktop_recursively(Con *c, const uint32_t desktop) {
+static void ewmh_update_wm_desktop_recursively(Con *c, uint32_t const desktop) {
     /* Recursively call this to descend through the entire subtree. */
     for (auto &child : c->nodes) {
         ewmh_update_wm_desktop_recursively(child, desktop);
@@ -139,8 +139,8 @@ static void ewmh_update_wm_desktop_recursively(Con *c, const uint32_t desktop) {
     if (!c->con_has_managed_window()) {
         return;
     }
-    
-    auto con = dynamic_cast<ConCon*>(c);
+
+    auto con = dynamic_cast<ConCon *>(c);
 
     uint32_t wm_desktop = desktop;
     /* Sticky windows are only actually sticky when they are floating or inside
@@ -158,7 +158,7 @@ static void ewmh_update_wm_desktop_recursively(Con *c, const uint32_t desktop) {
     }
     con->get_window()->wm_desktop = wm_desktop;
 
-    const xcb_window_t window = con->get_window()->id;
+    xcb_window_t const window = con->get_window()->id;
     if (wm_desktop != NET_WM_DESKTOP_NONE) {
         DLOG(fmt::sprintf("Setting _NET_WM_DESKTOP = %d for window 0x%08x.\n", wm_desktop, window));
         xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_ATOM_CARDINAL, 32, 1, &wm_desktop);
@@ -179,7 +179,7 @@ void ewmh_update_wm_desktop() {
     uint32_t desktop = 0;
 
     for (auto &output : global.croot->nodes) {
-        for (auto &workspace : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
+        for (auto &workspace : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
             ewmh_update_wm_desktop_recursively(workspace, desktop);
             ++desktop;
         }
@@ -202,7 +202,7 @@ void ewmh_update_active_window(xcb_window_t window) {
  * Updates _NET_WM_VISIBLE_NAME.
  *
  */
-void ewmh_update_visible_name(xcb_window_t window, const char *name) {
+void ewmh_update_visible_name(xcb_window_t window, char const *name) {
     if (name != nullptr) {
         xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, window, i3::atoms[i3::Atom::_NET_WM_VISIBLE_NAME], i3::atoms[i3::Atom::UTF8_STRING], 8, strlen(name), name);
     } else {
@@ -294,7 +294,6 @@ void ewmh_update_focused(xcb_window_t window, bool is_focused) {
  *
  */
 void ewmh_setup_hints() {
-
     std::array supported_atoms = {
         i3::atoms[i3::Atom::_NET_SUPPORTED],
         i3::atoms[i3::Atom::_NET_SUPPORTING_WM_CHECK],
@@ -330,8 +329,7 @@ void ewmh_setup_hints() {
         i3::atoms[i3::Atom::_NET_DESKTOP_VIEWPORT],
         i3::atoms[i3::Atom::_NET_ACTIVE_WINDOW],
         i3::atoms[i3::Atom::_NET_CLOSE_WINDOW],
-        i3::atoms[i3::Atom::_NET_MOVERESIZE_WINDOW]
-    };
+        i3::atoms[i3::Atom::_NET_MOVERESIZE_WINDOW]};
 
     /* Set up the window manager’s name. According to EWMH, section "Root Window
      * Properties", to indicate that an EWMH-compliant window manager is
@@ -365,7 +363,7 @@ void ewmh_setup_hints() {
     xcb_map_window(**global.x, ewmh_window);
     uint32_t value_list[]{XCB_STACK_MODE_BELOW};
     xcb_configure_window(**global.x, ewmh_window, XCB_CONFIG_WINDOW_STACK_MODE, value_list);
-    
+
     global.x->ewmh_window = ewmh_window;
 }
 
@@ -384,9 +382,9 @@ WorkspaceCon *ewmh_get_workspace_by_index(uint32_t idx) {
     uint32_t current_index = 0;
 
     for (auto &output : global.croot->nodes) {
-        for (auto &ws : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
+        for (auto &ws : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
             if (current_index == idx) {
-                return dynamic_cast<WorkspaceCon*>(ws);
+                return dynamic_cast<WorkspaceCon *>(ws);
             }
             current_index++;
         }
@@ -407,7 +405,7 @@ uint32_t ewmh_get_workspace_index(Con *con) {
 
     WorkspaceCon *target_workspace = con->con_get_workspace();
     for (auto &output : global.croot->nodes) {
-        for (auto &ws : dynamic_cast<OutputCon*>(output)->output_get_content()->nodes) {
+        for (auto &ws : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
             if (ws == target_workspace) {
                 return index;
             }

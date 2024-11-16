@@ -21,7 +21,6 @@ import :internal;
 class Assignment;
 
 export {
-
     /**
      * Stores the reserved pixels on each screen edge read from a
      * _NET_WM_STRUT_PARTIAL.
@@ -34,33 +33,29 @@ export {
         uint32_t bottom{0};
     };
 
-
     class i3WindowIcon {
-
         /** Window icon, as Cairo surface */
         cairo_surface_t *icon;
         uint32_t *icon_data;
 
       public:
-        
-        cairo_surface_t* data() {
+        cairo_surface_t *data() {
             return icon;
         }
-        
+
         i3WindowIcon() = delete;
         i3WindowIcon(i3WindowIcon const &other) = delete;
-        i3WindowIcon& operator=(i3WindowIcon const &other) = delete;
+        i3WindowIcon &operator=(i3WindowIcon const &other) = delete;
         i3WindowIcon(i3WindowIcon &&other) {
             std::swap(icon, other.icon);
             std::swap(icon_data, other.icon_data);
         }
         i3WindowIcon(uint32_t width, uint32_t height, uint32_t *data, uint64_t len) {
-
-            this->icon_data = new uint32_t[len*4];
+            this->icon_data = new uint32_t[len * 4];
 
             for (uint64_t i = 0; i < len; i++) {
                 uint8_t r, g, b, a;
-                const uint32_t pixel = data[2 + i];
+                uint32_t const pixel = data[2 + i];
                 a = (pixel >> 24) & 0xff;
                 r = (pixel >> 16) & 0xff;
                 g = (pixel >> 8) & 0xff;
@@ -75,18 +70,17 @@ export {
             }
 
             this->icon = cairo_image_surface_create_for_data(
-                    reinterpret_cast<unsigned char *>(icon_data),
-                    CAIRO_FORMAT_ARGB32,
-                    width,
-                    height,
-                    width * 4);
+                reinterpret_cast<unsigned char *>(icon_data),
+                CAIRO_FORMAT_ARGB32,
+                width,
+                height,
+                width * 4);
         }
 
         ~i3WindowIcon() {
             cairo_surface_destroy(this->icon);
             delete[] icon_data;
         }
-
     };
 
     enum window_dock_t {
@@ -101,7 +95,7 @@ export {
      *
      */
     class i3Window {
-       public:
+      public:
         xcb_window_t id{XCB_WINDOW_NONE};
 
         /** Holds the xcb_window_t (just an ID) for the leader window (logical
@@ -193,11 +187,12 @@ export {
 
         /* The window has been swallowed. */
         bool swallowed{false};
-       
-        explicit i3Window(xcb_window_t id) : id(id) {};
+
+        explicit i3Window(xcb_window_t id)
+            : id(id) {};
         i3Window() = delete;
-        i3Window(const i3Window&) =  delete;
-        i3Window& operator=(const i3Window&) = delete;
+        i3Window(i3Window const &) = delete;
+        i3Window &operator=(i3Window const &) = delete;
 
         /**
          * Updates the WM_CLASS (consisting of the class and instance) for the
@@ -291,7 +286,7 @@ export {
          * Updates the WM_CLIENT_MACHINE
          *
          */
-        void window_update_machine(const std::string &machine);
+        void window_update_machine(std::string const &machine);
 
         /**
          * Updates the _NET_WM_ICON
@@ -300,5 +295,4 @@ export {
         [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
         void window_update_icon(xcb_get_property_reply_t *prop);
     };
-   
 }
