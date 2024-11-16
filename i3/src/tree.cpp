@@ -270,8 +270,9 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
      * Rendering has to be avoided when dont_kill_parent is set (when
      * tree_close_internal calls itself recursively) because the tree is in a
      * non-renderable state during that time. */
-    if (!dont_kill_parent)
+    if (!dont_kill_parent) {
         tree_render();
+    }
 
     /* kill the X11 part of this container */
     x_con_kill(con);
@@ -399,8 +400,9 @@ bool level_down() {
         if (child == con::last(next->focused)) {
             DLOG("cannot go down\n");
             return false;
-        } else
+        } else {
             next = con::first(next->focused);
+        }
     }
 
     next->con_activate();
@@ -427,8 +429,9 @@ static void mark_unmapped(Con *con) {
  *
  */
 void tree_render() {
-    if (global.croot == nullptr)
+    if (global.croot == nullptr) {
         return;
+    }
 
     DLOG("-- BEGIN RENDERING --\n");
     /* Reset map state for all nodes in tree */

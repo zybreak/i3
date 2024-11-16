@@ -114,8 +114,9 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
                 break;
         }
 
-        if (last_motion_notify != (xcb_motion_notify_event_t *)event)
+        if (last_motion_notify != (xcb_motion_notify_event_t *)event) {
             free(event);
+        }
 
         if (dragloop->result != DRAGGING) {
             ev_break(EV_A_ EVBREAK_ONE);

@@ -112,23 +112,27 @@ static bool floating_mod_on_tiled_client(PropertyHandlers &handlers, Con *con, x
 
     if (to_right < to_left &&
         to_right < to_top &&
-        to_right < to_bottom)
+        to_right < to_bottom) {
         return tiling_resize_for_border(handlers, con, BORDER_RIGHT, event, false);
+    }
 
     if (to_left < to_right &&
         to_left < to_top &&
-        to_left < to_bottom)
+        to_left < to_bottom) {
         return tiling_resize_for_border(handlers, con, BORDER_LEFT, event, false);
+    }
 
     if (to_top < to_right &&
         to_top < to_left &&
-        to_top < to_bottom)
+        to_top < to_bottom) {
         return tiling_resize_for_border(handlers, con, BORDER_TOP, event, false);
+    }
 
     if (to_bottom < to_right &&
         to_bottom < to_left &&
-        to_bottom < to_top)
+        to_bottom < to_top) {
         return tiling_resize_for_border(handlers, con, BORDER_BOTTOM, event, false);
+    }
 
     return false;
 }
@@ -147,12 +151,14 @@ static bool tiling_resize(PropertyHandlers &handlers, Con *con, xcb_button_press
         return tiling_resize_for_border(handlers, con, BORDER_TOP, event, use_threshold);
     } else if (dest == CLICK_BORDER) {
         if (event->event_y >= 0 && event->event_y <= static_cast<int32_t>(bsr.y) &&
-            event->event_x >= static_cast<int32_t>(bsr.x) && event->event_x <= static_cast<int32_t>(con->rect.width + bsr.width))
+            event->event_x >= static_cast<int32_t>(bsr.x) && event->event_x <= static_cast<int32_t>(con->rect.width + bsr.width)) {
             return tiling_resize_for_border(handlers, con, BORDER_TOP, event, false);
+        }
     }
     if (event->event_x >= 0 && event->event_x <= static_cast<int32_t>(bsr.x) &&
-        event->event_y >= static_cast<int32_t>(bsr.y) && event->event_y <= static_cast<int32_t>(con->rect.height + bsr.height))
+        event->event_y >= static_cast<int32_t>(bsr.y) && event->event_y <= static_cast<int32_t>(con->rect.height + bsr.height)) {
         return tiling_resize_for_border(handlers, con, BORDER_LEFT, event, false);
+    }
 
     auto concon = dynamic_cast<ConCon *>(con);
 
@@ -417,8 +423,9 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
             WorkspaceCon *ws;
             for (auto &c : global.croot->nodes) {
                 output = dynamic_cast<OutputCon *>(c);
-                if (!output->rect.rect_contains(event->event_x, event->event_y))
+                if (!output->rect.rect_contains(event->event_x, event->event_y)) {
                     continue;
+                }
 
                 ws = dynamic_cast<WorkspaceCon *>(con::first(output->output_get_content()->focused));
                 if (ws != global.focused->con_get_workspace()) {
@@ -444,8 +451,9 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
         }
     } else {
         for (auto &child : con->nodes | std::views::reverse) {
-            if (!child->deco_rect.rect_contains(event->event_x, event->event_y))
+            if (!child->deco_rect.rect_contains(event->event_x, event->event_y)) {
                 continue;
+            }
 
             route_click(child, event, mod_pressed, CLICK_DECORATION);
             return;

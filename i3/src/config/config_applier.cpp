@@ -181,17 +181,19 @@ void ConfigApplier::gaps(std::string const &workspace, std::string const &scope,
 }
 
 void ConfigApplier::smart_borders(std::string const &enable) {
-    if (!strcmp(enable.c_str(), "no_gaps"))
+    if (!strcmp(enable.c_str(), "no_gaps")) {
         this->config->smart_borders = SMART_BORDERS_NO_GAPS;
-    else
+    } else {
         this->config->smart_borders = boolstr(enable.c_str()) ? SMART_BORDERS_ON : SMART_BORDERS_OFF;
+    }
 }
 
 void ConfigApplier::smart_gaps(std::string const &enable) {
-    if (!strcmp(enable.c_str(), "inverse_outer"))
+    if (!strcmp(enable.c_str(), "inverse_outer")) {
         this->config->smart_gaps = SMART_GAPS_INVERSE_OUTER;
-    else
+    } else {
         this->config->smart_gaps = boolstr(enable.c_str()) ? SMART_GAPS_ON : SMART_GAPS_OFF;
+    }
 }
 
 void ConfigApplier::for_window(criteria_state *criteria_state, std::string const &command) {
@@ -218,21 +220,23 @@ void ConfigApplier::floating_modifier(std::string const &modifiers) {
 }
 
 void ConfigApplier::default_orientation(std::string const &orientation) {
-    if (orientation == "horizontal"s)
+    if (orientation == "horizontal"s) {
         this->config->default_orientation = HORIZ;
-    else if (orientation == "vertical"s)
+    } else if (orientation == "vertical"s) {
         this->config->default_orientation = VERT;
-    else
+    } else {
         this->config->default_orientation = NO_ORIENTATION;
+    }
 }
 
 void ConfigApplier::workspace_layout(std::string const &layout) {
-    if (layout == "default"s)
+    if (layout == "default"s) {
         this->config->default_layout = L_DEFAULT;
-    else if (layout == "stacking"s || layout == "stacked"s)
+    } else if (layout == "stacking"s || layout == "stacked"s) {
         this->config->default_layout = L_STACKED;
-    else
+    } else {
         this->config->default_layout = L_TABBED;
+    }
 }
 
 void ConfigApplier::default_border(std::string const &windowtype, std::string const &border, long const width) {
@@ -267,22 +271,23 @@ void ConfigApplier::default_border(std::string const &windowtype, std::string co
 }
 
 void ConfigApplier::hide_edge_borders(std::string const &borders) {
-    if (strcmp(borders.c_str(), "smart_no_gaps") == 0)
+    if (strcmp(borders.c_str(), "smart_no_gaps") == 0) {
         this->config->hide_edge_borders = HEBM_SMART_NO_GAPS;
-    else if (borders.c_str() == "smart"s)
+    } else if (borders.c_str() == "smart"s) {
         this->config->hide_edge_borders = HEBM_SMART;
-    else if (borders.c_str() == "vertical"s)
+    } else if (borders.c_str() == "vertical"s) {
         this->config->hide_edge_borders = HEBM_VERTICAL;
-    else if (borders.c_str() == "horizontal"s)
+    } else if (borders.c_str() == "horizontal"s) {
         this->config->hide_edge_borders = HEBM_HORIZONTAL;
-    else if (borders.c_str() == "both"s)
+    } else if (borders.c_str() == "both"s) {
         this->config->hide_edge_borders = HEBM_BOTH;
-    else if (borders.c_str() == "none"s)
+    } else if (borders.c_str() == "none"s) {
         this->config->hide_edge_borders = HEBM_NONE;
-    else if (boolstr(borders.c_str()))
+    } else if (boolstr(borders.c_str())) {
         this->config->hide_edge_borders = HEBM_VERTICAL;
-    else
+    } else {
         this->config->hide_edge_borders = HEBM_NONE;
+    }
 }
 
 void ConfigApplier::focus_follows_mouse(std::string const &value) {
@@ -290,10 +295,11 @@ void ConfigApplier::focus_follows_mouse(std::string const &value) {
 }
 
 void ConfigApplier::mouse_warping(std::string const &value) {
-    if (value == "none"s)
+    if (value == "none"s) {
         this->config->mouse_warping = POINTER_WARPING_NONE;
-    else if (value == "output"s)
+    } else if (value == "output"s) {
         this->config->mouse_warping = POINTER_WARPING_OUTPUT;
+    }
 }
 
 void ConfigApplier::focus_wrapping(std::string const &value) {
@@ -330,15 +336,15 @@ void ConfigApplier::force_display_urgency_hint(long const duration_ms) {
 }
 
 void ConfigApplier::focus_on_window_activation(std::string const &mode) {
-    if (mode == "smart"s)
+    if (mode == "smart"s) {
         this->config->focus_on_window_activation = FOWA_SMART;
-    else if (mode == "urgent"s)
+    } else if (mode == "urgent"s) {
         this->config->focus_on_window_activation = FOWA_URGENT;
-    else if (mode == "focus"s)
+    } else if (mode == "focus"s) {
         this->config->focus_on_window_activation = FOWA_FOCUS;
-    else if (mode == "none"s)
+    } else if (mode == "none"s) {
         this->config->focus_on_window_activation = FOWA_NONE;
-    else {
+    } else {
         ELOG(fmt::sprintf("Unknown focus_on_window_activation mode \"%s\", ignoring it.\n", mode));
         return;
     }

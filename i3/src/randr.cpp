@@ -157,14 +157,16 @@ Output *RandR::get_output_from_rect(Rect rect) {
  */
 Output *RandR::get_output_with_dimensions(Rect rect) {
     for (Output *output : outputs) {
-        if (!output->active)
+        if (!output->active) {
             continue;
+        }
         DLOG(fmt::sprintf("comparing x=%d y=%d %dx%d with x=%d and y=%d %dx%d\n",
                           rect.x, rect.y, rect.width, rect.height,
                           output->rect.x, output->rect.y, output->rect.width, output->rect.height));
         if (rect.x == output->rect.x && rect.width == output->rect.width &&
-            rect.y == output->rect.y && rect.height == output->rect.height)
+            rect.y == output->rect.y && rect.height == output->rect.height) {
             return output;
+        }
     }
 
     return nullptr;
@@ -183,8 +185,9 @@ Output *RandR::output_containing_rect(Rect rect) {
     long max_area = 0;
     Output *result = nullptr;
     for (Output *output : outputs) {
-        if (!output->active)
+        if (!output->active) {
             continue;
+        }
         int lx_o = static_cast<int>(output->rect.x), uy_o = static_cast<int>(output->rect.y);
         int rx_o = static_cast<int>(output->rect.x + output->rect.width), by_o = static_cast<int>(output->rect.y + output->rect.height);
         DLOG(fmt::sprintf("comparing x=%d y=%d with x=%d and y=%d width %d height %d\n",
@@ -252,8 +255,9 @@ Output *RandR::get_output_next(direction_t direction, Output *current, output_cl
          *other;
     Output *best = nullptr;
     for (Output *output : outputs) {
-        if (!output->active)
+        if (!output->active) {
             continue;
+        }
 
         other = &(output->rect);
 
@@ -262,17 +266,20 @@ Output *RandR::get_output_next(direction_t direction, Output *current, output_cl
             /* Skip the output when it doesn’t overlap the other one’s y
              * coordinate at all. */
             if ((other->y + other->height) <= cur->y ||
-                (cur->y + cur->height) <= other->y)
+                (cur->y + cur->height) <= other->y) {
                 continue;
+            }
         } else if ((direction == D_DOWN && other->y > cur->y) ||
                    (direction == D_UP && other->y < cur->y)) {
             /* Skip the output when it doesn’t overlap the other one’s x
              * coordinate at all. */
             if ((other->x + other->width) <= cur->x ||
-                (cur->x + cur->width) <= other->x)
+                (cur->x + cur->width) <= other->x) {
                 continue;
-        } else
+            }
+        } else {
             continue;
+        }
 
         /* No candidate yet? Start with this one. */
         if (!best) {
@@ -530,15 +537,17 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
             auto workspace = dynamic_cast<WorkspaceCon *>(workspace_con);
             /* Workspaces with more than one child are left untouched because
              * we do not want to change an existing layout. */
-            if (workspace->con_num_children() > 1)
+            if (workspace->con_num_children() > 1) {
                 continue;
+            }
 
             workspace->layout = (output->rect.height > output->rect.width) ? L_SPLITV : L_SPLITH;
             DLOG(fmt::sprintf("Setting workspace [%d,%s]'s layout to %d.\n", workspace->num, workspace->name, std::to_underlying(workspace->layout)));
             if (!workspace->nodes.empty()) {
                 auto child = con::first(workspace->nodes);
-                if (child->layout == L_SPLITV || child->layout == L_SPLITH)
+                if (child->layout == L_SPLITV || child->layout == L_SPLITH) {
                     child->layout = workspace->layout;
+                }
                 DLOG(fmt::sprintf("Setting child [%s]'s layout to %d.\n", child->name, std::to_underlying(child->layout)));
             }
         }
@@ -750,10 +759,11 @@ void RandR::randr_query_outputs_14() {
 
     try {
         auto primary_res = global.x->conn->randr().get_output_primary(global.x->root);
-        if (primary_res->length == 0)
+        if (primary_res->length == 0) {
             ELOG("Could not get RandR primary output\n");
-        else
+        } else {
             DLOG(fmt::sprintf("primary output is %08x\n", primary_res->output));
+        }
 
         primary = primary_res->output;
 
@@ -778,8 +788,9 @@ void RandR::randr_query_outputs_14() {
         for (int i = 0; i < len; i++) {
             auto output = global.x->conn->randr().get_output_info(randr_outputs[i], cts);
 
-            if (output->length == 0)
+            if (output->length == 0) {
                 continue;
+            }
 
             handle_output(**global.x, randr_outputs[i], output.get().get(), cts, res.get().get());
         }

@@ -160,12 +160,14 @@ bool Match::match_matches_window(i3Window const *window) const {
     }
 
     if (this->workspace != nullptr) {
-        if ((con = con_by_window_id(window->id)) == nullptr)
+        if ((con = con_by_window_id(window->id)) == nullptr) {
             return false;
+        }
 
         WorkspaceCon *ws = con->con_get_workspace();
-        if (ws == nullptr)
+        if (ws == nullptr) {
             return false;
+        }
 
         if (this->workspace->pattern == "__focused__" &&
             ws->name == global.focused->con_get_workspace()->name) {

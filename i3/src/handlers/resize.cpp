@@ -59,15 +59,17 @@ static void resize_callback(Con *con, Rect const &, uint32_t new_x, uint32_t new
     if (params->orientation == HORIZ) {
         /* Check if the new coordinates are within screen boundaries */
         if (new_x > (output->rect.x + output->rect.width - 25) ||
-            new_x < (output->rect.x + 25))
+            new_x < (output->rect.x + 25)) {
             return;
+        }
 
         *(params->new_position) = new_x;
         xcb_configure_window(**global.x, params->helpwin, XCB_CONFIG_WINDOW_X, params->new_position);
     } else {
         if (new_y > (output->rect.y + output->rect.height - 25) ||
-            new_y < (output->rect.y + 25))
+            new_y < (output->rect.y + 25)) {
             return;
+        }
 
         *(params->new_position) = new_y;
         xcb_configure_window(**global.x, params->helpwin, XCB_CONFIG_WINDOW_Y, params->new_position);

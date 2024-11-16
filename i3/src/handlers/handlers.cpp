@@ -199,8 +199,9 @@ void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
 
     /* Skip events where the pointer was over a child window, we are only
      * interested in events on the root window. */
-    if (event->child != XCB_NONE)
+    if (event->child != XCB_NONE) {
         return;
+    }
 
     Con *con = con_by_frame_id(event->event);
     if (con == nullptr) {
@@ -488,8 +489,9 @@ void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event
             return;
         }
 
-        if (con->ignore_unmap > 0)
+        if (con->ignore_unmap > 0) {
             con->ignore_unmap--;
+        }
         /* See the end of this function. */
         cookie = xcb_get_input_focus(*x);
         DLOG(fmt::sprintf("ignore_unmap = %d for frame of container %p\n", con->ignore_unmap, fmt::ptr(con)));
@@ -782,8 +784,9 @@ void PropertyHandlers::handle_key_press(xcb_key_press_event_t *event) {
     Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event);
 
     /* if we couldn't find a binding, we are done */
-    if (bind == nullptr)
+    if (bind == nullptr) {
         return;
+    }
 
     run_binding(bind, nullptr);
 }
@@ -795,8 +798,9 @@ void PropertyHandlers::handle_key_press(xcb_key_press_event_t *event) {
  */
 void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
     x_connection *conn = &*x;
-    if (type != XCB_MOTION_NOTIFY)
+    if (type != XCB_MOTION_NOTIFY) {
         DLOG(fmt::sprintf("event type %d, xkb_base %d\n", type, global.xkb->xkb_base));
+    }
 
     if (randr.randr_base > -1 &&
         type == randr.randr_base + XCB_RANDR_SCREEN_CHANGE_NOTIFY) {

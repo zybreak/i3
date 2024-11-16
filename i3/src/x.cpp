@@ -1215,8 +1215,9 @@ void x_push_changes(Con *con) {
      * them become ConfigureRequests that i3 handles. */
     uint32_t values[1] = {XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT};
     for (auto &state : global.x->state_head | std::views::reverse) {
-        if (state->mapped)
+        if (state->mapped) {
             xcb_change_window_attributes(**global.x, state->id, XCB_CW_EVENT_MASK, values);
+        }
     }
     bool order_changed = false;
     bool stacking_changed = false;
@@ -1311,8 +1312,9 @@ void x_push_changes(Con *con) {
 
     values[0] = FRAME_EVENT_MASK;
     for (auto &state : global.x->state_head | std::views::reverse) {
-        if (state->mapped)
+        if (state->mapped) {
             xcb_change_window_attributes(**global.x, state->id, XCB_CW_EVENT_MASK, values);
+        }
     }
 
     x_deco_recurse(con);
@@ -1389,8 +1391,9 @@ void x_push_changes(Con *con) {
      * EnterNotify event. */
     values[0] = FRAME_EVENT_MASK & ~XCB_EVENT_MASK_ENTER_WINDOW;
     for (auto &state : global.x->state_head | std::views::reverse) {
-        if (!state->unmap_now)
+        if (!state->unmap_now) {
             continue;
+        }
         xcb_change_window_attributes(**global.x, state->id, XCB_CW_EVENT_MASK, values);
     }
 
@@ -1473,8 +1476,9 @@ void x_mask_event_mask(uint32_t mask) {
     uint32_t values[] = {FRAME_EVENT_MASK & mask};
 
     for (auto &state : std::ranges::reverse_view(global.x->state_head)) {
-        if (state->mapped)
+        if (state->mapped) {
             xcb_change_window_attributes(**global.x, state->id, XCB_CW_EVENT_MASK, values);
+        }
     }
 }
 

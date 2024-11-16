@@ -104,8 +104,9 @@ static bool maybe_back_and_forth(CommandsResultIR &cmd_output, char const *name)
     WorkspaceCon *ws = global.focused->con_get_workspace();
 
     /* If we switched to a different workspace, do nothing */
-    if (strcmp(ws->name.c_str(), name) != 0)
+    if (strcmp(ws->name.c_str(), name) != 0) {
         return false;
+    }
 
     DLOG("This workspace is already focused.\n");
     if (global.configManager->config->workspace_auto_back_and_forth) {
@@ -122,8 +123,9 @@ static bool maybe_back_and_forth(CommandsResultIR &cmd_output, char const *name)
 static WorkspaceCon *maybe_auto_back_and_forth_workspace(WorkspaceCon *workspace) {
     WorkspaceCon *current, *baf;
 
-    if (!global.configManager->config->workspace_auto_back_and_forth)
+    if (!global.configManager->config->workspace_auto_back_and_forth) {
         return workspace;
+    }
 
     current = global.focused->con_get_workspace();
 
@@ -166,8 +168,9 @@ static void con_toggle_layout(Con *con, char const *toggle_mode) {
     /* Users can focus workspaces, but not any higher in the hierarchy.
      * Focus on the workspace is a special case, since in every other case, the
      * user means "change the layout of the parent split container". */
-    if (con->type != CT_WORKSPACE)
+    if (con->type != CT_WORKSPACE) {
         parent = con->parent;
+    }
     DLOG(fmt::sprintf("con_toggle_layout(%p, %s), parent = %p\n", fmt::ptr(con), toggle_mode, fmt::ptr(parent)));
 
     char const delim[] = " ";
@@ -225,13 +228,14 @@ static void con_toggle_layout(Con *con, char const *toggle_mode) {
             con->con_set_layout(new_layout);
         }
     } else if (strcasecmp(toggle_mode, "all") == 0 || strcasecmp(toggle_mode, "default") == 0) {
-        if (parent->layout == L_STACKED)
+        if (parent->layout == L_STACKED) {
             con->con_set_layout(L_TABBED);
-        else if (parent->layout == L_TABBED) {
-            if (strcasecmp(toggle_mode, "all") == 0)
+        } else if (parent->layout == L_TABBED) {
+            if (strcasecmp(toggle_mode, "all") == 0) {
                 con->con_set_layout(L_SPLITH);
-            else
+            } else {
                 con->con_set_layout(parent->last_split_layout);
+            }
         } else if (parent->layout == L_SPLITH || parent->layout == L_SPLITV) {
             if (strcasecmp(toggle_mode, "all") == 0) {
                 /* When toggling through all modes, we toggle between
@@ -364,17 +368,17 @@ void CommandsApplier::move_con_to_workspace(struct criteria_state *criteria_stat
 
     /* get the workspace */
     WorkspaceCon *ws;
-    if (strcmp(which, "next") == 0)
+    if (strcmp(which, "next") == 0) {
         ws = workspace_next();
-    else if (strcmp(which, "prev") == 0)
+    } else if (strcmp(which, "prev") == 0) {
         ws = workspace_prev();
-    else if (strcmp(which, "next_on_output") == 0)
+    } else if (strcmp(which, "next_on_output") == 0) {
         ws = workspace_next_on_output();
-    else if (strcmp(which, "prev_on_output") == 0)
+    } else if (strcmp(which, "prev_on_output") == 0) {
         ws = workspace_prev_on_output();
-    else if (strcmp(which, "current") == 0)
+    } else if (strcmp(which, "current") == 0) {
         ws = global.focused->con_get_workspace();
-    else {
+    } else {
         throw std::runtime_error(fmt::sprintf("BUG: called with which=%s", which));
     }
 
@@ -574,8 +578,9 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
     /* Ensure all the other children have a percentage set. */
     for (auto &child : current->parent->nodes) {
         LOG(fmt::sprintf("child->percent = %f (child %p)\n", child->percent, fmt::ptr(child)));
-        if (child->percent == 0.0)
+        if (child->percent == 0.0) {
             child->percent = percentage;
+        }
     }
 
     double new_current_percent;
@@ -613,8 +618,9 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
     LOG(fmt::sprintf("current->percent after = %f\n", current->percent));
 
     for (auto &child : current->parent->nodes) {
-        if (child == current)
+        if (child == current) {
             continue;
+        }
         child->percent -= subtract_percent;
         LOG(fmt::sprintf("child->percent after (%p) = %f\n", fmt::ptr(child), child->percent));
     }
@@ -898,15 +904,15 @@ void CommandsApplier::workspace(struct criteria_state *criteria_state, CommandsR
 
     disable_global_fullscreen();
 
-    if (strcmp(which, "next") == 0)
+    if (strcmp(which, "next") == 0) {
         ws = workspace_next();
-    else if (strcmp(which, "prev") == 0)
+    } else if (strcmp(which, "prev") == 0) {
         ws = workspace_prev();
-    else if (strcmp(which, "next_on_output") == 0)
+    } else if (strcmp(which, "next_on_output") == 0) {
         ws = workspace_next_on_output();
-    else if (strcmp(which, "prev_on_output") == 0)
+    } else if (strcmp(which, "prev_on_output") == 0) {
         ws = workspace_prev_on_output();
-    else {
+    } else {
         throw std::runtime_error(fmt::sprintf("BUG: called with which=%s", which));
     }
 
@@ -1170,17 +1176,18 @@ void CommandsApplier::split(struct criteria_state *criteria_state, CommandsResul
  *
  */
 void CommandsApplier::kill(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *kill_mode_str) {
-    if (kill_mode_str == nullptr)
+    if (kill_mode_str == nullptr) {
         kill_mode_str = "window";
+    }
 
     DLOG(fmt::sprintf("kill_mode=%s\n", kill_mode_str));
 
     int kill_mode;
-    if (strcmp(kill_mode_str, "window") == 0)
+    if (strcmp(kill_mode_str, "window") == 0) {
         kill_mode = std::to_underlying(kill_window_t::KILL_WINDOW);
-    else if (strcmp(kill_mode_str, "client") == 0)
+    } else if (strcmp(kill_mode_str, "client") == 0) {
         kill_mode = std::to_underlying(kill_window_t::KILL_CLIENT);
-    else {
+    } else {
         throw std::runtime_error(fmt::sprintf("BUG: called with kill_mode=%s", kill_mode_str));
     }
 
@@ -1321,8 +1328,9 @@ void CommandsApplier::focus_window_mode(struct criteria_state *criteria_state, C
     bool success = false;
     for (auto &current : ws->focused) {
         if ((to_floating && current->type != CT_FLOATING_CON) ||
-            (!to_floating && current->type == CT_FLOATING_CON))
+            (!to_floating && current->type == CT_FLOATING_CON)) {
             continue;
+        }
 
         con_descend_focused(current)->con_activate_unblock();
         success = true;
@@ -1349,16 +1357,18 @@ void CommandsApplier::focus_level(struct criteria_state *criteria_state, Command
      * focused container won't escape the fullscreen container. */
     if (strcmp(level, "parent") == 0) {
         if (global.focused && global.focused->parent) {
-            if (con_fullscreen_permits_focusing(global.focused->parent))
+            if (con_fullscreen_permits_focusing(global.focused->parent)) {
                 success = level_up();
-            else
+            } else {
                 ELOG("'focus parent': Currently in fullscreen, not going up\n");
+            }
         }
     }
 
     /* Focusing a child should always be allowed. */
-    else
+    else {
         success = level_down();
+    }
 
     cmd_output.needs_tree_render = success;
     // XXX: default reply for now, make this a better reply
@@ -1449,12 +1459,13 @@ void CommandsApplier::sticky(struct criteria_state *criteria_state, CommandsResu
         DLOG(fmt::sprintf("setting sticky for container = %p / %s\n", fmt::ptr(current), current->name));
 
         bool sticky = false;
-        if (strcmp(action, "enable") == 0)
+        if (strcmp(action, "enable") == 0) {
             sticky = true;
-        else if (strcmp(action, "disable") == 0)
+        } else if (strcmp(action, "disable") == 0) {
             sticky = false;
-        else if (strcmp(action, "toggle") == 0)
+        } else if (strcmp(action, "toggle") == 0) {
             sticky = !current->sticky;
+        }
 
         current->sticky = sticky;
         ewmh_update_sticky(current->get_window()->id, sticky);
@@ -1548,15 +1559,16 @@ void CommandsApplier::layout(struct criteria_state *criteria_state, CommandsResu
  *
  */
 void CommandsApplier::layout_toggle(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *toggle_mode) {
-    if (toggle_mode == nullptr)
+    if (toggle_mode == nullptr) {
         toggle_mode = "default";
+    }
 
     DLOG(fmt::sprintf("toggling layout (mode = %s)\n", toggle_mode));
 
     /* check if the match is empty, not if the result is empty */
-    if (criteria_state->current_match.match_is_empty())
+    if (criteria_state->current_match.match_is_empty()) {
         con_toggle_layout(global.focused, toggle_mode);
-    else {
+    } else {
         for (auto current : criteria_state->owindows) {
             DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
             con_toggle_layout(current, toggle_mode);
@@ -1742,8 +1754,9 @@ void CommandsApplier::move_window_to_position(struct criteria_state *criteria_st
         }
     }
 
-    if (!has_error)
+    if (!has_error) {
         ysuccess(cmd_output.json_gen, true);
+    }
 }
 
 /*
@@ -1785,8 +1798,9 @@ void CommandsApplier::move_window_to_center(struct criteria_state *criteria_stat
     }
 
     // XXX: default reply for now, make this a better reply
-    if (!has_error)
+    if (!has_error) {
         ysuccess(cmd_output.json_gen, true);
+    }
 }
 
 /*
@@ -2078,11 +2092,11 @@ static bool gaps_update(gap_accessor get, char const *scope, char const *mode, i
     DLOG(fmt::sprintf("global_gap_size=%d, current_value=%d\n", global_gap_size, current_value));
 
     bool reset = false;
-    if (strcmp(mode, "plus") == 0)
+    if (strcmp(mode, "plus") == 0) {
         current_value += pixels;
-    else if (strcmp(mode, "minus") == 0)
+    } else if (strcmp(mode, "minus") == 0) {
         current_value -= pixels;
-    else if (strcmp(mode, "set") == 0) {
+    } else if (strcmp(mode, "set") == 0) {
         current_value = pixels;
         reset = true;
     } else if (strcmp(mode, "toggle") == 0) {

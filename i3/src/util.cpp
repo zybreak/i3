@@ -57,10 +57,12 @@ std::vector<std::string> add_argument(std::vector<std::string> &original, char c
     }
 
     /* add the arguments we'll replace */
-    if (opt_char != nullptr)
+    if (opt_char != nullptr) {
         result.push_back(opt_char);
-    if (opt_arg != nullptr)
+    }
+    if (opt_arg != nullptr) {
         result.push_back(opt_arg);
+    }
 
     return result;
 }

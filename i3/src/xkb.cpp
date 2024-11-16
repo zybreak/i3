@@ -145,8 +145,9 @@ static uint32_t get_mod_mask_for(uint32_t keysym,
             /* Check if that keycode is in the list of previously resolved
              * keycodes for our symbol. If so, return the modifier mask. */
             for (xcb_keycode_t *code = codes; *code; code++) {
-                if (*code != mod_code)
+                if (*code != mod_code) {
                     continue;
+                }
 
                 std::free(codes);
                 /* This corresponds to the XCB_MOD_MASK_* constants */

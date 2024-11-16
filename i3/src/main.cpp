@@ -624,8 +624,9 @@ int main(int argc, char *argv[]) {
     }
 
 #if defined(__OpenBSD__)
-    if (pledge("stdio rpath wpath cpath proc exec unix", NULL) == -1)
+    if (pledge("stdio rpath wpath cpath proc exec unix", NULL) == -1) {
         err(EXIT_FAILURE, "pledge");
+    }
 #endif
 
     if (!args.disable_signalhandler) {

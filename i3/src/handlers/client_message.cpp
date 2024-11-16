@@ -78,20 +78,22 @@ static void handle_state(xcb_client_message_event_t *event) {
         }
     } else if (event->data.data32[1] == i3::atoms[i3::Atom::_NET_WM_STATE_DEMANDS_ATTENTION]) {
         /* Check if the urgent flag must be set or not */
-        if (event->data.data32[0] == _NET_WM_STATE_ADD)
+        if (event->data.data32[0] == _NET_WM_STATE_ADD) {
             con->con_set_urgency(true);
-        else if (event->data.data32[0] == _NET_WM_STATE_REMOVE)
+        } else if (event->data.data32[0] == _NET_WM_STATE_REMOVE) {
             con->con_set_urgency(false);
-        else if (event->data.data32[0] == _NET_WM_STATE_TOGGLE)
+        } else if (event->data.data32[0] == _NET_WM_STATE_TOGGLE) {
             con->con_set_urgency(!con->urgent);
+        }
     } else if (event->data.data32[1] == i3::atoms[i3::Atom::_NET_WM_STATE_STICKY]) {
         DLOG("Received a client message to modify _NET_WM_STATE_STICKY.\n");
-        if (event->data.data32[0] == _NET_WM_STATE_ADD)
+        if (event->data.data32[0] == _NET_WM_STATE_ADD) {
             con->sticky = true;
-        else if (event->data.data32[0] == _NET_WM_STATE_REMOVE)
+        } else if (event->data.data32[0] == _NET_WM_STATE_REMOVE) {
             con->sticky = false;
-        else if (event->data.data32[0] == _NET_WM_STATE_TOGGLE)
+        } else if (event->data.data32[0] == _NET_WM_STATE_TOGGLE) {
             con->sticky = !con->sticky;
+        }
 
         DLOG(fmt::sprintf("New sticky status for con = %p is %i.\n", fmt::ptr(con), con->sticky));
         ewmh_update_sticky(con->get_window()->id, con->sticky);
@@ -103,8 +105,9 @@ static void handle_state(xcb_client_message_event_t *event) {
 }
 
 static void handle_active_window(xcb_client_message_event_t *event) {
-    if (event->format != 32)
+    if (event->format != 32) {
         return;
+    }
 
     DLOG(fmt::sprintf("_NET_ACTIVE_WINDOW: Window 0x%08x should be activated\n", event->window));
 
@@ -137,8 +140,9 @@ static void handle_active_window(xcb_client_message_event_t *event) {
         } else if (global.configManager->config->focus_on_window_activation == FOWA_URGENT || (global.configManager->config->focus_on_window_activation == FOWA_SMART && !workspace_is_visible(ws))) {
             DLOG(fmt::sprintf("Marking con = %p urgent\n", fmt::ptr(con)));
             con->con_set_urgency(true);
-        } else
+        } else {
             DLOG(fmt::sprintf("Ignoring request for con = %p.\n", fmt::ptr(con)));
+        }
     }
 
     tree_render();
@@ -254,8 +258,9 @@ static void handle_close_window(xcb_client_message_event_t *event) {
     if (con) {
         DLOG(fmt::sprintf("Handling _NET_CLOSE_WINDOW request (con = %p)\n", fmt::ptr(con)));
 
-        if (event->data.data32[0])
+        if (event->data.data32[0]) {
             global.last_timestamp = event->data.data32[0];
+        }
 
         tree_close_internal(con, kill_window_t::KILL_WINDOW, false);
         tree_render();

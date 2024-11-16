@@ -94,22 +94,26 @@ bool gaps_should_inset_con(Con *con, int children) {
 bool gaps_has_adjacent_container(Con *con, direction_t direction) {
     WorkspaceCon *workspace = con->con_get_workspace();
     Con *fullscreen = workspace->con_get_fullscreen_con(CF_GLOBAL);
-    if (fullscreen == nullptr)
+    if (fullscreen == nullptr) {
         fullscreen = workspace->con_get_fullscreen_con(CF_OUTPUT);
+    }
 
     /* If this container is fullscreen by itself, there's no adjacent container. */
-    if (con == fullscreen)
+    if (con == fullscreen) {
         return false;
+    }
 
     Con *first = con;
     Con *second = nullptr;
     bool found_neighbor = resize_find_tiling_participants(&first, &second, direction, false);
-    if (!found_neighbor)
+    if (!found_neighbor) {
         return false;
+    }
 
     /* If we have an adjacent container and nothing is fullscreen, we consider it. */
-    if (fullscreen == nullptr)
+    if (fullscreen == nullptr) {
         return true;
+    }
 
     /* For fullscreen containers, only consider the adjacent container if it is also fullscreen. */
     return con->con_has_parent(fullscreen) && second->con_has_parent(fullscreen);
@@ -161,8 +165,9 @@ void gaps_reapply_workspace_assignments() {
         Con *content = dynamic_cast<OutputCon *>(output)->output_get_content();
         for (auto &workspace : content->nodes) {
             WorkspaceCon *ws = dynamic_cast<WorkspaceCon *>(workspace);
-            if (ws == nullptr)
+            if (ws == nullptr) {
                 continue;
+            }
             DLOG(fmt::sprintf("updating gap assignments for workspace %s\n", ws->name));
             ws->gaps = gaps_for_workspace(ws);
         }

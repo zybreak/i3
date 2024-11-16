@@ -85,12 +85,15 @@ static Con *extract_con(nlohmann::json &j, Con *parent, parser_context &ctx);
 static void con_massage(Con *con);
 
 static void extract_basecon(nlohmann::json &j, Con *con, Con *parent, parser_context &ctx) {
-    if (j.contains("name"))
+    if (j.contains("name")) {
         j["name"].get_to(con->name);
-    if (j.contains("title_format"))
+    }
+    if (j.contains("title_format")) {
         j["title_format"].get_to(con->title_format);
-    if (j.contains("sticky_group"))
+    }
+    if (j.contains("sticky_group")) {
         j["sticky_group"].get_to(con->sticky_group);
+    }
 
     if (j.contains("orientation")) {
         /* Upgrade path from older versions of i3 (doing an inplace restart
@@ -351,8 +354,9 @@ static WorkspaceCon *extract_workspacecon(nlohmann::json &j, Con *parent, parser
         }
     }
 
-    if (j.contains("num"))
+    if (j.contains("num")) {
         con->num = j["num"];
+    }
 
     if (j.contains("floating_nodes")) {
         for (auto &child_json : j["floating_nodes"]) {
