@@ -30,8 +30,8 @@ import :util;
 template <typename Comp = std::ranges::less>
 static bool i3_timercmp(std::optional<std::chrono::time_point<std::chrono::system_clock>> a, std::optional<std::chrono::time_point<std::chrono::system_clock>> b, Comp cmp) {
     auto epoch_time_point = std::chrono::system_clock::from_time_t(0);
-    return (a && b) ? cmp(a, b) : a ? cmp(a, epoch_time_point)
-                                    : cmp(epoch_time_point, b);
+    return (a && b) ? cmp(*a, *b) : a ? cmp(*a, epoch_time_point)
+                                    : cmp(epoch_time_point, *b);
 }
 
 inline static bool is_initialized(Regex const *regex) {

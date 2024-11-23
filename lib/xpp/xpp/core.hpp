@@ -2,6 +2,7 @@
 #define XPP_CORE_HPP
 
 #include <string>
+#include <stdlib.h>
 #include <memory>
 #include <stdexcept>
 #include <xcb/xcb.h>
