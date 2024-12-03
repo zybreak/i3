@@ -75,6 +75,8 @@ export class BaseConfigApplier {
     virtual void color_single(std::string const &colorclass, std::string const &color) = 0;
 
     virtual void floating_modifier(std::string const &modifiers) = 0;
+    
+    virtual void tiling_drag_swap_modifier(std::string const &modifiers) = 0;
 
     virtual void default_border(std::string const &windowtype, std::string const &border, long width) = 0;
 

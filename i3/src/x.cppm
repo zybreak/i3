@@ -48,6 +48,8 @@ export {
         bool unmap_now{};
         bool child_mapped{};
         bool is_hidden{};
+        bool is_maximized_vert;
+        bool is_maximized_horz;
 
         /* The con for which this state is. */
         Con *con{};

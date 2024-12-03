@@ -813,9 +813,8 @@ bool con_draw_decoration_into_frame(Con const *const con) {
 }
 
 static Rect con_border_style_rect_without_title(Con const *const con) {
-    if ((global.configManager->config->smart_borders == SMART_BORDERS_ON && con->con_get_workspace()->con_num_visible_children() <= 1) ||
-        (global.configManager->config->smart_borders == SMART_BORDERS_NO_GAPS && !has_outer_gaps(calculate_effective_gaps(con))) ||
-        (global.configManager->config->hide_edge_borders == HEBM_SMART && con->con_get_workspace()->con_num_visible_children() <= 1) ||
+
+    if ((global.configManager->config->hide_edge_borders == HEBM_SMART && con->con_get_workspace()->con_num_visible_children() <= 1) ||
         (global.configManager->config->hide_edge_borders == HEBM_SMART_NO_GAPS && con->con_get_workspace()->con_num_visible_children() <= 1 && !has_outer_gaps(calculate_effective_gaps(con)))) {
         if (!con->con_is_floating()) {
             return (Rect){0, 0, 0, 0};

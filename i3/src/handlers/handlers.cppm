@@ -69,7 +69,7 @@ export {
          */
         void tiling_drag(Con *con, xcb_button_press_event_t *event, bool use_threshold);
 
-        void route_click(Con *con, xcb_button_press_event_t *event, bool const mod_pressed, click_destination_t const dest);
+        void route_click(Con *con, xcb_button_press_event_t *event, click_destination_t const dest);
 
         /**
          * Called when the user clicked on the titlebar of a floating window.

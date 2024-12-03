@@ -326,6 +326,11 @@ static void drag_callback(Con *con, Rect const &old_rect, uint32_t new_x, uint32
     return create_indicator(drop_type, direction, target, rect, draw_window, con, old_rect, new_x, new_y, event, params);
 }
 
+static bool con_swap(Con *con, Con *con2) {
+    // TODO: I removed con_swap before, this stub is just here since new tiling_drag function relies on it
+    return false;
+}
+
 /*
  * Initiates a mouse drag operation on a tiled window.
  *
@@ -367,12 +372,21 @@ void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bo
     layout_t const layout = orientation == VERT ? L_SPLITV : L_SPLITH;
     con_disable_fullscreen(con);
     switch (drop_type) {
-        case DT_CENTER:
+        case DT_CENTER: {
             /* Also handles workspaces.*/
             DLOG(fmt::sprintf("drop to center of %p\n", fmt::ptr(target)));
-            con_move_to_target(con, target);
+            const uint32_t mod = (global.configManager->config->swap_modifier & 0xFFFF);
+            const bool swap_pressed = (mod != 0 && (event->state & mod) == mod);
+            if (swap_pressed) {
+                if (!con_swap(con, target)) {
+                    return;
+                }
+            } else {
+                con_move_to_target(con, target);
+            }
             break;
-        case DT_SIBLING:
+        }
+        case DT_SIBLING: {
             DLOG(fmt::sprintf("drop %s %p\n", position_to_string(position), fmt::ptr(target)));
             if (con_orientation(target->parent) != orientation) {
                 /* If con and target are the only children of the same parent, we can just change
@@ -390,6 +404,7 @@ void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bo
 
             global.ipcManager->ipc_send_window_event("move", con);
             break;
+        }
         case DT_PARENT: {
             bool const parent_tabbed_or_stacked = (target->parent->layout == L_TABBED || target->parent->layout == L_STACKED);
             DLOG(fmt::sprintf("drop %s (%s) of %s%p\n",

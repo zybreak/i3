@@ -1405,7 +1405,7 @@ void CommandsApplier::focus(struct criteria_state *criteria_state, CommandsResul
             /* Show the workspace of the matched container, without necessarily
              * focusing it. */
             LOG(fmt::sprintf("focusing workspace %p / %s - %p / %s\n", fmt::ptr(current), current->name, fmt::ptr(ws), ws->name));
-            global.workspaceManager->workspace_show(ws);
+            global.workspaceManager->workspace_show(maybe_auto_back_and_forth_workspace(ws));
         } else {
             LOG(fmt::sprintf("focusing %p / %s\n", fmt::ptr(current), current->name));
             current->con_activate_unblock();

@@ -188,7 +188,10 @@ static void allow_replay_pointer(xcb_timestamp_t time) {
  * functions for resizing/dragging.
  *
  */
-void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, bool const mod_pressed, click_destination_t const dest) {
+void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, click_destination_t const dest) {
+    const uint32_t mod = (configManager.config->floating_modifier & 0xFFFF);
+    const bool mod_pressed = (mod != 0 && (event->state & mod) == mod);
+    
     DLOG(fmt::sprintf("--> click properties: mod = %d, destination = %d\n", mod_pressed ? 1 : 0, std::to_underlying(dest)));
     DLOG(fmt::sprintf("--> OUTCOME = %p\n", fmt::ptr(con)));
     DLOG(fmt::sprintf("type = %d, name = %s\n", std::to_underlying(con->type), con->name));
@@ -396,11 +399,8 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
 
     global.last_timestamp = event->time;
 
-    uint32_t const mod = (configManager.config->floating_modifier & 0xFFFF);
-    bool const mod_pressed = (mod != 0 && (event->state & mod) == mod);
-    DLOG(fmt::sprintf("floating_mod = %d, detail = %d\n", mod_pressed, event->detail));
     if (ConCon *con = con_by_window_id(event->event)) {
-        route_click(con, event, mod_pressed, CLICK_INSIDE);
+        route_click(con, event, CLICK_INSIDE);
         return;
     }
 
@@ -446,7 +446,7 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
     /* Check if the click was on the decoration of a child */
     if (con->get_window() != nullptr) {
         if (con->deco_rect.rect_contains(event->event_x, event->event_y)) {
-            route_click(con, event, mod_pressed, CLICK_DECORATION);
+            route_click(con, event, CLICK_DECORATION);
             return;
         }
     } else {
@@ -455,16 +455,16 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
                 continue;
             }
 
-            route_click(child, event, mod_pressed, CLICK_DECORATION);
+            route_click(child, event, CLICK_DECORATION);
             return;
         }
     }
 
     if (event->child != XCB_NONE) {
         DLOG("event->child not XCB_NONE, so this is an event which originated from a click into the application, but the application did not handle it.\n");
-        route_click(con, event, mod_pressed, CLICK_INSIDE);
+        route_click(con, event, CLICK_INSIDE);
         return;
     }
 
-    route_click(con, event, mod_pressed, CLICK_BORDER);
+    route_click(con, event, CLICK_BORDER);
 }

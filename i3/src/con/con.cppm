@@ -239,6 +239,22 @@ export {
         bool con_is_hidden();
 
         /**
+         * Returns true if the container is maximized in the given orientation.
+         *
+         * If the container is floating or fullscreen, it is not considered maximized.
+         * Otherwise, it is maximized if it doesn't share space with any other
+         * container in the given orientation. For example, if a workspace contains
+         * a single splitv container with three children, none of them are considered
+         * vertically maximized, but they are all considered horizontally maximized.
+         *
+         * Passing "maximized" hints to the application can help it make the right
+         * choices about how to draw its borders. See discussion in
+         * https://github.com/i3/i3/pull/2380.
+         *
+         */
+        bool con_is_maximized(orientation_t orientation);
+
+        /**
          * Returns whether the container or any of its children is sticky.
          *
          */

@@ -182,9 +182,15 @@ void ConfigApplier::gaps(std::string const &workspace, std::string const &scope,
 
 void ConfigApplier::smart_borders(std::string const &enable) {
     if (!strcmp(enable.c_str(), "no_gaps")) {
-        this->config->smart_borders = SMART_BORDERS_NO_GAPS;
-    } else {
-        this->config->smart_borders = boolstr(enable.c_str()) ? SMART_BORDERS_ON : SMART_BORDERS_OFF;
+        this->config->hide_edge_borders = HEBM_SMART_NO_GAPS;
+    } else if (boolstr(enable.c_str())) {
+        if (this->config->hide_edge_borders == HEBM_NONE) {
+            /* Only enable this if hide_edge_borders is at the default value as it otherwise takes precedence */
+            this->config->hide_edge_borders = HEBM_SMART;
+        } else {
+            ELOG("Both hide_edge_borders and smart_borders was used. "
+                 "Ignoring smart_borders as it is deprecated.\n");
+        }
     }
 }
 
@@ -217,6 +223,10 @@ void ConfigApplier::floating_maximum_size(long const width, long const height) {
 
 void ConfigApplier::floating_modifier(std::string const &modifiers) {
     this->config->floating_modifier = event_state_from_str(modifiers.c_str());
+}
+
+void ConfigApplier::tiling_drag_swap_modifier(std::string const &modifiers) {
+    this->config->swap_modifier = event_state_from_str(modifiers.c_str());
 }
 
 void ConfigApplier::default_orientation(std::string const &orientation) {
@@ -389,6 +399,8 @@ void ConfigApplier::popup_during_fullscreen(std::string const &value) {
         this->config->popup_during_fullscreen = PDF_IGNORE;
     } else if (value == "leave_fullscreen"s) {
         this->config->popup_during_fullscreen = PDF_LEAVE_FULLSCREEN;
+    } else if (value == "all"s) {
+        this->config->popup_during_fullscreen = PDF_ALL;
     } else {
         this->config->popup_during_fullscreen = PDF_SMART;
     }

@@ -56,8 +56,8 @@ sync_with_i3;
 # open_window ensures, this
 #
 #                   numbered        numbered w/ names  named
-# output 1 (left) : 1, 2, 3, 6, 7,  8:a, 8:b, 8:c      B, F, C
-# output 2 (right): 4, 5,           8:d, 8:e,          A, D, E
+# output 1 (left):  4, 5,           8:d, 8:e,          A, D, E
+# output 2 (right): 1, 2, 3, 6, 7,  8:a, 8:b, 8:c      B, F, C
 #
 ################################################################################
 

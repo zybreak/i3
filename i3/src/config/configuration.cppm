@@ -90,12 +90,9 @@ export {
 
         /* just ignore the popup, that is, don’t map it */
         PDF_IGNORE = 2,
-    };
-
-    enum smart_borders_t {
-        SMART_BORDERS_OFF,
-        SMART_BORDERS_ON,
-        SMART_BORDERS_NO_GAPS
+        
+        /* display all floating windows */
+        PDF_ALL = 3,
     };
 
     enum smart_gaps_t {
@@ -239,7 +236,7 @@ export {
         /** The modifier which needs to be pressed in combination with your mouse
          * buttons to do things with floating windows (move, resize) */
         uint32_t floating_modifier;
-
+        
         /** Maximum and minimum dimensions of a floating window */
         int32_t floating_maximum_width;
         int32_t floating_maximum_height;
@@ -255,12 +252,13 @@ export {
         conf_pdf_t popup_during_fullscreen;
 
         tiling_drag_t tiling_drag{tiling_drag_t::TILING_DRAG_MODIFIER};
+        
+        /** The modifier which needs to be pressed in combination with the floating
+         * modifier and your mouse buttons to swap containers during tiling drag */
+        uint32_t swap_modifier{XCB_KEY_BUT_MASK_SHIFT};
 
         /* Gap sizes */
         gaps_t gaps{};
-
-        /* Should single containers on a workspace receive a border? */
-        smart_borders_t smart_borders{smart_borders_t::SMART_BORDERS_OFF};
 
         /* Disable gaps if there is only one container on the workspace */
         smart_gaps_t smart_gaps{smart_gaps_t::SMART_GAPS_OFF};

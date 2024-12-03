@@ -68,6 +68,8 @@ export class ConfigApplier : public BaseConfigApplier {
     void floating_maximum_size(long width, long height) override;
 
     void floating_modifier(std::string const &modifiers) override;
+    
+    void tiling_drag_swap_modifier(std::string const &modifiers) override;
 
     void default_orientation(std::string const &orientation) override;
 

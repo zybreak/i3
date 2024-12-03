@@ -653,5 +653,16 @@ int main(int argc, char *argv[]) {
      * when calling exit() */
     atexit(i3_exit);
 
+    /* There might be children who died before we initialized the event loop,
+     * e.g., when restarting i3 (see #5756).
+     * To not carry zombie children around, raise the signal to invite libev to
+     * reap them.
+     *
+     * Note that there is no race condition between raising the signal below and
+     * entering the event loop later: the signal is just to notify libev that
+     * zombies might already be there. Actuall reaping will take place in the
+     * event loop anyway. */
+    (void)raise(SIGCHLD);
+
     eventHandler.loop();
 }

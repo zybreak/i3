@@ -40,7 +40,7 @@ namespace i3ipc {
         }
 
         if (path.empty()) {
-            path = "/tmp/i3-ipc.sock";
+            err(EXIT_FAILURE, "Could not determine i3 socket path");
         }
 
         int sockfd = ipc_connect_impl(path);

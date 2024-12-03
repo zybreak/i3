@@ -154,6 +154,10 @@ namespace cfg {
         result.parser.applier.floating_modifier(modifiers);
     }
 
+    void tiling_drag_swap_modifier(criteria_state *criteria_state, ConfigResultIR &result, char const *modifiers) {
+        result.parser.applier.tiling_drag_swap_modifier(modifiers);
+    }
+    
     void default_orientation(criteria_state *criteria_state, ConfigResultIR &result, char const *orientation) {
         result.parser.applier.default_orientation(orientation);
     }

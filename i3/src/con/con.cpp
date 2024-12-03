@@ -410,6 +410,64 @@ bool Con::con_is_hidden() {
 
     return false;
 }
+/*
+ * Returns true if the container is maximized in the given orientation.
+ *
+ * If the container is floating, it is not considered maximized. Otherwise, it
+ * is maximized if it doesn't share space with any other container in the given
+ * orientation. For example, if a workspace contains a single splitv container
+ * with three children, none of them are considered vertically maximized, but
+ * they are all considered horizontally maximized.
+ *
+ * Passing "maximized" hints to the application can help it make the right
+ * choices about how to draw its borders. See discussion in
+ * https://github.com/i3/i3/pull/2380.
+ */
+bool Con::con_is_maximized(orientation_t orientation) {
+    /* Fullscreen containers are considered maximized. */
+    if (this->fullscreen_mode != CF_NONE) {
+        return true;
+    }
+    
+    /* Look up the container layout which corresponds to the given
+     * orientation. */
+    layout_t layout;
+    switch (orientation) {
+        case HORIZ:
+            layout = L_SPLITH;
+            break;
+        case VERT:
+            layout = L_SPLITV;
+            break;
+        default:
+            assert(false);
+    }
+
+    /* Go through all parents, stopping once we reach the workspace node. */
+    Con *current = this;
+    while (true) {
+        Con *parent = current->parent;
+        if (parent == nullptr || current->type == CT_WORKSPACE) {
+            /* We are done searching. We found no reason that the container
+             * should not be considered maximized. */
+            return true;
+        }
+
+        if (parent->layout == layout && parent->con_num_children() > 1) {
+            /* The parent has a split in the indicated direction, which
+             * means none of its children are maximized in that direction. */
+            return false;
+        }
+
+        /* Floating containers and their children are not considered
+         * maximized. */
+        if (parent->type == CT_FLOATING_CON) {
+            return false;
+        }
+
+        current = parent;
+    }
+}
 
 /*
  * Returns whether the container or any of its children is sticky.
@@ -776,6 +834,31 @@ void Con::con_set_layout(layout_t layout) {
      * con_set_layout(). */
     if (con->layout == L_SPLITH || con->layout == L_SPLITV) {
         con->last_split_layout = con->layout;
+    }
+
+    if (con->parent->type != CT_WORKSPACE &&
+        con->con_num_children() == 1 && con->parent->con_num_children() == 1) {
+        /* Special case: Avoid creating redundant containers (#3001):
+         * split h / v (tree_split()) will avoid creating new containers when
+         * the target container is already a single child in L_SPLITH /
+         * L_SPLITV. However, if the layout is tabbed / stacked, a new split is
+         * created. This means, however, that when the user continuously
+         * switches between split h/v and tabbed / stacked, an endless series
+         * of 1-child containers will be created. Since a single level of split
+         * containers on top of tabbed / stacked containers are useful, we want
+         * to avoid this situation here.
+         * Example of past behaviour: S[V[w]] -> S[S[w]] -> S[S[V[w]]] -> …
+         * Example of desired behaviour: S[V[w]] -> S[w] -> S[v[w]] -> …
+         * Therefore, when both the current & parent containers have a single
+         * child, we just close the redundant middle container and proceed with
+         * the parent. */
+        Con *parent = con->parent;
+        Con *child = con::first(con->nodes);
+        child->con_detach();
+        child->con_attach(parent, true);
+        parent->last_split_layout = con->last_split_layout;
+        tree_close_internal(con, kill_window_t::DONT_KILL_WINDOW, true);
+        con = parent;
     }
 
     if (layout == L_DEFAULT) {

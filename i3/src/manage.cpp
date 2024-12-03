@@ -581,6 +581,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     if (xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DIALOG]) ||
         xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_UTILITY]) ||
         xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLBAR]) ||
+        xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NOTIFICATION]) ||
         xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_SPLASH]) ||
         xcb_reply_contains_atom(state_reply, i3::atoms[i3::Atom::_NET_WM_STATE_MODAL]) ||
         (nc->get_window()->max_width > 0 && nc->get_window()->max_height > 0 &&
@@ -613,7 +614,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         if (global.configManager->config->popup_during_fullscreen == PDF_LEAVE_FULLSCREEN &&
             fs != nullptr) {
             DLOG("There is a fullscreen window, leaving fullscreen mode\n");
-            con_toggle_fullscreen(fs, CF_OUTPUT);
+            con_disable_fullscreen(fs);
         } else if (global.configManager->config->popup_during_fullscreen == PDF_SMART &&
                    fs != nullptr &&
                    fs->get_window() != nullptr) {
@@ -633,6 +634,10 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
      * here because it’s used for dock clients. */
     if (nc->get_geometry().width == 0) {
         nc->set_geometry((Rect){static_cast<uint32_t>(geom->x), static_cast<uint32_t>(geom->y), geom->width, geom->height});
+    }
+
+    if (global.configManager->config->popup_during_fullscreen == PDF_ALL && want_floating && fs != nullptr) {
+        set_focus = true;
     }
 
     if (want_floating) {
@@ -756,15 +761,13 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         xcb_discard_reply(**global.x, w_data.wm_user_time_cookie->sequence);
     }
 
-    if (set_focus) {
-        /* Even if the client doesn't want focus, we still need to focus the
-         * container to not break focus workflows. Our handling towards X will
-         * take care of not setting the input focus. However, one exception to
-         * this are clients using the globally active input model which we
-         * don't want to focus at all. */
-        if (nc->get_window()->doesnt_accept_focus && !nc->get_window()->needs_take_focus) {
-            set_focus = false;
-        }
+    /* Even if the client doesn't want focus, we still need to focus the
+     * container to not break focus workflows. Our handling towards X will take
+     * care of not setting the input focus. However, one exception to this are
+     * clients using the globally active input model which we don't want to
+     * focus at all. */
+    if (nc->get_window()->doesnt_accept_focus && !nc->get_window()->needs_take_focus) {
+        set_focus = false;
     }
 
     /* Defer setting focus after the 'new' event has been sent to ensure the

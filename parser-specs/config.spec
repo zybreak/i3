@@ -136,6 +136,15 @@ state FLOATING_MODIFIER:
   end
       -> call cfg::floating_modifier($modifiers)
 
+# tiling_drag swap_modifier <modifier>
+state TILING_DRAG_SWAP_MODIFIER:
+  modifiers = 'Mod1', 'Mod2', 'Mod3', 'Mod4', 'Mod5', 'Shift', 'Control', 'Ctrl'
+      ->
+  '+'
+      ->
+  end
+      -> call cfg::tiling_drag_swap_modifier($modifiers)
+
 # default_orientation <horizontal|vertical|auto>
 state DEFAULT_ORIENTATION:
   orientation = 'horizontal', 'vertical', 'auto'
@@ -341,7 +350,7 @@ state RESTART_STATE:
 
 # popup_during_fullscreen
 state POPUP_DURING_FULLSCREEN:
-  value = 'ignore', 'leave_fullscreen', 'smart'
+  value = 'ignore', 'leave_fullscreen', 'all', 'smart'
       -> call cfg::popup_during_fullscreen($value)
 
 state TILING_DRAG_MODE:
@@ -353,6 +362,8 @@ state TILING_DRAG_MODE:
 state TILING_DRAG:
   off = '0', 'no', 'false', 'off', 'disable', 'inactive'
       -> call cfg::tiling_drag($off)
+  swap_modifier = 'swap_modifier'
+      -> TILING_DRAG_SWAP_MODIFIER
   value = 'modifier', 'titlebar'
       -> TILING_DRAG_MODE
 

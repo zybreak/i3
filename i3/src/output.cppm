@@ -66,8 +66,10 @@ export {
     };
 
     /**
-     * Returns the output for the given con.
-     *
+     * Retrieves the output for a given container. Never returns NULL.
+     * There is an assertion that _will_ fail if the container is inside an
+     * internal workspace. Use con_is_internal() if needed before calling this
+     * function.
      */
     Output *get_output_for_con(Con * con);
 

@@ -588,6 +588,7 @@ WorkspaceCon *workspace_next() {
         WorkspaceCon *next = nullptr;
         WorkspaceCon *first = nullptr;
         WorkspaceCon *first_opposite = nullptr;
+        bool found_current = false;
         for (auto &output : global.croot->nodes) {
             for (auto child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
                 auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
@@ -609,8 +610,17 @@ WorkspaceCon *workspace_next() {
                 if (current->num < workspace_child->num && (!next || workspace_child->num < next->num)) {
                     next = workspace_child;
                 }
+                
+                /* If two workspaces have the same number, but different names
+                 * (eg '5:a', '5:b') then just take the next one. */
+                if (workspace_child == current) {
+                    found_current = true;
+                } else if (found_current && current->num == workspace_child->num) {
+                    return workspace_child;
+                }
             }
         }
+        
         if (!next) {
             next = first_opposite ? first_opposite : first;
         }
@@ -660,6 +670,7 @@ WorkspaceCon *workspace_prev() {
         }
     } else {
         /* If numbered workspace, find previous numbered workspace. */
+        bool found_current = false;
         for (auto &output : global.croot->nodes | std::views::reverse) {
             for (auto &child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes | std::views::reverse) {
                 auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
@@ -680,6 +691,14 @@ WorkspaceCon *workspace_prev() {
                  * the relative order between the list of workspaces. */
                 if (current->num > workspace_child->num && (!prev || workspace_child->num > prev->num)) {
                     prev = workspace_child;
+                }
+                
+                /* If two workspaces have the same number, but different names
+                 * (eg '5:a', '5:b') then just take the previous one. */
+                if (workspace_child == current) {
+                    found_current = true;
+                } else if (found_current && current->num == workspace_child->num) {
+                    return workspace_child;
                 }
             }
         }
@@ -706,6 +725,7 @@ WorkspaceCon *workspace_next_on_output() {
         next = dynamic_cast<WorkspaceCon *>(con::next(current, current->parent->nodes));
     } else {
         /* If currently a numbered workspace, find next numbered workspace. */
+        bool found_current = false;
         for (auto &child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes) {
             auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
             if (workspace_child == nullptr) {
@@ -719,6 +739,14 @@ WorkspaceCon *workspace_next_on_output() {
              * relative order between the list of workspaces. */
             if (current->num < workspace_child->num && (!next || workspace_child->num < next->num)) {
                 next = workspace_child;
+            }
+            
+            /* If two workspaces have the same number, but different names
+             * (eg '5:a', '5:b') then just take the next one. */
+            if (workspace_child == current) {
+                found_current = true;
+            } else if (found_current && current->num == workspace_child->num) {
+                return workspace_child;
             }
         }
     }
@@ -773,6 +801,7 @@ WorkspaceCon *workspace_prev_on_output() {
         }
     } else {
         /* If numbered workspace, find previous numbered workspace. */
+        bool found_current = false;
         for (auto &child : dynamic_cast<OutputCon *>(output)->output_get_content()->nodes | std::views::reverse) {
             auto workspace_child = dynamic_cast<WorkspaceCon *>(child);
             if (workspace_child == nullptr || workspace_child->num == -1) {
@@ -783,6 +812,14 @@ WorkspaceCon *workspace_prev_on_output() {
              * the relative order between the list of workspaces. */
             if (current->num > workspace_child->num && (!prev || workspace_child->num > prev->num)) {
                 prev = workspace_child;
+            }
+            
+            /* If two workspaces have the same number, but different names
+             * (eg '5:a', '5:b') then just take the previous one. */
+            if (workspace_child == current) {
+                found_current = true;
+            } else if (found_current && current->num == workspace_child->num) {
+                return workspace_child;
             }
         }
     }

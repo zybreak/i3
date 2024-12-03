@@ -46,14 +46,14 @@ void WorkspaceCon::con_attach(Con *parent, bool ignore_focus, Con *previous_con)
             /* we need to insert the container at the beginning */
             parent->nodes.push_front(this);
         } else {
-            while (current && current->num != -1 && this->num > current->num) {
+            while (current && current->num != -1 && this->num >= current->num) {
                 current = dynamic_cast<WorkspaceCon *>(con::next(current, parent->nodes));
                 if (current == con::last(parent->nodes)) {
                     current = nullptr;
                     break;
                 }
             }
-            /* we need to insert con after current, if current is not NULL */
+            /* we need to insert con before current, if current is not NULL */
             if (current) {
                 current->insert_before(this);
             } else {

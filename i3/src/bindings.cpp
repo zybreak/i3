@@ -179,7 +179,7 @@ static void grab_keycode_for_binding(x_connection *conn, Binding &bind, uint32_t
             global.x->root,
             mod,
             keycode,
-            XCB_GRAB_MODE_SYNC,
+            XCB_GRAB_MODE_ASYNC,
             XCB_GRAB_MODE_ASYNC);
     });
 }
@@ -219,7 +219,7 @@ void grab_all_keys(x_connection *conn) {
             int const keycode = binding_keycode.keycode;
             auto mods = (binding_keycode.modifiers & 0xFFFF);
             DLOG(fmt::sprintf("Binding %p Grabbing keycode %d with mods %d\n", fmt::ptr(&bind), keycode, mods));
-            conn->grab_key(0, global.x->root, mods, keycode, XCB_GRAB_MODE_SYNC, XCB_GRAB_MODE_ASYNC);
+            conn->grab_key(0, global.x->root, mods, keycode, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
         }
     }
 }

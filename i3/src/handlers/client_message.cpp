@@ -50,48 +50,45 @@ int const _NET_MOVERESIZE_WINDOW_Y = (1 << 9);
 int const _NET_MOVERESIZE_WINDOW_WIDTH = (1 << 10);
 int const _NET_MOVERESIZE_WINDOW_HEIGHT = (1 << 11);
 
-static void handle_state(xcb_client_message_event_t *event) {
-    if (event->format != 32 ||
-        (event->data.data32[1] != i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN] &&
-         event->data.data32[1] != i3::atoms[i3::Atom::_NET_WM_STATE_DEMANDS_ATTENTION] &&
-         event->data.data32[1] != i3::atoms[i3::Atom::_NET_WM_STATE_STICKY])) {
-        DLOG(fmt::sprintf("Unknown atom in clientmessage of type %d\n", event->data.data32[1]));
+static void handle_net_wm_state_change(ConCon *con, uint32_t change, uint32_t atom) {
+    if (atom == 0) {
         return;
     }
+    
+    const char *debug_change = (change == _NET_WM_STATE_REMOVE ? "remove" : (change == _NET_WM_STATE_ADD ? "add" : "toggle"));
+    
+    if (atom == i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN]) {
+        DLOG(std::format("Received a client message to {} _NET_WM_STATE_FULLSCREEN.\n", debug_change));
 
-    ConCon *con = con_by_window_id(event->window);
-    if (con == nullptr) {
-        DLOG("Could not get window for client message\n");
-        return;
-    }
-
-    if (event->data.data32[1] == i3::atoms[i3::Atom::_NET_WM_STATE_FULLSCREEN]) {
         /* Check if the fullscreen state should be toggled */
-        if ((con->fullscreen_mode != CF_NONE &&
-             (event->data.data32[0] == _NET_WM_STATE_REMOVE ||
-              event->data.data32[0] == _NET_WM_STATE_TOGGLE)) ||
-            (con->fullscreen_mode == CF_NONE &&
-             (event->data.data32[0] == _NET_WM_STATE_ADD ||
-              event->data.data32[0] == _NET_WM_STATE_TOGGLE))) {
+        if (change == _NET_WM_STATE_TOGGLE ||
+            (con->fullscreen_mode != CF_NONE && change == _NET_WM_STATE_REMOVE) ||
+            (con->fullscreen_mode == CF_NONE && change == _NET_WM_STATE_ADD)) {
             DLOG("toggling fullscreen\n");
             con_toggle_fullscreen(con, CF_OUTPUT);
         }
-    } else if (event->data.data32[1] == i3::atoms[i3::Atom::_NET_WM_STATE_DEMANDS_ATTENTION]) {
+    } else if (atom == i3::atoms[i3::Atom::_NET_WM_STATE_DEMANDS_ATTENTION]) {
+        DLOG(std::format("Received a client message to {} _NET_WM_STATE_DEMANDS_ATTENTION.\n", debug_change));
+
         /* Check if the urgent flag must be set or not */
-        if (event->data.data32[0] == _NET_WM_STATE_ADD) {
+        if (change == _NET_WM_STATE_ADD) {
             con->con_set_urgency(true);
-        } else if (event->data.data32[0] == _NET_WM_STATE_REMOVE) {
+            con = remanage_window(con);
+        } else if (change == _NET_WM_STATE_REMOVE) {
             con->con_set_urgency(false);
-        } else if (event->data.data32[0] == _NET_WM_STATE_TOGGLE) {
+            con = remanage_window(con);
+        } else if (change == _NET_WM_STATE_TOGGLE) {
             con->con_set_urgency(!con->urgent);
+            con = remanage_window(con);
         }
-    } else if (event->data.data32[1] == i3::atoms[i3::Atom::_NET_WM_STATE_STICKY]) {
-        DLOG("Received a client message to modify _NET_WM_STATE_STICKY.\n");
-        if (event->data.data32[0] == _NET_WM_STATE_ADD) {
+    } else if (atom == i3::atoms[i3::Atom::_NET_WM_STATE_STICKY]) {
+        DLOG(std::format("Received a client message to {} _NET_WM_STATE_STICKY.\n", debug_change));
+
+        if (change == _NET_WM_STATE_ADD) {
             con->sticky = true;
-        } else if (event->data.data32[0] == _NET_WM_STATE_REMOVE) {
+        } else if (change == _NET_WM_STATE_REMOVE) {
             con->sticky = false;
-        } else if (event->data.data32[0] == _NET_WM_STATE_TOGGLE) {
+        } else if (change == _NET_WM_STATE_TOGGLE) {
             con->sticky = !con->sticky;
         }
 
@@ -99,9 +96,29 @@ static void handle_state(xcb_client_message_event_t *event) {
         ewmh_update_sticky(con->get_window()->id, con->sticky);
         output_push_sticky_windows(global.focused);
         ewmh_update_wm_desktop();
+    } else {
+        DLOG(std::format("Unknown atom in ClientMessage to {} type {}\n", debug_change, atom));
+        return;
     }
 
     tree_render();
+}
+
+static void handle_state(xcb_client_message_event_t *event) {
+    if (event->format != 32) {
+        DLOG(std::format("Unknown format {} in ClientMessage\n", event->format));
+        return;
+    }
+    
+    ConCon *con = con_by_window_id(event->window);
+    if (con == nullptr) {
+        DLOG("Could not get window for client message\n");
+        return;
+    }
+
+    for (size_t i = 0; i < sizeof(event->data.data32) / sizeof(event->data.data32[0]) - 1; i++) {
+        handle_net_wm_state_change(con, event->data.data32[0], event->data.data32[i + 1]);
+    }
 }
 
 static void handle_active_window(xcb_client_message_event_t *event) {

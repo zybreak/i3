@@ -94,6 +94,8 @@ export namespace cfg {
 
     void floating_modifier(criteria_state *criteria_state, ConfigResultIR &result, char const *modifiers);
 
+    void tiling_drag_swap_modifier(criteria_state *criteria_state, ConfigResultIR &result, char const *modifiers);
+    
     void
     default_border(criteria_state *criteria_state, ConfigResultIR &result, char const *windowtype, char const *border,
                    long const width);

@@ -275,6 +275,26 @@ static std::vector<int> precalculate_sizes(Con *con, render_params *p) {
     return sizes;
 }
 
+static bool fullscreen_blocks_floating_render(Con *fullscreen, Con *floating) {
+    if (fullscreen == nullptr) {
+        return false;
+    }
+    /* Don’t render floating windows when there is a fullscreen window on that
+     * workspace. Necessary to make floating fullscreen work correctly (ticket
+     * #564). Exception to the above rule: popup_during_fullscreen smart|all. */
+    switch (global.configManager->config->popup_during_fullscreen) {
+        case PDF_LEAVE_FULLSCREEN:
+        case PDF_IGNORE:
+            return true;
+        case PDF_SMART:
+            return fullscreen->get_window() == nullptr ||
+                   !con_find_transient_for_window(con_descend_focused(floating), fullscreen->get_window()->id);
+        case PDF_ALL:
+            return fullscreen->con_has_parent(floating);
+    }
+    return false; /* not reachable */
+}
+
 static void render_root(RootCon *con, Con *fullscreen) {
     if (!fullscreen) {
         for (auto &output : con->nodes) {
@@ -301,24 +321,8 @@ static void render_root(RootCon *con, Con *fullscreen) {
         Con *fullscreen = workspace->con_get_fullscreen_covering_ws();
         if (dynamic_cast<WorkspaceCon *>(workspace)) {
             for (auto &child : dynamic_cast<WorkspaceCon *>(workspace)->floating_windows) {
-                if (fullscreen != nullptr) {
-                    /* Don’t render floating windows when there is a fullscreen
-                     * window on that workspace. Necessary to make floating
-                     * fullscreen work correctly (ticket #564). Exception to the
-                     * above rule: smart popup_during_fullscreen handling (popups
-                     * belonging to the fullscreen app will be rendered). */
-                    if (global.configManager->config->popup_during_fullscreen != PDF_SMART || fullscreen->get_window() == nullptr) {
-                        continue;
-                    }
-
-                    Con *floating_child = con_descend_focused(child);
-                    if (con_find_transient_for_window(floating_child, fullscreen->get_window()->id)) {
-                        DLOG(fmt::sprintf("Rendering floating child even though in fullscreen mode: "
-                                          "floating->transient_for (0x%08x) --> fullscreen->id (0x%08x)\n",
-                                          floating_child->get_window()->transient_for, fullscreen->get_window()->id));
-                    } else {
-                        continue;
-                    }
+                if (fullscreen_blocks_floating_render(fullscreen, child)) {
+                    continue;
                 }
                 DLOG(fmt::sprintf("floating child at (%d,%d) with %d x %d\n",
                                   child->rect.x, child->rect.y, child->rect.width, child->rect.height));
