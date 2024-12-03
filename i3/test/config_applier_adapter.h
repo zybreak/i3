@@ -164,6 +164,10 @@ class ConfigApplierAdapter : public BaseConfigApplier {
     void floating_modifier(const std::string &modifiers) override {
         out << "cfg::floating_modifier(" << modifiers << ")" << std::endl;
     }
+    
+    void tiling_drag_swap_modifier(std::string const &modifiers) override {
+        out << "cfg::tiling_drag_swap_modifier(" << modifiers << ")" << std::endl;
+    }
 
     void default_border(const std::string &windowtype, const std::string &border, long width) override {
         out << "cfg::default_border(" << windowtype << ", " << border << ", " << width << ")" << std::endl;
