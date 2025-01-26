@@ -18,7 +18,7 @@ export class ResourceDatabase : public BaseResourceDatabase {
         assert(conn != nullptr);
     }
 
-    std::string get_resource(std::string_view const name, std::string_view const fallback) override {
+    std::string get_resource(std::string const name, std::string const fallback) override {
         /* Load the resource database lazily. */
         if (database == nullptr) {
             database = xcb_xrm_database_from_default(conn);
@@ -35,11 +35,11 @@ export class ResourceDatabase : public BaseResourceDatabase {
         }
 
         char *resource;
-        xcb_xrm_resource_get_string(database, name.data(), nullptr, &resource);
+        xcb_xrm_resource_get_string(database, name.c_str(), nullptr, &resource);
 
         if (resource == nullptr) {
             DLOG(fmt::sprintf("Could not get resource '%s', using fallback '%s'.\n", name, fallback));
-            return fallback.data();
+            return fallback;
         }
 
         std::string resource_str = resource;

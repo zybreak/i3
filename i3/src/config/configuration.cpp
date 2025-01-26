@@ -25,7 +25,6 @@ import i3_config_old;
 import log;
 
 using namespace std::literals;
-using namespace std::literals;
 
 /*
  * Get the path of the first configuration file found. If override_configpath is
@@ -306,7 +305,7 @@ std::unique_ptr<Config> ConfigurationManager::load_configuration(std::optional<s
             throw std::domain_error(std::format("Duplicate bindings in configuration file: {}", strerror((*__errno_location()))));
         }
     } catch (std::domain_error const &e) {
-        throw e;
+        throw;
     }
 
     extract_workspace_names_from_bindings(config.get());

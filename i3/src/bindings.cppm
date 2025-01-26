@@ -123,9 +123,9 @@ export {
      * be parsed.
      *
      */
-    void configure_binding(Config * config, std::string_view bindtype, std::string_view modifiers, std::string_view input_code,
+    void configure_binding(Config * config, std::string const &bindtype, std::string const &modifiers, std::string const &input_code,
                            bool release, bool border, bool whole_window,
-                           bool exclude_titlebar, std::string_view command, std::string_view modename,
+                           bool exclude_titlebar, std::string const &command, std::string const &modename,
                            bool pango_markup);
 
     /**

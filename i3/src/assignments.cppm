@@ -20,7 +20,7 @@ export {
      */
     class Assignment {
       protected:
-        Assignment(Match &&match)
+        explicit Assignment(Match &&match)
             : match(std::move(match)) {
         }
 

@@ -40,7 +40,7 @@ export {
         surface_t() = delete;
         surface_t(surface_t const &) = delete;
         void operator=(surface_t const &) = delete;
-        surface_t(surface_t &&other) {
+        surface_t(surface_t &&other) noexcept {
             auto tmp_owns_gc = this->owns_gc;
             auto tmp_cr = this->cr;
             auto tmp_gc = this->gc;
@@ -60,7 +60,7 @@ export {
             other.owns_gc = tmp_owns_gc;
             other.gc = tmp_gc;
         }
-        void operator=(surface_t &&other) {
+        void operator=(surface_t &&other) noexcept {
             auto tmp_owns_gc = this->owns_gc;
             auto tmp_cr = this->cr;
             auto tmp_gc = this->gc;

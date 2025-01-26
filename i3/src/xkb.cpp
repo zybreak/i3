@@ -207,7 +207,7 @@ void Xkb::refresh_keyboard_mapping(xcb_mapping_notify_event_t *event) {
 
 Xkb::Xkb(X &x)
     : x(x) {
-    x_connection *conn = &*x;
+    x_connection *conn = x;
     auto xkb_ext = conn->extension<xpp::xkb::extension>();
     xkb_supported = xkb_ext->present;
     if (!xkb_supported) {

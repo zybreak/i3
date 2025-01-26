@@ -94,9 +94,9 @@ static void mode_from_name(Config *config, std::string const &name, bool pango_m
  * be parsed.
  *
  */
-void configure_binding(Config *config, std::string_view const bindtype, std::string_view const modifiers, std::string_view const input_code,
+void configure_binding(Config *config, std::string const &bindtype, std::string const &modifiers, std::string const &input_code,
                        bool release, bool border, bool whole_window,
-                       bool exclude_titlebar, std::string_view const command, std::string_view const modename,
+                       bool exclude_titlebar, std::string const &command, std::string const &modename,
                        bool pango_markup) {
     DLOG(fmt::sprintf("Binding bindtype %s, modifiers %s, input code %s, release %s\n", bindtype, modifiers, input_code, release ? "true" : "false"));
 
@@ -105,16 +105,14 @@ void configure_binding(Config *config, std::string_view const bindtype, std::str
     new_binding.border = border;
     new_binding.whole_window = whole_window;
     new_binding.exclude_titlebar = exclude_titlebar;
-    if (strcmp(bindtype.data(), "bindsym") == 0) {
-        new_binding.input_type = (strncasecmp(input_code.data(), "button", (sizeof("button") - 1)) == 0
-                                      ? B_MOUSE
-                                      : B_KEYBOARD);
+    if (bindtype == "bindsym") {
+        new_binding.input_type = (input_code.starts_with("button") ? B_MOUSE : B_KEYBOARD);
 
-        new_binding.symbol = input_code.data();
+        new_binding.symbol = input_code;
     } else {
         long keycode;
-        if (!utils::parse_long(input_code.data(), &keycode, 10)) {
-            ELOG(fmt::sprintf("Could not parse \"%s\" as an input code, ignoring this binding.\n", input_code.data()));
+        if (!utils::parse_long(input_code, keycode)) {
+            ELOG(std::format("Could not parse \"{}\" as an input code, ignoring this binding.\n", input_code));
             return;
         }
 
@@ -140,7 +138,7 @@ void configure_binding(Config *config, std::string_view const bindtype, std::str
         ELOG("Keybinding has more than one Group specified, but your X server is always in precisely one group. The keybinding can never trigger.\n");
     }
 
-    mode_from_name(config, modename.data(), pango_markup, new_binding);
+    mode_from_name(config, modename, pango_markup, new_binding);
 }
 
 static bool binding_in_current_group(Binding const &bind) {
@@ -479,7 +477,7 @@ void translate_keysyms(Keymap const &keymap) {
         for (auto &bind : global.configManager->config->current_mode()->bindings) {
             if (bind.input_type == B_MOUSE) {
                 long button;
-                if (!utils::parse_long(bind.symbol.c_str() + (sizeof("button") - 1), &button, 10)) {
+                if (!utils::parse_long(bind.symbol.substr(sizeof("button") - 1), button)) {
                     ELOG(fmt::sprintf("Could not translate string to button: \"%s\"\n", bind.symbol));
                 }
 
@@ -830,7 +828,7 @@ std::set<int> bindings_get_buttons_to_grab() {
         }
 
         long button;
-        if (!utils::parse_long(bind.symbol.c_str() + (sizeof("button") - 1), &button, 10)) {
+        if (!utils::parse_long(bind.symbol.substr(sizeof("button") - 1), button)) {
             ELOG("Could not parse button number, skipping this binding. Please report this bug in i3.\n");
             continue;
         }

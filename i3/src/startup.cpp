@@ -165,15 +165,14 @@ Startup_Sequence::Startup_Sequence(int screen, WorkspaceCon *ws, std::string nam
  * (and ID) should be created, which is the default and encouraged behavior.
  *
  */
-void ApplicationLauncher::start_application(std::string_view const command, bool no_startup_id) {
+void ApplicationLauncher::start_application(std::string const command, bool no_startup_id) {
     SnLauncherContext *context = nullptr;
 
     if (!no_startup_id) {
         /* Chop off everything starting from the first space (if there are any
          * spaces in the command), since we don’t want the parameters. */
         auto space = std::ranges::find(command, ' ');
-        auto const &view = std::string_view(command.begin(), space);
-        std::string launchee = view.data();
+        auto const launchee = command.substr(0, std::distance(command.begin(), space));
 
         /* Save the ID and current workspace in our internal list of startup
          * sequences */
@@ -195,7 +194,7 @@ void ApplicationLauncher::start_application(std::string_view const command, bool
         }
         setenv("I3SOCK", global.current_socketpath.c_str(), 1);
 
-        execl(_PATH_BSHELL, _PATH_BSHELL, "-c", command.data(), nullptr);
+        execl(_PATH_BSHELL, _PATH_BSHELL, "-c", command.c_str(), nullptr);
         /* not reached */
     }
 

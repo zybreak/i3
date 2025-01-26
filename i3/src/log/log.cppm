@@ -25,12 +25,12 @@ inline void rtrim(std::string &s) {
     s.erase(std::find_if(s.rbegin(), s.rend(), is_not_space).base(), s.end());
 }
 
-inline static std::string trim(std::string_view s) {
-    std::string c = std::string{s.data()};
-    ltrim(c);
-    rtrim(c);
+inline static std::string trim(std::string const c) {
+    std::string copy = c;
+    ltrim(copy);
+    rtrim(copy);
 
-    return c;
+    return copy;
 }
 
 export {
@@ -88,7 +88,7 @@ export {
      * Logs the given message to stdout while prefixing the current time to it,
      * but only if verbose mode is activated.
      */
-    void LOG(std::string_view msg, std::source_location loc = std::source_location::current()) {
+    void LOG(std::string const msg, std::source_location loc = std::source_location::current()) {
         // spdlog::info(msg);
         // SPDLOG_INFO(msg);
         spdlog::default_logger_raw()->log(spdlog::source_loc{loc.file_name(), static_cast<int>(loc.line()), loc.function_name()}, spdlog::level::info, trim(msg));
@@ -97,7 +97,7 @@ export {
     /**
      * Logs the given message to stdout while prefixing the current time to it.
      */
-    void ELOG(std::string_view msg, std::source_location loc = std::source_location::current()) {
+    void ELOG(std::string const msg, std::source_location loc = std::source_location::current()) {
         // spdlog::error(msg);
         // SPDLOG_ERROR(msg);
         spdlog::default_logger_raw()->log(spdlog::source_loc{loc.file_name(), static_cast<int>(loc.line()), loc.function_name()}, spdlog::level::err, trim(msg));
@@ -108,7 +108,7 @@ export {
      * but only if debug logging was activated.
      * This is to be called by DLOG() which includes filename/linenumber
      */
-    void DLOG(std::string_view msg, std::source_location loc = std::source_location::current()) {
+    void DLOG(std::string const msg, std::source_location loc = std::source_location::current()) {
         // spdlog::debug(msg);
         // SPDLOG_DEBUG(msg);
         spdlog::default_logger_raw()->log(spdlog::source_loc{loc.file_name(), static_cast<int>(loc.line()), loc.function_name()}, spdlog::level::debug, trim(msg));

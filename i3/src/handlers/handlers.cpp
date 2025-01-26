@@ -264,9 +264,9 @@ void PropertyHandlers::handle_mapping_notify(xcb_mapping_notify_event_t *event) 
 
     x.xcb_numlock_mask = global.xkb->get_numlock_mask();
 
-    ungrab_all_keys(&*x);
+    ungrab_all_keys(x);
     translate_keysyms(xkb.keymap());
-    grab_all_keys(&*x);
+    grab_all_keys(x);
 }
 
 /*
@@ -797,7 +797,7 @@ void PropertyHandlers::handle_key_press(xcb_key_press_event_t *event) {
  *
  */
 void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
-    x_connection *conn = &*x;
+    x_connection *conn = x;
     if (type != XCB_MOTION_NOTIFY) {
         DLOG(fmt::sprintf("event type %d, xkb_base %d\n", type, global.xkb->xkb_base));
     }

@@ -26,16 +26,13 @@ export namespace utils {
      * This is a convenience wrapper checking the parsing result. It returns true
      * if the number could be parsed.
      */
-    bool parse_long(char const *str, long *out, int base) {
-        char *end = nullptr;
-        long result = std::strtol(str, &end, base);
-        if (result == LONG_MIN || result == LONG_MAX || result < 0 || (end != nullptr && *end != '\0')) {
-            *out = result;
-            return false;
-        }
-
-        *out = result;
-        return true;
+    bool parse_long(std::string const str, std::integral auto &out, int base = 10) {
+        const char *begin = str.c_str();
+        const char *end = begin + str.length();
+        
+        auto [ptr, ec] = std::from_chars(begin, end, out, base);
+        
+        return (ec == std::errc() && ptr == end);
     }
 
     /*

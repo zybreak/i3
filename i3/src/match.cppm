@@ -95,7 +95,7 @@ export {
          * Interprets a ctype=cvalue pair and adds it to the given match specification.
          *
          */
-        void parse_property(char const *ctype, char const *cvalue);
+        void parse_property(std::string const ctype, std::string const cvalue);
 
         /**
          * Check if a match is empty. This is necessary while parsing commands to see

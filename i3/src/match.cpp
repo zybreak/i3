@@ -242,67 +242,67 @@ bool Match::match_matches_window(i3Window const *window) const {
     return true;
 }
 
-static Con *get_con_id(char const *cvalue) {
-    if (strcmp(cvalue, "__focused__") == 0) {
+static Con *get_con_id(std::string const cvalue) {
+    if (cvalue == "__focused__") {
         return global.focused;
     }
 
     long parsed;
-    if (!utils::parse_long(cvalue, &parsed, 0)) {
-        ELOG(fmt::sprintf("Could not parse con id \"%s\"\n", cvalue));
+    if (!utils::parse_long(cvalue, parsed, 0)) {
+        ELOG(std::format("Could not parse con id \"{}\"", cvalue));
         throw std::runtime_error("Invalid match: invalid con_id");
     }
 
-    DLOG(fmt::format("id as int = {}\n", parsed));
+    DLOG(std::format("id as int = {}", parsed));
     return (Con *)parsed;
 }
 
-static int get_id(char const *cvalue) {
-    long parsed;
-    if (!utils::parse_long(cvalue, &parsed, 0)) {
-        ELOG(fmt::sprintf("Could not parse window id \"%s\"\n", cvalue));
+static int get_id(std::string const cvalue) {
+    int parsed;
+    if (!utils::parse_long(cvalue, parsed, 0)) {
+        ELOG(std::format("Could not parse window id \"{}\"\n", cvalue));
         throw std::runtime_error("Invalid match: invalid id");
     }
 
-    DLOG(fmt::sprintf("window id as int = %d\n", parsed));
+    DLOG(std::format("window id as int = {}\n", parsed));
     return parsed;
 }
 
-static xcb_atom_t get_window_type(char const *cvalue) {
-    if (strcasecmp(cvalue, "normal") == 0) {
+static xcb_atom_t get_window_type(std::string const cvalue) {
+    if (cvalue == "normal") {
         return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NORMAL];
-    } else if (strcasecmp(cvalue, "dialog") == 0) {
+    } else if (cvalue == "dialog") {
         return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DIALOG];
-    } else if (strcasecmp(cvalue, "utility") == 0) {
+    } else if (cvalue == "utility") {
         return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_UTILITY];
-    } else if (strcasecmp(cvalue, "toolbar") == 0) {
+    } else if (cvalue == "toolbar") {
         return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLBAR];
-    } else if (strcasecmp(cvalue, "splash") == 0) {
+    } else if (cvalue == "splash") {
         return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_SPLASH];
-    } else if (strcasecmp(cvalue, "menu") == 0) {
+    } else if (cvalue == "menu") {
         return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_MENU];
-    } else if (strcasecmp(cvalue, "dropdown_menu") == 0) {
+    } else if (cvalue == "dropdown_menu") {
         return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DROPDOWN_MENU];
-    } else if (strcasecmp(cvalue, "popup_menu") == 0) {
+    } else if (cvalue == "popup_menu") {
         return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_POPUP_MENU];
-    } else if (strcasecmp(cvalue, "tooltip") == 0) {
+    } else if (cvalue == "tooltip") {
         return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_TOOLTIP];
-    } else if (strcasecmp(cvalue, "notification") == 0) {
+    } else if (cvalue == "notification") {
         return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NOTIFICATION];
     } else {
-        ELOG(fmt::sprintf("unknown window_type value \"%s\"\n", cvalue));
+        ELOG(std::format("unknown window_type value \"{}\"", cvalue));
         throw std::runtime_error("Invalid match: unknown window_type value");
     }
 }
 
-static match_urgent_t get_urgency(char const *cvalue) {
-    if (strcasecmp(cvalue, "latest") == 0 ||
-        strcasecmp(cvalue, "newest") == 0 ||
-        strcasecmp(cvalue, "recent") == 0 ||
-        strcasecmp(cvalue, "last") == 0) {
+static match_urgent_t get_urgency(std::string const cvalue) {
+    if (cvalue == "latest" ||
+        cvalue == "newest" ||
+        cvalue == "recent" ||
+        cvalue == "last") {
         return match_urgent_t::U_LATEST;
-    } else if (strcasecmp(cvalue, "oldest") == 0 ||
-               strcasecmp(cvalue, "first") == 0) {
+    } else if (cvalue == "oldest" ||
+               cvalue == "first") {
         return match_urgent_t::U_OLDEST;
     }
     throw std::runtime_error("Invalid match: unknown urgency value");
@@ -312,91 +312,89 @@ static match_urgent_t get_urgency(char const *cvalue) {
  * Interprets a ctype=cvalue pair and adds it to the given match specification.
  *
  */
-void Match::parse_property(char const *ctype, char const *cvalue) {
-    DLOG(fmt::sprintf("ctype=*%s*, cvalue=*%s*\n", ctype, cvalue));
-
-    std::string type = ctype;
+void Match::parse_property(std::string const ctype, std::string const cvalue) {
+    DLOG(std::format("ctype=*{}*, cvalue=*{}*", ctype, cvalue));
 
     // REGEXES
-    if (type == "class") {
+    if (ctype == "class") {
         this->window_class = std::make_unique<Regex>(cvalue);
         return;
     }
 
-    if (type == "instance") {
+    if (ctype == "instance") {
         this->instance = std::make_unique<Regex>(cvalue);
         return;
     }
 
-    if (type == "window_role") {
+    if (ctype == "window_role") {
         this->window_role = std::make_unique<Regex>(cvalue);
         return;
     }
 
-    if (type == "title") {
+    if (ctype == "title") {
         this->title = std::make_unique<Regex>(cvalue);
         return;
     }
 
-    if (type == "workspace") {
+    if (ctype == "workspace") {
         this->workspace = std::make_unique<Regex>(cvalue);
         return;
     }
 
-    if (type == "machine") {
+    if (ctype == "machine") {
         this->machine = std::make_unique<Regex>(cvalue);
         return;
     }
     // END REGEXES
 
-    if (type == "con_id") {
+    if (ctype == "con_id") {
         this->con_id = get_con_id(cvalue);
         return;
     }
 
-    if (type == "id") {
+    if (ctype == "id") {
         this->id = get_id(cvalue);
         return;
     }
 
-    if (type == "window_type") {
+    if (ctype == "window_type") {
         this->window_type = get_window_type(cvalue);
         return;
     }
 
-    if (type == "urgent") {
+    if (ctype == "urgent") {
         this->urgent = get_urgency(cvalue);
         return;
     }
 
     // WINDOW MODE
 
-    if (type == "tiling") {
+    if (ctype == "tiling") {
         this->window_mode = WM_TILING;
         return;
     }
 
-    if (type == "tiling_from") {
-        if (cvalue != nullptr) {
-            if (strcmp(cvalue, "auto") == 0) {
+    if (ctype == "tiling_from") {
+        if (!cvalue.empty()) {
+            if (cvalue == "auto") {
                 this->window_mode = WM_TILING_AUTO;
-            } else if (strcmp(cvalue, "user") == 0) {
+            } else if (cvalue == "user") {
                 this->window_mode = WM_TILING_USER;
             }
         }
         return;
     }
 
-    if (type == "floating") {
+    if (ctype == "floating") {
         this->window_mode = WM_FLOATING;
         return;
     }
 
-    if (type == "floating_from") {
-        if (cvalue != nullptr) {
-            if (strcmp(cvalue, "auto") == 0) {
+    if (ctype == "floating_from") {
+        if (!cvalue.empty()) {
+            if (cvalue == "auto") {
                 this->window_mode = WM_FLOATING_AUTO;
-            } else if (strcmp(cvalue, "user") == 0) {
+            } else if (cvalue == "user") {
                 this->window_mode = WM_FLOATING_USER;
             }
         }
@@ -405,7 +403,7 @@ void Match::parse_property(char const *ctype, char const *cvalue) {
 
     // END WINDOW MODE
 
-    if (type == "all") {
+    if (ctype == "all") {
         /* match_matches_window() only checks negatively, so match_all_windows
          * won't actually be used there, but that's OK because if no negative
          * match is found (e.g. because of a more restrictive criterion) the
@@ -416,5 +414,5 @@ void Match::parse_property(char const *ctype, char const *cvalue) {
         return;
     }
 
-    ELOG(fmt::sprintf("Unknown criterion: %s\n", ctype));
+    ELOG(std::format("Unknown criterion: {}", ctype));
 }

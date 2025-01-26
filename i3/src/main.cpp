@@ -115,7 +115,7 @@ static int parse_restart_fd() {
     }
 
     long int fd = -1;
-    if (!utils::parse_long(restart_fd, &fd, 10)) {
+    if (!utils::parse_long(restart_fd, fd)) {
         ELOG(fmt::sprintf("Malformed _I3_RESTART_FD \"%s\"\n", restart_fd));
         return -1;
     }
@@ -584,7 +584,7 @@ int main(int argc, char *argv[]) {
 
     xkb.load_keymap();
     translate_keysyms(xkb.keymap());
-    grab_all_keys(&*x);
+    grab_all_keys(x);
 
     RandR randr = injector.create<RandR &>();
     global.randr = &randr;
@@ -617,10 +617,10 @@ int main(int argc, char *argv[]) {
 
     x.conn->flush();
 
-    ignore_restart_events(&*x);
+    ignore_restart_events(x);
 
     if (args.autostart) {
-        fix_empty_background(&*x);
+        fix_empty_background(x);
     }
 
 #if defined(__OpenBSD__)

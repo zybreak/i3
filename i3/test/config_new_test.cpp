@@ -12,7 +12,7 @@ import i3_config_new;
 using namespace std::literals;
 
 class MockedResourceDatabase : public BaseResourceDatabase {
-    MOCK_METHOD(std::string, get_resource, (std::string_view const name, std::string_view const fallback), (override));
+    MOCK_METHOD(std::string, get_resource, (std::string const name, std::string const fallback), (override));
 };
 
 TEST(ConfigNewTest, test_mode_bindings_ok) {

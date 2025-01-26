@@ -46,7 +46,7 @@ export {
         i3WindowIcon() = delete;
         i3WindowIcon(i3WindowIcon const &other) = delete;
         i3WindowIcon &operator=(i3WindowIcon const &other) = delete;
-        i3WindowIcon(i3WindowIcon &&other) {
+        i3WindowIcon(i3WindowIcon &&other) noexcept {
             std::swap(icon, other.icon);
             std::swap(icon_data, other.icon_data);
         }

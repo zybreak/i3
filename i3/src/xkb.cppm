@@ -23,13 +23,13 @@ export class Keysyms {
   public:
     Keysyms() = delete;
     explicit Keysyms(X &x);
-    Keysyms(Keysyms &&other)
+    Keysyms(Keysyms &&other) noexcept
         : x(other.x) {
         std::swap(keysyms, other.keysyms);
     }
 
     void operator=(Keysyms const &) = delete;
-    void operator=(Keysyms &&other) {
+    void operator=(Keysyms &&other) noexcept {
         std::swap(keysyms, other.keysyms);
     }
     ~Keysyms();
@@ -65,14 +65,14 @@ export class ResolvedKeymap {
 
     ResolvedKeymap(ResolvedKeymap const &) = delete;
     ResolvedKeymap &operator=(ResolvedKeymap const &) = delete;
-    ResolvedKeymap(ResolvedKeymap &&other) {
+    ResolvedKeymap(ResolvedKeymap &&other) noexcept {
         std::swap(dummy_state, other.dummy_state);
         std::swap(dummy_state_no_shift, other.dummy_state_no_shift);
         std::swap(dummy_state_numlock, other.dummy_state_numlock);
         std::swap(dummy_state_numlock_no_shift, other.dummy_state_numlock_no_shift);
     }
 
-    ResolvedKeymap &operator=(ResolvedKeymap &&other) {
+    ResolvedKeymap &operator=(ResolvedKeymap &&other) noexcept {
         std::swap(dummy_state, other.dummy_state);
         std::swap(dummy_state_no_shift, other.dummy_state_no_shift);
         std::swap(dummy_state_numlock, other.dummy_state_numlock);
@@ -104,13 +104,13 @@ export class Keymap {
     Keymap(Keymap &other) = delete;
     void operator=(Keymap &other) = delete;
 
-    Keymap &operator=(Keymap &&other) {
+    Keymap &operator=(Keymap &&other) noexcept {
         std::swap(keymap, other.keymap);
         std::swap(context, other.context);
         return *this;
     }
 
-    Keymap(Keymap &&other) {
+    Keymap(Keymap &&other) noexcept {
         std::swap(keymap, other.keymap);
         std::swap(context, other.context);
     }
