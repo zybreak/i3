@@ -8,7 +8,6 @@ export module program_arguments;
 
 import std;
 import log;
-import i3;
 
 export {
     // program arguments
@@ -83,7 +82,7 @@ program_arguments parse_args(int argc, char *argv[]) {
                     break;
                 } else if (strcmp(long_options[option_index].name, "get-socketpath") == 0 ||
                            strcmp(long_options[option_index].name, "get_socketpath") == 0) {
-                    std::optional<std::string> socket_path = root_atom_contents("I3_SOCKET_PATH", nullptr, 0);
+                    std::optional<std::string> socket_path = std::nullopt; // FIXME: root_atom_contents("I3_SOCKET_PATH", nullptr, 0);
                     if (socket_path) {
                         std::printf("%s\n", socket_path->c_str());
                         std::exit(EXIT_SUCCESS);

@@ -13,11 +13,7 @@ module;
 module i3;
 
 import std;
-import :window;
 import log;
-import :assignments;
-import :tree;
-import :commands_applier;
 import i3_commands_base;
 
 /*
@@ -53,7 +49,7 @@ void AssignmentManager::run_assignments(i3Window *window) {
         DLOG(fmt::sprintf("matching assignment, execute command %s\n", command->command));
         std::string full_command = fmt::format("[id=\"{}\"] {}", std::to_string(window->id), command->command);
         auto commandsApplier = CommandsApplier{};
-        CommandResult result = parse_command(full_command, {}, &commandsApplier);
+        CommandResult result = parse_command(full_command, commandsApplier);
 
         if (result.needs_tree_render) {
             needs_tree_render = true;

@@ -119,7 +119,8 @@ open(my $enumfh, '>', "GENERATED_${prefix}_enums.cppm");
 my %statenum;
 #say $enumfh '#pragma once';
 say $enumfh "export module i3_${prefix}_old:enums;";
-say $enumfh 'export enum class cmdp_state : int {';
+say $enumfh "export namespace i3_${prefix}_old {";
+say $enumfh 'enum class cmdp_state : int {';
 my $cnt = 0;
 for my $state (@keys, '__CALL') {
     say $enumfh ',' if $cnt > 0;
@@ -128,23 +129,25 @@ for my $state (@keys, '__CALL') {
     $cnt++;
 }
 say $enumfh "\n};";
+say $enumfh "};";
 close($enumfh);
 
 # Third step: Generate the call function.
 open(my $callfh, '>', "GENERATED_${prefix}_call.cppm");
 my $resultname = uc(substr($prefix, 0, 1)) . substr($prefix, 1) . 'ResultIR';
 #say $callfh '#pragma once';
-say $callfh "module;";
-say $callfh "struct criteria_state;";
 say $callfh "export module i3_${prefix}_old:call;";
 say $callfh 'import std;';
-say $callfh "import :${prefix}_directives;";
+if ($prefix eq "config") {
+    say $callfh "import :${prefix}_directives;";
+}
 say $callfh "import i3_${prefix}_base;";
 say $callfh "import :enums;";
 say $callfh "import :parser_stack;";
-#say $callfh '#include "criteria_state.h"';
-#say $callfh 'struct criteria_state;';
-say $callfh "export void GENERATED_call(criteria_state *criteria_state, stack &stack, const int call_identifier, $resultname &result) {";
+say $callfh "import criteria_state;";
+say $callfh "export namespace i3_${prefix}_old {";
+say $callfh "cmdp_state GENERATED_call(criteria_state *criteria_state, Base" . ucfirst($prefix) . "Applier &applier, stack &stack, const int call_identifier, $resultname &result) {";
+say $callfh '    cmdp_state next_state;';
 say $callfh '    switch (call_identifier) {';
 my $call_id = 0;
 for my $state (@keys) {
@@ -182,7 +185,7 @@ for my $state (@keys) {
         $fmt = $funcname . $fmt;
 
         say $callfh "         case $call_id:";
-        say $callfh "             result.next_state = std::to_underlying(cmdp_state::$next_state);";
+        say $callfh "             next_state = cmdp_state::$next_state;";
         my $real_cmd = $cmd;
         if ($real_cmd =~ /\(\)/) {
             $real_cmd =~ s/\(/(criteria_state, result/;
@@ -198,6 +201,8 @@ for my $state (@keys) {
 say $callfh '        default:';
 say $callfh '            throw new std::runtime_error(std::format("BUG in the parser. state = {}", call_identifier));';
 say $callfh '    }';
+say $callfh '    return next_state;';
+say $callfh '}';
 say $callfh '}';
 close($callfh);
 
@@ -212,8 +217,8 @@ say $tokfh 'import std;';
 say $tokfh 'import :enums;';
 say $tokfh 'import :cmdp_token;';
 say $tokfh 'using namespace std::literals;';
-
-say $tokfh 'export std::map<cmdp_state, std::vector<cmdp_token>> tokens{';
+say $tokfh "export namespace i3_${prefix}_old {";
+say $tokfh 'std::map<cmdp_state, std::vector<cmdp_token>> tokens{';
 
 for my $state (@keys) {
     my $tokens = $states{$state};
@@ -246,6 +251,7 @@ for my $state (@keys) {
     say $tokfh '}},';
 }
 
+say $tokfh '};';
 say $tokfh '};';
 
 close($tokfh);

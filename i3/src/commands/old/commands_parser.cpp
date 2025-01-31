@@ -24,7 +24,6 @@
  *
  */
 module;
-struct criteria_state;
 #include <err.h>
 #include <fmt/core.h>
 #include <fmt/printf.h>
@@ -34,6 +33,7 @@ module i3_commands_old;
 import std;
 import i3_commands_base;
 import utils;
+import criteria_state;
 
 /*******************************************************************************
  * The parser itself.
@@ -43,27 +43,19 @@ import utils;
  * The (small) stack where identified literals are stored during the parsing
  * of a single command (like $workspace).
  ******************************************************************************/
-static CommandsResultIR subcommand_output;
-static CommandsResultIR command_output;
-
 [[nodiscard("PURE FUN")]]
-static cmdp_state next_state(cmdp_token const &token, stack &stack, criteria_state *criteria_state) {
-    if (token.next_state == cmdp_state::__CALL) {
-        subcommand_output.json_gen = command_output.json_gen;
-        subcommand_output.client = command_output.client;
-        subcommand_output.applier = command_output.applier;
+static i3_commands_old::cmdp_state next_state(cmdp_token const &token, stack &stack, criteria_state *criteria_state, BaseCommandsApplier &applier, CommandsResultIR &command_output) {
+    if (token.next_state == i3_commands_old::cmdp_state::__CALL) {
+        CommandsResultIR subcommand_output{};
         subcommand_output.needs_tree_render = false;
+        i3_commands_old::cmdp_state state;
 
         try {
-            GENERATED_call(criteria_state, stack, token.call_identifier, subcommand_output);
+            state = i3_commands_old::GENERATED_call(criteria_state, applier, stack, token.call_identifier, subcommand_output);
         } catch (std::exception const &e) {
-            if (subcommand_output.json_gen != nullptr) {
-                subcommand_output.json_gen->push_back({{"success", false},
-                                                       {"error", e.what()}});
-            }
+            applier.append_json({{"success", false}, {"error", e.what()}});
         }
 
-        auto state = static_cast<cmdp_state>(subcommand_output.next_state);
         /* If any subcommand requires a tree_render(), we need to make the
          * whole parser result request a tree_render(). */
         if (subcommand_output.needs_tree_render) {
@@ -74,26 +66,26 @@ static cmdp_state next_state(cmdp_token const &token, stack &stack, criteria_sta
     }
 
     auto state = token.next_state;
-    if (state == cmdp_state::INITIAL) {
+    if (state == i3_commands_old::cmdp_state::INITIAL) {
         clear_stack(stack);
     }
     return state;
 }
 
-bool handle_literal(std::string::const_iterator &walk, cmdp_token const &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
+bool handle_literal(std::string::const_iterator &walk, cmdp_token const &token, i3_commands_old::cmdp_state *state, stack &stack, criteria_state *criteria_state, BaseCommandsApplier &applier, CommandsResultIR &command_output) {
     if (strncasecmp(std::to_address(walk), token.name.substr(1).c_str(), token.name.size() - 1) == 0) {
         if (token.identifier) {
             push_string(stack, token.identifier->c_str(), token.name.c_str() + 1);
         }
         walk += token.name.length() - 1;
-        *state = next_state(token, stack, criteria_state);
+        *state = next_state(token, stack, criteria_state, applier, command_output);
         return true;
     }
 
     return false;
 }
 
-bool handle_number(std::string::const_iterator &walk, cmdp_token const &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
+bool handle_number(std::string::const_iterator &walk, cmdp_token const &token, i3_commands_old::cmdp_state *state, stack &stack, criteria_state *criteria_state, BaseCommandsApplier &applier, CommandsResultIR &command_output) {
     /* Handle numbers. We only accept decimal numbers for now. */
     char *end = nullptr;
     errno = 0;
@@ -115,11 +107,11 @@ bool handle_number(std::string::const_iterator &walk, cmdp_token const &token, c
     /* Set walk to the first non-number character */
     int dist = end - std::to_address(walk);
     std::advance(walk, dist);
-    *state = next_state(token, stack, criteria_state);
+    *state = next_state(token, stack, criteria_state, applier, command_output);
     return true;
 }
 
-bool handle_word(std::string::const_iterator &walk, cmdp_token const &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
+bool handle_word(std::string::const_iterator &walk, cmdp_token const &token, i3_commands_old::cmdp_state *state, stack &stack, criteria_state *criteria_state, BaseCommandsApplier &applier, CommandsResultIR &command_output) {
     auto str = utils::parse_string(walk, (token.name[0] != 's'));
     if (str) {
         if (token.identifier) {
@@ -130,21 +122,21 @@ bool handle_word(std::string::const_iterator &walk, cmdp_token const &token, cmd
         if (*walk == '"') {
             walk++;
         }
-        *state = next_state(token, stack, criteria_state);
+        *state = next_state(token, stack, criteria_state, applier, command_output);
         return true;
     }
     return false;
 }
 
-bool handle_end(std::string::const_iterator &walk, cmdp_token const &token, cmdp_state *state, stack &stack, criteria_state *criteria_state) {
+bool handle_end(std::string::const_iterator &walk, cmdp_token const &token, i3_commands_old::cmdp_state *state, stack &stack, criteria_state *criteria_state, BaseCommandsApplier &applier, CommandsResultIR &command_output) {
     if (*walk == '\0' || *walk == ',' || *walk == ';') {
-        *state = next_state(token, stack, criteria_state);
+        *state = next_state(token, stack, criteria_state, applier, command_output);
         /* To make sure we start with an appropriate matching
          * datastructure for commands which do *not* specify any
          * criteria, we re-initialize the criteria system after
          * every command. */
         if (*walk == '\0' || *walk == ';') {
-            cmd::criteria_init(criteria_state, command_output);
+            applier.criteria_init(criteria_state, command_output);
         }
         walk++;
         return true;
@@ -153,7 +145,7 @@ bool handle_end(std::string::const_iterator &walk, cmdp_token const &token, cmdp
     return false;
 }
 
-void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, std::string const &input, size_t const len, std::vector<cmdp_token> const &ptr, std::string::const_iterator &walk) {
+void unhandled_token(CommandResult &result, BaseCommandsApplier &applier, stack &stack, std::string const &input, size_t const len, std::vector<cmdp_token> const &ptr, std::string::const_iterator &walk) {
     /* Figure out how much memory we will need to fill in the names of
      * all tokens afterwards. */
     size_t tokenlen = 0;
@@ -203,8 +195,7 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, s
     result.error_message = errormessage;
 
     /* Format this error message as a JSON reply. */
-    if (gen != nullptr) {
-        gen->push_back({{"success", false},
+    applier.append_json({{"success", false},
                         /* We set parse_error to true to distinguish this from other
                          * errors. i3-nagbar is spawned upon keypresses only for parser
                          * errors. */
@@ -212,8 +203,6 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, s
                         {"error", errormessage},
                         {"input", input},
                         {"errorposition", position}});
-    }
-
     clear_stack(stack);
 }
 
@@ -224,19 +213,14 @@ void unhandled_token(CommandResult &result, nlohmann::json *gen, stack &stack, s
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult i3_commands_old::parse_command(std::string const &input, command_parser_data &&data, BaseCommandsApplier *applier) {
+CommandResult i3_commands_old::parse_command(std::string const &input, BaseCommandsApplier &applier) {
     // DLOG(fmt::sprintf("COMMAND: *%.4000s*\n",  input));
-    cmdp_state state = cmdp_state::INITIAL;
+    i3_commands_old::cmdp_state state = i3_commands_old::cmdp_state::INITIAL;
     stack stack{};
-    struct criteria_state *criteria_state = applier->create_criteria_state(std::to_underlying(state));
+    criteria_state *criteria_state = applier.create_criteria_state(std::to_underlying(state));
     auto result = CommandResult{};
 
-    command_output.applier = applier;
-    command_output.client = data.client;
-
-    /* A YAJL JSON generator used for formatting replies. */
-    command_output.json_gen = data.gen;
-
+    CommandsResultIR command_output{};
     command_output.needs_tree_render = false;
 
     std::string::const_iterator walk = input.begin();
@@ -259,18 +243,18 @@ CommandResult i3_commands_old::parse_command(std::string const &input, command_p
 
             /* A literal. */
             if (token.name[0] == '\'') {
-                token_handled = handle_literal(walk, token, &state, stack, criteria_state);
+                token_handled = handle_literal(walk, token, &state, stack, criteria_state, applier, command_output);
             } else if (token.name == "number") {
-                token_handled = handle_number(walk, token, &state, stack, criteria_state);
+                token_handled = handle_number(walk, token, &state, stack, criteria_state, applier, command_output);
             } else if (token.name == "string" || token.name == "word") {
-                token_handled = handle_word(walk, token, &state, stack, criteria_state);
+                token_handled = handle_word(walk, token, &state, stack, criteria_state, applier, command_output);
             } else if (token.name == "end") {
-                token_handled = handle_end(walk, token, &state, stack, criteria_state);
+                token_handled = handle_end(walk, token, &state, stack, criteria_state, applier, command_output);
             }
         }
 
         if (!token_handled) {
-            unhandled_token(result, data.gen, stack, input, len, ptr, walk);
+            unhandled_token(result, applier, stack, input, len, ptr, walk);
             break;
         }
     }

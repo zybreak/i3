@@ -260,8 +260,8 @@ static void handle_run_command(ipc_client *client, uint8_t *message, int size, u
     LOG(fmt::sprintf("IPC: received: *%.4000s*\n", command));
     nlohmann::json gen;
 
-    auto commandsApplier = CommandsApplier{};
-    CommandResult result = parse_command(command, {.gen = &gen, .client = client}, &commandsApplier);
+    auto commandsApplier = CommandsApplier{client, &gen};
+    CommandResult result = parse_command(command, commandsApplier);
 
     if (result.needs_tree_render) {
         tree_render();
@@ -835,9 +835,9 @@ void IPCManager::ipc_send_window_event(char const *property, Con *con) {
 /*
  * For the barconfig update events, we send the serialized barconfig.
  */
-void ipc_send_barconfig_update_event(Barconfig *barconfig) {
+//void ipc_send_barconfig_update_event(Barconfig *barconfig) {
     // NOOP
-}
+//}
 
 /*
  * For the binding events, we send the serialized binding struct.

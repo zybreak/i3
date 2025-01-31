@@ -31,7 +31,6 @@ module i3;
 import std;
 import log;
 import rect;
-import :output;
 import utils;
 import i3ipc;
 
@@ -765,7 +764,7 @@ static void handle_selection_clear(xcb_selection_clear_event_t *event) {
  *
  */
 PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, ConfigurationManager &configManager, RandR &randr, Xkb &xkb, InputManager &inputManager, ApplicationLauncher &applicationLauncher, IPCManager &ipcManager)
-    : x{x}, workspaceManager(workspaceManager), configManager(configManager), randr(randr), xkb(xkb), inputManager(inputManager), ipcManager(ipcManager) {
+    : x{x}, workspaceManager(workspaceManager), configManager(configManager), inputManager(inputManager), randr(randr), xkb(xkb), ipcManager(ipcManager) {
 }
 
 /*
@@ -781,7 +780,7 @@ void PropertyHandlers::handle_key_press(xcb_key_press_event_t *event) {
 
     DLOG(fmt::sprintf("%s %d, state raw = 0x%x\n", (key_release ? "KeyRelease" : "KeyPress"), event->detail, event->state));
 
-    Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event);
+    Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event, global.configManager->config->current_mode()->bindings);
 
     /* if we couldn't find a binding, we are done */
     if (bind == nullptr) {

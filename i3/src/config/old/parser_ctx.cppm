@@ -1,11 +1,9 @@
-module;
-class OldParser;
-struct criteria_state;
 export module i3_config_old:parser_ctx;
 
 import std;
 import i3_config_base;
 import :parser_stack;
+import criteria_state;
 
 export {
     /**
@@ -45,7 +43,7 @@ export {
 
         parser_ctx() = delete;
 
-        explicit parser_ctx(OldParser *parser);
+        explicit parser_ctx(BaseParser *parser);
 
         ~parser_ctx();
     };

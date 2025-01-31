@@ -7,6 +7,6 @@ struct cmdp_token {
     std::string name;
     std::optional<std::string> identifier;
     /* This might be __CALL */
-    cmdp_state next_state;
+    i3_config_old::cmdp_state next_state;
     std::uint16_t call_identifier;
 };

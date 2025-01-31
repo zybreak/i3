@@ -390,7 +390,7 @@ static i3Window *create_window(Window_data &w_data, xcb_window_t window, xcb_vis
     auto cwindow = new i3Window(window);
     cwindow->depth = get_visual_depth(visual);
 
-    auto buttons = bindings_get_buttons_to_grab();
+    auto buttons = bindings_get_buttons_to_grab(global.configManager->config->current_mode()->bindings);
     xcb_grab_buttons(window, buttons);
 
     /* update as much information as possible so far (some replies may be NULL) */

@@ -20,11 +20,7 @@ module i3;
 import std;
 import utils;
 import regex;
-import :match;
 import log;
-import :con;
-import :window;
-import :util;
 
 /* From sys/time.h, not sure if it’s available on all systems. */
 template <typename Comp = std::ranges::less>

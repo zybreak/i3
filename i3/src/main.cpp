@@ -7,7 +7,6 @@
  * main.c: Initialization, main loop
  *
  */
-struct criteria_state;
 #include <spdlog/spdlog.h>
 #include <config.h>
 

@@ -38,7 +38,6 @@ module i3;
 import std;
 import i3_commands_old;
 import i3_commands_base;
-import :commands;
 
 // CommandResult parse_command_new(const std::string &input, nlohmann::json *gen, ipc_client *client);
 
@@ -49,6 +48,6 @@ import :commands;
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult parse_command(std::string const &input, command_parser_data &&data, BaseCommandsApplier *applier) {
-    return i3_commands_old::parse_command(input, std::move(data), applier);
+CommandResult parse_command(std::string const &input, BaseCommandsApplier &applier) {
+    return i3_commands_old::parse_command(input, applier);
 }

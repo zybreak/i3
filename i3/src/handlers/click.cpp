@@ -14,7 +14,6 @@ module;
 module i3;
 
 import std;
-import :output;
 import log;
 import rect;
 
@@ -204,7 +203,7 @@ void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, cl
 
     /* if the user has bound an action to this click, it should override the
      * default behavior. */
-    Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event);
+    Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event, global.configManager->config->current_mode()->bindings);
     if (bind && ((dest == CLICK_DECORATION && !bind->exclude_titlebar) ||
                  (dest == CLICK_INSIDE && bind->whole_window) ||
                  (dest == CLICK_BORDER && bind->border))) {
@@ -410,7 +409,7 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
          * if --whole-window was set as that's the equivalent for a normal
          * window. */
         if (event->event == x.root) {
-            Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event);
+            Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event, global.configManager->config->current_mode()->bindings);
             if (bind != nullptr && bind->whole_window) {
                 run_binding(bind, nullptr);
             }

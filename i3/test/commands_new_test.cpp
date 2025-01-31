@@ -13,6 +13,5 @@ using namespace i3_commands_new;
 
 TEST(CommandsNewTest, Nop) {
     CommandsApplierTest commandsApplier{};
-    command_parser_data d{};
-    parse_command("nop", std::move(d), commandsApplier);
+    parse_command("nop", commandsApplier);
 }

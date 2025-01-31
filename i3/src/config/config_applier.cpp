@@ -8,8 +8,6 @@
  *
  */
 module;
-struct criteria_state;
-
 #include <xcb/xcb.h>
 
 #include <fmt/printf.h>
@@ -21,11 +19,12 @@ import std;
 import utils;
 import log;
 import i3_config_base;
+import criteria_state;
 
 using namespace std::literals;
 
 criteria_state *ConfigApplier::criteria_create(int _state) {
-    criteria_state *st = new criteria_state(_state);
+    criteria_state_impl *st = new criteria_state_impl(_state);
 
     DLOG(fmt::sprintf("Creating criteria, current_match = %p, state = %d\n", fmt::ptr(&(st->current_match)), _state));
     st->current_match = Match();
@@ -33,7 +32,8 @@ criteria_state *ConfigApplier::criteria_create(int _state) {
     return st;
 }
 
-void ConfigApplier::criteria_init(criteria_state *st, int _state) {
+void ConfigApplier::criteria_init(criteria_state *s, int _state) {
+    auto st = dynamic_cast<criteria_state_impl*>(s);
     // criteria_state *st = new criteria_state();
     st->criteria_next_state = _state;
 
@@ -41,14 +41,15 @@ void ConfigApplier::criteria_init(criteria_state *st, int _state) {
     st->current_match = Match();
 }
 
-int ConfigApplier::criteria_pop_state(criteria_state *cs) {
+int ConfigApplier::criteria_pop_state(criteria_state *c) {
+    auto cs = dynamic_cast<criteria_state_impl*>(c);
     int next_state = cs->criteria_next_state;
 
     return next_state;
 }
 
 void ConfigApplier::criteria_add(criteria_state *cs, char const *ctype, char const *cvalue) {
-    cs->current_match.parse_property(ctype, cvalue);
+    dynamic_cast<criteria_state_impl*>(cs)->current_match.parse_property(ctype, cvalue);
 }
 
 void ConfigApplier::font(std::string const &font) {
@@ -202,7 +203,8 @@ void ConfigApplier::smart_gaps(std::string const &enable) {
     }
 }
 
-void ConfigApplier::for_window(criteria_state *criteria_state, std::string const &command) {
+void ConfigApplier::for_window(criteria_state *st, std::string const &command) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(st);
     if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this for_window statement\n");
         return;
@@ -445,7 +447,8 @@ void ConfigApplier::color(std::string const &colorclass, std::string const &bord
 #undef APPLY_COLORS
 }
 
-void ConfigApplier::assign_output(criteria_state *criteria_state, std::string const &output) {
+void ConfigApplier::assign_output(criteria_state *s, std::string const &output) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;
@@ -460,7 +463,8 @@ void ConfigApplier::assign_output(criteria_state *criteria_state, std::string co
     global.assignmentManager->add(std::make_unique<OutputAssignment>(std::move(criteria_state->current_match), output));
 }
 
-void ConfigApplier::assign(criteria_state *criteria_state, std::string const &workspace, bool is_number) {
+void ConfigApplier::assign(criteria_state *s, std::string const &workspace, bool is_number) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;
@@ -483,7 +487,8 @@ void ConfigApplier::assign(criteria_state *criteria_state, std::string const &wo
     global.assignmentManager->add(std::move(assignment));
 }
 
-void ConfigApplier::no_focus(criteria_state *criteria_state) {
+void ConfigApplier::no_focus(criteria_state *s) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;

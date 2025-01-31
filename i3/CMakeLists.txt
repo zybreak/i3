@@ -119,56 +119,10 @@ target_sources(i3_lib PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES
         src/i3-lib.cppm
-        src/assignments.cppm
-        src/autostarts.cppm
-        src/atoms.cppm
         src/bindings.cppm
-        src/config/config_applier.cppm
-        src/config/configuration.cppm
-        src/config/resource_database.cppm
-        src/commands/commands.cppm
-        src/commands/commands_applier.cppm
-        src/handlers/handle_property.cppm
-        src/con/con.cppm
-        src/dump_node.cppm
-        src/gaps.cppm
-        src/util.cppm
-        src/x.cppm
-        src/workspace.cppm
-        src/event_handler.cppm
-        src/xkb.cppm
-        src/handlers/handlers.cppm
-        src/criteria_state.cppm
-        src/resize.cppm
-        src/window.cppm
-        src/match.cppm
-        src/tree.cppm
-        src/startup.cppm
-        src/draw.cppm
-        src/sync.cppm
-        src/output.cppm
-        src/rect.cppm
-        src/render.cppm
-        src/randr.cppm
-        src/font.cppm
-        src/xcb.cppm
-        src/drag.cppm
-        src/dpi.cppm
-        src/get_visualtype.cppm
-        src/ewmh.cppm
-        src/floating.cppm
-        src/move.cppm
-        src/sighandler.cppm
-        src/ipc.cppm
-        src/is_background_set.cppm
-        src/load_layout.cppm
-        src/restore_layout.cppm
         src/program_arguments.cppm
-        src/root_atom_contents.cppm
-        src/nagbar/nagbar.cppm
-        src/manage.cppm
+        src/rect.cppm
         src/i3_regex.cppm
-        src/internal.cppm
         )
 target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_base i3_config_new i3_config_old i3_commands_base i3_commands_old i3_commands_new utils xpp i3_log)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)

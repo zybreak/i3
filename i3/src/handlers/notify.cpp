@@ -22,7 +22,6 @@ module i3;
 import std;
 import log;
 import rect;
-import :output;
 import utils;
 
 static bool window_name_changed(i3Window const *window, std::string &old_name) {

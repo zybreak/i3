@@ -31,7 +31,6 @@ module;
 module i3;
 
 import std;
-import :output;
 import format_placeholders;
 import utils;
 import log;

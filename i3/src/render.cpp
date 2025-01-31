@@ -16,7 +16,6 @@ module;
 module i3;
 
 import std;
-import :con;
 import log;
 import rect;
 

@@ -54,7 +54,7 @@ class ErrorListener : public BaseErrorListener {
  *
  * Free the returned CommandResult with command_result_free().
  */
-CommandResult i3_commands_new::parse_command(std::string const &input, command_parser_data &&data, BaseCommandsApplier &applier) {
+CommandResult i3_commands_new::parse_command(std::string const &input, BaseCommandsApplier &applier) {
     std::string padded_input = fmt::sprintf("$(%s)", input);
     ANTLRInputStream stream{padded_input};
     commandsLexer lexer{&stream};
@@ -78,7 +78,7 @@ CommandResult i3_commands_new::parse_command(std::string const &input, command_p
 
     // cout << tree->toStringTree(&parser, true) << endl << endl;
 
-    CommandsListener listener{applier, data.gen, data.client};
+    CommandsListener listener{applier};
     tree::ParseTreeWalker::DEFAULT.walk(&listener, tree);
 
     CommandResult result{};

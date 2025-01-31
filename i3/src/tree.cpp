@@ -25,7 +25,6 @@ module;
 module i3;
 
 import std;
-import :output;
 import log;
 import utils;
 import rect;

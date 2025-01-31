@@ -11,6 +11,5 @@ import i3ipc;
 
 TEST(CommandsOldTest, Nop) {
     CommandsApplierTest commandsApplier{};
-    command_parser_data d{};
-    i3_commands_old::parse_command("nop", std::move(d), &commandsApplier);
+    i3_commands_old::parse_command("nop", commandsApplier);
 }

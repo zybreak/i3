@@ -13,12 +13,12 @@ state INITIAL:
   # We have an end token here for all the commands which just call some
   # function without using an explicit 'end' token.
   end ->
-  '[' -> call cmd::criteria_init(); CRITERIA
+  '[' -> call applier.criteria_init(); CRITERIA
   'move' -> MOVE
   'exec' -> EXEC
-  'exit' -> call cmd::exit()
-  'restart' -> call cmd::restart()
-  'reload' -> call cmd::reload()
+  'exit' -> call applier.exit()
+  'restart' -> call applier.restart()
+  'reload' -> call applier.reload()
   'debuglog' -> DEBUGLOG
   'border' -> BORDER
   'layout' -> LAYOUT
@@ -26,7 +26,7 @@ state INITIAL:
   'workspace' -> WORKSPACE
   'focus' -> FOCUS
   'kill' -> KILL
-  'open' -> call cmd::open()
+  'open' -> call applier.open()
   'fullscreen' -> FULLSCREEN
   'sticky' -> STICKY
   'split' -> SPLIT
@@ -55,8 +55,8 @@ state CRITERIA:
   ctype = 'floating_from' -> CRITERION_FROM
   ctype = 'tiling_from'   -> CRITERION_FROM
   ctype = 'tiling', 'floating', 'all'
-      -> call cmd::criteria_add($ctype, nullptr); CRITERIA
-  ']' -> call cmd::criteria_match_windows(); INITIAL
+      -> call applier.criteria_add($ctype, nullptr); CRITERIA
+  ']' -> call applier.criteria_match_windows(); INITIAL
 
 state CRITERION:
   '=' -> CRITERION_STR
@@ -67,7 +67,7 @@ state CRITERION_FROM:
 state CRITERION_FROM_STR_START:
   '"' -> CRITERION_FROM_STR
   kind = 'auto', 'user'
-    -> call cmd::criteria_add($ctype, $kind); CRITERIA
+    -> call applier.criteria_add($ctype, $kind); CRITERIA
 
 state CRITERION_FROM_STR:
   kind = 'auto', 'user'
@@ -75,23 +75,23 @@ state CRITERION_FROM_STR:
 
 state CRITERION_FROM_STR_END:
   '"'
-    -> call cmd::criteria_add($ctype, $kind); CRITERIA
+    -> call applier.criteria_add($ctype, $kind); CRITERIA
 
 state CRITERION_STR:
   cvalue = word
-      -> call cmd::criteria_add($ctype, $cvalue); CRITERIA
+      -> call applier.criteria_add($ctype, $cvalue); CRITERIA
 
 # exec [--no-startup-id] <command>
 state EXEC:
   nosn = '--no-startup-id'
       ->
   command = string
-      -> call cmd::exec($nosn, $command)
+      -> call applier.exec($nosn, $command)
 
 # debuglog toggle|on|off
 state DEBUGLOG:
   argument = 'toggle', 'on', 'off'
-    -> call cmd::debuglog($argument)
+    -> call applier.debuglog($argument)
 
 # border normal|pixel [<n>]
 # border none|1pixel|toggle
@@ -99,15 +99,15 @@ state BORDER:
   border_style = 'normal', 'pixel', 'toggle'
     -> BORDER_WIDTH
   border_style = 'none'
-    -> call cmd::border($border_style, 0)
+    -> call applier.border($border_style, 0)
   '1pixel'
-    -> call cmd::border("pixel", 1)
+    -> call applier.border("pixel", 1)
 
 state BORDER_WIDTH:
   end
-    -> call cmd::border($border_style, -1)
+    -> call applier.border($border_style, -1)
   border_width = number
-    -> call cmd::border($border_style, &border_width)
+    -> call applier.border($border_style, &border_width)
 
 # gaps inner|outer|horizontal|vertical|top|right|bottom|left [current] [set|plus|minus|toggle] <px>
 state GAPS:
@@ -130,26 +130,26 @@ state GAPS_END:
   'px'
       ->
   end
-      -> call cmd::gaps($type, $scope, $mode, $value)
+      -> call applier.gaps($type, $scope, $mode, $value)
 
 # layout default|stacked|stacking|tabbed|splitv|splith
 # layout toggle [split|all]
 state LAYOUT:
   layout_mode = 'default', 'stacked', 'stacking', 'tabbed', 'splitv', 'splith'
-      -> call cmd::layout($layout_mode)
+      -> call applier.layout($layout_mode)
   'toggle'
       -> LAYOUT_TOGGLE
 
 # layout toggle [split|all]
 state LAYOUT_TOGGLE:
   end
-      -> call cmd::layout_toggle($toggle_mode)
+      -> call applier.layout_toggle($toggle_mode)
   toggle_mode = string
-      -> call cmd::layout_toggle($toggle_mode)
+      -> call applier.layout_toggle($toggle_mode)
 
 # append_layout <path>
 state APPEND_LAYOUT:
-  path = string -> call cmd::append_layout($path)
+  path = string -> call applier.append_layout($path)
 
 # workspace next|prev|next_on_output|prev_on_output
 # workspace back_and_forth
@@ -159,17 +159,17 @@ state WORKSPACE:
   no_auto_back_and_forth = '--no-auto-back-and-forth'
       ->
   direction = 'next_on_output', 'prev_on_output', 'next', 'prev'
-      -> call cmd::workspace($direction)
+      -> call applier.workspace($direction)
   'back_and_forth'
-      -> call cmd::workspace_back_and_forth()
+      -> call applier.workspace_back_and_forth()
   'number'
       -> WORKSPACE_NUMBER
   workspace = string
-      -> call cmd::workspace_name($workspace, $no_auto_back_and_forth)
+      -> call applier.workspace_name($workspace, $no_auto_back_and_forth)
 
 state WORKSPACE_NUMBER:
   workspace = string
-      -> call cmd::workspace_number($workspace, $no_auto_back_and_forth)
+      -> call applier.workspace_number($workspace, $no_auto_back_and_forth)
 
 # focus left|right|up|down
 # focus output <output>
@@ -179,45 +179,45 @@ state WORKSPACE_NUMBER:
 # focus
 state FOCUS:
   direction = 'left', 'right', 'up', 'down'
-      -> call cmd::focus_direction($direction)
+      -> call applier.focus_direction($direction)
   direction = 'prev', 'next'
       -> FOCUS_AUTO
   'output'
       -> FOCUS_OUTPUT
   window_mode = 'tiling', 'floating', 'mode_toggle'
-      -> call cmd::focus_window_mode($window_mode)
+      -> call applier.focus_window_mode($window_mode)
   level = 'parent', 'child'
-      -> call cmd::focus_level($level)
+      -> call applier.focus_level($level)
   workspace = 'workspace'
-      -> call cmd::focus(1)
+      -> call applier.focus(1)
   end
-      -> call cmd::focus(0)
+      -> call applier.focus(0)
 
 state FOCUS_AUTO:
   'sibling'
-      -> call cmd::focus_sibling($direction)
+      -> call applier.focus_sibling($direction)
   end
-      -> call cmd::focus_direction($direction)
+      -> call applier.focus_direction($direction)
 
 state FOCUS_OUTPUT:
   output = word
-      -> call cmd::focus_output($output); FOCUS_OUTPUT
+      -> call applier.focus_output($output); FOCUS_OUTPUT
   end
-      -> call cmd::focus_output(nullptr); INITIAL
+      -> call applier.focus_output(nullptr); INITIAL
 
 # kill [window|client]
 state KILL:
   kill_mode = 'window', 'client'
-      -> call cmd::kill($kill_mode)
+      -> call applier.kill($kill_mode)
   end
-      -> call cmd::kill($kill_mode)
+      -> call applier.kill($kill_mode)
 
 # fullscreen enable|toggle [global]
 # fullscreen disable
 # fullscreen [global]
 state FULLSCREEN:
   action = 'disable'
-      -> call cmd::fullscreen($action, "output")
+      -> call applier.fullscreen($action, "output")
   action = 'enable', 'toggle'
       -> FULLSCREEN_MODE
   action = ''
@@ -225,30 +225,30 @@ state FULLSCREEN:
 
 state FULLSCREEN_MODE:
   mode = 'global'
-      -> call cmd::fullscreen($action, $mode)
+      -> call applier.fullscreen($action, $mode)
   end
-      -> call cmd::fullscreen($action, "output")
+      -> call applier.fullscreen($action, "output")
 
 state FULLSCREEN_COMPAT:
   mode = 'global'
-      -> call cmd::fullscreen("toggle", $mode)
+      -> call applier.fullscreen("toggle", $mode)
   end
-      -> call cmd::fullscreen("toggle", "output")
+      -> call applier.fullscreen("toggle", "output")
 
 # sticky enable|disable|toggle
 state STICKY:
   action = 'enable', 'disable', 'toggle'
-      -> call cmd::sticky($action)
+      -> call applier.sticky($action)
 
 # split v|h|t|vertical|horizontal|toggle
 state SPLIT:
   direction = 'horizontal', 'vertical', 'toggle', 'v', 'h', 't'
-      -> call cmd::split($direction)
+      -> call applier.split($direction)
 
 # floating enable|disable|toggle
 state FLOATING:
   floating = 'enable', 'disable', 'toggle'
-      -> call cmd::floating($floating)
+      -> call applier.floating($floating)
 
 # resize
 state RESIZE:
@@ -265,7 +265,7 @@ state RESIZE_PX:
   resize_px = number
       -> RESIZE_TILING
   end
-      -> call cmd::resize($way, $direction, 10, 10)
+      -> call applier.resize($way, $direction, 10, 10)
 
 state RESIZE_TILING:
   'px'
@@ -273,7 +273,7 @@ state RESIZE_TILING:
   'or'
       -> RESIZE_TILING_OR
   end
-      -> call cmd::resize($way, $direction, &resize_px, 0)
+      -> call applier.resize($way, $direction, &resize_px, 0)
 
 state RESIZE_TILING_OR:
   resize_ppt = number
@@ -281,7 +281,7 @@ state RESIZE_TILING_OR:
 
 state RESIZE_TILING_FINAL:
   'ppt', end
-      -> call cmd::resize($way, $direction, &resize_px, &resize_ppt)
+      -> call applier.resize($way, $direction, &resize_px, &resize_ppt)
 
 state RESIZE_SET:
   'height'
@@ -295,7 +295,7 @@ state RESIZE_WIDTH:
   mode_width = 'px', 'ppt'
       ->
   end
-      -> call cmd::resize_set(&width, $mode_width, 0, 0)
+      -> call applier.resize_set(&width, $mode_width, 0, 0)
   'height'
       -> RESIZE_HEIGHT_GET_NUMBER
   height = number
@@ -309,7 +309,7 @@ state RESIZE_HEIGHT:
   mode_height = 'px', 'ppt'
       ->
   end
-      -> call cmd::resize_set(&width, $mode_width, &height, $mode_height)
+      -> call applier.resize_set(&width, $mode_width, &height, $mode_height)
 
 # rename workspace <name> to <name>
 # rename workspace to <name>
@@ -327,13 +327,13 @@ state RENAME_WORKSPACE_LIKELY_TO:
   'to '
       -> RENAME_WORKSPACE_LIKELY_TO_NEW_NAME
   new_name = word
-      -> call cmd::rename_workspace(nullptr, $new_name)
+      -> call applier.rename_workspace(nullptr, $new_name)
 
 state RENAME_WORKSPACE_LIKELY_TO_NEW_NAME:
   new_name = string
-      -> call cmd::rename_workspace("to", $new_name)
+      -> call applier.rename_workspace("to", $new_name)
   end
-      -> call cmd::rename_workspace(nullptr, "to")
+      -> call applier.rename_workspace(nullptr, "to")
 
 state RENAME_WORKSPACE_TO:
   'to'
@@ -341,7 +341,7 @@ state RENAME_WORKSPACE_TO:
 
 state RENAME_WORKSPACE_TO_NEW_NAME:
   new_name = string
-      -> call cmd::rename_workspace($old_name, $new_name)
+      -> call applier.rename_workspace($old_name, $new_name)
 
 
 # move <direction> [<amount> [px|ppt]]
@@ -374,35 +374,35 @@ state MOVE_DIRECTION:
   amount = number
       -> MOVE_DIRECTION_NUMBER
   end
-      -> call cmd::move_direction($direction, 10, "px")
+      -> call applier.move_direction($direction, 10, "px")
 
 state MOVE_DIRECTION_NUMBER:
   mode = 'px', 'ppt'
-      -> call cmd::move_direction($direction, &amount, $mode)
+      -> call applier.move_direction($direction, &amount, $mode)
   end
-      -> call cmd::move_direction($direction, &amount, "px")
+      -> call applier.move_direction($direction, &amount, "px")
 
 state MOVE_WORKSPACE:
   'to '
       -> MOVE_WORKSPACE_TO_OUTPUT
   workspace = 'next_on_output', 'prev_on_output', 'next', 'prev', 'current'
-      -> call cmd::move_con_to_workspace($workspace)
+      -> call applier.move_con_to_workspace($workspace)
   'back_and_forth'
-      -> call cmd::move_con_to_workspace_back_and_forth()
+      -> call applier.move_con_to_workspace_back_and_forth()
   'number'
       -> MOVE_WORKSPACE_NUMBER
   workspace = string
-      -> call cmd::move_con_to_workspace_name($workspace, $no_auto_back_and_forth)
+      -> call applier.move_con_to_workspace_name($workspace, $no_auto_back_and_forth)
 
 state MOVE_WORKSPACE_NUMBER:
   number = string
-      -> call cmd::move_con_to_workspace_number($number, $no_auto_back_and_forth)
+      -> call applier.move_con_to_workspace_number($number, $no_auto_back_and_forth)
 
 state MOVE_TO_OUTPUT:
   output = word
-      -> call cmd::move_con_to_output($output, 0); MOVE_TO_OUTPUT
+      -> call applier.move_con_to_output($output, 0); MOVE_TO_OUTPUT
   end
-      -> call cmd::move_con_to_output(nullptr, 0); INITIAL
+      -> call applier.move_con_to_output(nullptr, 0); INITIAL
 
 state MOVE_WORKSPACE_TO_OUTPUT:
   'output'
@@ -410,9 +410,9 @@ state MOVE_WORKSPACE_TO_OUTPUT:
 
 state MOVE_WORKSPACE_TO_OUTPUT_WORD:
   output = word
-      -> call cmd::move_con_to_output($output, 1); MOVE_WORKSPACE_TO_OUTPUT_WORD
+      -> call applier.move_con_to_output($output, 1); MOVE_WORKSPACE_TO_OUTPUT_WORD
   end
-      -> call cmd::move_con_to_output(nullptr, 1); INITIAL
+      -> call applier.move_con_to_output(nullptr, 1); INITIAL
 
 state MOVE_TO_ABSOLUTE_POSITION:
   'position'
@@ -420,9 +420,9 @@ state MOVE_TO_ABSOLUTE_POSITION:
 
 state MOVE_TO_POSITION:
   'center'
-      -> call cmd::move_window_to_center($method)
+      -> call applier.move_window_to_center($method)
   'mouse', 'cursor', 'pointer'
-      -> call cmd::move_window_to_mouse()
+      -> call applier.move_window_to_mouse()
   coord_x = number
       -> MOVE_TO_POSITION_X
 
@@ -434,24 +434,24 @@ state MOVE_TO_POSITION_X:
 
 state MOVE_TO_POSITION_Y:
   mode_y = 'px', 'ppt'
-      -> call cmd::move_window_to_position(&coord_x, $mode_x, &coord_y, $mode_y)
+      -> call applier.move_window_to_position(&coord_x, $mode_x, &coord_y, $mode_y)
   end
-      -> call cmd::move_window_to_position(&coord_x, $mode_x, &coord_y, 0)
+      -> call applier.move_window_to_position(&coord_x, $mode_x, &coord_y, 0)
 
 # mode <string>
 state MODE:
   mode = string
-      -> call cmd::mode($mode)
+      -> call applier.mode($mode)
 
 state NOP:
   comment = string
-      -> call cmd::nop($comment)
+      -> call applier.nop($comment)
   end
-      -> call cmd::nop(nullptr)
+      -> call applier.nop(nullptr)
 
 state TITLE_FORMAT:
   format = string
-      -> call cmd::title_format($format)
+      -> call applier.title_format($format)
 
 state TITLE_WINDOW_ICON:
   'padding'
@@ -459,13 +459,13 @@ state TITLE_WINDOW_ICON:
   enable = 'toggle'
     -> TITLE_WINDOW_ICON_PADDING
   enable = '1', 'yes', 'true', 'on', 'enable', 'active', '0', 'no', 'false', 'off', 'disable', 'inactive'
-    -> call cmd::title_window_icon($enable, 0)
+    -> call applier.title_window_icon($enable, 0)
 
 state TITLE_WINDOW_ICON_PADDING:
   end
-    -> call cmd::title_window_icon($enable, &padding)
+    -> call applier.title_window_icon($enable, &padding)
   'px'
-    -> call cmd::title_window_icon($enable, &padding)
+    -> call applier.title_window_icon($enable, &padding)
   padding = number
     ->
 
@@ -484,7 +484,7 @@ state BAR_HIDDEN_STATE_ID:
   bar_id = word
       ->
   end
-      -> call cmd::bar_hidden_state($bar_value, $bar_id)
+      -> call applier.bar_hidden_state($bar_value, $bar_id)
 
 state BAR_MODE:
   bar_value = 'dock', 'hide', 'invisible', 'toggle'
@@ -494,7 +494,7 @@ state BAR_MODE_ID:
   bar_id = word
       ->
   end
-      -> call cmd::bar_mode($bar_value, $bar_id)
+      -> call applier.bar_mode($bar_value, $bar_id)
 
 state NAGBAR:
   type = 'error', 'warning'
@@ -522,4 +522,4 @@ state NAGBAR_BUTTON_ACTION:
 
 state NAGBAR_BUTTON_TERMINAL:
   terminal = 'true', 'false'
-      -> call cmd::nagbar($type, $message, $font, $primary, $label, $action, $terminal)
+      -> call applier.nagbar($type, $message, $font, $primary, $label, $action, $terminal)

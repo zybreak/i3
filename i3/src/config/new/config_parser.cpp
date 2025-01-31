@@ -1,5 +1,4 @@
 module;
-struct criteria_state;
 #include <antlr4-runtime.h>
 #include "parser-specs/configLexer.h"
 #include "parser-specs/configGrammar.h"
@@ -12,6 +11,7 @@ module i3_config_new;
 import std;
 import log;
 import i3_config_base;
+import criteria_state;
 
 using namespace std;
 using namespace antlr4;

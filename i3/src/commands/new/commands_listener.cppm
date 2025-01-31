@@ -24,7 +24,7 @@
  *
  */
 module;
-class criteria_state;
+class ipc_client;
 #include "parser-specs/commandsLexer.h"
 #include "parser-specs/commandsGrammar.h"
 #include "parser-specs/commandsGrammarBaseListener.h"
@@ -32,8 +32,7 @@ class criteria_state;
 export module i3_commands_new:commands_listener;
 
 import i3_commands_base;
-
-class ipc_client;
+import criteria_state;
 
 export class CommandsListener : public commandsGrammarBaseListener {
   private:
@@ -42,7 +41,7 @@ export class CommandsListener : public commandsGrammarBaseListener {
     BaseCommandsApplier &cmd;
 
   public:
-    CommandsListener(BaseCommandsApplier &commandsApplier, nlohmann::json *json_gen, ipc_client *ipc_client);
+    CommandsListener(BaseCommandsApplier &commandsApplier);
 
     void enterCommand_move(commandsGrammar::Command_moveContext *ctx) override;
 

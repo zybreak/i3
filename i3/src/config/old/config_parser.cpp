@@ -24,8 +24,6 @@
  *
  */
 module;
-struct criteria_state;
-
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -44,30 +42,29 @@ import log;
 import i3_config_base;
 
 static void next_state(cmdp_token const &token, parser_ctx &ctx, OldParser &parser) {
-    cmdp_state _next_state = token.next_state;
+    i3_config_old::cmdp_state _next_state = token.next_state;
 
-    if (token.next_state == cmdp_state::__CALL) {
+    if (token.next_state == i3_config_old::cmdp_state::__CALL) {
         ConfigResultIR subcommand_output = {
             .parser = parser,
             .next_state = 0,
             .has_errors = false};
-        GENERATED_call(ctx.criteria_state, ctx.stack, token.call_identifier, subcommand_output);
+        _next_state = i3_config_old::GENERATED_call(ctx.criteria_state, parser.applier, ctx.stack, token.call_identifier, subcommand_output);
         if (subcommand_output.has_errors) {
             ctx.has_errors = true;
         }
-        _next_state = static_cast<cmdp_state>(subcommand_output.next_state);
         clear_stack(ctx.stack);
     }
 
     ctx.state = std::to_underlying(_next_state);
-    if (ctx.state == std::to_underlying(cmdp_state::INITIAL)) {
+    if (ctx.state == std::to_underlying(i3_config_old::cmdp_state::INITIAL)) {
         clear_stack(ctx.stack);
     }
 
     /* See if we are jumping back to a state in which we were in previously
      * (statelist contains INITIAL) and just move statelist_idx accordingly. */
     for (int i = 0; i < ctx.statelist_idx; i++) {
-        if (static_cast<cmdp_state>(ctx.statelist[i]) != _next_state) {
+        if (static_cast<i3_config_old::cmdp_state>(ctx.statelist[i]) != _next_state) {
             continue;
         }
         ctx.statelist_idx = i + 1;
@@ -193,7 +190,7 @@ void OldParser::unhandled_token(std::string const &input, int linecnt, std::vect
      * and follow that one. */
     bool error_token_found = false;
     for (int i = ctx.statelist_idx - 1; (i >= 0) && !error_token_found; i--) {
-        std::vector<cmdp_token> errptr = tokens.at(static_cast<cmdp_state>(ctx.statelist[i]));
+        std::vector<cmdp_token> errptr = i3_config_old::tokens.at(static_cast<i3_config_old::cmdp_state>(ctx.statelist[i]));
         for (unsigned long j = 0; j < errptr.size(); j++) {
             if (errptr.at(j).name != "error") {
                 continue;
@@ -331,7 +328,7 @@ bool OldParser::handle_end(std::string::const_iterator &walk, cmdp_token const &
          * datastructure for commands which do *not* specify any
          * criteria, we re-initialize the criteria system after
          * every command. */
-        cfg::criteria_init(ctx.criteria_state, subcommand_output, std::to_underlying(cmdp_state::INITIAL));
+        cfg::criteria_init(ctx.criteria_state, subcommand_output, std::to_underlying(i3_config_old::cmdp_state::INITIAL));
         (*linecnt)++;
         walk++;
 
@@ -342,9 +339,9 @@ bool OldParser::handle_end(std::string::const_iterator &walk, cmdp_token const &
 }
 
 static void reset_statelist(parser_ctx &ctx) {
-    ctx.state = std::to_underlying(cmdp_state::INITIAL);
+    ctx.state = std::to_underlying(i3_config_old::cmdp_state::INITIAL);
     for (int &i : ctx.statelist) {
-        i = std::to_underlying(cmdp_state::INITIAL);
+        i = std::to_underlying(i3_config_old::cmdp_state::INITIAL);
     }
     ctx.statelist_idx = 1;
 }
@@ -363,7 +360,7 @@ bool OldParser::parse_config(std::string const &input, std::ostream &err_output)
         .next_state = 0,
         .has_errors = false};
 
-    cfg::criteria_init(ctx.criteria_state, subcommand_output, std::to_underlying(cmdp_state::INITIAL));
+    cfg::criteria_init(ctx.criteria_state, subcommand_output, std::to_underlying(i3_config_old::cmdp_state::INITIAL));
 
     /* The "<=" operator is intentional: We also handle the terminating 0-byte
      * explicitly by looking for an 'end' token. */
@@ -374,7 +371,7 @@ bool OldParser::parse_config(std::string const &input, std::ostream &err_output)
             walk++;
         }
 
-        auto &ptr = tokens.at(static_cast<cmdp_state>(ctx.state));
+        auto &ptr = i3_config_old::tokens.at(static_cast<i3_config_old::cmdp_state>(ctx.state));
         bool token_handled = false;
         for (unsigned long c = 0; c < ptr.size() && !token_handled; c++) {
             auto &token = ptr.at(c);

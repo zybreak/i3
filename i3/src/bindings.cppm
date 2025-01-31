@@ -11,17 +11,20 @@ module;
 #include <xcb/xcb.h>
 #include <xkbcommon/xkbcommon-x11.h>
 #include <xkbcommon/xkbcommon.h>
-export module i3:bindings;
+export module bindings;
 
 import std;
-import :x;
-import :util;
 import i3_commands_base;
 
-class Keymap;
-
 export {
-    class Config;
+    /**
+     * The lower 16 bits contain a xcb_key_but_mask_t, the higher 16 bits contain
+     * an i3_xkb_group_mask_t. This type is necessary for the fallback logic to
+     * work when handling XKB groups (see ticket #1775) and makes the code which
+     * locates keybindings upon KeyPress/KeyRelease events simpler.
+     */
+    using i3_event_state_mask_t = uint32_t;
+    
     /**
      * Binding input types. See Binding::input_type.
      */
@@ -51,6 +54,17 @@ export {
 
         auto operator<=>(Binding_Keycode const &) const = default;
         bool operator==(Binding_Keycode const &) const = default;
+    };
+    
+    /**
+     * Bitmask for matching XCB_XKB_GROUP_1 to XCB_XKB_GROUP_4.
+     */
+    enum i3_xkb_group_mask_t {
+        I3_XKB_GROUP_MASK_ANY = 0,
+        I3_XKB_GROUP_MASK_1 = (1 << 0),
+        I3_XKB_GROUP_MASK_2 = (1 << 1),
+        I3_XKB_GROUP_MASK_3 = (1 << 2),
+        I3_XKB_GROUP_MASK_4 = (1 << 3)
     };
 
     enum binding_upon_t {
@@ -116,89 +130,19 @@ export {
 
         auto operator<=>(Binding const &) const = default;
     };
-
-    /**
-     * Adds a binding from config parameters given as strings and returns a
-     * pointer to the binding structure. Returns NULL if the input code could not
-     * be parsed.
-     *
+    
+    /*
+     * A utility function to convert a string containing the group and modifiers to
+     * the corresponding bit mask.
      */
-    void configure_binding(Config * config, std::string const &bindtype, std::string const &modifiers, std::string const &input_code,
-                           bool release, bool border, bool whole_window,
-                           bool exclude_titlebar, std::string const &command, std::string const &modename,
-                           bool pango_markup);
-
-    /**
-     * Ungrabs all keys, to be called before re-grabbing the keys because of a
-     * mapping_notify event or a configuration file reload
-     *
-     */
-    void ungrab_all_keys(x_connection * conn);
-
-    /**
-     * Grab the bound keys (tell X to send us keypress events for those keycodes)
-     *
-     */
-    void grab_all_keys(x_connection * conn);
-
-    /**
-     * Release the button grabs on all managed windows and regrab them,
-     * reevaluating which buttons need to be grabbed.
-     *
-     */
-    void regrab_all_buttons(x_connection * conn);
+    i3_event_state_mask_t event_state_from_str(char const *str);
 
     /**
      * Returns a pointer to the Binding that matches the given xcb event or NULL if
      * no such binding exists.
      *
      */
-    Binding *get_binding_from_xcb_event(xcb_generic_event_t * event);
-
-    /**
-     * Translates keysymbols to keycodes for all bindings which use keysyms.
-     *
-     */
-    void translate_keysyms(Keymap const &keymap);
-
-    /**
-     * Switches the key bindings to the given mode, if the mode exists
-     *
-     */
-    void switch_mode(std::string const new_mode);
-
-    /**
-     * Reorders bindings by event_state_mask descendingly so that get_binding()
-     * correctly matches more specific bindings before more generic bindings. Take
-     * the following binding configuration as an example:
-     *
-     *   bindsym n nop lower-case n pressed
-     *   bindsym Shift+n nop upper-case n pressed
-     *
-     * Without reordering, the first binding’s event_state_mask of 0x0 would match
-     * the actual event_stat_mask of 0x1 and hence trigger instead of the second
-     * keybinding.
-     *
-     */
-    void reorder_bindings(Config * config);
-
-    /**
-     * Checks for duplicate key bindings (the same keycode or keysym is configured
-     * more than once). If a duplicate binding is found, a message is printed to
-     * stderr and the has_errors variable is set to true, which will start
-     * i3-nagbar.
-     *
-     */
-    bool has_duplicate_bindings(Config * config);
-
-    /**
-     * Runs the given binding and handles parse errors. If con is passed, it will
-     * execute the command binding with that container selected by criteria.
-     * Returns a CommandResult for running the binding's command. Caller should
-     * render tree if needs_tree_render is true. Free with command_result_free().
-     *
-     */
-    CommandResult run_binding(Binding * bind, Con * con);
+    Binding *get_binding_from_xcb_event(xcb_generic_event_t *event, std::vector<Binding> &bindings);
 
     /**
      * Returns a list of buttons that should be grabbed on a window.
@@ -207,5 +151,5 @@ export {
      * config.
      * The list is terminated by a 0.
      */
-    std::set<int> bindings_get_buttons_to_grab();
+    std::set<int> bindings_get_buttons_to_grab(std::vector<Binding> &bindings);
 }

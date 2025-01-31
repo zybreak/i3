@@ -7,11 +7,10 @@
  * config_directives.h: all config storing functions (see config_parser.c)
  *
  */
-module;
-struct criteria_state;
 export module i3_config_old:config_directives;
 
 import i3_config_base;
+import criteria_state;
 
 export namespace cfg {
     /* The following functions are called by the config parser, see

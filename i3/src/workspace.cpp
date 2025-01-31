@@ -16,7 +16,6 @@ module;
 module i3;
 
 import std;
-import :output;
 import log;
 import i3ipc;
 import utils;

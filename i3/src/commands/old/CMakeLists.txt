@@ -13,7 +13,7 @@ add_custom_target(Commands ALL
 
 add_library(i3_commands_old STATIC)
 target_sources(i3_commands_old PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/commands.cpp
+        #${CMAKE_CURRENT_SOURCE_DIR}/commands.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/commands_parser.cpp
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
@@ -24,7 +24,7 @@ target_sources(i3_commands_old PUBLIC
         ${CMAKE_CURRENT_BINARY_DIR}/GENERATED_commands_call.cppm
         cmdp_token.cppm
         commands_parser.cppm
-        commands.cppm
+        #commands.cppm
         i3_commands_old.cppm
         parser_stack.cppm
 )

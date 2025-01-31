@@ -24,8 +24,6 @@
  *
  */
 module;
-struct criteria_state;
-
 #include <fmt/core.h>
 #include <antlr4-runtime.h>
 
@@ -39,11 +37,9 @@ import i3_commands_base;
 
 using namespace antlr4;
 
-CommandsListener::CommandsListener(BaseCommandsApplier &commandsApplier, nlohmann::json *json_gen, ipc_client *ipc_client)
+CommandsListener::CommandsListener(BaseCommandsApplier &commandsApplier)
     : cmd(commandsApplier) {
     this->command_output = {
-        .json_gen = json_gen,
-        .client = ipc_client,
         .next_state = 0,
         .needs_tree_render = false};
 }

@@ -7,9 +7,13 @@
  */
 module;
 #include <fmt/printf.h>
-#include <cairo/cairo-xcb.h>
 #include <err.h>
+#include <pango/pango.h>
 #include <pango/pangocairo.h>
+#include <cairo.h>
+#include <cairo/cairo-xcb.h>
+#include <xcb/xcb.h>
+#include <xcb/xproto.h>
 module i3;
 
 import utils;

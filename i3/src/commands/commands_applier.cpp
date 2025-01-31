@@ -23,6 +23,7 @@ import rect;
 import i3_config_base;
 import i3_commands_base;
 import i3ipc;
+import criteria_state;
 
 /*
  * Convert orientation and position to the corresponding direction.
@@ -149,7 +150,8 @@ static WorkspaceCon *maybe_auto_back_and_forth_workspace(WorkspaceCon *workspace
  * criteria but which did not match any windows. This macro has to be called in
  * every command.
  */
-static void HANDLE_EMPTY_MATCH(struct criteria_state *criteria_state) {
+static void HANDLE_EMPTY_MATCH(criteria_state *s) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     if (criteria_state->current_match.match_is_empty()) {
         criteria_state->owindows.clear();
         criteria_state->owindows.push_back(global.focused);
@@ -250,15 +252,22 @@ static void con_toggle_layout(Con *con, char const *toggle_mode) {
 }
 
 criteria_state *CommandsApplier::create_criteria_state(int _state) {
-    return new criteria_state(_state);
+    return new criteria_state_impl(_state);
 };
+
+void CommandsApplier::append_json(nlohmann::json j) {
+    if (this->json_gen != nullptr) {
+        this->json_gen->push_back(j);
+    }
+}
 
 /*
  * Initializes the specified 'Match' data structure and the initial state of
  * commands.c for matching target windows of a command.
  *
  */
-void CommandsApplier::criteria_init(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
+void CommandsApplier::criteria_init(criteria_state *s, CommandsResultIR &cmd_output) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     // DLOG(fmt::sprintf("Initializing criteria, current_match = %p\n",  (void*)criteria_state->current_match));
     criteria_state->current_match = Match();
     criteria_state->owindows.clear();
@@ -269,7 +278,8 @@ void CommandsApplier::criteria_init(struct criteria_state *criteria_state, Comma
  * so we filter the list of owindows.
  *
  */
-void CommandsApplier::criteria_match_windows(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
+void CommandsApplier::criteria_match_windows(criteria_state *s, CommandsResultIR &cmd_output) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     DLOG("match specification finished, matching...\n");
     /* copy the old list head to iterate through it and start with a fresh
      * list which will contain only matching windows */
@@ -322,18 +332,21 @@ void CommandsApplier::criteria_match_windows(struct criteria_state *criteria_sta
  * specification.
  *
  */
-void CommandsApplier::criteria_add(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *ctype, char const *cvalue) {
+void CommandsApplier::criteria_add(criteria_state *s, CommandsResultIR &cmd_output, char const *ctype, char const *cvalue) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     criteria_state->current_match.parse_property(ctype, cvalue);
 }
 
-static void move_matches_to_workspace(struct criteria_state *criteria_state, WorkspaceCon *ws) {
+static void move_matches_to_workspace(criteria_state *s, WorkspaceCon *ws) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     for (auto current : criteria_state->owindows) {
         DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
         con_move_to_workspace(current, ws, true, false, false);
     }
 }
 
-static void CHECK_MOVE_CON_TO_WORKSPACE(struct criteria_state *criteria_state) {
+static void CHECK_MOVE_CON_TO_WORKSPACE(criteria_state *s) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     HANDLE_EMPTY_MATCH(criteria_state);
 
     if (criteria_state->owindows.empty()) {
@@ -361,7 +374,7 @@ static void CHECK_MOVE_CON_TO_WORKSPACE(struct criteria_state *criteria_state) {
  * next|prev|next_on_output|prev_on_output|current'.
  *
  */
-void CommandsApplier::move_con_to_workspace(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *which) {
+void CommandsApplier::move_con_to_workspace(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *which) {
     DLOG(fmt::sprintf("which=%s\n", which));
 
     CHECK_MOVE_CON_TO_WORKSPACE(criteria_state);
@@ -386,14 +399,14 @@ void CommandsApplier::move_con_to_workspace(struct criteria_state *criteria_stat
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'move [window|container] [to] workspace back_and_forth'.
  *
  */
-void CommandsApplier::move_con_to_workspace_back_and_forth(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
+void CommandsApplier::move_con_to_workspace_back_and_forth(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
     WorkspaceCon *ws = global.workspaceManager->workspace_back_and_forth_get();
     if (ws == nullptr) {
         throw std::runtime_error("No workspace was previously active.");
@@ -405,14 +418,14 @@ void CommandsApplier::move_con_to_workspace_back_and_forth(struct criteria_state
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'move [--no-auto-back-and-forth] [window|container] [to] workspace <name>'.
  *
  */
-void CommandsApplier::move_con_to_workspace_name(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *name, char const *no_auto_back_and_forth) {
+void CommandsApplier::move_con_to_workspace_name(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *name, char const *no_auto_back_and_forth) {
     if (strncasecmp(name, "__", strlen("__")) == 0) {
         throw std::runtime_error(fmt::sprintf("You cannot move containers to i3-internal workspaces (\"%s\").", name));
     }
@@ -431,14 +444,14 @@ void CommandsApplier::move_con_to_workspace_name(struct criteria_state *criteria
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'move [--no-auto-back-and-forth] [window|container] [to] workspace number <name>'.
  *
  */
-void CommandsApplier::move_con_to_workspace_number(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *which, char const *no_auto_back_and_forth) {
+void CommandsApplier::move_con_to_workspace_number(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *which, char const *no_auto_back_and_forth) {
     CHECK_MOVE_CON_TO_WORKSPACE(criteria_state);
 
     LOG(fmt::sprintf("should move window to workspace %s\n", which));
@@ -462,7 +475,7 @@ void CommandsApplier::move_con_to_workspace_number(struct criteria_state *criter
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
@@ -484,7 +497,7 @@ static direction_t parse_direction(char const *str) {
     }
 }
 
-static void resize_floating(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *direction_str, Con *floating_con, int px) {
+static void resize_floating(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *direction_str, Con *floating_con, int px) {
     Rect old_rect = floating_con->rect;
     Con *focused_con = con_descend_focused(floating_con);
 
@@ -538,14 +551,14 @@ static void resize_floating(struct criteria_state *criteria_state, CommandsResul
     }
 }
 
-static bool cmd_resize_tiling_direction(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *current, char const *direction, int px, int ppt) {
+bool CommandsApplier::cmd_resize_tiling_direction(criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *current, char const *direction, int px, int ppt) {
     Con *second = nullptr;
     Con *first = current;
     direction_t search_direction = parse_direction(direction);
 
     bool res = resize_find_tiling_participants(&first, &second, search_direction, false);
     if (!res) {
-        yerror(cmd_output.json_gen, "No second container found in this direction.");
+        yerror(json_gen, "No second container found in this direction.");
         return false;
     }
 
@@ -557,7 +570,7 @@ static bool cmd_resize_tiling_direction(struct criteria_state *criteria_state, C
     return resize_neighboring_cons(first, second, px, ppt);
 }
 
-static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *current, char const *direction, int px, double ppt) {
+bool CommandsApplier::cmd_resize_tiling_width_height(criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *current, char const *direction, int px, double ppt) {
     LOG("width/height resize\n");
 
     /* get the appropriate current container (skip stacked/tabbed cons) */
@@ -565,7 +578,7 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
     direction_t search_direction = (strcmp(direction, "width") == 0 ? D_LEFT : D_DOWN);
     bool search_result = resize_find_tiling_participants(&current, &dummy, search_direction, true);
     if (!search_result) {
-        yerror(cmd_output.json_gen, "Failed to find appropriate tiling containers for resize operation");
+        yerror(json_gen, "Failed to find appropriate tiling containers for resize operation");
         return false;
     }
 
@@ -594,7 +607,7 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
     }
     subtract_percent = ppt / (children - 1);
     if (ppt < 0.0 && new_current_percent < percent_for_1px(current)) {
-        yerror(cmd_output.json_gen, "Not resizing, container would end with less than 1px");
+        yerror(json_gen, "Not resizing, container would end with less than 1px");
         return false;
     }
 
@@ -607,7 +620,7 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
                 continue;
             }
             if (child->percent - subtract_percent < percent_for_1px(child)) {
-                yerror(cmd_output.json_gen, fmt::sprintf("Not resizing, already at minimum size (child %p would end up with a size of %.f", fmt::ptr(child),
+                yerror(json_gen, fmt::sprintf("Not resizing, already at minimum size (child %p would end up with a size of %.f", fmt::ptr(child),
                                                          child->percent - subtract_percent));
                 return false;
             }
@@ -632,7 +645,8 @@ static bool cmd_resize_tiling_width_height(struct criteria_state *criteria_state
  * Implementation of 'resize grow|shrink <direction> [<px> px] [or <ppt> ppt]'.
  *
  */
-void CommandsApplier::resize(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *way, char const *direction, long resize_px, long resize_ppt) {
+void CommandsApplier::resize(criteria_state *s, CommandsResultIR &cmd_output, char const *way, char const *direction, long resize_px, long resize_ppt) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     DLOG(fmt::sprintf("resizing in way %s, direction %s, px %ld or ppt %ld\n", way, direction, resize_px, resize_ppt));
     if (strcmp(way, "shrink") == 0) {
         resize_px *= -1;
@@ -655,13 +669,13 @@ void CommandsApplier::resize(struct criteria_state *criteria_state, CommandsResu
             if (strcmp(direction, "width") == 0 ||
                 strcmp(direction, "height") == 0) {
                 double const ppt = (double)resize_ppt / 100.0;
-                if (!cmd_resize_tiling_width_height(criteria_state, cmd_output,
+                if (!this->cmd_resize_tiling_width_height(criteria_state, cmd_output,
                                                     current, direction,
                                                     resize_px, ppt)) {
                     throw std::runtime_error("Cannot resize.");
                 }
             } else {
-                if (!cmd_resize_tiling_direction(criteria_state, cmd_output,
+                if (!this->cmd_resize_tiling_direction(criteria_state, cmd_output,
                                                  current, direction,
                                                  resize_px, resize_ppt)) {
                     throw std::runtime_error("Cannot resize.");
@@ -672,11 +686,10 @@ void CommandsApplier::resize(struct criteria_state *criteria_state, CommandsResu
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
-static bool
-resize_set_tiling(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *target, orientation_t resize_orientation, bool is_ppt, long target_size) {
+bool CommandsApplier::resize_set_tiling(criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *target, orientation_t resize_orientation, bool is_ppt, long target_size) {
     direction_t search_direction;
     char const *mode;
     if (resize_orientation == HORIZ) {
@@ -701,7 +714,7 @@ resize_set_tiling(struct criteria_state *criteria_state, CommandsResultIR &cmd_o
     }
 
     /* Perform resizing and report failure if not possible */
-    return cmd_resize_tiling_width_height(criteria_state, cmd_output,
+    return this->cmd_resize_tiling_width_height(criteria_state, cmd_output,
                                           target, mode, px, ppt);
 }
 
@@ -709,7 +722,8 @@ resize_set_tiling(struct criteria_state *criteria_state, CommandsResultIR &cmd_o
  * Implementation of 'resize set <width> [px | ppt] <height> [px | ppt]'.
  *
  */
-void CommandsApplier::resize_set(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, long cwidth, char const *mode_width, long cheight, char const *mode_height) {
+void CommandsApplier::resize_set(criteria_state *s, CommandsResultIR &cmd_output, long cwidth, char const *mode_width, long cheight, char const *mode_height) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     DLOG(fmt::sprintf("resizing to %ld %s x %ld %s\n", cwidth, mode_width, cheight, mode_height));
     if (cwidth < 0 || cheight < 0) {
         throw std::runtime_error("Dimensions cannot be negative.");
@@ -741,19 +755,19 @@ void CommandsApplier::resize_set(struct criteria_state *criteria_state, Commands
 
             if (cwidth > 0) {
                 bool is_ppt = mode_width && strcmp(mode_width, "ppt") == 0;
-                success &= resize_set_tiling(criteria_state, cmd_output, current,
+                success &= this->resize_set_tiling(criteria_state, cmd_output, current,
                                              HORIZ, is_ppt, cwidth);
             }
             if (cheight > 0) {
                 bool is_ppt = mode_height && strcmp(mode_height, "ppt") == 0;
-                success &= resize_set_tiling(criteria_state, cmd_output, current,
+                success &= this->resize_set_tiling(criteria_state, cmd_output, current,
                                              VERT, is_ppt, cheight);
             }
         }
     }
 
     cmd_output.needs_tree_render = true;
-    ysuccess(cmd_output.json_gen, success);
+    ysuccess(json_gen, success);
 }
 
 static int border_width_from_style(border_style_t border_style, long border_width, Con *con) {
@@ -780,7 +794,8 @@ static int border_width_from_style(border_style_t border_style, long border_widt
  * Implementation of 'border normal|pixel [<n>]', 'border none|1pixel|toggle'.
  *
  */
-void CommandsApplier::border(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *border_style_str, long border_width) {
+void CommandsApplier::border(criteria_state *s, CommandsResultIR &cmd_output, char const *border_style_str, long border_width) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     DLOG(fmt::sprintf("border style should be changed to %s with border width %ld\n", border_style_str, border_width));
 
     HANDLE_EMPTY_MATCH(criteria_state);
@@ -808,25 +823,25 @@ void CommandsApplier::border(struct criteria_state *criteria_state, CommandsResu
     }
 
     cmd_output.needs_tree_render = true;
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'nop <comment>'.
  *
  */
-void CommandsApplier::nop(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *comment) {
+void CommandsApplier::nop(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *comment) {
     LOG("-------------------------------------------------\n");
     LOG(fmt::sprintf("  NOP: %.4000s\n", (comment != nullptr) ? comment : ""));
     LOG("-------------------------------------------------\n");
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'append_layout <path>'.
  *
  */
-void CommandsApplier::append_layout(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *cpath) {
+void CommandsApplier::append_layout(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *cpath) {
     LOG(fmt::sprintf("Appending layout \"%s\"\n", cpath));
 
     /* Make sure we allow paths like '~/.i3/layout.json' */
@@ -860,13 +875,13 @@ void CommandsApplier::append_layout(struct criteria_state *criteria_state, Comma
     DLOG(fmt::sprintf("Appending to parent=%p instead of focused=%p\n", fmt::ptr(parent), fmt::ptr(global.focused)));
     try {
         tree_append_json(parent, utils::slurp(cpath));
-        ysuccess(cmd_output.json_gen, true);
+        ysuccess(json_gen, true);
     } catch (std::exception const &e) {
         /* Note that we continue executing since tree_append_json() has
          * side-effects — user-provided layouts can be partly valid, partly
          * invalid, leading to half of the placeholder containers being
          * created. */
-        yerror(cmd_output.json_gen, e.what());
+        yerror(json_gen, e.what());
     }
 
     // XXX: This is a bit of a kludge. Theoretically, render_con(parent,
@@ -897,7 +912,7 @@ static void disable_global_fullscreen() {
  * Implementation of 'workspace next|prev|next_on_output|prev_on_output'.
  *
  */
-void CommandsApplier::workspace(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *which) {
+void CommandsApplier::workspace(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *which) {
     WorkspaceCon *ws;
 
     DLOG(fmt::sprintf("which=%s\n", which));
@@ -920,14 +935,14 @@ void CommandsApplier::workspace(struct criteria_state *criteria_state, CommandsR
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'workspace [--no-auto-back-and-forth] number <name>'
  *
  */
-void CommandsApplier::workspace_number(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *which, char const *_no_auto_back_and_forth) {
+void CommandsApplier::workspace_number(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *which, char const *_no_auto_back_and_forth) {
     bool const no_auto_back_and_forth = (_no_auto_back_and_forth != nullptr);
 
     disable_global_fullscreen();
@@ -940,41 +955,41 @@ void CommandsApplier::workspace_number(struct criteria_state *criteria_state, Co
     WorkspaceCon *workspace = get_existing_workspace_by_num(parsed_num);
     if (!workspace) {
         LOG(fmt::sprintf("There is no workspace with number %ld, creating a new one.\n", parsed_num));
-        ysuccess(cmd_output.json_gen, true);
+        ysuccess(json_gen, true);
         global.workspaceManager->workspace_show_by_name(which);
         cmd_output.needs_tree_render = true;
         return;
     }
     if (!no_auto_back_and_forth && maybe_back_and_forth(cmd_output, workspace->name.c_str())) {
-        ysuccess(cmd_output.json_gen, true);
+        ysuccess(json_gen, true);
         return;
     }
     global.workspaceManager->workspace_show(workspace);
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'workspace back_and_forth'.
  *
  */
-void CommandsApplier::workspace_back_and_forth(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
+void CommandsApplier::workspace_back_and_forth(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
     disable_global_fullscreen();
 
     global.workspaceManager->workspace_back_and_forth();
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'workspace [--no-auto-back-and-forth] <name>'
  *
  */
-void CommandsApplier::workspace_name(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *name, char const *_no_auto_back_and_forth) {
+void CommandsApplier::workspace_name(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *name, char const *_no_auto_back_and_forth) {
     bool const no_auto_back_and_forth = (_no_auto_back_and_forth != nullptr);
 
     if (strncasecmp(name, "__", strlen("__")) == 0) {
@@ -985,26 +1000,26 @@ void CommandsApplier::workspace_name(struct criteria_state *criteria_state, Comm
 
     DLOG(fmt::sprintf("should switch to workspace %s\n", name));
     if (!no_auto_back_and_forth && maybe_back_and_forth(cmd_output, name)) {
-        ysuccess(cmd_output.json_gen, true);
+        ysuccess(json_gen, true);
         return;
     }
     global.workspaceManager->workspace_show_by_name(name);
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'mode <string>'.
  *
  */
-void CommandsApplier::mode(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *mode) {
+void CommandsApplier::mode(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *mode) {
     DLOG(fmt::sprintf("mode=%s\n", mode));
     switch_mode(mode);
 
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 static void user_output_names_add(std::vector<std::string> &list, char const *name) {
@@ -1063,7 +1078,8 @@ static Output *user_output_names_find_next(std::vector<std::string> &names, Outp
  * Implementation of 'move [window|container|workspace] [to] output <strings>'.
  *
  */
-void CommandsApplier::move_con_to_output(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *name, bool move_workspace) {
+void CommandsApplier::move_con_to_output(criteria_state *s, CommandsResultIR &cmd_output, char const *name, bool move_workspace) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     /* Initialize a data structure that is used to save multiple user-specified
      * output names since this function is called multiple types for each
      * command call. */
@@ -1098,9 +1114,9 @@ void CommandsApplier::move_con_to_output(struct criteria_state *criteria_state, 
 
     cmd_output.needs_tree_render = success;
     if (success) {
-        ysuccess(cmd_output.json_gen, true);
+        ysuccess(json_gen, true);
     } else {
-        yerror(cmd_output.json_gen, "No output matched");
+        yerror(json_gen, "No output matched");
     }
 }
 
@@ -1108,7 +1124,8 @@ void CommandsApplier::move_con_to_output(struct criteria_state *criteria_state, 
  * Implementation of 'floating enable|disable|toggle'
  *
  */
-void CommandsApplier::floating(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *floating_mode) {
+void CommandsApplier::floating(criteria_state *s, CommandsResultIR &cmd_output, char const *floating_mode) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     DLOG(fmt::sprintf("floating_mode=%s\n", floating_mode));
 
     HANDLE_EMPTY_MATCH(criteria_state);
@@ -1130,14 +1147,15 @@ void CommandsApplier::floating(struct criteria_state *criteria_state, CommandsRe
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'split v|h|t|vertical|horizontal|toggle'.
  *
  */
-void CommandsApplier::split(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *direction) {
+void CommandsApplier::split(criteria_state *s, CommandsResultIR &cmd_output, char const *direction) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     HANDLE_EMPTY_MATCH(criteria_state);
 
     LOG(fmt::sprintf("splitting in direction %c\n", direction[0]));
@@ -1168,14 +1186,15 @@ void CommandsApplier::split(struct criteria_state *criteria_state, CommandsResul
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'kill [window|client]'.
  *
  */
-void CommandsApplier::kill(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *kill_mode_str) {
+void CommandsApplier::kill(criteria_state *s, CommandsResultIR &cmd_output, char const *kill_mode_str) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     if (kill_mode_str == nullptr) {
         kill_mode_str = "window";
     }
@@ -1199,14 +1218,15 @@ void CommandsApplier::kill(struct criteria_state *criteria_state, CommandsResult
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'exec [--no-startup-id] <command>'.
  *
  */
-void CommandsApplier::exec(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *nosn, char const *command) {
+void CommandsApplier::exec(criteria_state *s, CommandsResultIR &cmd_output, char const *nosn, char const *command) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     bool no_startup_id = (nosn != nullptr);
 
     HANDLE_EMPTY_MATCH(criteria_state);
@@ -1224,10 +1244,11 @@ void CommandsApplier::exec(struct criteria_state *criteria_state, CommandsResult
         global.applicationLauncher->start_application(command, no_startup_id);
     }
 
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
-static void CMD_FOCUS_WARN_CHILDREN(struct criteria_state *criteria_state) {
+static void CMD_FOCUS_WARN_CHILDREN(criteria_state *s) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     int count = criteria_state->owindows.size();
 
     if (count > 1) {
@@ -1241,7 +1262,8 @@ static void CMD_FOCUS_WARN_CHILDREN(struct criteria_state *criteria_state) {
  * Implementation of 'focus left|right|up|down|next|prev'.
  *
  */
-void CommandsApplier::focus_direction(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *direction_str) {
+void CommandsApplier::focus_direction(criteria_state *s, CommandsResultIR &cmd_output, char const *direction_str) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     HANDLE_EMPTY_MATCH(criteria_state);
     CMD_FOCUS_WARN_CHILDREN(criteria_state);
 
@@ -1271,14 +1293,15 @@ void CommandsApplier::focus_direction(struct criteria_state *criteria_state, Com
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'focus next|prev sibling'
  *
  */
-void CommandsApplier::focus_sibling(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *direction_str) {
+void CommandsApplier::focus_sibling(criteria_state *s, CommandsResultIR &cmd_output, char const *direction_str) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     HANDLE_EMPTY_MATCH(criteria_state);
     CMD_FOCUS_WARN_CHILDREN(criteria_state);
 
@@ -1305,14 +1328,14 @@ void CommandsApplier::focus_sibling(struct criteria_state *criteria_state, Comma
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'focus tiling|floating|mode_toggle'.
  *
  */
-void CommandsApplier::focus_window_mode(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *window_mode) {
+void CommandsApplier::focus_window_mode(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *window_mode) {
     DLOG(fmt::sprintf("window_mode = %s\n", window_mode));
 
     bool to_floating = false;
@@ -1339,7 +1362,7 @@ void CommandsApplier::focus_window_mode(struct criteria_state *criteria_state, C
 
     if (success) {
         cmd_output.needs_tree_render = true;
-        ysuccess(cmd_output.json_gen, true);
+        ysuccess(json_gen, true);
     } else {
         throw std::runtime_error(fmt::sprintf("Failed to find a %s container in workspace.", to_floating ? "floating" : "tiling"));
     }
@@ -1349,7 +1372,7 @@ void CommandsApplier::focus_window_mode(struct criteria_state *criteria_state, C
  * Implementation of 'focus parent|child'.
  *
  */
-void CommandsApplier::focus_level(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *level) {
+void CommandsApplier::focus_level(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *level) {
     DLOG(fmt::sprintf("level = %s\n", level));
     bool success = false;
 
@@ -1372,14 +1395,15 @@ void CommandsApplier::focus_level(struct criteria_state *criteria_state, Command
 
     cmd_output.needs_tree_render = success;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, success);
+    ysuccess(json_gen, success);
 }
 
 /*
  * Implementation of 'focus'.
  *
  */
-void CommandsApplier::focus(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, bool focus_workspace) {
+void CommandsApplier::focus(criteria_state *s, CommandsResultIR &cmd_output, bool focus_workspace) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     // DLOG(fmt::sprintf("current_match = %p\n", fmt::ptr(criteria_state->current_match)));
 
     if (criteria_state->current_match.match_is_empty()) {
@@ -1413,7 +1437,7 @@ void CommandsApplier::focus(struct criteria_state *criteria_state, CommandsResul
     }
 
     cmd_output.needs_tree_render = true;
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
@@ -1421,7 +1445,8 @@ void CommandsApplier::focus(struct criteria_state *criteria_state, CommandsResul
  *                   'fullscreen disable'
  *
  */
-void CommandsApplier::fullscreen(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *action, char const *fullscreen_mode) {
+void CommandsApplier::fullscreen(criteria_state *s, CommandsResultIR &cmd_output, char const *action, char const *fullscreen_mode) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     fullscreen_mode_t mode = strcmp(fullscreen_mode, "global") == 0 ? CF_GLOBAL : CF_OUTPUT;
     DLOG(fmt::sprintf("%s fullscreen, mode = %s\n", action, fullscreen_mode));
 
@@ -1440,14 +1465,15 @@ void CommandsApplier::fullscreen(struct criteria_state *criteria_state, Commands
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'sticky enable|disable|toggle'.
  *
  */
-void CommandsApplier::sticky(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *action) {
+void CommandsApplier::sticky(criteria_state *s, CommandsResultIR &cmd_output, char const *action) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     DLOG(fmt::sprintf("%s sticky on window\n", action));
     HANDLE_EMPTY_MATCH(criteria_state);
 
@@ -1478,14 +1504,15 @@ void CommandsApplier::sticky(struct criteria_state *criteria_state, CommandsResu
     ewmh_update_wm_desktop();
 
     cmd_output.needs_tree_render = true;
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'move <direction> [<amount> [px|ppt]]'.
  *
  */
-void CommandsApplier::move_direction(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *direction_str, long amount, char const *mode) {
+void CommandsApplier::move_direction(criteria_state *s, CommandsResultIR &cmd_output, char const *direction_str, long amount, char const *mode) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     HANDLE_EMPTY_MATCH(criteria_state);
 
     direction_t direction = parse_direction(direction_str);
@@ -1522,14 +1549,15 @@ void CommandsApplier::move_direction(struct criteria_state *criteria_state, Comm
     }
 
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'layout default|stacked|stacking|tabbed|splitv|splith'.
  *
  */
-void CommandsApplier::layout(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *layout_str) {
+void CommandsApplier::layout(criteria_state *s, CommandsResultIR &cmd_output, char const *layout_str) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     HANDLE_EMPTY_MATCH(criteria_state);
 
     layout_t layout;
@@ -1551,14 +1579,15 @@ void CommandsApplier::layout(struct criteria_state *criteria_state, CommandsResu
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'layout toggle [all|split]'.
  *
  */
-void CommandsApplier::layout_toggle(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *toggle_mode) {
+void CommandsApplier::layout_toggle(criteria_state *s, CommandsResultIR &cmd_output, char const *toggle_mode) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     if (toggle_mode == nullptr) {
         toggle_mode = "default";
     }
@@ -1577,14 +1606,14 @@ void CommandsApplier::layout_toggle(struct criteria_state *criteria_state, Comma
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'exit'.
  *
  */
-void CommandsApplier::exit(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
+void CommandsApplier::exit(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
     LOG("Exiting due to user command.\n");
     ::exit(EXIT_SUCCESS);
 
@@ -1595,7 +1624,7 @@ void CommandsApplier::exit(struct criteria_state *criteria_state, CommandsResult
  * Implementation of 'reload'.
  *
  */
-void CommandsApplier::reload(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
+void CommandsApplier::reload(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
     LOG("reloading\n");
 
     kill_nagbar(global.config_error_nagbar_pid, false);
@@ -1626,18 +1655,18 @@ void CommandsApplier::reload(struct criteria_state *criteria_state, CommandsResu
     // }
 
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'restart'.
  *
  */
-void CommandsApplier::restart(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
+void CommandsApplier::restart(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
     LOG("restarting i3\n");
     int exempt_fd = -1;
-    if (cmd_output.client != nullptr) {
-        exempt_fd = cmd_output.client->fd;
+    if (this->client != nullptr) {
+        exempt_fd = this->client->fd;
         LOG(fmt::sprintf("Carrying file descriptor %d across restart\n", exempt_fd));
         int flags;
         if ((flags = fcntl(exempt_fd, F_GETFD)) < 0 ||
@@ -1661,13 +1690,13 @@ void CommandsApplier::restart(struct criteria_state *criteria_state, CommandsRes
  * Implementation of 'open'.
  *
  */
-void CommandsApplier::open(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
+void CommandsApplier::open(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
     LOG("opening new container\n");
     ConCon *con = tree_open_con(nullptr);
     con->layout = L_SPLITH;
     con->con_activate();
-    if (cmd_output.json_gen != nullptr) {
-        cmd_output.json_gen->push_back({{"success", true},
+    if (json_gen != nullptr) {
+        json_gen->push_back({{"success", true},
                                         {"id", (uintptr_t)con}});
     }
 
@@ -1678,7 +1707,8 @@ void CommandsApplier::open(struct criteria_state *criteria_state, CommandsResult
  * Implementation of 'focus output <output>'.
  *
  */
-void CommandsApplier::focus_output(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *name) {
+void CommandsApplier::focus_output(criteria_state *s, CommandsResultIR &cmd_output, char const *name) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     std::vector<std::string> names{};
 
     if (name) {
@@ -1693,7 +1723,7 @@ void CommandsApplier::focus_output(struct criteria_state *criteria_state, Comman
     HANDLE_EMPTY_MATCH(criteria_state);
 
     if (criteria_state->owindows.empty()) {
-        ysuccess(cmd_output.json_gen, true);
+        ysuccess(json_gen, true);
         return;
     }
 
@@ -1714,9 +1744,9 @@ void CommandsApplier::focus_output(struct criteria_state *criteria_state, Comman
 
     cmd_output.needs_tree_render = success;
     if (success) {
-        ysuccess(cmd_output.json_gen, true);
+        ysuccess(json_gen, true);
     } else {
-        yerror(cmd_output.json_gen, "No output matched");
+        yerror(json_gen, "No output matched");
     }
 }
 
@@ -1724,7 +1754,8 @@ void CommandsApplier::focus_output(struct criteria_state *criteria_state, Comman
  * Implementation of 'move [window|container] [to] [absolute] position [<pos_x> [px|ppt] <pos_y> [px|ppt]]
  *
  */
-void CommandsApplier::move_window_to_position(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, long x, char const *mode_x, long y, char const *mode_y) {
+void CommandsApplier::move_window_to_position(criteria_state *s, CommandsResultIR &cmd_output, long x, char const *mode_x, long y, char const *mode_y) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     bool has_error = false;
 
     HANDLE_EMPTY_MATCH(criteria_state);
@@ -1734,7 +1765,7 @@ void CommandsApplier::move_window_to_position(struct criteria_state *criteria_st
             ELOG("Cannot change position. The window/container is not floating\n");
 
             if (!has_error) {
-                yerror(cmd_output.json_gen, "Cannot change position of a window/container because it is not floating.");
+                yerror(json_gen, "Cannot change position of a window/container because it is not floating.");
                 has_error = true;
             }
 
@@ -1749,13 +1780,13 @@ void CommandsApplier::move_window_to_position(struct criteria_state *criteria_st
         DLOG(fmt::sprintf("moving to position %d %s %d %s\n", newrect.x, mode_x, newrect.y, mode_y));
 
         if (!floating_reposition(current->parent, newrect)) {
-            yerror(cmd_output.json_gen, "Cannot move window/container out of bounds.");
+            yerror(json_gen, "Cannot move window/container out of bounds.");
             has_error = true;
         }
     }
 
     if (!has_error) {
-        ysuccess(cmd_output.json_gen, true);
+        ysuccess(json_gen, true);
     }
 }
 
@@ -1763,7 +1794,8 @@ void CommandsApplier::move_window_to_position(struct criteria_state *criteria_st
  * Implementation of 'move [window|container] [to] [absolute] position center
  *
  */
-void CommandsApplier::move_window_to_center(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *method) {
+void CommandsApplier::move_window_to_center(criteria_state *s, CommandsResultIR &cmd_output, char const *method) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     bool has_error = false;
     HANDLE_EMPTY_MATCH(criteria_state);
 
@@ -1774,7 +1806,7 @@ void CommandsApplier::move_window_to_center(struct criteria_state *criteria_stat
                               fmt::ptr(current), current->name));
 
             if (!has_error) {
-                yerror(cmd_output.json_gen, "Cannot change position of a window/container because it is not floating.");
+                yerror(json_gen, "Cannot change position of a window/container because it is not floating.");
                 has_error = true;
             }
 
@@ -1799,7 +1831,7 @@ void CommandsApplier::move_window_to_center(struct criteria_state *criteria_stat
 
     // XXX: default reply for now, make this a better reply
     if (!has_error) {
-        ysuccess(cmd_output.json_gen, true);
+        ysuccess(json_gen, true);
     }
 }
 
@@ -1807,7 +1839,8 @@ void CommandsApplier::move_window_to_center(struct criteria_state *criteria_stat
  * Implementation of 'move [window|container] [to] position mouse'
  *
  */
-void CommandsApplier::move_window_to_mouse(struct criteria_state *criteria_state, CommandsResultIR &cmd_output) {
+void CommandsApplier::move_window_to_mouse(criteria_state *s, CommandsResultIR &cmd_output) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     HANDLE_EMPTY_MATCH(criteria_state);
 
     for (auto current : criteria_state->owindows) {
@@ -1823,14 +1856,15 @@ void CommandsApplier::move_window_to_mouse(struct criteria_state *criteria_state
     }
 
     cmd_output.needs_tree_render = true;
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'title_format <format>'
  *
  */
-void CommandsApplier::title_format(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *format) {
+void CommandsApplier::title_format(criteria_state *s, CommandsResultIR &cmd_output, char const *format) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     DLOG(fmt::sprintf("setting title_format to \"%s\"\n", format));
     HANDLE_EMPTY_MATCH(criteria_state);
 
@@ -1864,14 +1898,15 @@ void CommandsApplier::title_format(struct criteria_state *criteria_state, Comman
     }
 
     cmd_output.needs_tree_render = true;
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'title_window_icon <yes|no|toggle>' and 'title_window_icon padding <px>'
  *
  */
-void CommandsApplier::title_window_icon(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *enable, int padding) {
+void CommandsApplier::title_window_icon(criteria_state *s, CommandsResultIR &cmd_output, char const *enable, int padding) {
+    auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     bool is_toggle = false;
     if (enable != nullptr) {
         if (strcmp(enable, "toggle") == 0) {
@@ -1913,14 +1948,14 @@ void CommandsApplier::title_window_icon(struct criteria_state *criteria_state, C
     }
 
     cmd_output.needs_tree_render = true;
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'rename workspace [<name>] to <name>'
  *
  */
-void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *old_name, char const *new_name) {
+void CommandsApplier::rename_workspace(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *old_name, char const *new_name) {
     if (strncasecmp(new_name, "__", strlen("__")) == 0) {
         throw std::runtime_error(fmt::sprintf("Cannot rename workspace to \"%s\": names starting with __ are i3-internal.", new_name));
     }
@@ -1995,7 +2030,7 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
     }
 
     cmd_output.needs_tree_render = true;
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 
     ewmh_update_desktop_properties();
 
@@ -2007,21 +2042,21 @@ void CommandsApplier::rename_workspace(struct criteria_state *criteria_state, Co
  * Implementation of 'bar mode dock|hide|invisible|toggle [<bar_id>]'
  *
  */
-void CommandsApplier::bar_mode(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *bar_mode, char const *bar_id) {
+void CommandsApplier::bar_mode(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *bar_mode, char const *bar_id) {
 }
 
 /*
  * Implementation of 'bar hidden_state hide|show|toggle [<bar_id>]'
  *
  */
-void CommandsApplier::bar_hidden_state(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *bar_hidden_state, char const *bar_id) {
+void CommandsApplier::bar_hidden_state(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *bar_hidden_state, char const *bar_id) {
 }
 
 /*
  * Implementation of 'debuglog toggle|on|off'
  *
  */
-void CommandsApplier::debuglog(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *argument) {
+void CommandsApplier::debuglog(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *argument) {
     bool logging = get_debug_logging();
     if (!strcmp(argument, "toggle")) {
         LOG(fmt::sprintf("%s debug logging\n", logging ? "Disabling" : "Enabling"));
@@ -2034,14 +2069,14 @@ void CommandsApplier::debuglog(struct criteria_state *criteria_state, CommandsRe
         set_debug_logging(false);
     }
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 /*
  * Implementation of 'nagbar'
  *
  */
-void CommandsApplier::nagbar(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *type, char const *message, char const *font, char const *primary, char const *labels, char const *actions, char const *terminals) {
+void CommandsApplier::nagbar(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *type, char const *message, char const *font, char const *primary, char const *labels, char const *actions, char const *terminals) {
     std::vector<button_t> buttons{};
 
     if (labels != nullptr) {
@@ -2055,7 +2090,7 @@ void CommandsApplier::nagbar(struct criteria_state *criteria_state, CommandsResu
     std::string font_str = font;
 
     start_nagbar(nullptr, buttons, message_str, font_str, strcmp(type, "warning") == 0 ? bar_type_t::TYPE_WARNING : bar_type_t::TYPE_ERROR, strcmp(primary, "true") == 0);
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 }
 
 static int *gaps_inner(gaps_t *gaps) {
@@ -2162,7 +2197,7 @@ static bool gaps_update(gap_accessor get, char const *scope, char const *mode, i
  * Implementation of 'gaps inner|outer|top|right|bottom|left|horizontal|vertical current|all set|plus|minus|toggle <px>'
  *
  */
-void CommandsApplier::gaps(struct criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *type, char const *scope, char const *mode, char const *value) {
+void CommandsApplier::gaps(criteria_state *criteria_state, CommandsResultIR &cmd_output, char const *type, char const *scope, char const *mode, char const *value) {
     int pixels = logical_px(global.x->root_screen, atoi(value));
 
     if (!strcmp(type, "inner")) {
@@ -2217,8 +2252,8 @@ void CommandsApplier::gaps(struct criteria_state *criteria_state, CommandsResult
 
     cmd_output.needs_tree_render = true;
     // XXX: default reply for now, make this a better reply
-    ysuccess(cmd_output.json_gen, true);
+    ysuccess(json_gen, true);
 
 error:
-    ysuccess(cmd_output.json_gen, false);
+    ysuccess(json_gen, false);
 }

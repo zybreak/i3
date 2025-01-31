@@ -1553,3 +1553,105 @@ void x_set_shape(ConCon *con, xcb_shape_sk_t kind, bool enable) {
         xcb_flush(**global.x);
     }
 }
+
+/*
+ * Ungrabs all keys, to be called before re-grabbing the keys because of a
+ * mapping_notify event or a configuration file reload
+ *
+ */
+void ungrab_all_keys(x_connection *conn) {
+    DLOG("Ungrabbing all keys\n");
+    
+    conn->ungrab_key(XCB_GRAB_ANY, global.x->root, XCB_BUTTON_MASK_ANY);
+}
+
+static bool binding_in_current_group(Binding const &bind) {
+    /* If no bits are set, the binding should be installed in every group. */
+    if ((bind.event_state_mask >> 16) == I3_XKB_GROUP_MASK_ANY) {
+        return true;
+    }
+    switch (global.xkb->xkb_current_group) {
+        case XCB_XKB_GROUP_1:
+            return ((bind.event_state_mask >> 16) & I3_XKB_GROUP_MASK_1);
+        case XCB_XKB_GROUP_2:
+            return ((bind.event_state_mask >> 16) & I3_XKB_GROUP_MASK_2);
+        case XCB_XKB_GROUP_3:
+            return ((bind.event_state_mask >> 16) & I3_XKB_GROUP_MASK_3);
+        case XCB_XKB_GROUP_4:
+            return ((bind.event_state_mask >> 16) & I3_XKB_GROUP_MASK_4);
+        default:
+            ELOG(fmt::sprintf("BUG: xkb_current_group (= %d) outside of [XCB_XKB_GROUP_1..XCB_XKB_GROUP_4]\n", global.xkb->xkb_current_group));
+            return false;
+    }
+}
+
+static void grab_keycode_for_binding(x_connection *conn, Binding &bind, uint32_t keycode) {
+    /* Grab the key in all combinations */
+    auto mods = (bind.event_state_mask & 0xFFFF);
+    DLOG(fmt::sprintf("Binding %p Grabbing keycode %d with event state mask 0x%x (mods 0x%x)\n", fmt::ptr(&bind), keycode, bind.event_state_mask, mods));
+    
+    /* Also bind the key with active NumLock */
+    /* Also bind the key with active CapsLock */
+    /* Also bind the key with active NumLock+CapsLock */
+    uint32_t mod_list[] = {mods, mods | global.x->xcb_numlock_mask, mods | XCB_MOD_MASK_LOCK, mods | global.x->xcb_numlock_mask | XCB_MOD_MASK_LOCK};
+
+    std::ranges::for_each(mod_list, [&](uint32_t mod) {
+        conn->grab_key(
+            0,
+            global.x->root,
+            mod,
+            keycode,
+            XCB_GRAB_MODE_ASYNC,
+            XCB_GRAB_MODE_ASYNC);
+    });
+}
+
+/*
+ * Grab the bound keys (tell X to send us keypress events for those keycodes)
+ *
+ */
+void grab_all_keys(x_connection *conn) {
+    for (auto &bind : global.configManager->config->current_mode()->bindings) {
+        if (bind.input_type != B_KEYBOARD) {
+            continue;
+        }
+
+        if (!binding_in_current_group(bind)) {
+            continue;
+        }
+
+        /* The easy case: the user specified a keycode directly. */
+        if (bind.keycode > 0) {
+            grab_keycode_for_binding(conn, bind, bind.keycode);
+            continue;
+        }
+
+        for (auto const &binding_keycode : bind.keycodes) {
+            int const keycode = binding_keycode.keycode;
+            auto mods = (binding_keycode.modifiers & 0xFFFF);
+            DLOG(fmt::sprintf("Binding %p Grabbing keycode %d with mods %d\n", fmt::ptr(&bind), keycode, mods));
+            conn->grab_key(0, global.x->root, mods, keycode, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        }
+    }
+}
+
+/*
+ * Release the button grabs on all managed windows and regrab them,
+ * reevaluating which buttons need to be grabbed.
+ *
+ */
+void regrab_all_buttons(x_connection *conn) {
+    auto buttons = bindings_get_buttons_to_grab(global.configManager->config->current_mode()->bindings);
+    conn->grab_server();
+
+    for (auto const &con : global.all_cons) {
+        if (con->get_window() == nullptr) {
+            continue;
+        }
+
+        conn->ungrab_button(XCB_BUTTON_INDEX_ANY, con->get_window()->id, XCB_BUTTON_MASK_ANY);
+        xcb_grab_buttons(con->get_window()->id, buttons);
+    }
+
+    conn->ungrab_server();
+}

@@ -7,8 +7,6 @@
  * config_parser.h: config parser-related definitions
  *
  */
-module;
-struct criteria_state;
 export module i3_config_old:config_parser;
 
 import std;

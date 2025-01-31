@@ -23,6 +23,7 @@ import i3_config_base;
 import i3_config_new;
 import i3_config_old;
 import log;
+import bindings;
 
 using namespace std::literals;
 
@@ -312,4 +313,207 @@ std::unique_ptr<Config> ConfigurationManager::load_configuration(std::optional<s
     reorder_bindings(config.get());
 
     return config;
+}
+
+/*
+ * Reorders bindings by event_state_mask descendingly so that get_binding()
+ * correctly matches more specific bindings before more generic bindings. Take
+ * the following binding configuration as an example:
+ *
+ *   bindsym n nop lower-case n pressed
+ *   bindsym Shift+n nop upper-case n pressed
+ *
+ * Without reordering, the first binding’s event_state_mask of 0x0 would match
+ * the actual event_stat_mask of 0x1 and hence trigger instead of the second
+ * keybinding.
+ *
+ */
+void reorder_bindings(Config *config) {
+    std::ranges::for_each(config->modes, [](auto &mode) {
+        std::ranges::sort(mode.second.bindings, [](auto const &first, auto const &second) {
+            if (first.event_state_mask < second.event_state_mask) {
+                return 1;
+            } else if (first.event_state_mask == second.event_state_mask) {
+                return 0;
+            } else {
+                return -1;
+            }
+        });
+    });
+}
+
+/*
+ * Returns true if a is a key binding for the same key as b.
+ *
+ */
+static bool binding_same_key(Binding *a, Binding *b) {
+    /* Check if the input types are different */
+    if (a->input_type != b->input_type) {
+        return false;
+    }
+    
+    /* Check if one is using keysym while the other is using bindsym. */
+    if ((a->symbol.empty() && !b->symbol.empty()) ||
+        (!a->symbol.empty() && b->symbol.empty())) {
+        return false;
+    }
+
+    /* If a is NULL, b has to be NULL, too (see previous conditional).
+     * If the keycodes differ, it can't be a duplicate. */
+    if (!a->symbol.empty() && a->symbol != b->symbol) {
+        return false;
+    }
+
+    /* Check if the keycodes or modifiers are different. If so, they
+     * can't be duplicate */
+    if (a->keycode != b->keycode ||
+        a->event_state_mask != b->event_state_mask ||
+        a->release != b->release) {
+        return false;
+    }
+
+    return true;
+}
+
+/*
+ * Checks for duplicate key bindings (the same keycode or keysym is configured
+ * more than once). If a duplicate binding is found, a message is printed to
+ * stderr and the has_errors variable is set to true, which will start
+ * i3-nagbar.
+ *
+ */
+bool has_duplicate_bindings(Config *config) {
+    bool has_errors = false;
+    for (auto &current : config->current_mode()->bindings) {
+        for (auto &bind : config->current_mode()->bindings) {
+            /* Abort when we reach the current keybinding, only check the
+             * bindings before */
+            if (bind == current) {
+                break;
+            }
+            
+            if (!binding_same_key(&bind, &current)) {
+                continue;
+            }
+
+            has_errors = true;
+            if (current.keycode != 0) {
+                ELOG(fmt::sprintf("Duplicate keybinding in config file:\n  state mask 0x%x with keycode %d, command \"%s\"\n",
+                                  current.event_state_mask, current.keycode, current.command));
+            } else {
+                ELOG(fmt::sprintf("Duplicate keybinding in config file:\n  state mask 0x%x with keysym %s, command \"%s\"\n",
+                                  current.event_state_mask, current.symbol, current.command));
+            }
+        }
+    }
+
+    return has_errors;
+}
+
+/*
+ * Returns the mode specified by `name` or creates a new mode and adds it to
+ * the list of modes.
+ *
+ */
+static void mode_from_name(Config *config, std::string const &name, bool pango_markup, Binding &binding) {
+    /* Try to find the mode in the list of modes and return it */
+    auto mode_it = config->modes.find(name);
+    
+    if (mode_it != config->modes.end()) {
+        mode_it->second.bindings.push_back(binding);
+        return;
+    }
+
+    /* If the mode was not found, create a new one */
+    Mode mode{name, pango_markup};
+    mode.bindings.push_back(binding);
+
+    config->modes.insert_or_assign(name, mode);
+}
+
+/*
+ * Adds a binding from config parameters given as strings and returns a
+ * pointer to the binding structure. Returns NULL if the input code could not
+ * be parsed.
+ *
+ */
+void configure_binding(Config *config, std::string const &bindtype, std::string const &modifiers, std::string const &input_code,
+                       bool release, bool border, bool whole_window,
+                       bool exclude_titlebar, std::string const &command, std::string const &modename,
+                       bool pango_markup) {
+    DLOG(fmt::sprintf("Binding bindtype %s, modifiers %s, input code %s, release %s\n", bindtype, modifiers, input_code, release ? "true" : "false"));
+    
+    Binding new_binding{};
+    new_binding.release = (release ? B_UPON_KEYRELEASE : B_UPON_KEYPRESS);
+    new_binding.border = border;
+    new_binding.whole_window = whole_window;
+    new_binding.exclude_titlebar = exclude_titlebar;
+    if (bindtype == "bindsym") {
+        new_binding.input_type = (input_code.starts_with("button") ? B_MOUSE : B_KEYBOARD);
+
+        new_binding.symbol = input_code;
+    } else {
+        long keycode;
+        if (!utils::parse_long(input_code, keycode)) {
+            ELOG(std::format("Could not parse \"{}\" as an input code, ignoring this binding.\n", input_code));
+            return;
+        }
+
+        new_binding.keycode = keycode;
+        new_binding.input_type = B_KEYBOARD;
+    }
+    new_binding.command = command;
+    new_binding.event_state_mask = event_state_from_str(modifiers.data());
+    int group_bits_set = 0;
+    if ((new_binding.event_state_mask >> 16) & I3_XKB_GROUP_MASK_1) {
+        group_bits_set++;
+    }
+    if ((new_binding.event_state_mask >> 16) & I3_XKB_GROUP_MASK_2) {
+        group_bits_set++;
+    }
+    if ((new_binding.event_state_mask >> 16) & I3_XKB_GROUP_MASK_3) {
+        group_bits_set++;
+    }
+    if ((new_binding.event_state_mask >> 16) & I3_XKB_GROUP_MASK_4) {
+        group_bits_set++;
+    }
+    if (group_bits_set > 1) {
+        ELOG("Keybinding has more than one Group specified, but your X server is always in precisely one group. The keybinding can never trigger.\n");
+    }
+
+    mode_from_name(config, modename, pango_markup, new_binding);
+}
+
+/*
+ * Switches the key bindings to the given mode, if the mode exists
+ *
+ */
+void switch_mode(std::string const new_mode) {
+    DLOG(fmt::sprintf("Switching to mode %s\n", new_mode));
+    
+    auto it = global.configManager->config->modes.find(new_mode);
+    if (it == global.configManager->config->modes.end()) {
+        ELOG("Mode not found\n");
+        return;
+    }
+
+    auto &mode = it->second;
+
+    ungrab_all_keys(*global.x);
+    global.configManager->config->_current_mode = it->first;
+    translate_keysyms(global.xkb->keymap());
+    grab_all_keys(*global.x);
+    regrab_all_buttons(*global.x);
+
+    /* Reset all B_UPON_KEYRELEASE_IGNORE_MODS bindings to avoid possibly
+     * activating one of them. */
+    for (auto &bind : global.configManager->config->current_mode()->bindings) {
+        if (bind.release == B_UPON_KEYRELEASE_IGNORE_MODS) {
+            bind.release = B_UPON_KEYRELEASE;
+        }
+    }
+
+    std::string event_msg = fmt::sprintf(R"({"change":"%s", "pango_markup":%s})", it->first, (mode.pango_markup ? "true" : "false"));
+
+    global.ipcManager->ipc_send_event("mode", i3ipc::EVENT_MODE, event_msg);
 }

@@ -27,7 +27,6 @@ module;
 module i3;
 
 import std;
-import :output;
 import format_placeholders;
 import utils;
 import log;
@@ -1158,4 +1157,46 @@ bool con_inside_stacked_or_tabbed(Con *con) {
         return true;
     }
     return con_inside_stacked_or_tabbed(con->parent);
+}
+
+/*
+ * Runs the given binding and handles parse errors. If con is passed, it will
+ * execute the command binding with that container selected by criteria.
+ * Returns a CommandResult for running the binding's command. Free with
+ * command_result_free().
+ *
+ */
+CommandResult run_binding(Binding *bind, Con *con) {
+    std::string command;
+    
+    /* We need to copy the binding and command since “reload” may be part of
+     * the command, and then the memory that bind points to may not contain the
+     * same data anymore. */
+    if (con == nullptr) {
+        command = bind->command;
+    } else {
+        command = fmt::format("[con_id=\"{}\"] {}", fmt::ptr(con), bind->command);
+    }
+
+    /* The "mode" command might change the current mode, so back it up to
+     * correctly produce an event later. */
+    std::string &modename = global.configManager->config->current_mode()->name;
+
+    Binding bind_cp = *bind;
+    auto commandsApplier = CommandsApplier{};
+    CommandResult result = parse_command(command, commandsApplier);
+
+    if (result.needs_tree_render) {
+        tree_render();
+    }
+
+    if (result.parse_error) {
+        std::vector<button_t> buttons{};
+        auto prompt = std::string("The configured command for this shortcut could not be run successfully.");
+        start_nagbar(&global.command_error_nagbar_pid, buttons, prompt, global.configManager->config->font->pattern, bar_type_t::TYPE_ERROR, false);
+    }
+
+    global.ipcManager->ipc_send_binding_event("run", &bind_cp, modename.c_str());
+
+    return result;
 }
