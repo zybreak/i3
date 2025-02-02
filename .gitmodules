@@ -1,0 +1,3 @@
+[submodule "lib/xpp"]
+	path = lib/xpp
+	url = git@github.com:zybreak/xpp.git
