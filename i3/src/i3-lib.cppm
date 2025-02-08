@@ -11,14 +11,9 @@ module;
 #include <xcb/xcb.h>
 #include <xcb/shape.h>
 
-#include <xpp/xpp.hpp>
-#include <xpp/proto/randr.hpp>
 #define explicit dont_use_cxx_explicit
-#include <xpp/proto/xkb.hpp>
 #include <xcb/xkb.h>
 #undef explicit
-#include <xpp/proto/shape.hpp>
-#include <xpp/proto/bigreq.hpp>
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_aux.h>
 #include <ev.h>
@@ -49,6 +44,11 @@ import bindings;
 import i3ipc;
 import regex;
 import log;
+import xpp;
+import xpp.proto.randr;
+import xpp.proto.xkb;
+import xpp.proto.shape;
+import xpp.proto.big_requests;
 
 using std::int32_t;
 using std::uint32_t;
@@ -1955,6 +1955,10 @@ export {
 
         operator x_connection *() {
             return conn;
+        }
+        
+        xcb_connection_t* con() {
+            return *conn;
         }
 
         void xcursor_load_cursors();

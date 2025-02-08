@@ -1,9 +1,9 @@
 module;
 #include <xcb/xcb.h>
-#include "xpp/xpp.hpp"
 module i3;
 
 import log;
+import xpp;
 
 static std::array const I3_ATOMS{
     std::make_pair(i3::Atom::_NET_SUPPORTED, "_NET_SUPPORTED"),
@@ -73,7 +73,7 @@ void setup_atoms(X &x) {
             i3::atoms[atom.first] = xpp::x::intern_atom(*x, false, atom.second).atom();
         } catch (std::exception &e) {
             ELOG(std::format("Could not get atom {}", atom.second));
-            exit(-1);
+            std::exit(-1);
         }
     }
 }

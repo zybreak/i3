@@ -40,11 +40,6 @@
 #include <unistd.h>
 #include <fmt/core.h>
 #include <fmt/printf.h>
-#include <xpp/xpp.hpp>
-#include <xpp/proto/randr.hpp>
-#include <xpp/proto/xkb.hpp>
-#include <xpp/proto/shape.hpp>
-#include <xpp/proto/bigreq.hpp>
 #include <xcb/xproto.h>
 #include <xcb/xcb_atom.h>
 #include <boost/di.hpp>
@@ -62,6 +57,11 @@ import log;
 import program_arguments;
 import i3_config_base;
 import i3ipc;
+import xpp;
+import xpp.proto.randr;
+import xpp.proto.xkb;
+import xpp.proto.shape;
+import xpp.proto.big_requests;
 
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;

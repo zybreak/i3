@@ -8,7 +8,6 @@
  *
  */
 module;
-#include <xpp/proto/x.hpp>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
@@ -23,6 +22,7 @@ import std;
 import utils;
 import log;
 import rect;
+import xpp.proto.x;
 
 template <typename T>
 struct window_data {

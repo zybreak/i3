@@ -2,9 +2,6 @@ module;
 #define explicit dont_use_cxx_explicit
 #include <xcb/xkb.h>
 #undef explicit
-#include "xpp/proto/bigreq.hpp"
-#include "xpp/proto/xkb.hpp"
-#include "xpp/xpp.hpp"
 #include <xkbcommon/xkbcommon-x11.h>
 #include <xkbcommon/xkbcommon.h>
 #include <fmt/printf.h>
@@ -15,6 +12,9 @@ import std;
 import utils;
 import log;
 import bindings;
+import xpp.proto.big_requests;
+import xpp.proto.xkb;
+import xpp;
 
 static int fill_rmlvo_from_root(xkb_rule_names *xkb_names) {
     size_t content_max_words = 256;

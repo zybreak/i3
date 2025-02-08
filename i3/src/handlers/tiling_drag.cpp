@@ -210,7 +210,7 @@ static xcb_window_t create_drop_indicator(Rect rect) {
     mask |= XCB_CW_OVERRIDE_REDIRECT;
     values[1] = 1;
 
-    xcb_window_t indicator = create_window(**global.x, rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
+    xcb_window_t indicator = create_window(global.x->con(), rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
                                            XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_MOVE, false, mask, values);
     /* Change the window class to "i3-drag", so that it can be matched in a
      * compositor configuration. Note that the class needs to be changed before

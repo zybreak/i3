@@ -127,7 +127,7 @@ target_sources(i3_lib PUBLIC
 target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_base i3_config_new i3_config_old i3_commands_base i3_commands_old i3_commands_new utils xpp i3_log)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
 target_compile_options(i3_lib PUBLIC ${compile_options})
-add_dependencies(i3_lib libi3ipc)
+add_dependencies(i3_lib libi3ipc xpp)
 
 add_executable(i3
         ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)

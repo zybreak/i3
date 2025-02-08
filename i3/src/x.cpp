@@ -19,10 +19,6 @@ module;
 #include <xcb/xcb_aux.h>
 #include <xcb/shape.h>
 
-#include <xpp/connection.hpp>
-#include <xpp/proto/x.hpp>
-#include <xpp/proto/shape.hpp>
-
 #include <unistd.h>
 
 #include <fmt/printf.h>
@@ -32,6 +28,9 @@ import std;
 import utils;
 import log;
 import rect;
+import xpp.connection;
+import xpp.proto.x;
+import xpp.proto.shape;
 
 void X::xcursor_load_cursors() {
     if (xcb_cursor_context_new(**global.x, global.x->root_screen, &ctx) < 0) {
