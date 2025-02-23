@@ -521,11 +521,15 @@ int main(int argc, char *argv[]) {
     try {
         configManager.set_config(configManager.load_configuration(args.override_configpath));
     } catch (std::domain_error &e) {
+#if 0
         using namespace std::literals;
         std::vector<button_t> buttons{};
         std::string prompt = e.what();
         std::string font = "fixed"s;
         start_nagbar(&global.config_error_nagbar_pid, buttons, prompt, font, bar_type_t::TYPE_ERROR, false);
+#endif
+        std::cout << e.what() << std::endl;
+        std::exit(1);
     }
 
     if (!configManager.config->ipc_socket_path) {

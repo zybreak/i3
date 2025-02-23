@@ -49,7 +49,8 @@ int ConfigApplier::criteria_pop_state(criteria_state *c) {
 }
 
 void ConfigApplier::criteria_add(criteria_state *cs, char const *ctype, char const *cvalue) {
-    dynamic_cast<criteria_state_impl*>(cs)->current_match.parse_property(ctype, cvalue);
+    std::string val = (cvalue != nullptr) ? cvalue : "";
+    dynamic_cast<criteria_state_impl*>(cs)->current_match.parse_property(ctype, val);
 }
 
 void ConfigApplier::font(std::string const &font) {
