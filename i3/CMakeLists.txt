@@ -42,6 +42,9 @@ list(APPEND libraries nlohmann_json::nlohmann_json)
 find_package(di CONFIG REQUIRED)
 list(APPEND libraries di::di)
 
+find_package(xpp CONFIG REQUIRED)
+list(APPEND libraries xpp::xpp)
+
 list(APPEND libraries libi3ipc)
 
 list(APPEND include_dirs
@@ -124,7 +127,7 @@ target_sources(i3_lib PUBLIC
         src/rect.cppm
         src/i3_regex.cppm
         )
-target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_base i3_config_new i3_config_old i3_commands_base i3_commands_old i3_commands_new utils xpp i3_log)
+target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_base i3_config_new i3_config_old i3_commands_base i3_commands_old i3_commands_new utils i3_log)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
 target_compile_options(i3_lib PUBLIC ${compile_options})
 add_dependencies(i3_lib libi3ipc xpp)
