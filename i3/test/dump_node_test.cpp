@@ -1,11 +1,8 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include <nlohmann/json.hpp>
 
 import i3;
 import mocks;
-
-using json = nlohmann::json;
 
 TEST(DumpNodeTest, Dump) {
     MockX mockX{};

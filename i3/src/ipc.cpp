@@ -19,8 +19,6 @@ module;
 #include <sys/un.h>
 #include <unistd.h>
 
-#include <nlohmann/json.hpp>
-
 #include <fmt/printf.h>
 module i3;
 
@@ -217,7 +215,7 @@ void IPCManager::ipc_send_event(std::string const event, uint32_t message_type, 
  * For shutdown events, we send the reason for the shutdown.
  */
 void IPCManager::ipc_send_shutdown_event(shutdown_reason_t reason) {
-    nlohmann::json j;
+    json j;
 
     if (reason == shutdown_reason_t::SHUTDOWN_REASON_RESTART) {
         j["change"] = "restart";
@@ -258,7 +256,7 @@ static void handle_run_command(ipc_client *client, uint8_t *message, int size, u
      * message_size bytes out of the buffer */
     std::string command((char const *)message, message_size);
     LOG(fmt::sprintf("IPC: received: *%.4000s*\n", command));
-    nlohmann::json gen;
+    json gen;
 
     auto commandsApplier = CommandsApplier{client, &gen};
     CommandResult result = parse_command(command, commandsApplier);
@@ -270,8 +268,8 @@ static void handle_run_command(ipc_client *client, uint8_t *message, int size, u
     ipc_send_client_message(client, i3ipc::REPLY_TYPE::COMMAND, gen.dump());
 }
 
-static nlohmann::json dump_event_state_mask(Binding *bind) {
-    auto a = nlohmann::json::array();
+static json dump_event_state_mask(Binding *bind) {
+    auto a = json::array();
 
     for (int i = 0; i < 20; i++) {
         if (bind->event_state_mask & (1 << i)) {
@@ -334,8 +332,8 @@ static nlohmann::json dump_event_state_mask(Binding *bind) {
     return a;
 }
 
-static nlohmann::json dump_binding(Binding *bind) {
-    nlohmann::json j;
+static json dump_binding(Binding *bind) {
+    json j;
 
     j["input_code"] = bind->keycode;
     j["input_type"] = bind->input_type == B_KEYBOARD ? "keyboard" : "mouse";
@@ -368,7 +366,7 @@ static void handle_tree(ipc_client *client, uint8_t *message, int size, uint32_t
  *
  */
 static void handle_get_workspaces(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
-    auto a = nlohmann::json::array();
+    auto a = json::array();
 
     WorkspaceCon *focused_ws = global.focused->con_get_workspace();
 
@@ -398,10 +396,10 @@ static void handle_get_workspaces(ipc_client *client, uint8_t *message, int size
  *
  */
 static void handle_get_outputs(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
-    auto a = nlohmann::json::array();
+    auto a = json::array();
 
     for (Output *output : global.randr->outputs) {
-        auto o = nlohmann::json::object();
+        auto o = json::object();
 
         o["name"] = output->output_primary_name();
         o["active"] = output->active;
@@ -424,7 +422,7 @@ static void handle_get_outputs(ipc_client *client, uint8_t *message, int size, u
  *
  */
 static void handle_get_version(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
-    nlohmann::json j;
+    json j;
 
     j["major"] = MAJOR_VERSION;
     j["minor"] = MINOR_VERSION;
@@ -432,7 +430,7 @@ static void handle_get_version(ipc_client *client, uint8_t *message, int size, u
     j["human_readable"] = I3_VERSION;
     j["loaded_config_file_name"] = global.configManager->config->current_configpath.native();
 
-    auto a = nlohmann::json::array();
+    auto a = json::array();
     for (auto &included_file : std::ranges::drop_view{global.configManager->config->included_files, 1}) {
         a.push_back(included_file.path);
     }
@@ -456,7 +454,7 @@ static void handle_get_bar_config(ipc_client *client, uint8_t *message, int size
  *
  */
 static void handle_get_binding_modes(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
-    auto a = nlohmann::json::array();
+    auto a = json::array();
     std::ranges::transform(global.configManager->config->modes, std::back_inserter(a), [](auto &mode) { return mode.first; });
 
     auto payload = a.dump();
@@ -485,11 +483,11 @@ static void add_subscription(ipc_client *client, std::string &s) {
  */
 static void handle_subscribe(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     try {
-        auto j = nlohmann::json::parse(std::string((char const *)message, message_size));
+        auto j = json::parse(std::string((char const *)message, message_size));
         if (j.is_array()) {
             for (auto type : j) {
                 if (type.is_string()) {
-                    auto &s = type.get_ref<nlohmann::json::string_t &>();
+                    auto &s = type.get_ref<json::string_t &>();
                     add_subscription(client, s);
                 }
             }
@@ -527,13 +525,13 @@ static void handle_subscribe(ipc_client *client, uint8_t *message, int size, uin
  * Returns the raw last loaded i3 configuration file contents.
  */
 static void handle_get_config(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
-    auto a = nlohmann::json::array();
+    auto a = json::array();
 
     for (auto &included_file : std::ranges::drop_view{global.configManager->config->included_files, 1}) {
         a.emplace_back(included_file.raw_contents);
     }
 
-    nlohmann::json j = {
+    json j = {
         {"config", std::string(global.configManager->config->included_files[0].raw_contents)},
         {"included_configs", a}};
 
@@ -547,7 +545,7 @@ static void handle_get_config(ipc_client *client, uint8_t *message, int size, ui
  * synchronization point in event-related tests.
  */
 static void handle_send_tick(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
-    nlohmann::json j;
+    json j;
 
     j["first"] = false;
     j["payload"] = std::string((char *)message, message_size);
@@ -578,11 +576,11 @@ static void _sync_json_int(sync_state &state, long long val) {
 static void handle_sync(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
     sync_state state{};
 
-    nlohmann::json::parser_callback_t cb = [&state](int depth, nlohmann::json::parse_event_t event, nlohmann::json &parsed) {
-        if (event == nlohmann::json::parse_event_t::key) {
+    json::parser_callback_t cb = [&state](int depth, json::parse_event_t event, json &parsed) {
+        if (event == json::parse_event_t::key) {
             auto key = parsed.get<std::string>();
             state.last_key = key;
-        } else if (event == nlohmann::json::parse_event_t::value) {
+        } else if (event == json::parse_event_t::value) {
             if (parsed.is_number_integer()) {
                 auto key = parsed.get<long long>();
                 _sync_json_int(state, key);
@@ -593,7 +591,7 @@ static void handle_sync(ipc_client *client, uint8_t *message, int size, uint32_t
     };
 
     try {
-        auto json = nlohmann::json::parse(std::string((char const *)message, message_size), cb, true, true);
+        auto json = json::parse(std::string((char const *)message, message_size), cb, true, true);
     } catch (std::exception &e) {
         ELOG(fmt::sprintf("Parse error: %s\n", e.what()));
 
@@ -609,7 +607,7 @@ static void handle_sync(ipc_client *client, uint8_t *message, int size, uint32_t
 }
 
 static void handle_get_binding_state(ipc_client *client, uint8_t *message, int size, uint32_t message_size, uint32_t message_type) {
-    nlohmann::json j = {
+    json j = {
         {"name", global.configManager->config->current_mode()->name}};
 
     auto payload = j.dump();
@@ -785,8 +783,8 @@ ipc_client *IPCManager::ipc_new_client_on_fd(int fd) {
  * Generates a json workspace event. Returns a dynamically allocated yajl
  * generator. Free with yajl_gen_free().
  */
-nlohmann::json ipc_marshal_workspace_event(char const *change, Con *current, Con *old) {
-    nlohmann::json j;
+json ipc_marshal_workspace_event(char const *change, Con *current, Con *old) {
+    json j;
 
     j["change"] = change;
 
@@ -822,7 +820,7 @@ void IPCManager::ipc_send_window_event(char const *property, Con *con) {
     DLOG(fmt::sprintf("Issue IPC window %s event (con = %p, window = 0x%08x)\n",
                       property, fmt::ptr(con), (con->get_window() ? con->get_window()->id : XCB_WINDOW_NONE)));
 
-    nlohmann::json j;
+    json j;
 
     j["change"] = property;
     j["container"] = dump_node(con, false);
@@ -845,7 +843,7 @@ void IPCManager::ipc_send_window_event(char const *property, Con *con) {
 void IPCManager::ipc_send_binding_event(char const *event_type, Binding *bind, char const *modename) {
     DLOG(fmt::sprintf("Issue IPC binding %s event (sym = %s, code = %d)\n", event_type, bind->symbol, bind->keycode));
 
-    nlohmann::json j;
+    json j;
 
     j["change"] = event_type;
 

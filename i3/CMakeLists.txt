@@ -125,9 +125,16 @@ target_sources(i3_lib PUBLIC
         src/bindings.cppm
         src/program_arguments.cppm
         src/rect.cppm
-        src/i3_regex.cppm
-        )
-target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_base i3_config_new i3_config_old i3_commands_base i3_commands_old i3_commands_new utils i3_log)
+        src/i3_regex.cppm)
+
+add_library(i3_json STATIC)
+target_sources(i3_json PUBLIC
+        FILE_SET cxx_modules TYPE CXX_MODULES
+        FILES
+        src/json.cppm)
+target_link_libraries(i3_json PUBLIC nlohmann_json::nlohmann_json)
+
+target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_base i3_config_new i3_config_old i3_commands_base i3_commands_old i3_commands_new utils i3_log i3_json)
 target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
 target_compile_options(i3_lib PUBLIC ${compile_options})
 add_dependencies(i3_lib libi3ipc)

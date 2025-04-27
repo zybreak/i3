@@ -2,7 +2,6 @@ module;
 #include <unistd.h>
 #include <sys/types.h>
 #include <xcb/randr.h>
-#include <nlohmann/json.hpp>
 #include <sys/resource.h>
 #include <xcb/xproto.h>
 #include <xcb/xcb_keysyms.h>
@@ -49,6 +48,7 @@ import xpp.proto.randr;
 import xpp.proto.xkb;
 import xpp.proto.shape;
 import xpp.proto.big_requests;
+import i3.json;
 
 using std::int32_t;
 using std::uint32_t;
@@ -4073,7 +4073,7 @@ export {
      * Generates a json workspace event. Returns a dynamically allocated yajl
      * generator. Free with yajl_gen_free().
      */
-    nlohmann::json ipc_marshal_workspace_event(char const *change, Con *current, Con *old);
+    json ipc_marshal_workspace_event(char const *change, Con *current, Con *old);
 
     /**
      * For the barconfig update events, we send the serialized barconfig.
@@ -4675,7 +4675,7 @@ export class ConfigApplier : public BaseConfigApplier {
 export class CommandsApplier : public BaseCommandsApplier {
   private:
     ipc_client *client;
-    nlohmann::json *json_gen;
+    json *json_gen;
 
     bool cmd_resize_tiling_direction(criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *current, char const *direction, int px, int ppt);
     bool cmd_resize_tiling_width_height(criteria_state *criteria_state, CommandsResultIR &cmd_output, Con *current, char const *direction, int px, double ppt);
@@ -4684,12 +4684,12 @@ export class CommandsApplier : public BaseCommandsApplier {
   public:
     CommandsApplier() : client(nullptr), json_gen(nullptr) {};
     
-    CommandsApplier(ipc_client *client, nlohmann::json *json_gen)
+    CommandsApplier(ipc_client *client, json *json_gen)
         : client(client), json_gen(json_gen) {};
 
     criteria_state *create_criteria_state(int _state) override;
 
-    void append_json(nlohmann::json j) override;
+    void append_json(json j) override;
     /*
      * Initializes the specified 'Match' data structure and the initial state of
      * commands.c for matching target windows of a command.
@@ -5079,7 +5079,7 @@ export namespace handle_property {
 
 // dump_node.cppm
 
-export nlohmann::json dump_node(Con* con, bool inplace_restart);
+export json dump_node(Con* con, bool inplace_restart);
 
 export namespace i3 {
 

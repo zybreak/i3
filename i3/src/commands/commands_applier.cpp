@@ -81,13 +81,13 @@ static bool starts_with(std::string_view const str, std::string_view const prefi
                               [](char a, char b) { return to_lower(a) == to_lower(b); });
 }
 
-static void ysuccess(nlohmann::json *json_gen, bool success) {
+static void ysuccess(json *json_gen, bool success) {
     if (json_gen != nullptr) {
         json_gen->push_back({{"success", success}});
     }
 }
 
-static void yerror(nlohmann::json *json_gen, std::string message) {
+static void yerror(json *json_gen, std::string message) {
     if (json_gen != nullptr) {
         json_gen->push_back({{"success", false},
                              {"error", message}});
@@ -255,7 +255,7 @@ criteria_state *CommandsApplier::create_criteria_state(int _state) {
     return new criteria_state_impl(_state);
 };
 
-void CommandsApplier::append_json(nlohmann::json j) {
+void CommandsApplier::append_json(json j) {
     if (this->json_gen != nullptr) {
         this->json_gen->push_back(j);
     }

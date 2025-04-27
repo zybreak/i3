@@ -11,7 +11,6 @@
 module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
-#include <nlohmann/json.hpp>
 #include <xcb/xproto.h>
 module i3;
 
@@ -25,7 +24,7 @@ struct parser_context {
     Con *to_focus{nullptr};
 };
 
-static void from_json(nlohmann::json const &j, gaps_t &p) {
+static void from_json(json const &j, gaps_t &p) {
     if (j.contains("inner")) {
         j.at("inner").get_to(p.inner);
     }
@@ -48,9 +47,7 @@ static void from_json(nlohmann::json const &j, gaps_t &p) {
  *
  */
 bool json_validate(std::istream &&fb) {
-    setlocale(LC_NUMERIC, "C");
-    bool valid = nlohmann::json::accept(fb, true);
-    setlocale(LC_NUMERIC, "");
+    bool valid = json::accept(fb, true);
 
     return valid;
 }
@@ -63,7 +60,7 @@ json_content_t json_determine_content(std::istream &&fb) {
     // We default to JSON_CONTENT_CON because it is legal to not include
     // “"type": "con"” in the JSON files for better readability.
     try {
-        auto j = nlohmann::json::parse(fb, nullptr, true, true);
+        auto j = json::parse(fb, nullptr, true, true);
         if (!j.contains("type")) {
             return json_content_t::JSON_CONTENT_CON;
         } else if (!j["type"].is_string()) {
@@ -81,10 +78,10 @@ json_content_t json_determine_content(std::istream &&fb) {
     }
 }
 
-static Con *extract_con(nlohmann::json &j, Con *parent, parser_context &ctx);
+static Con *extract_con(json &j, Con *parent, parser_context &ctx);
 static void con_massage(Con *con);
 
-static void extract_basecon(nlohmann::json &j, Con *con, Con *parent, parser_context &ctx) {
+static void extract_basecon(json &j, Con *con, Con *parent, parser_context &ctx) {
     if (j.contains("name")) {
         j["name"].get_to(con->name);
     }
@@ -286,7 +283,7 @@ static void extract_basecon(nlohmann::json &j, Con *con, Con *parent, parser_con
     }
 }
 
-static RootCon *extract_rootcon(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static RootCon *extract_rootcon(json &j, Con *parent, parser_context &ctx) {
     auto *con = new RootCon{true};
     extract_basecon(j, con, parent, ctx);
 
@@ -297,14 +294,14 @@ static RootCon *extract_rootcon(nlohmann::json &j, Con *parent, parser_context &
     return con;
 }
 
-static OutputCon *extract_outputcon(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static OutputCon *extract_outputcon(json &j, Con *parent, parser_context &ctx) {
     auto *con = new OutputCon{true};
     extract_basecon(j, con, parent, ctx);
 
     return con;
 }
 
-static ConCon *extract_concon(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static ConCon *extract_concon(json &j, Con *parent, parser_context &ctx) {
     auto *con = new ConCon{nullptr, true};
     extract_basecon(j, con, parent, ctx);
 
@@ -323,21 +320,21 @@ static ConCon *extract_concon(nlohmann::json &j, Con *parent, parser_context &ct
     return con;
 }
 
-static FloatingCon *extract_floatingcon(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static FloatingCon *extract_floatingcon(json &j, Con *parent, parser_context &ctx) {
     auto *con = new FloatingCon{true};
     extract_basecon(j, con, parent, ctx);
 
     return con;
 }
 
-static DockCon *extract_dockcon(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static DockCon *extract_dockcon(json &j, Con *parent, parser_context &ctx) {
     auto *con = new DockCon{true};
     extract_basecon(j, con, parent, ctx);
 
     return con;
 }
 
-static WorkspaceCon *extract_workspacecon(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static WorkspaceCon *extract_workspacecon(json &j, Con *parent, parser_context &ctx) {
     auto *con = new WorkspaceCon{true};
     extract_basecon(j, con, parent, ctx);
 
@@ -386,7 +383,7 @@ static WorkspaceCon *extract_workspacecon(nlohmann::json &j, Con *parent, parser
     return con;
 }
 
-static Con *extract_con(nlohmann::json &j, Con *parent, parser_context &ctx) {
+static Con *extract_con(json &j, Con *parent, parser_context &ctx) {
     std::string type = j.value("type", "con");
     Con *con{};
 
@@ -485,7 +482,7 @@ static void con_massage(Con *con) {
 void tree_append_json(Con *parent, std::istream &&fb) {
     try {
         parser_context ctx{};
-        auto j = nlohmann::json::parse(fb, nullptr, true, true);
+        auto j = json::parse(fb, nullptr, true, true);
         Con *con = extract_con(j, parent, ctx);
 
         LOG("attaching");

@@ -1,8 +1,7 @@
-module;
-#import <nlohmann/json.hpp>
 export module rect;
 
 import std;
+import i3.json;
 
 using std::int32_t;
 using std::uint32_t;
@@ -36,7 +35,7 @@ export {
         Rect &operator-=(Rect const &r);
     };
 
-    void to_json(nlohmann::json & j, Rect const &r) {
+    void to_json(json & j, Rect const &r) {
         j = {
             {"x", r.x},
             {"y", r.y},
@@ -45,7 +44,7 @@ export {
         };
     }
 
-    void from_json(nlohmann::json const &j, Rect &r) {
+    void from_json(json const &j, Rect &r) {
         j.at("x").get_to(r.x);
         j.at("y").get_to(r.y);
         j.at("width").get_to(r.width);

@@ -1,5 +1,4 @@
 module;
-#include <nlohmann/json.hpp>
 #include <xcb/xcb.h>
 #include <fmt/printf.h>
 module i3;
@@ -19,7 +18,7 @@ static std::string orientation(Con const *const con) {
     }
 }
 
-static void to_json(nlohmann::json &j, gaps_t const &gaps) {
+static void to_json(json &j, gaps_t const &gaps) {
     j = {
         {"inner", gaps.inner},
         // TODO: the i3ipc Python modules recognize gaps, but only inner/outer
@@ -31,7 +30,7 @@ static void to_json(nlohmann::json &j, gaps_t const &gaps) {
         {"left", gaps.left}};
 }
 
-static void to_json(nlohmann::json &j, Match const *match) {
+static void to_json(json &j, Match const *match) {
     if (match->dock != M_DONTCHECK) {
         j["dock"] = match->dock;
         j["insert_where"] = match->insert_where;
@@ -82,7 +81,7 @@ static std::string window_type(i3Window const *const window) {
     }
 }
 
-static void dump_window(nlohmann::json &j, i3Window const *const window, bool const inplace_restart) {
+static void dump_window(json &j, i3Window const *const window, bool const inplace_restart) {
     j["window"] = window->id;
     j["window_type"] = window_type(window);
 
@@ -90,7 +89,7 @@ static void dump_window(nlohmann::json &j, i3Window const *const window, bool co
         /* Window properties are useless to preserve when restarting because
          * they will be queried again anyway. However, for i3-save-tree(1),
          * they are very useful and save i3-save-tree dealing with X11. */
-        auto map = nlohmann::json::object();
+        auto map = json::object();
 
         if (!window->class_class.empty()) {
             map["class"] = window->class_class;
@@ -198,8 +197,8 @@ static std::string floating(Con const *const con) {
     }
 }
 
-static nlohmann::json get_swallows(Con *con, bool inplace_restart) {
-    auto swallows = nlohmann::json::array();
+static json get_swallows(Con *con, bool inplace_restart) {
+    auto swallows = json::array();
     for (auto &match : con->swallow) {
         /* We will generate a new restart_mode match specification after this
          * loop, so skip this one. */
@@ -222,7 +221,7 @@ static nlohmann::json get_swallows(Con *con, bool inplace_restart) {
     return swallows;
 }
 
-static void handle_deco_rect(nlohmann::json &j, Con *con) {
+static void handle_deco_rect(json &j, Con *con) {
     if (con_draw_decoration_into_frame(con)) {
         Rect simulated_deco_rect = con->deco_rect;
         simulated_deco_rect.x = con->rect.x - con->parent->rect.x;
@@ -234,8 +233,8 @@ static void handle_deco_rect(nlohmann::json &j, Con *con) {
     }
 }
 
-static nlohmann::json dump_base_node(Con *con, bool inplace_restart) {
-    nlohmann::json j;
+static json dump_base_node(Con *con, bool inplace_restart) {
+    json j;
 
     j["id"] = (uintptr_t)con;
     j["type"] = type(con);
@@ -281,7 +280,7 @@ static nlohmann::json dump_base_node(Con *con, bool inplace_restart) {
         j["nodes"] = con->nodes | std::views::transform([&inplace_restart](Con *node) { return dump_node(node, inplace_restart); }) | std::ranges::to<std::vector>();
     }
 
-    j["floating_nodes"] = nlohmann::json::array();
+    j["floating_nodes"] = json::array();
 
     j["focus"] = con->focused | std::views::transform([](Con *node) { return (uintptr_t)node; }) | std::ranges::to<std::vector>();
 
@@ -298,8 +297,8 @@ static nlohmann::json dump_base_node(Con *con, bool inplace_restart) {
     return j;
 }
 
-static nlohmann::json dump_root_node(RootCon *rootCon, bool inplace_restart) {
-    nlohmann::json j = dump_base_node(rootCon, inplace_restart);
+static json dump_root_node(RootCon *rootCon, bool inplace_restart) {
+    json j = dump_base_node(rootCon, inplace_restart);
 
     if (inplace_restart && !global.workspaceManager->previous_workspace_name.empty()) {
         j["previous_workspace_name"] = global.workspaceManager->previous_workspace_name;
@@ -308,38 +307,38 @@ static nlohmann::json dump_root_node(RootCon *rootCon, bool inplace_restart) {
     return j;
 }
 
-static nlohmann::json dump_output_node(OutputCon *outputCon, bool inplace_restart) {
-    nlohmann::json j = dump_base_node(outputCon, inplace_restart);
+static json dump_output_node(OutputCon *outputCon, bool inplace_restart) {
+    json j = dump_base_node(outputCon, inplace_restart);
 
     return j;
 }
 
-static nlohmann::json dump_con_con(ConCon *conCon, bool inplace_restart) {
-    nlohmann::json j = dump_base_node(conCon, inplace_restart);
+static json dump_con_con(ConCon *conCon, bool inplace_restart) {
+    json j = dump_base_node(conCon, inplace_restart);
 
     j["output"] = conCon->con_get_output()->name;
 
     return j;
 }
 
-static nlohmann::json dump_floating_con(FloatingCon *floatingCon, bool inplace_restart) {
-    nlohmann::json j = dump_base_node(floatingCon, inplace_restart);
+static json dump_floating_con(FloatingCon *floatingCon, bool inplace_restart) {
+    json j = dump_base_node(floatingCon, inplace_restart);
 
     j["output"] = floatingCon->con_get_output()->name;
 
     return j;
 }
 
-static nlohmann::json dump_dock_con(DockCon *dockCon, bool inplace_restart) {
-    nlohmann::json j = dump_base_node(dockCon, inplace_restart);
+static json dump_dock_con(DockCon *dockCon, bool inplace_restart) {
+    json j = dump_base_node(dockCon, inplace_restart);
 
     j["output"] = dockCon->con_get_output()->name;
 
     return j;
 }
 
-static nlohmann::json dump_workspace_con(WorkspaceCon *workspaceCon, bool inplace_restart) {
-    nlohmann::json j = dump_base_node(workspaceCon, inplace_restart);
+static json dump_workspace_con(WorkspaceCon *workspaceCon, bool inplace_restart) {
+    json j = dump_base_node(workspaceCon, inplace_restart);
 
     j["workspace_layout"] = workspace_layout(workspaceCon);
     j["num"] = workspaceCon->num;
@@ -353,8 +352,8 @@ static nlohmann::json dump_workspace_con(WorkspaceCon *workspaceCon, bool inplac
     return j;
 }
 
-nlohmann::json dump_node(Con *con, bool inplace_restart) {
-    nlohmann::json j;
+json dump_node(Con *con, bool inplace_restart) {
+    json j;
 
     if (auto rootCon = dynamic_cast<RootCon *>(con); rootCon != nullptr) {
         j = dump_root_node(rootCon, inplace_restart);

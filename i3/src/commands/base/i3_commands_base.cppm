@@ -1,8 +1,8 @@
-module;
-#include <nlohmann/json.hpp>
 export module i3_commands_base;
 
 import criteria_state;
+import i3.json;
+import std;
 
 /**
  * Holds an intermediate representation of the result of a call to any command.
@@ -12,7 +12,7 @@ import criteria_state;
 export class CommandsResultIR {
   public:
     /* The JSON generator to append a reply to (may be NULL). */
-    nlohmann::json *json_gen;
+    json *json_gen;
     
     /* The next state to transition to. Passed to the function so that we can
      * determine the next state as a result of a function call, like
@@ -43,7 +43,7 @@ export class BaseCommandsApplier {
     
     virtual criteria_state *create_criteria_state(int _state) = 0;
 
-    virtual void append_json(nlohmann::json j) = 0;
+    virtual void append_json(json j) = 0;
     /*
      * Initializes the specified 'Match' data structure and the initial state of
      * commands.c for matching target windows of a command.
