@@ -899,10 +899,15 @@ static bool get_urgency_flag(Con *con) {
 
 /*
  * Goes through all clients on the given workspace and updates the workspace’s
- * urgent flag accordingly.
+ * urgent flag accordingly. Does nothing if ws is nullptr (e.g. for dock
+ * clients, which do not belong to a workspace).
  *
  */
 void workspace_update_urgent_flag(WorkspaceCon *ws) {
+    if (ws == nullptr) {
+        return;
+    }
+
     bool old_flag = ws->urgent;
     ws->urgent = get_urgency_flag(ws);
     DLOG(fmt::sprintf("Workspace urgency flag changed from %d to %d\n", old_flag, ws->urgent));

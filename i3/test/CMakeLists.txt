@@ -9,7 +9,7 @@ add_code_coverage_all_targets()
 
 # Unit tests
 add_executable(UnitTest)
-target_sources(UnitTest PUBLIC
+target_sources(UnitTest PRIVATE
         commands_new_test.cpp
         commands_old_test.cpp
         config_new_test.cpp
@@ -34,6 +34,7 @@ target_sources(UnitTest PUBLIC
 target_link_libraries(UnitTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
 gtest_discover_tests(UnitTest)
 target_code_coverage(UnitTest ALL)
+target_compile_features(UnitTest PUBLIC cxx_std_26)
 
 #add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS RegexTest MatchTest ConTest ConfigNewTest ConfigOldTest)
 

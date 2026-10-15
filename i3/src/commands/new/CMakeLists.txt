@@ -3,7 +3,7 @@ find_package(antlr4-runtime 4.11.1 REQUIRED)
 # COMMANDS NEW
 
 add_library(i3_commands_new STATIC)
-target_sources(i3_commands_new PUBLIC
+target_sources(i3_commands_new PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/commands_listener.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/commands_parser.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/parser-specs/commandsGrammarBaseListener.cpp
@@ -20,3 +20,4 @@ target_link_libraries(i3_commands_new PUBLIC i3_json antlr4_static utils fmt::fm
 target_include_directories(i3_commands_new PUBLIC ${antlr4-runtime_INCLUDE_DIR}
         ${include_dirs}
 )
+target_compile_features(i3_commands_new PUBLIC cxx_std_26)

@@ -1,5 +1,5 @@
 add_library(utils STATIC)
-target_sources(utils PUBLIC
+target_sources(utils PRIVATE
         resolve_tilde.cpp
         parse_string.cpp
         safewrappers.cpp
@@ -15,3 +15,4 @@ target_sources(utils PUBLIC
 #target_compile_options(utils PUBLIC "-pthread" "-fsized-deallocation")
 target_compile_options(utils PUBLIC "-Xclang" "-fno-validate-pch")
 target_link_libraries(utils PUBLIC i3_log)
+target_compile_features(utils PUBLIC cxx_std_26)

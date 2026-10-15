@@ -1,5 +1,5 @@
 add_library(libi3ipc STATIC)
-target_sources(libi3ipc PUBLIC
+target_sources(libi3ipc PRIVATE
         src/ipc_connect.cpp src/ipc_recv_message.cpp src/ipc_send_message.cpp
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
@@ -7,3 +7,4 @@ target_sources(libi3ipc PUBLIC
         FILES src/i3-ipc.cppm)
 #target_compile_options(libi3ipc PUBLIC "-pthread" "-fsized-deallocation")
 target_compile_options(libi3ipc PUBLIC "-Xclang" "-fno-validate-pch")
+target_compile_features(libi3ipc PUBLIC cxx_std_26)

@@ -64,7 +64,7 @@ add_subdirectory(src/utils)
 add_subdirectory(src/log)
 
 add_library(i3_lib STATIC)
-target_sources(i3_lib PUBLIC
+target_sources(i3_lib PRIVATE
         src/autostarts.cpp
         src/assignments.cpp
         src/atoms.cpp
@@ -127,20 +127,22 @@ target_sources(i3_lib PUBLIC
         src/rect.cppm
         src/i3_regex.cppm)
 
+target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_base i3_config_new i3_config_old i3_commands_base i3_commands_old i3_commands_new utils i3_log i3_json)
+target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
+target_compile_options(i3_lib PUBLIC ${compile_options})
+add_dependencies(i3_lib libi3ipc)
+target_compile_features(i3_lib PUBLIC cxx_std_26)
+
 add_library(i3_json STATIC)
 target_sources(i3_json PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES
         src/json.cppm)
 target_link_libraries(i3_json PUBLIC nlohmann_json::nlohmann_json)
+target_compile_features(i3_json PUBLIC cxx_std_26)
 
-target_link_libraries(i3_lib PUBLIC ${libraries} i3_config_base i3_config_new i3_config_old i3_commands_base i3_commands_old i3_commands_new utils i3_log i3_json)
-target_include_directories(i3_lib PUBLIC ${include_dirs} src/commands src/config/old)
-target_compile_options(i3_lib PUBLIC ${compile_options})
-add_dependencies(i3_lib libi3ipc)
-
-add_executable(i3
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/main.cpp)
+add_executable(i3)
+target_sources(i3 PRIVATE src/main.cpp)
 #target_link_libraries(i3 PUBLIC i3_lib libi3ipc i3_config_new i3_config_old)
 target_link_libraries(i3 PUBLIC i3_lib libi3ipc)
 target_include_directories(i3 PUBLIC ${include_dirs} "${CMAKE_CURRENT_SOURCE_DIR}/src/config/old")

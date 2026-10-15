@@ -19,6 +19,10 @@ module;
 #include <xcb/xcb_aux.h>
 #include <xcb/shape.h>
 
+#define explicit dont_use_cxx_explicit
+#include <xcb/xkb.h>
+#undef explicit
+
 #include <unistd.h>
 
 #include <fmt/printf.h>

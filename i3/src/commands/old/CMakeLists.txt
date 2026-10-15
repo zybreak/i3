@@ -12,7 +12,7 @@ add_custom_target(Commands ALL
         ${CMAKE_CURRENT_BINARY_DIR}/GENERATED_commands_call.cppm)
 
 add_library(i3_commands_old STATIC)
-target_sources(i3_commands_old PUBLIC
+target_sources(i3_commands_old PRIVATE
         #${CMAKE_CURRENT_SOURCE_DIR}/commands.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/commands_parser.cpp
         PUBLIC
@@ -34,3 +34,4 @@ add_dependencies(i3_commands_old Commands)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/GENERATED_commands_enums.cppm PROPERTIES GENERATED TRUE)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/GENERATED_commands_tokens.cppm PROPERTIES GENERATED TRUE)
 set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/GENERATED_commands_call.cppm PROPERTIES GENERATED TRUE)
+target_compile_features(i3_commands_old PUBLIC cxx_std_26)

@@ -11,7 +11,7 @@ add_custom_target(Config ALL
 
 add_library(i3_config_old STATIC)
 target_sources(i3_config_old
-        PUBLIC
+        PRIVATE
         config_directives.cpp
         config_parser.cpp
         parser_stack.cpp
@@ -35,3 +35,4 @@ set_source_files_properties(${CMAKE_CURRENT_BINARY_DIR}/GENERATED_config_call.cp
 target_link_libraries(i3_config_old PUBLIC ${libraries} utils i3_config_base i3_log)
 target_include_directories(i3_config_old PUBLIC ${include_dirs} "${CMAKE_CURRENT_SOURCE_DIR}")
 add_dependencies(i3_config_old Config)
+target_compile_features(i3_config_old PUBLIC cxx_std_26)

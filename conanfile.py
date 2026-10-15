@@ -20,22 +20,34 @@ class i3(ConanFile):
 
 
     def build_requirements(self):
-        self.test_requires("gtest/1.15.0")
-        
+        self.tool_requires("cmake/[>=4.0]")
+        self.tool_requires("ninja/[>=1.12]")
+        self.test_requires("gtest/1.17.0")
 
+#self.requires("zlib/1.3.1")
+#self.requires("libev/4.33")
+#self.requires("pcre2/10.44", force=True)
+#self.requires("fmt/12.1.0", force=True)
+#self.requires("antlr4-cppruntime/4.13.2")
+#self.requires("glib/2.85.3", force=True)
+#self.requires("spdlog/1.16.0")
+#self.requires("nlohmann_json/3.12.0")
+#self.requires("cairo/1.18.0")
+#self.requires("pango/1.54.0")
+#self.requires("di/1.3.2")
     def requirements(self):
         self.requires("zlib/1.2.13")
         self.requires("libev/4.33")
         self.requires("pcre2/10.42")
-        self.requires("fmt/10.2.1", force=True)
+        self.requires("fmt/12.1.0", force=True)
         self.requires("antlr4-cppruntime/4.13.1")
         self.requires("glib/2.78.3")
-        self.requires("spdlog/1.13.0")
-        self.requires("nlohmann_json/3.11.3")
+        self.requires("spdlog/1.16.0", options={"use_std_fmt": True})
+        self.requires("nlohmann_json/3.12.0")
         self.requires("cairo/1.18.0")
         self.requires("pango/1.54.0")
         self.requires("di/1.3.0")
-        self.requires("xpp/1.0.0")
+        self.requires("xpp/1.0.0#02e0c86b25ebbd654e0373212e3fe86a")
 
 
     def layout(self):
