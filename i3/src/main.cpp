@@ -57,11 +57,7 @@ import log;
 import program_arguments;
 import i3_config_base;
 import i3ipc;
-import xpp;
-import xpp.proto.randr;
-import xpp.proto.xkb;
-import xpp.proto.shape;
-import xpp.proto.big_requests;
+import xcb;
 
 /* The number of file descriptors passed via socket activation. */
 int listen_fds;
@@ -96,7 +92,7 @@ static void i3_exit() {
     if (global.configManager->config->ipc_socket_path) {
         unlink(global.configManager->config->ipc_socket_path->c_str());
     }
-    xcb_disconnect(**global.x);
+    global.x->disconnect();
 
     /* If a nagbar is active, kill it */
     kill_nagbar(global.config_error_nagbar_pid, false);
@@ -183,7 +179,7 @@ void enable_coredumps() {
     setrlimit(RLIMIT_CORE, &limit);
 }
 
-void do_tree_init(program_arguments const &args, xcb_get_geometry_reply_t const *greply) {
+void do_tree_init(program_arguments const &args, xcb::xproto::GetGeometryReplyObj const *greply) {
     bool needs_tree_init = true;
     if (args.layout_path) {
         LOG(fmt::format("Trying to restore the layout from \"{}\".", args.layout_path->native()));
@@ -202,24 +198,27 @@ void do_tree_init(program_arguments const &args, xcb_get_geometry_reply_t const 
     }
 }
 
-static void set_screenshot_as_wallpaper(x_connection *conn, xcb_screen_t *screen) {
+static void set_screenshot_as_wallpaper(X &x, xcb_screen_t *screen) {
+    using namespace xcb::xproto;
+    xcb::Connection *conn = &x.connection();
     uint16_t width = screen->width_in_pixels;
     uint16_t height = screen->height_in_pixels;
     xcb_pixmap_t pixmap = conn->generate_id();
     xcb_gcontext_t gc = conn->generate_id();
 
-    conn->create_pixmap(screen->root_depth, pixmap, screen->root, width, height);
+    create_pixmap(conn, screen->root_depth, pixmap, screen->root, width, height);
 
-    uint32_t list[]{XCB_GX_COPY, (uint32_t)~0, XCB_FILL_STYLE_SOLID, XCB_SUBWINDOW_MODE_INCLUDE_INFERIORS};
-    conn->create_gc(gc, screen->root,
-                    XCB_GC_FUNCTION | XCB_GC_PLANE_MASK | XCB_GC_FILL_STYLE | XCB_GC_SUBWINDOW_MODE,
-                    list);
+    create_gc(conn, gc, screen->root,
+              CreateGcValueList{}
+                  .with_function(gx_t::GX_COPY)
+                  .with_plane_mask(~0U)
+                  .with_fill_style(fill_style_t::FILL_STYLE_SOLID)
+                  .with_subwindow_mode(subwindow_mode_t::SUBWINDOW_MODE_INCLUDE_INFERIORS));
 
-    conn->copy_area(screen->root, pixmap, gc, 0, 0, 0, 0, width, height);
-    uint32_t value_list[]{pixmap};
-    conn->change_window_attributes(screen->root, XCB_CW_BACK_PIXMAP, value_list);
-    conn->free_gc(gc);
-    conn->free_pixmap(pixmap);
+    copy_area(conn, screen->root, pixmap, gc, 0, 0, 0, 0, width, height);
+    change_window_attributes(conn, screen->root, ChangeWindowAttributesValueList{}.with_background_pixmap(pixmap));
+    free_gc(conn, gc);
+    free_pixmap(conn, pixmap);
     conn->flush();
 }
 
@@ -249,8 +248,8 @@ static void force_disable_output(RandR &randr, program_arguments const &args) {
 static Output *get_focused_output() {
     Output *output{nullptr};
 
-    auto pointerreply = xpp::x::query_pointer(**global.x, global.x->root);
-    if (pointerreply.get() == nullptr) {
+    auto pointerreply = xcb::xproto::query_pointer(&global.x->connection(), global.x->root).get();
+    if (!pointerreply) {
         ELOG("Could not query pointer position, using first screen\n");
     } else {
         DLOG(fmt::sprintf("Pointer at %d, %d\n", pointerreply->root_x, pointerreply->root_y));
@@ -289,12 +288,12 @@ static void confirm_restart(IPCManager &ipcManager) {
  * connections), then discard all pending events (since we didn’t do
  * anything, there cannot be any meaningful responses), then ungrab the
  * server. */
-static void ignore_restart_events(x_connection *conn) {
-    conn->grab_server();
+static void ignore_restart_events(X &x) {
+    xcb::xproto::grab_server(&x.connection());
     {
-        xcb_aux_sync(*conn);
-        std::shared_ptr<xcb_generic_event_t> event;
-        while ((event = conn->poll_for_event()) != nullptr) {
+        xcb_aux_sync(x.c_handle());
+        xcb::unique_C_ptr<xcb::generic_event_t> event;
+        while ((event = x.connection().poll_for_event()) != nullptr) {
             if (event->response_type == 0) {
                 continue;
             }
@@ -306,15 +305,15 @@ static void ignore_restart_events(x_connection *conn) {
              * timespan starting from when we register as a window manager and
              * this piece of code which drops events. */
             if (type == XCB_MAP_REQUEST) {
-                global.handlers->handle_event(type, event.get());
+                global.handlers->handle_event(type, reinterpret_cast<xcb_generic_event_t *>(event.get()));
             }
         }
         manage_existing_windows(global.x->root);
     }
-    conn->ungrab_server();
+    xcb::xproto::ungrab_server(&x.connection());
 }
 
-static void fix_empty_background(x_connection *conn) {
+static void fix_empty_background(X &x) {
     /* When the root's window background is set to NONE, that might mean
      * that old content stays visible when a window is closed. That has
      * unpleasant effect of "my terminal (does not seem to) close!".
@@ -325,12 +324,12 @@ static void fix_empty_background(x_connection *conn) {
      */
     LOG("This is not an in-place restart, checking if a wallpaper is set.\n");
 
-    xcb_screen_t *s = xcb_aux_get_screen(*conn, global.x->conn->default_screen());
-    if (is_background_set(conn, s)) {
+    xcb_screen_t *s = xcb_aux_get_screen(x.c_handle(), x.conn_screen);
+    if (is_background_set(x, s)) {
         LOG("A wallpaper is set, so no screenshot is necessary.\n");
     } else {
         LOG("No wallpaper set, copying root window contents to a pixmap\n");
-        set_screenshot_as_wallpaper(conn, s);
+        set_screenshot_as_wallpaper(x, s);
     }
 }
 
@@ -338,15 +337,15 @@ static void fix_empty_background(x_connection *conn) {
 static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
     /* Get the WM_Sn atom */
     char *atom_name = xcb_atom_name_by_screen("WM", x.conn_screen);
-    x.wm_sn_selection_owner = xcb_generate_id(*x);
+    x.wm_sn_selection_owner = xcb_generate_id(x.c_handle());
 
     if (atom_name == nullptr) {
         throw std::runtime_error(fmt::sprintf("xcb_atom_name_by_screen(\"WM\", %d) failed, exiting\n", x.conn_screen));
     }
 
     xcb_intern_atom_reply_t *atom_reply;
-    atom_reply = xcb_intern_atom_reply(*x,
-                                       xcb_intern_atom_unchecked(*x,
+    atom_reply = xcb_intern_atom_reply(x.c_handle(),
+                                       xcb_intern_atom_unchecked(x.c_handle(),
                                                                  0,
                                                                  strlen(atom_name),
                                                                  atom_name),
@@ -360,15 +359,15 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
 
     /* Check if the selection is already owned */
     xcb_get_selection_owner_reply_t *selection_reply =
-        xcb_get_selection_owner_reply(*x,
-                                      xcb_get_selection_owner(*x, x.wm_sn),
+        xcb_get_selection_owner_reply(x.c_handle(),
+                                      xcb_get_selection_owner(x.c_handle(), x.wm_sn),
                                       nullptr);
     if (selection_reply && selection_reply->owner != XCB_NONE && !global.args->replace_wm) {
         throw std::runtime_error("Another window manager is already running (WM_Sn is owned)");
     }
 
     /* Become the selection owner */
-    xcb_create_window(*x,
+    xcb_create_window(x.c_handle(),
                       x.root_screen->root_depth,
                       x.wm_sn_selection_owner, /* window id */
                       x.root_screen->root,     /* parent */
@@ -377,7 +376,7 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
                       XCB_WINDOW_CLASS_INPUT_OUTPUT,
                       x.root_screen->root_visual,
                       0, nullptr);
-    xcb_change_property(*x,
+    xcb_change_property(x.c_handle(),
                         XCB_PROP_MODE_REPLACE,
                         x.wm_sn_selection_owner,
                         XCB_ATOM_WM_CLASS,
@@ -386,7 +385,7 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
                         (strlen("i3-WM_Sn") + 1) * 2,
                         "i3-WM_Sn\0i3-WM_Sn\0");
 
-    xcb_set_selection_owner(*x, x.wm_sn_selection_owner, x.wm_sn, last_timestamp);
+    xcb_set_selection_owner(x.c_handle(), x.wm_sn_selection_owner, x.wm_sn, last_timestamp);
 
     if (selection_reply && selection_reply->owner != XCB_NONE) {
         unsigned int usleep_time = 100000; /* 0.1 seconds */
@@ -400,8 +399,8 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
             if (check_rounds-- == 0) {
                 throw std::runtime_error("The old window manager is not exiting");
             }
-            geom_reply = xcb_get_geometry_reply(*x,
-                                                xcb_get_geometry(*x, selection_reply->owner),
+            geom_reply = xcb_get_geometry_reply(x.c_handle(),
+                                                xcb_get_geometry(x.c_handle(), selection_reply->owner),
                                                 nullptr);
         } while (geom_reply != nullptr);
     }
@@ -424,7 +423,7 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
     event.message.data.data32[1] = x.wm_sn;
     event.message.data.data32[2] = x.wm_sn_selection_owner;
 
-    xcb_send_event(*x, 0, x.root_screen->root, XCB_EVENT_MASK_STRUCTURE_NOTIFY, event.storage);
+    xcb_send_event(x.c_handle(), 0, x.root_screen->root, XCB_EVENT_MASK_STRUCTURE_NOTIFY, event.storage);
 }
 
 int main(int argc, char *argv[]) {
@@ -487,23 +486,23 @@ int main(int argc, char *argv[]) {
     /* Prefetch X11 extensions that we are interested in. */
     auto &x = injector.create<X &>();
     global.x = &x;
-    if (x.conn->connection_has_error()) {
+    if (x.connection().connection_has_error()) {
         errx(EXIT_FAILURE, "Cannot open display");
     }
 
-    xcb_change_window_attributes(*x, x.root, XCB_CW_EVENT_MASK, (uint32_t[]){XCB_EVENT_MASK_PROPERTY_CHANGE});
-    xcb_change_property(*x, XCB_PROP_MODE_APPEND, x.root, XCB_ATOM_SUPERSCRIPT_X, XCB_ATOM_CARDINAL, 32, 0, "");
+    xcb_change_window_attributes(x.c_handle(), x.root, XCB_CW_EVENT_MASK, (uint32_t[]){XCB_EVENT_MASK_PROPERTY_CHANGE});
+    xcb_change_property(x.c_handle(), XCB_PROP_MODE_APPEND, x.root, XCB_ATOM_SUPERSCRIPT_X, XCB_ATOM_CARDINAL, 32, 0, "");
 
     /* Place requests for the atoms we need as soon as possible */
     setup_atoms(x);
     xcb_timestamp_t last_timestamp = XCB_CURRENT_TIME;
 
     /* Get the PropertyNotify event we caused above */
-    xcb_flush(*x);
+    xcb_flush(x.c_handle());
     {
         xcb_generic_event_t *event;
         DLOG("waiting for PropertyNotify event\n");
-        while ((event = xcb_wait_for_event(*x)) != nullptr) {
+        while ((event = xcb_wait_for_event(x.c_handle())) != nullptr) {
             if (event->response_type == XCB_PROPERTY_NOTIFY) {
                 last_timestamp = ((xcb_property_notify_event_t *)event)->time;
                 free(event);
@@ -514,9 +513,10 @@ int main(int argc, char *argv[]) {
         DLOG(fmt::sprintf("got timestamp %d\n", last_timestamp));
     }
 
-    x.conn->prefetch_maximum_request_length();
+    /* Prefetches it: BIG-REQUESTS is enabled in the background. */
+    (void)x.connection().get_maximum_request_length();
 
-    init_dpi(*x, x.root_screen);
+    init_dpi(x.c_handle(), x.root_screen);
 
     try {
         configManager.set_config(configManager.load_configuration(args.override_configpath));
@@ -555,11 +555,13 @@ int main(int argc, char *argv[]) {
 
     aquire_selection(x, last_timestamp);
 
-    try {
-        uint32_t valueList[]{ROOT_EVENT_MASK};
-        x.conn->change_window_attributes_checked(x.root, XCB_CW_EVENT_MASK, valueList);
-    } catch (std::exception &e) {
-        ELOG(fmt::sprintf("Another window manager seems to be running (X error %s)\n", e.what()));
+    auto error = xcb::xproto::change_window_attributes_checked(
+                     &x.connection(), x.root,
+                     xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(
+                         static_cast<xcb::xproto::event_mask_t>(ROOT_EVENT_MASK)))
+                     .get();
+    if (error) {
+        ELOG(fmt::sprintf("Another window manager seems to be running (X error %d)\n", error->error_code));
         exit(EXIT_FAILURE);
     }
 
@@ -618,7 +620,7 @@ int main(int argc, char *argv[]) {
     /* Set the ewmh desktop properties. */
     ewmh_update_desktop_properties();
 
-    x.conn->flush();
+    x.connection().flush();
 
     ignore_restart_events(x);
 

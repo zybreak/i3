@@ -34,7 +34,7 @@ import program_arguments;
  * Loads tree from 'path' (used for in-place restarts).
  *
  */
-bool tree_restore(std::filesystem::path const path, xcb_get_geometry_reply_t const *geometry) {
+bool tree_restore(std::filesystem::path const path, xcb::xproto::GetGeometryReplyObj const *geometry) {
     // auto globbed = utils::resolve_tilde(path);
     if (!std::filesystem::exists(path)) {
         LOG(std::format("{} does not exist, not restoring tree", path.native()));
@@ -82,7 +82,7 @@ bool tree_restore(std::filesystem::path const path, xcb_get_geometry_reply_t con
  * root node are created in randr.c for each Output.
  *
  */
-void tree_init(xcb_get_geometry_reply_t const *geometry) {
+void tree_init(xcb::xproto::GetGeometryReplyObj const *geometry) {
     global.croot = new RootCon();
     global.croot->layout = L_SPLITH;
     global.croot->rect = {
@@ -94,8 +94,8 @@ void tree_init(xcb_get_geometry_reply_t const *geometry) {
 
 TreeManager::TreeManager(X &x)
     : x(x) {
-    auto greply = x.conn->get_geometry(x.root).get();
-    if (greply == nullptr) {
+    auto greply = xcb::xproto::get_geometry(&x.connection(), x.root).get();
+    if (!greply) {
         throw std::runtime_error("Could not get geometry of the root window, exiting");
     }
     DLOG(fmt::sprintf("root geometry reply: (%d, %d) %d x %d\n", greply->x, greply->y, greply->width, greply->height));
@@ -103,7 +103,7 @@ TreeManager::TreeManager(X &x)
     bool needs_tree_init = true;
     if (global.args->layout_path) {
         LOG(fmt::format("Trying to restore the layout from \"{}\".", global.args->layout_path->native()));
-        needs_tree_init = !tree_restore(*global.args->layout_path, greply.get());
+        needs_tree_init = !tree_restore(*global.args->layout_path, &greply.value());
         if (global.args->delete_layout_path) {
             std::filesystem::remove(*global.args->layout_path);
             auto dir = global.args->layout_path->parent_path();
@@ -114,7 +114,7 @@ TreeManager::TreeManager(X &x)
         }
     }
     if (needs_tree_init) {
-        tree_init(greply.get());
+        tree_init(&greply.value());
     }
 }
 
@@ -199,7 +199,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
 
     if (ConCon *con2 = dynamic_cast<ConCon *>(con); con2 != nullptr && con2->get_window() != nullptr) {
         if (kill_window != kill_window_t::DONT_KILL_WINDOW) {
-            x_window_kill(**global.x, con2->get_window()->id, kill_window);
+            x_window_kill(global.x->c_handle(), con2->get_window()->id, kill_window);
             return false;
         } else {
             xcb_void_cookie_t cookie;
@@ -207,10 +207,10 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
              * unmap the window,
              * then reparent it to the root window. */
             uint32_t value_list[]{XCB_NONE};
-            xcb_change_window_attributes(**global.x, con2->get_window()->id,
+            xcb_change_window_attributes(global.x->c_handle(), con2->get_window()->id,
                                          XCB_CW_EVENT_MASK, value_list);
-            xcb_unmap_window(**global.x, con2->get_window()->id);
-            cookie = xcb_reparent_window(**global.x, con2->get_window()->id, global.x->root, con2->rect.x, con2->rect.y);
+            xcb_unmap_window(global.x->c_handle(), con2->get_window()->id);
+            cookie = xcb_reparent_window(global.x->c_handle(), con2->get_window()->id, global.x->root, con2->rect.x, con2->rect.y);
 
             /* Ignore X11 errors for the ReparentWindow request.
              * X11 Errors are returned when the window was already destroyed */
@@ -219,7 +219,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
             /* We are no longer handling this window, thus set WM_STATE to
              * WM_STATE_WITHDRAWN (see ICCCM 4.1.3.1) */
             long data[] = {XCB_ICCCM_WM_STATE_WITHDRAWN, XCB_NONE};
-            cookie = xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE,
+            cookie = xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE,
                                          con2->get_window()->id, i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], 32, 2, data);
 
             /* Remove the window from the save set. All windows in the save set
@@ -227,11 +227,11 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
              * restarting). This is not what we want, since some apps keep
              * unmapped windows around and don’t expect them to suddenly be
              * mapped. See https://bugs.i3wm.org/1617 */
-            xcb_change_save_set(**global.x, XCB_SET_MODE_DELETE, con2->get_window()->id);
+            xcb::xproto::change_save_set(&global.x->connection(), xcb::xproto::set_mode_t::SET_MODE_DELETE, con2->get_window()->id);
 
             /* Stop receiving ShapeNotify events. */
             if (global.x->shape_supported) {
-                xcb_shape_select_input(**global.x, con2->get_window()->id, false);
+                xcb_shape_select_input(global.x->c_handle(), con2->get_window()->id, false);
             }
 
             /* Ignore X11 errors for the ReparentWindow request.

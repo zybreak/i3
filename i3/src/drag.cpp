@@ -61,7 +61,7 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
     xcb_generic_event_t *event;
     PropertyHandlers *handlers = dragloop->propertyHandlers;
 
-    while ((event = xcb_poll_for_event(*x)) != nullptr) {
+    while ((event = xcb_poll_for_event(x.c_handle())) != nullptr) {
         if (event->response_type == 0) {
             auto *error = (xcb_generic_error_t *)event;
             DLOG(fmt::sprintf("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
@@ -138,11 +138,11 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
         threshold_exceeded(last_motion_notify->root_x, last_motion_notify->root_y,
                            dragloop->event->root_x, dragloop->event->root_y)) {
         if (dragloop->xcursor != XCB_NONE) {
-            xcb_change_active_pointer_grab(
-                *x,
+            xcb::xproto::change_active_pointer_grab(
+                &x.connection(),
                 dragloop->xcursor,
                 XCB_CURRENT_TIME,
-                XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION);
+                xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_RELEASE | xcb::xproto::event_mask_t::EVENT_MASK_POINTER_MOTION);
         }
         dragloop->threshold_exceeded = true;
     }
@@ -161,7 +161,7 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
     free(last_motion_notify);
     last_motion_notify = nullptr;
 
-    xcb_flush(*x);
+    xcb_flush(x.c_handle());
     return dragloop->result != DRAGGING;
 }
 
@@ -187,7 +187,7 @@ drag_result_t InputManager::drag_pointer(Con *con, xcb_button_press_event_t cons
     xcb_grab_pointer_reply_t *reply;
     xcb_generic_error_t *error;
 
-    cookie = xcb_grab_pointer(*x,
+    cookie = xcb_grab_pointer(x.c_handle(),
                               false,                                                         /* get all pointer events specified by the following mask */
                               x.root,                                                        /* grab the root window */
                               XCB_EVENT_MASK_BUTTON_RELEASE | XCB_EVENT_MASK_POINTER_MOTION, /* which events to let through */
@@ -197,7 +197,7 @@ drag_result_t InputManager::drag_pointer(Con *con, xcb_button_press_event_t cons
                               use_threshold ? XCB_NONE : xcursor,                            /* possibly display a special cursor */
                               XCB_CURRENT_TIME);
 
-    if ((reply = xcb_grab_pointer_reply(*x, cookie, &error)) == nullptr) {
+    if ((reply = xcb_grab_pointer_reply(x.c_handle(), cookie, &error)) == nullptr) {
         ELOG(fmt::sprintf("Could not grab pointer (error_code = %d)\n", error->error_code));
         free(error);
         return DRAG_ABORT;
@@ -209,7 +209,7 @@ drag_result_t InputManager::drag_pointer(Con *con, xcb_button_press_event_t cons
     xcb_grab_keyboard_cookie_t keyb_cookie;
     xcb_grab_keyboard_reply_t *keyb_reply;
 
-    keyb_cookie = xcb_grab_keyboard(*x,
+    keyb_cookie = xcb_grab_keyboard(x.c_handle(),
                                     false,               /* get all keyboard events */
                                     x.root,              /* grab the root window */
                                     XCB_CURRENT_TIME,
@@ -217,10 +217,10 @@ drag_result_t InputManager::drag_pointer(Con *con, xcb_button_press_event_t cons
                                     XCB_GRAB_MODE_ASYNC  /* keyboard mode */
     );
 
-    if ((keyb_reply = xcb_grab_keyboard_reply(*x, keyb_cookie, &error)) == nullptr) {
+    if ((keyb_reply = xcb_grab_keyboard_reply(x.c_handle(), keyb_cookie, &error)) == nullptr) {
         ELOG(fmt::sprintf("Could not grab keyboard (error_code = %d)\n", error->error_code));
         free(error);
-        xcb_ungrab_pointer(*x, XCB_CURRENT_TIME);
+        xcb_ungrab_pointer(x.c_handle(), XCB_CURRENT_TIME);
         return DRAG_ABORT;
     }
 
@@ -255,9 +255,9 @@ drag_result_t InputManager::drag_pointer(Con *con, xcb_button_press_event_t cons
     ev_prepare_stop(global.main_loop, prepare);
     global.eventHandler->main_set_x11_cb(true);
 
-    xcb_ungrab_keyboard(*x, XCB_CURRENT_TIME);
-    xcb_ungrab_pointer(*x, XCB_CURRENT_TIME);
-    xcb_flush(*x);
+    xcb_ungrab_keyboard(x.c_handle(), XCB_CURRENT_TIME);
+    xcb_ungrab_pointer(x.c_handle(), XCB_CURRENT_TIME);
+    xcb_flush(x.c_handle());
 
     return loop.result;
 }

@@ -3,7 +3,6 @@ module;
 module i3;
 
 import log;
-import xpp;
 
 static std::array const I3_ATOMS{
     std::make_pair(i3::Atom::_NET_SUPPORTED, "_NET_SUPPORTED"),
@@ -68,12 +67,17 @@ static std::array const I3_ATOMS{
 
 /* Setup NetWM atoms */
 void setup_atoms(X &x) {
+    /* All requests first, then all replies. */
+    std::vector<std::future<std::expected<xcb::xproto::InternAtomReplyObj, xcb::generic_error_t>>> replies{};
     for (auto &atom : I3_ATOMS) {
-        try {
-            i3::atoms[atom.first] = xpp::x::intern_atom(*x, false, atom.second).atom();
-        } catch (std::exception &e) {
-            ELOG(std::format("Could not get atom {}", atom.second));
+        replies.push_back(xcb::xproto::intern_atom(&x.connection(), false, atom.second));
+    }
+    for (std::size_t i = 0; i < I3_ATOMS.size(); i++) {
+        auto reply = replies[i].get();
+        if (!reply) {
+            ELOG(std::format("Could not get atom {}", I3_ATOMS[i].second));
             std::exit(-1);
         }
+        i3::atoms[I3_ATOMS[i].first] = reply->atom;
     }
 }

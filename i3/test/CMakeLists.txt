@@ -36,6 +36,30 @@ gtest_discover_tests(UnitTest)
 target_code_coverage(UnitTest ALL)
 target_compile_features(UnitTest PUBLIC cxx_std_26)
 
+# i3 loads xcbpp's libxcb compatibility layer as its libxcb.so.1, never the system's (see i3/CMakeLists.txt).
+add_test(NAME i3-loads-xcbcompat
+         COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:i3> -DLAYER=${xcbcompat_location}
+                 -P ${CMAKE_CURRENT_SOURCE_DIR}/check_xcbcompat.cmake)
+set_tests_properties(i3-loads-xcbcompat PROPERTIES ENVIRONMENT_MODIFICATION "LD_LIBRARY_PATH=unset:")
+
+# i3 on Xvfb, on the layer: grabs, AllowEvents, the save set and AllocColor (depth 8). Its test client is compiled
+# against the system's libxcb and XTEST, so the test needs Xvfb, i3-msg, a C compiler and pkg-config's xcb-xtest.
+find_program(XVFB_PROGRAM Xvfb)
+find_program(I3_MSG_PROGRAM i3-msg)
+find_program(CC_PROGRAM cc)
+pkg_check_modules(xcb_xtest_dep QUIET xcb-xtest)
+if(XVFB_PROGRAM AND I3_MSG_PROGRAM AND CC_PROGRAM AND xcb_xtest_dep_FOUND)
+    foreach(depth IN ITEMS 24 8)
+        add_test(NAME i3-xcbcompat-smoke-depth${depth}
+                 COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/xcbcompat/smoke.sh $<TARGET_FILE:i3> 9${depth}
+                         ${CMAKE_CURRENT_BINARY_DIR}/xcbcompat-smoke-depth${depth} ${depth})
+        set_tests_properties(i3-xcbcompat-smoke-depth${depth} PROPERTIES
+                             LABELS it RESOURCE_LOCK xvfb ENVIRONMENT_MODIFICATION "LD_LIBRARY_PATH=unset:")
+    endforeach()
+else()
+    message(STATUS "Xvfb, i3-msg, cc or xcb-xtest missing: the i3-xcbcompat-smoke tests are left out")
+endif()
+
 #add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS RegexTest MatchTest ConTest ConfigNewTest ConfigOldTest)
 
 #add_custom_target(coverage COMMAND

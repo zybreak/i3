@@ -178,7 +178,7 @@ void ApplicationLauncher::start_application(std::string const command, bool no_s
          * sequences */
         WorkspaceCon *ws = global.focused->con_get_workspace();
 
-        context = startup_sequences.emplace_back(std::make_unique<Startup_Sequence>(global.x->conn->default_screen(), ws, "i3", "exec command in i3", launchee, global.last_timestamp))->context;
+        context = startup_sequences.emplace_back(std::make_unique<Startup_Sequence>(global.x->conn_screen, ws, "i3", "exec command in i3", launchee, global.last_timestamp))->context;
     }
 
     LOG(fmt::sprintf("executing: %s\n", command));
@@ -205,8 +205,8 @@ void ApplicationLauncher::start_application(std::string const command, bool no_s
 }
 
 ApplicationLauncher::ApplicationLauncher(X &x) {
-    sndisplay = sn_xcb_display_new(*x, nullptr, nullptr);
-    sn_monitor_context_new(sndisplay, x.conn->default_screen(), [](SnMonitorEvent *event, void *userdata) { ((ApplicationLauncher *)userdata)->startup_monitor_event(event); }, this, nullptr);
+    sndisplay = sn_xcb_display_new(x.c_handle(), nullptr, nullptr);
+    sn_monitor_context_new(sndisplay, x.conn_screen,[](SnMonitorEvent *event, void *userdata) { ((ApplicationLauncher *)userdata)->startup_monitor_event(event); }, this, nullptr);
 
     /* Prepare for us to get a current timestamp as recommended by ICCCM */
 }
@@ -278,6 +278,8 @@ void ApplicationLauncher::startup_sequence_rename_workspace(char const *old_name
  */
 static Startup_Sequence *startup_sequence_get(i3Window *cwindow,
                                               xcb_get_property_reply_t *startup_id_reply, bool ignore_mapped_leader) {
+    /* Owns the leader's reply, if startup_id_reply is replaced by it. */
+    std::optional<property_request> leader_property{};
     /* The _NET_STARTUP_ID is only needed during this function, so we get it
      * here and don’t save it in the 'cwindow'. */
     if (startup_id_reply == nullptr || xcb_get_property_value_length(startup_id_reply) == 0) {
@@ -300,9 +302,9 @@ static Startup_Sequence *startup_sequence_get(i3Window *cwindow,
 
         DLOG(fmt::sprintf("Checking leader window 0x%08x\n", cwindow->leader));
 
-        auto property = global.x->conn->get_property_unchecked(false, cwindow->leader,
-                                                               i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
-        startup_id_reply = property.get().get();
+        leader_property.emplace(global.x->c_handle(), cwindow->leader, i3::atoms[i3::Atom::_NET_STARTUP_ID],
+                                XCB_GET_PROPERTY_TYPE_ANY, 512);
+        startup_id_reply = leader_property->get();
 
         if (startup_id_reply == nullptr ||
             xcb_get_property_value_length(startup_id_reply) == 0) {
@@ -358,9 +360,10 @@ std::optional<std::string> ApplicationLauncher::startup_workspace_for_window(i3W
  *
  */
 void ApplicationLauncher::startup_sequence_delete_by_window(i3Window *win) {
-    auto startup_id_reply = global.x->conn->get_property(false, win->id, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 0, 512);
+    property_request startup_id_reply{global.x->c_handle(), win->id, i3::atoms[i3::Atom::_NET_STARTUP_ID],
+                                      XCB_GET_PROPERTY_TYPE_ANY, 512};
 
-    auto *sequence = startup_sequence_get(win, (startup_id_reply.get() != nullptr) ? startup_id_reply.get().get() : nullptr, true);
+    auto *sequence = startup_sequence_get(win, startup_id_reply.get(), true);
     if (sequence != nullptr) {
         remove_startup_sequence(sequence->id);
     }

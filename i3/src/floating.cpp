@@ -57,13 +57,13 @@ static void floating_set_hint_atom(Con *con, bool floating) {
 
     if (floating) {
         uint32_t val = 1;
-        xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, con->get_window()->id,
+        xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, con->get_window()->id,
                             i3::atoms[i3::Atom::I3_FLOATING_WINDOW], XCB_ATOM_CARDINAL, 32, 1, &val);
     } else {
-        xcb_delete_property(**global.x, con->get_window()->id, i3::atoms[i3::Atom::I3_FLOATING_WINDOW]);
+        xcb_delete_property(global.x->c_handle(), con->get_window()->id, i3::atoms[i3::Atom::I3_FLOATING_WINDOW]);
     }
 
-    xcb_flush(**global.x);
+    xcb_flush(global.x->c_handle());
 }
 
 /*
@@ -545,7 +545,7 @@ void floating_move_to_pointer(Con *con) {
         std::terminate();
     }
 
-    xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(**global.x, xcb_query_pointer(**global.x, global.x->root), nullptr);
+    xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(global.x->c_handle(), xcb_query_pointer(global.x->c_handle(), global.x->root), nullptr);
     if (reply == nullptr) {
         ELOG("could not query pointer position, not moving this container\n");
         return;

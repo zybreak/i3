@@ -1,11 +1,12 @@
 module;
+// Before antlr's headers, which undefine EOF: header-only fmt uses it.
+#include "fmt/core.h"
+#include "fmt/printf.h"
 #include <antlr4-runtime.h>
 #include "parser-specs/configLexer.h"
 #include "parser-specs/configGrammar.h"
 #include "parser-specs/configGrammarBaseListener.h"
 #include <xcb/xcb_xrm.h>
-#include "fmt/core.h"
-#include "fmt/printf.h"
 module i3_config_new;
 
 import std;

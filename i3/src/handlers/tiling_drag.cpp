@@ -185,11 +185,11 @@ static void create_indicator(drop_type_t drop_type, direction_t direction, Con *
                                   XCB_CONFIG_WINDOW_Y |
                                   XCB_CONFIG_WINDOW_WIDTH |
                                   XCB_CONFIG_WINDOW_HEIGHT;
-            xcb_configure_window(**global.x, *(params->indicator), mask, values);
+            xcb_configure_window(global.x->c_handle(), *(params->indicator), mask, values);
         }
     }
     x_mask_event_mask(~XCB_EVENT_MASK_ENTER_WINDOW);
-    xcb_flush(**global.x);
+    xcb_flush(global.x->c_handle());
 
     *(params->target) = target;
     *(params->direction) = direction;
@@ -210,12 +210,12 @@ static xcb_window_t create_drop_indicator(Rect rect) {
     mask |= XCB_CW_OVERRIDE_REDIRECT;
     values[1] = 1;
 
-    xcb_window_t indicator = create_window(global.x->con(), rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
+    xcb_window_t indicator = create_window(global.x->c_handle(), rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
                                            XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_MOVE, false, mask, values);
     /* Change the window class to "i3-drag", so that it can be matched in a
      * compositor configuration. Note that the class needs to be changed before
      * mapping the window. */
-    xcb_change_property(**global.x,
+    xcb_change_property(global.x->c_handle(),
                         XCB_PROP_MODE_REPLACE,
                         indicator,
                         XCB_ATOM_WM_CLASS,
@@ -223,8 +223,8 @@ static xcb_window_t create_drop_indicator(Rect rect) {
                         8,
                         (strlen("i3-drag") + 1) * 2,
                         "i3-drag\0i3-drag\0");
-    xcb_map_window(**global.x, indicator);
-    xcb_circulate_window(**global.x, XCB_CIRCULATE_RAISE_LOWEST, indicator);
+    xcb_map_window(global.x->c_handle(), indicator);
+    xcb::xproto::circulate_window(&global.x->connection(), xcb::xproto::circulate_t::CIRCULATE_RAISE_LOWEST, indicator);
 
     return indicator;
 }
@@ -300,7 +300,7 @@ static void drag_callback(Con *con, Rect const &old_rect, uint32_t new_x, uint32
     /* target == con makes sense only when we are moving away from target's parent. */
     if (drop_type != DT_PARENT && target == con) {
         draw_window = false;
-        xcb_destroy_window(**global.x, *(params->indicator));
+        xcb_destroy_window(global.x->c_handle(), *(params->indicator));
         *(params->indicator) = 0;
         return create_indicator(drop_type, direction, target, rect, draw_window, con, old_rect, new_x, new_y, event, params);
     }
@@ -342,7 +342,7 @@ void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bo
 
     /* Don't change focus while dragging. */
     x_mask_event_mask(~XCB_EVENT_MASK_ENTER_WINDOW);
-    xcb_flush(*x);
+    xcb_flush(x.c_handle());
 
     /* Indicate drop location while dragging. This blocks until the drag is completed. */
     Con *target = nullptr;
@@ -357,7 +357,7 @@ void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bo
     drag_result_t drag_result = inputManager.drag_pointer(con, event, XCB_NONE, XCURSOR_CURSOR_MOVE, use_threshold, cb);
 
     /* Dragging is done. We don't need the indicator window any more. */
-    xcb_destroy_window(*x, indicator);
+    xcb_destroy_window(x.c_handle(), indicator);
 
     if (drag_result == DRAG_REVERT ||
         target == nullptr ||

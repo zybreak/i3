@@ -179,7 +179,7 @@ bool i3Window::window_update_type(xcb_get_property_reply_t *reply) {
  * Updates the WM_NORMAL_HINTS
  *
  */
-bool i3Window::window_update_normal_hints(xcb_size_hints_t &size_hints, xcb_get_geometry_reply_t *geom) {
+bool i3Window::window_update_normal_hints(xcb_size_hints_t &size_hints, xcb::xproto::GetGeometryReplyObj *geom) {
     bool changed = false;
 
     if ((size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE)) {
@@ -329,7 +329,7 @@ bool i3Window::window_update_normal_hints(xcb_size_hints_t &size_hints, xcb_get_
     return changed;
 }
 
-bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_get_geometry_reply_t *geom) {
+bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb::xproto::GetGeometryReplyObj *geom) {
     xcb_size_hints_t size_hints;
 
     /* If the hints were already in this event, use them, if not, request them */
@@ -337,7 +337,7 @@ bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_g
     if (reply != nullptr) {
         success = xcb_icccm_get_wm_size_hints_from_reply(&size_hints, reply);
     } else {
-        success = xcb_icccm_get_wm_normal_hints_reply(**global.x, xcb_icccm_get_wm_normal_hints_unchecked(**global.x, this->id), &size_hints, nullptr);
+        success = xcb_icccm_get_wm_normal_hints_reply(global.x->c_handle(), xcb_icccm_get_wm_normal_hints_unchecked(global.x->c_handle(), this->id), &size_hints, nullptr);
     }
     if (!success) {
         DLOG("Could not get WM_NORMAL_HINTS\n");

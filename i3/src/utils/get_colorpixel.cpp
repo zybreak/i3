@@ -13,6 +13,8 @@ module;
 module utils;
 
 import std;
+import xcb;
+import xcb.xcbcompat;
 
 struct Colorpixel {
     char hex[8];
@@ -66,10 +68,8 @@ uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, char 
     int g16 = RGB_8_TO_16(g);
     int b16 = RGB_8_TO_16(b);
 
-    xcb_alloc_color_reply_t *reply;
-
-    reply = xcb_alloc_color_reply(conn, xcb_alloc_color(conn, root_screen->default_colormap, r16, g16, b16),
-                                  nullptr);
+    /* conn is a handle of the libxcb compatibility layer, on an xcbpp connection. */
+    auto reply = xcb::xproto::alloc_color(xcb::xcbcompat::connection(conn), root_screen->default_colormap, r16, g16, b16).get();
 
     if (!reply) {
         // LOG("Could not allocate color\n");
@@ -77,7 +77,6 @@ uint32_t get_colorpixel(xcb_connection_t *conn, xcb_screen_t *root_screen, char 
     }
 
     uint32_t pixel = reply->pixel;
-    free(reply);
 
     /* Store the result in the cache */
     auto cache_pixel = std::make_unique<Colorpixel>();

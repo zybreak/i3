@@ -27,7 +27,7 @@ void EventHandler::xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
        sleeps. */
     xcb_generic_event_t *event;
 
-    while ((event = xcb_poll_for_event(*x)) != nullptr) {
+    while ((event = xcb_poll_for_event(x.c_handle())) != nullptr) {
         if (event->response_type == 0) {
             if (handlers.event_is_ignored(event->sequence, 0)) {
                 DLOG(fmt::sprintf("Expected X11 Error received for sequence %x\n", event->sequence));
@@ -49,7 +49,7 @@ void EventHandler::xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
     }
 
     /* Flush all queued events to X11. */
-    xcb_flush(*x);
+    xcb_flush(x.c_handle());
 }
 
 /**
@@ -124,7 +124,7 @@ EventHandler::EventHandler(X &x, PropertyHandlers &handlers)
     xcb_prepare = new ev_prepare();
     xcb_prepare->data = this;
 
-    ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(*x), EV_READ);
+    ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(x.c_handle()), EV_READ);
     ev_io_start(global.main_loop, xcb_watcher);
 
     ev_prepare_init(xcb_prepare, [](EV_P_ ev_prepare *w, int revents) { ((EventHandler *)w->data)->xcb_prepare_cb(EV_A_ w, revents); });

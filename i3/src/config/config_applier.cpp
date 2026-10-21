@@ -55,7 +55,7 @@ void ConfigApplier::criteria_add(criteria_state *cs, char const *ctype, char con
 
 void ConfigApplier::font(std::string const &font) {
     try {
-        this->config->font = load_font(**global.x, global.x->root_screen, font);
+        this->config->font = load_font(global.x->c_handle(), global.x->root_screen, font);
     } catch (std::exception &e) {
         ELOG(e.what());
     }
@@ -411,7 +411,7 @@ void ConfigApplier::popup_during_fullscreen(std::string const &value) {
 
 void ConfigApplier::color_single(std::string const &colorclass, std::string const &color) {
     /* used for client.background only currently */
-    this->config->client.background = draw_util_hex_to_color(**global.x, global.x->root_screen, color.c_str());
+    this->config->client.background = draw_util_hex_to_color(global.x->c_handle(), global.x->root_screen, color.c_str());
 }
 
 void ConfigApplier::color(std::string const &colorclass, std::string const &border, std::string const &background, std::string const &text, std::string const &indicator, std::string const &child_border) {
@@ -424,14 +424,14 @@ void ConfigApplier::color(std::string const &colorclass, std::string const &bord
                     ELOG("indicator and child_border colors have no effect for client.focused_tab_title\n");                                   \
                 }                                                                                                                              \
             }                                                                                                                                  \
-            this->config->client.classname.border = draw_util_hex_to_color(**global.x, global.x->root_screen, border.c_str());                 \
-            this->config->client.classname.background = draw_util_hex_to_color(**global.x, global.x->root_screen, background.c_str());         \
-            this->config->client.classname.text = draw_util_hex_to_color(**global.x, global.x->root_screen, text.c_str());                     \
+            this->config->client.classname.border = draw_util_hex_to_color(global.x->c_handle(), global.x->root_screen, border.c_str());                 \
+            this->config->client.classname.background = draw_util_hex_to_color(global.x->c_handle(), global.x->root_screen, background.c_str());         \
+            this->config->client.classname.text = draw_util_hex_to_color(global.x->c_handle(), global.x->root_screen, text.c_str());                     \
             if (!indicator.empty()) {                                                                                                          \
-                this->config->client.classname.indicator = draw_util_hex_to_color(**global.x, global.x->root_screen, indicator.c_str());       \
+                this->config->client.classname.indicator = draw_util_hex_to_color(global.x->c_handle(), global.x->root_screen, indicator.c_str());       \
             }                                                                                                                                  \
             if (!child_border.empty()) {                                                                                                       \
-                this->config->client.classname.child_border = draw_util_hex_to_color(**global.x, global.x->root_screen, child_border.c_str()); \
+                this->config->client.classname.child_border = draw_util_hex_to_color(global.x->c_handle(), global.x->root_screen, child_border.c_str()); \
             } else {                                                                                                                           \
                 this->config->client.classname.child_border = this->config->client.classname.background;                                       \
             }                                                                                                                                  \

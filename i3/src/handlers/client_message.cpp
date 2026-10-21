@@ -188,13 +188,13 @@ static void handle_frame_extents(xcb_client_message_event_t *event) {
         static_cast<uint32_t>(global.configManager->config->default_border_width)  /* bottom */
     };
     xcb_change_property(
-        **global.x,
+        global.x->c_handle(),
         XCB_PROP_MODE_REPLACE,
         event->window,
         i3::atoms[i3::Atom::_NET_FRAME_EXTENTS],
         XCB_ATOM_CARDINAL, 32, 4,
         &r);
-    xcb_flush(**global.x);
+    xcb_flush(global.x->c_handle());
 }
 
 static void handle_current_desktop(xcb_client_message_event_t *event) {
@@ -222,7 +222,7 @@ static void handle_change_state(xcb_client_message_event_t *event) {
          * immediately revert to normal to avoid being stuck in a paused state. */
         DLOG(fmt::sprintf("Client has requested iconic state, rejecting. (window = %08x)\n", event->window));
         long data[] = {XCB_ICCCM_WM_STATE_NORMAL, XCB_NONE};
-        xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, event->window,
+        xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, event->window,
                             i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], 32, 2, data);
     } else {
         DLOG(fmt::sprintf("Not handling WM_CHANGE_STATE request. (window = %08x, state = %d)\n", event->window, event->data.data32[0]));

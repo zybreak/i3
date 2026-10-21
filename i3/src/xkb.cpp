@@ -12,40 +12,40 @@ import std;
 import utils;
 import log;
 import bindings;
-import xpp.proto.big_requests;
-import xpp.proto.xkb;
-import xpp;
 
 static int fill_rmlvo_from_root(xkb_rule_names *xkb_names) {
     size_t content_max_words = 256;
 
-    auto atom_reply = global.x->conn->intern_atom(0, strlen("_XKB_RULES_NAMES"), "_XKB_RULES_NAMES");
-    if (atom_reply->length == 0) {
+    xcb::Connection *conn = &global.x->connection();
+    auto atom_reply = xcb::xproto::intern_atom(conn, 0, "_XKB_RULES_NAMES").get();
+    if (!atom_reply) {
         return -1;
     }
 
-    auto prop_reply = global.x->conn->get_property(false, global.x->root, atom_reply->atom,
-                                                   XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
-    if (prop_reply->length == 0) {
+    auto prop_reply = xcb::xproto::get_property(conn, false, global.x->root, atom_reply->atom,
+                                                XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words)
+                          .get();
+    if (!prop_reply) {
         return -1;
     }
-    if (prop_reply->value_len > 0 && prop_reply->bytes_after > 0) {
+    if (!prop_reply->value.empty() && prop_reply->bytes_after > 0) {
         /* We received an incomplete value. Ask again but with a properly
          * adjusted size. */
         content_max_words += ceil(prop_reply->bytes_after / 4.0);
         /* Repeat the request, with adjusted size */
-        prop_reply = global.x->conn->get_property(false, global.x->root, atom_reply->atom,
-                                                  XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
-        if (prop_reply->length == 0) {
+        prop_reply = xcb::xproto::get_property(conn, false, global.x->root, atom_reply->atom,
+                                               XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words)
+                         .get();
+        if (!prop_reply) {
             return -1;
         }
     }
-    if (prop_reply->value_len == 0) {
+    if (prop_reply->value.empty()) {
         return -1;
     }
 
-    char const *walk = (char const *)xcb_get_property_value(prop_reply.get().get());
-    size_t remaining = prop_reply->value_len;
+    char const *walk = reinterpret_cast<char const *>(prop_reply->value.data());
+    size_t remaining = prop_reply->value.size();
     for (int i = 0; i < 5 && remaining > 0; i++) {
         auto len = strnlen(walk, remaining);
         switch (i) {
@@ -79,8 +79,8 @@ Keymap::Keymap() {
     }
 
     int32_t device_id;
-    if (global.xkb->xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(**global.x)) > -1) {
-        if ((keymap = xkb_x11_keymap_new_from_device(context, **global.x, device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
+    if (global.xkb->xkb_supported && (device_id = xkb_x11_get_core_keyboard_device_id(global.x->c_handle())) > -1) {
+        if ((keymap = xkb_x11_keymap_new_from_device(context, global.x->c_handle(), device_id, XKB_KEYMAP_COMPILE_NO_FLAGS)) == nullptr) {
             throw std::runtime_error("xkb_x11_keymap_new_from_device failed");
         }
     } else {
@@ -171,11 +171,11 @@ static uint32_t aio_get_mod_mask_for(X &x, uint32_t keysym, xcb_key_symbols_t *s
     xcb_get_modifier_mapping_cookie_t cookie;
     xcb_get_modifier_mapping_reply_t *modmap_r;
 
-    xcb_flush(*x);
+    xcb_flush(x.c_handle());
 
     /* Get the current modifier mapping (this is blocking!) */
-    cookie = xcb_get_modifier_mapping(*x);
-    if (!(modmap_r = xcb_get_modifier_mapping_reply(*x, cookie, nullptr))) {
+    cookie = xcb_get_modifier_mapping(x.c_handle());
+    if (!(modmap_r = xcb_get_modifier_mapping_reply(x.c_handle(), cookie, nullptr))) {
         return 0;
     }
 
@@ -186,7 +186,7 @@ static uint32_t aio_get_mod_mask_for(X &x, uint32_t keysym, xcb_key_symbols_t *s
 
 Keysyms::Keysyms(X &x)
     : x(x) {
-    keysyms = xcb_key_symbols_alloc(*x);
+    keysyms = xcb_key_symbols_alloc(x.c_handle());
 }
 
 Keysyms::~Keysyms() {
@@ -207,15 +207,16 @@ void Xkb::refresh_keyboard_mapping(xcb_mapping_notify_event_t *event) {
 
 Xkb::Xkb(X &x)
     : x(x) {
-    x_connection *conn = x;
-    auto xkb_ext = conn->extension<xpp::xkb::extension>();
-    xkb_supported = xkb_ext->present;
+    /* XKB isn't in xcbpp: i3 uses libxcb-xkb, on the libxcb handle. */
+    xcb_query_extension_reply_t const *xkb_ext = xcb_get_extension_data(x.c_handle(), &xcb_xkb_id);
+    xkb_supported = xkb_ext != nullptr && xkb_ext->present;
     if (!xkb_supported) {
         DLOG("xkb is not present on this server");
     } else {
         DLOG("initializing xcb-xkb");
-        conn->xkb().use_extension(XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION);
-        conn->xkb().select_events(
+        free(xcb_xkb_use_extension_reply(x.c_handle(), xcb_xkb_use_extension(x.c_handle(), XCB_XKB_MAJOR_VERSION, XCB_XKB_MINOR_VERSION), nullptr));
+        xcb_xkb_select_events(
+            x.c_handle(),
             XCB_XKB_ID_USE_CORE_KBD,
             XCB_XKB_EVENT_TYPE_STATE_NOTIFY | XCB_XKB_EVENT_TYPE_MAP_NOTIFY | XCB_XKB_EVENT_TYPE_NEW_KEYBOARD_NOTIFY,
             0,
@@ -241,7 +242,11 @@ Xkb::Xkb(X &x)
          * when using a feature called “automatic reset of boolean controls”:
          * https://www.x.org/releases/X11R7.7/doc/kbproto/xkbproto.html#Automatic_Reset_of_Boolean_Controls
          * */
-        auto pcf_reply = conn->xkb().per_client_flags(XCB_XKB_ID_USE_CORE_KBD, mask, mask, 0, 0, 0);
+        std::unique_ptr<xcb_xkb_per_client_flags_reply_t, decltype(&std::free)> pcf_reply{
+            xcb_xkb_per_client_flags_reply(x.c_handle(),
+                                           xcb_xkb_per_client_flags(x.c_handle(), XCB_XKB_ID_USE_CORE_KBD, mask, mask, 0, 0, 0),
+                                           nullptr),
+            &std::free};
 
         if (pcf_reply.get() == nullptr || !(pcf_reply->value & (XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE))) {
             ELOG("Could not set XCB_XKB_PER_CLIENT_FLAG_GRABS_USE_XKB_STATE");

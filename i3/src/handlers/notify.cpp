@@ -338,12 +338,11 @@ void PropertyHandlers::property_notify(xcb_property_notify_event_t *event) {
     }
 
     if (state != XCB_PROPERTY_DELETE) {
-        try {
-            auto propr = global.x->conn->get_property(0, window, atom, XCB_GET_PROPERTY_TYPE_ANY, 0, handler.long_len);
-
-            handler.cb(con, propr.get().get());
-        } catch (std::exception &e) {
-            DLOG(fmt::sprintf("got error %s when getting property of atom %d\n", e.what(), atom));
+        property_request propr{global.x->c_handle(), window, atom, XCB_GET_PROPERTY_TYPE_ANY, handler.long_len};
+        if (propr.get() == nullptr) {
+            DLOG(fmt::sprintf("got an error when getting property of atom %d\n", atom));
+        } else {
+            handler.cb(con, propr.get());
         }
     } else {
         handler.cb(con, nullptr);

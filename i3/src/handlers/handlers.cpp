@@ -273,9 +273,12 @@ void PropertyHandlers::handle_mapping_notify(xcb_mapping_notify_event_t *event) 
  *
  */
 void PropertyHandlers::handle_map_request(xcb_map_request_event_t *event) {
+    auto attr = xcb::xproto::get_window_attributes(&x.connection(), event->window).get();
+    if (!attr) {
+        DLOG(fmt::format("Could not manage window = 0x%08x", event->window));
+        return;
+    }
     try {
-        auto attr = x.conn->get_window_attributes(event->window);
-
         DLOG(fmt::sprintf("window = 0x%08x, serial is %d.\n", event->window, event->sequence));
         add_ignore_event(event->sequence, -1);
 
@@ -329,8 +332,8 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
         COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_SIBLING, sibling);
         COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_STACK_MODE, stack_mode);
 
-        xcb_configure_window(*x, event->window, mask, values);
-        xcb_flush(*x);
+        xcb_configure_window(x.c_handle(), event->window, mask, values);
+        xcb_flush(x.c_handle());
 
         return;
     }
@@ -454,8 +457,8 @@ void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
 
     /* The geometry of the root window is used for “fullscreen global” and
      * changes when new outputs are added. */
-    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(*x, x.root);
-    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(*x, cookie, nullptr);
+    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(x.c_handle(), x.root);
+    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(x.c_handle(), cookie, nullptr);
     if (reply == nullptr) {
         ELOG("Could not get geometry of the root window, exiting\n");
         exit(EXIT_FAILURE);
@@ -492,13 +495,13 @@ void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event
             con->ignore_unmap--;
         }
         /* See the end of this function. */
-        cookie = xcb_get_input_focus(*x);
+        cookie = xcb_get_input_focus(x.c_handle());
         DLOG(fmt::sprintf("ignore_unmap = %d for frame of container %p\n", con->ignore_unmap, fmt::ptr(con)));
         goto ignore_end;
     }
 
     /* See the end of this function. */
-    cookie = xcb_get_input_focus(**global.x);
+    cookie = xcb_get_input_focus(global.x->c_handle());
 
     if (con->ignore_unmap > 0) {
         DLOG(fmt::sprintf("ignore_unmap = %d, dec\n", con->ignore_unmap));
@@ -508,8 +511,8 @@ void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event
 
     /* Since we close the container, we need to unset _NET_WM_DESKTOP and
      * _NET_WM_STATE according to the spec. */
-    xcb_delete_property(**global.x, event->window, i3::atoms[i3::Atom::_NET_WM_DESKTOP]);
-    xcb_delete_property(**global.x, event->window, i3::atoms[i3::Atom::_NET_WM_STATE]);
+    xcb_delete_property(global.x->c_handle(), event->window, i3::atoms[i3::Atom::_NET_WM_DESKTOP]);
+    xcb_delete_property(global.x->c_handle(), event->window, i3::atoms[i3::Atom::_NET_WM_STATE]);
 
     tree_close_internal(con, kill_window_t::DONT_KILL_WINDOW, false);
     tree_render();
@@ -535,7 +538,7 @@ ignore_end:
      * into fullscreen and moving the pointer to a different window, without
      * using GetInputFocus, subsequent (legitimate) EnterNotify events arrived
      * with the same sequence and thus were ignored (see ticket #609). */
-    free(xcb_get_input_focus_reply(**global.x, cookie, nullptr));
+    free(xcb_get_input_focus_reply(global.x->c_handle(), cookie, nullptr));
 }
 
 /*
@@ -580,7 +583,7 @@ void PropertyHandlers::handle_expose_event(xcb_expose_event_t *event) {
      * only tell us that the X server lost (parts of) the window contents. */
     draw_util_copy_surface(parent->frame_buffer.get(), parent->frame.get(),
                            0, 0, 0, 0, parent->rect.width, parent->rect.height);
-    xcb_flush(**global.x);
+    xcb_flush(global.x->c_handle());
 }
 
 static uint32_t const _NET_WM_MOVERESIZE_SIZE_TOPLEFT = 0;
@@ -796,7 +799,6 @@ void PropertyHandlers::handle_key_press(xcb_key_press_event_t *event) {
  *
  */
 void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
-    x_connection *conn = x;
     if (type != XCB_MOTION_NOTIFY) {
         DLOG(fmt::sprintf("event type %d, xkb_base %d\n", type, global.xkb->xkb_base));
     }
@@ -817,9 +819,9 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
             if (((xcb_xkb_new_keyboard_notify_event_t *)event)->changed & XCB_XKB_NKN_DETAIL_KEYCODES) {
                 xkb.load_keymap();
             }
-            ungrab_all_keys(conn);
+            ungrab_all_keys(x);
             translate_keysyms(xkb.keymap());
-            grab_all_keys(conn);
+            grab_all_keys(x);
         } else if (state->xkbType == XCB_XKB_MAP_NOTIFY) {
             if (event_is_ignored(event->sequence, type)) {
                 DLOG(fmt::sprintf("Ignoring map notify event for sequence %d.\n", state->sequence));
@@ -827,9 +829,9 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
                 DLOG(fmt::sprintf("xkb map notify, sequence %d, time %d\n", state->sequence, state->time));
                 add_ignore_event(event->sequence, type);
                 xkb.key_symbols_alloc();
-                ungrab_all_keys(conn);
+                ungrab_all_keys(x);
                 translate_keysyms(xkb.keymap());
-                grab_all_keys(conn);
+                grab_all_keys(x);
                 xkb.load_keymap();
             }
         } else if (state->xkbType == XCB_XKB_STATE_NOTIFY) {
@@ -838,8 +840,8 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
                 return;
             }
             xkb.xkb_current_group = state->group;
-            ungrab_all_keys(conn);
-            grab_all_keys(conn);
+            ungrab_all_keys(x);
+            grab_all_keys(x);
         }
 
         return;

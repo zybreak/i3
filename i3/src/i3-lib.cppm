@@ -43,11 +43,8 @@ import bindings;
 import i3ipc;
 import regex;
 import log;
-import xpp;
-import xpp.proto.randr;
-import xpp.proto.xkb;
-import xpp.proto.shape;
-import xpp.proto.big_requests;
+import xcb;
+import xcb.xcbcompat;
 import i3.json;
 
 using std::int32_t;
@@ -1854,8 +1851,6 @@ export {
 }
 // x.cppm
 export {
-    using x_connection = xpp::connection<xpp::xkb::extension, xpp::shape::extension, xpp::big_requests::extension, xpp::randr::extension>;
-    
     /*
      * Describes the X11 state we may modify (map state, position, window stack).
      * There is one entry per container. The state represents the current situation
@@ -1895,15 +1890,69 @@ export {
         std::string name{};
     };
 
+    /**
+     * A GetProperty request (offset 0) sent through a libxcb handle, whose reply is waited for on first use, and
+     * discarded if it never is. i3's property parsers and the xcb-icccm functions take libxcb's reply type.
+     */
+    class property_request {
+        xcb_connection_t *conn;
+        xcb_get_property_cookie_t cookie;
+        bool waited{false};
+        std::unique_ptr<xcb_get_property_reply_t, decltype(&std::free)> reply{nullptr, &std::free};
+
+      public:
+        property_request(xcb_connection_t *conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t type,
+                         uint32_t long_length)
+            : conn(conn), cookie(xcb_get_property(conn, false, window, property, type, 0, long_length)) {
+        }
+
+        property_request(property_request &&other) noexcept
+            : conn(std::exchange(other.conn, nullptr)), cookie(other.cookie), waited(other.waited),
+              reply(std::move(other.reply)) {
+        }
+
+        property_request &operator=(property_request &&) = delete;
+
+        ~property_request() {
+            if (conn != nullptr && !waited) {
+                xcb_discard_reply(conn, cookie.sequence);
+            }
+        }
+
+        /**
+         * The reply, or nullptr if the request failed. It stays owned by this object.
+         */
+        xcb_get_property_reply_t *get() {
+            if (!waited) {
+                reply.reset(xcb_get_property_reply(conn, cookie, nullptr));
+                waited = true;
+            }
+            return reply.get();
+        }
+
+        /**
+         * The length of the property's value, 0 if the request failed.
+         */
+        uint32_t value_len() {
+            auto *r = get();
+            return r != nullptr ? r->value_len : 0;
+        }
+    };
+
     class X {
+      private:
+        /* The connection's libxcb handle, which owns the xcbpp connection behind it. */
+        xcb::xcbcompat::unique_handle handle{};
+        xcb::Connection *xcbpp_conn{};
+
       protected:
         xcb_cursor_context_t *ctx;
         std::map<xcursor_cursor_t, xcb_cursor_t> cursors{};
 
         xcb_visualtype_t *get_visual_type_for_root();
 
-        explicit X(x_connection *conn)
-            : conn(conn) {
+        /* For tests: no connection. */
+        explicit X(std::nullptr_t) {
         }
 
       public:
@@ -1939,7 +1988,6 @@ export {
         xcb_window_t last_focused{XCB_NONE};
         /** Stores the X11 window ID of the currently focused window */
         xcb_window_t focused_id{XCB_NONE};
-        x_connection *conn;
         xcb_screen_t *root_screen;
         /* The screen (0 when you are using DISPLAY=:0) of the connection 'conn' */
         int conn_screen;
@@ -1953,13 +2001,27 @@ export {
         explicit X();
         virtual ~X() = default;
 
-        operator x_connection *() {
-            return conn;
+        /**
+         * The xcbpp connection. i3's code moves to it from libxcb; both reach the X server through it.
+         */
+        xcb::Connection &connection() const {
+            return *xcbpp_conn;
         }
-        
-        xcb_connection_t* con() {
-            return *conn;
+
+        /**
+         * The connection's libxcb handle, for i3's remaining libxcb calls and the C libraries (cairo, xkbcommon-x11,
+         * libstartup-notification, the xcb-util libraries). It is the libxcb compatibility layer's handle on the
+         * xcbpp connection: never create a second one for it, since cairo caches its state per handle.
+         */
+        xcb_connection_t *c_handle() const {
+            return handle.get();
         }
+
+        /**
+         * Closes the connection. The connection and the libxcb handle are unusable afterwards. Does
+         * nothing if it is already closed.
+         */
+        void disconnect();
 
         void xcursor_load_cursors();
         xcb_cursor_t xcursor_get_cursor(xcursor_cursor_t c);
@@ -1984,6 +2046,18 @@ export {
          */
         virtual void con_init(Con *con, std::optional<xcb_drawable_t> id = std::nullopt);
     };
+
+    /**
+     * Opens a connection to the display in $DISPLAY, as xcb_connect(nullptr, screen) does. xcbpp opens it: libxcb's
+     * xcb_connect() makes no connection on the libxcb compatibility layer.
+     *
+     * Returns the connection's libxcb handle, which owns it: close it with xcb_disconnect(). If the connection can't
+     * be made, the handle is libxcb's handle for the error, as xcb_connect() returns it, and
+     * xcb_connection_has_error() reports why.
+     */
+    inline xcb_connection_t *x_connect(int *screen) {
+        return xcb::xcbcompat::adopt(xcb::connect(nullptr, screen)).release();
+    }
 
     /*
      * Moves a child window from Container src to Container dest.
@@ -2105,20 +2179,20 @@ export {
      * mapping_notify event or a configuration file reload
      *
      */
-    void ungrab_all_keys(x_connection * conn);
-    
+    void ungrab_all_keys(X & x);
+
     /**
      * Grab the bound keys (tell X to send us keypress events for those keycodes)
      *
      */
-    void grab_all_keys(x_connection * conn);
+    void grab_all_keys(X & x);
 
     /**
      * Release the button grabs on all managed windows and regrab them,
      * reevaluating which buttons need to be grabbed.
      *
      */
-    void regrab_all_buttons(x_connection * conn);
+    void regrab_all_buttons(X & x);
 
 }
 // workspace.cppm
@@ -3046,9 +3120,9 @@ export {
          * Updates the WM_NORMAL_HINTS
          *
          */
-        bool window_update_normal_hints(xcb_size_hints_t &size_hints, xcb_get_geometry_reply_t *geom);
+        bool window_update_normal_hints(xcb_size_hints_t &size_hints, xcb::xproto::GetGeometryReplyObj *geom);
         [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
-        bool window_update_normal_hints(xcb_get_property_reply_t *reply, xcb_get_geometry_reply_t *geom);
+        bool window_update_normal_hints(xcb_get_property_reply_t *reply, xcb::xproto::GetGeometryReplyObj *geom);
 
         /**
          * Updates the WM_HINTS (we only care about the input focus handling part).
@@ -3218,8 +3292,8 @@ export void sync_respond(X *x, xcb_window_t window, uint32_t rnd) {
     ev.data.data32[0] = window;
     ev.data.data32[1] = rnd;
 
-    xcb_send_event(**x, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)&ev);
-    xcb_flush(**x);
+    xcb_send_event(x->c_handle(), false, window, XCB_EVENT_MASK_NO_EVENT, (char *)&ev);
+    xcb_flush(x->c_handle());
 }
 // output.cppm
 export {
@@ -3362,10 +3436,7 @@ export {
          * appropriate.
          *
          */
-        void handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
-                           xcb_randr_get_output_info_reply_t *output,
-                           xcb_timestamp_t cts,
-                           xcb_randr_get_screen_resources_current_reply_t *res);
+        void handle_output(xcb_randr_output_t id, std::string name, xcb_randr_crtc_t output_crtc, xcb_timestamp_t cts);
 
         /*
          * randr_query_outputs_14 uses RandR ≤ 1.4 to update outputs.
@@ -4168,7 +4239,7 @@ export std::optional<std::string> root_atom_contents(char const *atomname, xcb_c
     xcb_connection_t *conn = provided_conn;
     
     if (provided_conn == nullptr &&
-        ((conn = xcb_connect(nullptr, &screen)) == nullptr ||
+        ((conn = x_connect(&screen)) == nullptr ||
          xcb_connection_has_error(conn))) {
         return std::nullopt;
     }
@@ -4319,7 +4390,7 @@ export {
      * assigning a workspace to each RandR output.
      *
      */
-    void tree_init(xcb_get_geometry_reply_t const *geometry);
+    void tree_init(xcb::xproto::GetGeometryReplyObj const *geometry);
 
     /**
      * Opens an empty container in the current container
@@ -4380,7 +4451,7 @@ export {
      * Loads Tree from ~/.i3/_restart.json (used for in-place restarts).
      *
      */
-    bool tree_restore(std::filesystem::path const path, xcb_get_geometry_reply_t const *geometry);
+    bool tree_restore(std::filesystem::path const path, xcb::xproto::GetGeometryReplyObj const *geometry);
 
     /**
      * tree_flatten() removes pairs of redundant split containers, e.g.:
@@ -4413,7 +4484,7 @@ export {
  * Find the region in the given window that is not covered by a mapped child
  * window.
  */
-static cairo_region_t *unobscured_region(x_connection *conn, xcb_window_t window,
+static cairo_region_t *unobscured_region(X &conn, xcb_window_t window,
                                          uint16_t window_width, uint16_t window_height) {
     cairo_rectangle_int_t rectangle;
     cairo_region_t *region;
@@ -4424,7 +4495,7 @@ static cairo_region_t *unobscured_region(x_connection *conn, xcb_window_t window
     rectangle.height = window_height;
     region = cairo_region_create_rectangle(&rectangle);
 
-    xcb_query_tree_reply_t *tree = xcb_query_tree_reply(*conn, xcb_query_tree_unchecked(*conn, window), nullptr);
+    xcb_query_tree_reply_t *tree = xcb_query_tree_reply(conn.c_handle(), xcb_query_tree_unchecked(conn.c_handle(), window), nullptr);
     if (!tree) {
         return region;
     }
@@ -4439,14 +4510,14 @@ static cairo_region_t *unobscured_region(x_connection *conn, xcb_window_t window
     attributes.reserve(n_children);
 
     for (int i = 0; i < n_children; i++) {
-        geometries.push_back(xcb_get_geometry_unchecked(*conn, children[i]));
-        attributes.push_back(xcb_get_window_attributes_unchecked(*conn, children[i]));
+        geometries.push_back(xcb_get_geometry_unchecked(conn.c_handle(), children[i]));
+        attributes.push_back(xcb_get_window_attributes_unchecked(conn.c_handle(), children[i]));
     }
 
     /* Remove every visible child from the region */
     for (int i = 0; i < n_children; i++) {
-        xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(*conn, geometries.at(i), nullptr);
-        xcb_get_window_attributes_reply_t *attr = xcb_get_window_attributes_reply(*conn, attributes.at(i), nullptr);
+        xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(conn.c_handle(), geometries.at(i), nullptr);
+        xcb_get_window_attributes_reply_t *attr = xcb_get_window_attributes_reply(conn.c_handle(), attributes.at(i), nullptr);
 
         if (geom && attr && attr->map_state == XCB_MAP_STATE_VIEWABLE) {
             rectangle.x = geom->x;
@@ -4464,7 +4535,7 @@ static cairo_region_t *unobscured_region(x_connection *conn, xcb_window_t window
     return region;
 }
 
-static void find_unobscured_pixel(x_connection *conn, xcb_window_t window,
+static void find_unobscured_pixel(X &conn, xcb_window_t window,
                                   uint16_t window_width, uint16_t window_height,
                                   uint16_t *x, uint16_t *y) {
     cairo_region_t *region = unobscured_region(conn, window, window_width, window_height);
@@ -4482,34 +4553,32 @@ static void find_unobscured_pixel(x_connection *conn, xcb_window_t window,
     cairo_region_destroy(region);
 }
 
-static uint32_t flicker_window_at(x_connection *conn, xcb_screen_t *screen, uint16_t x, uint16_t y, xcb_window_t window,
+static uint32_t flicker_window_at(X &conn, xcb_screen_t *screen, uint16_t x, uint16_t y, xcb_window_t window,
                                   uint32_t pixel) {
-    uint32_t value_list[]{pixel, 1};
-    conn->create_window(XCB_COPY_FROM_PARENT, window, screen->root, x, y, 10, 10,
-                        0, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
-                        XCB_CW_BACK_PIXEL | XCB_CW_OVERRIDE_REDIRECT, value_list);
-    conn->map_window(window);
-    conn->clear_area(0, window, 0, 0, 0, 0);
-    xcb_aux_sync(*conn);
-    conn->destroy_window(window);
+    xcb::Connection *c = &conn.connection();
+    xcb::xproto::create_window(c, XCB_COPY_FROM_PARENT, window, screen->root, x, y, 10, 10, 0,
+                               xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT, XCB_COPY_FROM_PARENT,
+                               xcb::xproto::CreateWindowValueList{}.with_background_pixel(pixel).with_override_redirect(1));
+    xcb::xproto::map_window(c, window);
+    xcb::xproto::clear_area(c, 0, window, 0, 0, 0, 0);
+    xcb_aux_sync(conn.c_handle());
+    xcb::xproto::destroy_window(c, window);
 
-    auto img = conn->get_image_unchecked(XCB_IMAGE_FORMAT_Z_PIXMAP, screen->root, x, y, 1, 1, ~0);
+    auto img = xcb::xproto::get_image_unchecked(c, xcb::xproto::image_format_t::IMAGE_FORMAT_Z_PIXMAP, screen->root, x, y, 1, 1, ~0).get();
     uint32_t result = 0;
     if (img) {
-        uint8_t *data = xcb_get_image_data(img.get().get());
-        uint8_t depth = img->depth;
-        for (int i = 0; i < std::min(depth, (uint8_t)4); i++) {
-            result = (result << 8) | data[i];
+        for (std::size_t i = 0; i < std::min<std::size_t>({img->depth, 4, img->data.size()}); i++) {
+            result = (result << 8) | std::to_integer<uint32_t>(img->data[i]);
         }
     }
     return result;
 }
 
-export bool is_background_set(x_connection *conn, xcb_screen_t *screen) {
+export bool is_background_set(X &conn, xcb_screen_t *screen) {
     uint16_t x, y;
     find_unobscured_pixel(conn, screen->root, screen->width_in_pixels, screen->height_in_pixels, &x, &y);
 
-    xcb_window_t window = conn->generate_id();
+    xcb_window_t window = conn.connection().generate_id();
 
     uint32_t pixel1 = flicker_window_at(conn, screen, x, y, window, screen->black_pixel);
     uint32_t pixel2 = flicker_window_at(conn, screen, x, y, window, screen->white_pixel);

@@ -32,7 +32,7 @@ list(APPEND libraries glib::glib)
 list(APPEND libraries glib::gobject-2.0)
 
 find_package(fmt CONFIG REQUIRED)
-list(APPEND libraries fmt::fmt)
+list(APPEND libraries fmt::fmt-header-only)
 
 find_package(spdlog CONFIG REQUIRED)
 
@@ -42,8 +42,39 @@ list(APPEND libraries nlohmann_json::nlohmann_json)
 find_package(di CONFIG REQUIRED)
 list(APPEND libraries di::di)
 
-find_package(xpp CONFIG REQUIRED)
-list(APPEND libraries xpp::xpp)
+# xcbpp opens i3's X connections, and its libxcb compatibility layer (xcbpp::xcbcompat, a libxcb.so.1 on xcbpp's
+# runtime) replaces libxcb in i3's process: i3's own libxcb calls, cairo, xkbcommon-x11, libstartup-notification and
+# libxcb's extension libraries reach the X server through xcbpp. i3 must never link the system's libxcb.so: the linker
+# keeps only the first library named libxcb.so.1 it is given, and the dynamic loader loads only one. So every target
+# that names it links the layer instead: FindX11's X11::xcb, and Conan's xorg targets (through cairo and pango's
+# libxft), whose pkg-config data names libxcb as the system library "xcb" for most of them. Linking the layer alone
+# also makes the linker check that every libxcb function i3 and its libraries call is one the layer provides.
+find_package(xcbpp CONFIG REQUIRED)
+if(NOT TARGET xcbpp::xcbcompat)
+    message(FATAL_ERROR "xcbpp was built without its libxcb compatibility layer (Conan option xcbpp/*:xcbcompat)")
+endif()
+list(APPEND libraries xcbpp::xcbpp xcbpp::xcbcompat)
+
+get_target_property(xcbcompat_configs xcbpp::xcbcompat IMPORTED_CONFIGURATIONS)
+list(GET xcbcompat_configs 0 xcbcompat_config)
+get_target_property(xcbcompat_location xcbpp::xcbcompat IMPORTED_LOCATION_${xcbcompat_config})
+set_target_properties(X11::xcb PROPERTIES IMPORTED_LOCATION "${xcbcompat_location}")
+
+# Replaces the system library "xcb" in a target's link interface with the layer. The name stands alone, or opens or
+# closes a $<CONFIG:…> generator expression; "xorg::xcb" isn't it.
+function(i3_link_xcbcompat_instead_of_libxcb target)
+    get_target_property(libraries ${target} INTERFACE_LINK_LIBRARIES)
+    string(REGEX REPLACE "(^|;|[^:]:)xcb(;|>|$)" "\\1\\2" replaced "${libraries}")
+    if(NOT replaced STREQUAL libraries)
+        set_target_properties(${target} PROPERTIES INTERFACE_LINK_LIBRARIES "${replaced};xcbpp::xcbcompat")
+    endif()
+endfunction()
+
+i3_link_xcbcompat_instead_of_libxcb(xorg_DEPS_TARGET)
+foreach(component IN LISTS xorg_COMPONENT_NAMES)
+    string(REPLACE "::" "_" component_name ${component})
+    i3_link_xcbcompat_instead_of_libxcb(xorg_${component_name}_DEPS_TARGET)
+endforeach()
 
 list(APPEND libraries libi3ipc)
 

@@ -95,8 +95,8 @@ void fake_absolute_configure_notify(Con *con) {
 
     DLOG(fmt::sprintf("fake rect = (%d, %d, %d, %d)\n", generatedEvent.x, generatedEvent.y, generatedEvent.width, generatedEvent.height));
 
-    xcb_send_event(**global.x, false, con->get_window()->id, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *)&generatedEvent);
-    xcb_flush(**global.x);
+    xcb_send_event(global.x->c_handle(), false, con->get_window()->id, XCB_EVENT_MASK_STRUCTURE_NOTIFY, (char *)&generatedEvent);
+    xcb_flush(global.x->c_handle());
 }
 
 /*
@@ -117,7 +117,7 @@ void send_take_focus(xcb_window_t window, xcb_timestamp_t timestamp) {
     ev.data.data32[1] = timestamp;
 
     DLOG("Sending WM_TAKE_FOCUS to the client\n");
-    xcb_send_event(**global.x, false, window, XCB_EVENT_MASK_NO_EVENT, (char *)&ev);
+    xcb_send_event(global.x->c_handle(), false, window, XCB_EVENT_MASK_NO_EVENT, (char *)&ev);
 }
 
 /*
@@ -295,7 +295,9 @@ void xcb_remove_property_atom(xcb_connection_t *conn, xcb_window_t window, xcb_a
  */
 void xcb_grab_buttons(xcb_window_t window, std::set<int> &buttons) {
     for (int i : buttons) {
-        global.x->conn->grab_button(false, window, XCB_EVENT_MASK_BUTTON_PRESS, XCB_GRAB_MODE_SYNC,
-                                    XCB_GRAB_MODE_ASYNC, global.x->root, XCB_NONE, i, XCB_BUTTON_MASK_ANY);
+        xcb::xproto::grab_button(&global.x->connection(), false, window, xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_PRESS,
+                                 xcb::xproto::grab_mode_t::GRAB_MODE_SYNC, xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC,
+                                 global.x->root, XCB_NONE, static_cast<xcb::xproto::button_index_t>(i),
+                                 xcb::xproto::mod_mask_t::MOD_MASK_ANY);
     }
 }

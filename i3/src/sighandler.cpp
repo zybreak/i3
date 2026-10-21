@@ -33,8 +33,8 @@ class dialog_t {
     Rect dims{};
     std::unique_ptr<surface_t> surface{};
     ~dialog_t() {
-        xcb_free_colormap(**global.x, colormap);
-        xcb_destroy_window(**global.x, id);
+        xcb_free_colormap(global.x->c_handle(), colormap);
+        xcb_destroy_window(global.x->c_handle(), id);
     }
 };
 
@@ -170,8 +170,8 @@ static void sighandler_create_dialogs() {
         auto dialog = std::make_unique<dialog_t>();
 
         xcb_visualid_t visual = get_visualid_by_depth(global.x->root_depth);
-        dialog->colormap = xcb_generate_id(**global.x);
-        xcb_create_colormap(**global.x, XCB_COLORMAP_ALLOC_NONE, dialog->colormap, global.x->root, visual);
+        dialog->colormap = xcb_generate_id(global.x->c_handle());
+        xcb_create_colormap(global.x->c_handle(), XCB_COLORMAP_ALLOC_NONE, dialog->colormap, global.x->root, visual);
 
         uint32_t mask = 0;
         uint32_t values[4];
@@ -201,30 +201,30 @@ static void sighandler_create_dialogs() {
         dialog->dims.x -= dialog->dims.width / 2;
         dialog->dims.y -= dialog->dims.height / 2;
 
-        dialog->id = create_window((xcb_connection_t *)**global.x, dialog->dims, global.x->root_depth, visual,
+        dialog->id = create_window((xcb_connection_t *)global.x->c_handle(), dialog->dims, global.x->root_depth, visual,
                                    XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER,
                                    true, mask, values);
 
-        dialog->surface = std::make_unique<surface_t>(**global.x, dialog->id, get_visualtype_by_id(visual),
+        dialog->surface = std::make_unique<surface_t>(global.x->c_handle(), dialog->id, get_visualtype_by_id(visual),
                                                       dialog->dims.width, dialog->dims.height);
 
-        xcb_grab_keyboard(**global.x, false, dialog->id, XCB_CURRENT_TIME, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        xcb_grab_keyboard(global.x->c_handle(), false, dialog->id, XCB_CURRENT_TIME, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
 
         /* Confine the pointer to the crash dialog. */
-        xcb_grab_pointer(**global.x, false, dialog->id, XCB_NONE, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, dialog->id,
+        xcb_grab_pointer(global.x->c_handle(), false, dialog->id, XCB_NONE, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, dialog->id,
                          XCB_NONE, XCB_CURRENT_TIME);
 
         dialogs.push_back(std::move(dialog));
     }
 
     sighandler_handle_expose();
-    xcb_flush(**global.x);
+    xcb_flush(global.x->c_handle());
 }
 
 static void sighandler_destroy_dialogs() {
     dialogs.clear();
 
-    xcb_flush(**global.x);
+    xcb_flush(global.x->c_handle());
 }
 
 static void sighandler_handle_expose() {
@@ -232,13 +232,13 @@ static void sighandler_handle_expose() {
         sighandler_draw_dialog(current.get());
     }
 
-    xcb_flush(**global.x);
+    xcb_flush(global.x->c_handle());
 }
 
 static void sighandler_draw_dialog(dialog_t *dialog) {
-    color_t const black = draw_util_hex_to_color(**global.x, global.x->root_screen, "#000000");
-    color_t const white = draw_util_hex_to_color(**global.x, global.x->root_screen, "#FFFFFF");
-    color_t const red = draw_util_hex_to_color(**global.x, global.x->root_screen, "#FF0000");
+    color_t const black = draw_util_hex_to_color(global.x->c_handle(), global.x->root_screen, "#000000");
+    color_t const white = draw_util_hex_to_color(global.x->c_handle(), global.x->root_screen, "#FFFFFF");
+    color_t const red = draw_util_hex_to_color(global.x->c_handle(), global.x->root_screen, "#FF0000");
 
     /* Start with a clean slate and draw a red border. */
     dialog->surface->draw_util_clear_surface(red);
@@ -261,7 +261,7 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     } else if (backtrace_done > 0) {
         bt_color = (char *)"#00AA00";
     }
-    dialog->surface->draw_util_text(*global.configManager->config->font, message_option_backtrace, draw_util_hex_to_color(**global.x, global.x->root_screen, bt_color), black, x, y, max_width);
+    dialog->surface->draw_util_text(*global.configManager->config->font, message_option_backtrace, draw_util_hex_to_color(global.x->c_handle(), global.x->root_screen, bt_color), black, x, y, max_width);
     y += global.configManager->config->font->height;
 
     dialog->surface->draw_util_text(*global.configManager->config->font, message_option_restart, white, black, x, y, max_width);
@@ -312,7 +312,7 @@ static void handle_signal(int sig, siginfo_t *info, void *data) {
 
     xcb_generic_event_t *event;
     /* Yay, more own eventhandlers… */
-    while ((event = xcb_wait_for_event(**global.x))) {
+    while ((event = xcb_wait_for_event(global.x->c_handle()))) {
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
         switch (type) {

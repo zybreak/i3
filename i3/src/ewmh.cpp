@@ -31,7 +31,7 @@ void ewmh_update_current_desktop() {
     }
     old_idx = idx;
 
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_CURRENT_DESKTOP], XCB_ATOM_CARDINAL, 32, 1, &idx);
+    xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_CURRENT_DESKTOP], XCB_ATOM_CARDINAL, 32, 1, &idx);
 }
 
 /*
@@ -51,7 +51,7 @@ static void ewmh_update_number_of_desktops() {
     }
     old_idx = idx;
 
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root,
+    xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, global.x->root,
                         i3::atoms[i3::Atom::_NET_NUMBER_OF_DESKTOPS], XCB_ATOM_CARDINAL, 32, 1, &idx);
 }
 
@@ -81,7 +81,7 @@ static void ewmh_update_desktop_names() {
         }
     }
 
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root,
+    xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, global.x->root,
                         i3::atoms[i3::Atom::_NET_DESKTOP_NAMES], i3::atoms[i3::Atom::UTF8_STRING], 8, desktop_names.size(), desktop_names.data());
 }
 
@@ -107,7 +107,7 @@ static void ewmh_update_desktop_viewport() {
         }
     }
 
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root,
+    xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, global.x->root,
                         i3::atoms[i3::Atom::_NET_DESKTOP_VIEWPORT], XCB_ATOM_CARDINAL, 32, viewports.size(), viewports.data());
 }
 
@@ -161,12 +161,12 @@ static void ewmh_update_wm_desktop_recursively(Con *c, uint32_t const desktop) {
     xcb_window_t const window = con->get_window()->id;
     if (wm_desktop != NET_WM_DESKTOP_NONE) {
         DLOG(fmt::sprintf("Setting _NET_WM_DESKTOP = %d for window 0x%08x.\n", wm_desktop, window));
-        xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_ATOM_CARDINAL, 32, 1, &wm_desktop);
+        xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_ATOM_CARDINAL, 32, 1, &wm_desktop);
     } else {
         /* If we can't determine the workspace index, delete the property. We'd
          * rather not set it than lie. */
         ELOG(fmt::sprintf("Failed to determine the proper EWMH desktop index for window 0x%08x, deleting _NET_WM_DESKTOP.\n", window));
-        xcb_delete_property(**global.x, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP]);
+        xcb_delete_property(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_DESKTOP]);
     }
 }
 
@@ -194,7 +194,7 @@ void ewmh_update_wm_desktop() {
  *
  */
 void ewmh_update_active_window(xcb_window_t window) {
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root,
+    xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, global.x->root,
                         i3::atoms[i3::Atom::_NET_ACTIVE_WINDOW], XCB_ATOM_WINDOW, 32, 1, &window);
 }
 
@@ -204,9 +204,9 @@ void ewmh_update_active_window(xcb_window_t window) {
  */
 void ewmh_update_visible_name(xcb_window_t window, char const *name) {
     if (name != nullptr) {
-        xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, window, i3::atoms[i3::Atom::_NET_WM_VISIBLE_NAME], i3::atoms[i3::Atom::UTF8_STRING], 8, strlen(name), name);
+        xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, window, i3::atoms[i3::Atom::_NET_WM_VISIBLE_NAME], i3::atoms[i3::Atom::UTF8_STRING], 8, strlen(name), name);
     } else {
-        xcb_delete_property(**global.x, window, i3::atoms[i3::Atom::_NET_WM_VISIBLE_NAME]);
+        xcb_delete_property(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_VISIBLE_NAME]);
     }
 }
 
@@ -226,7 +226,7 @@ void ewmh_update_visible_name(xcb_window_t window, char const *name) {
  *
  */
 void ewmh_update_workarea() {
-    xcb_delete_property(**global.x, global.x->root, i3::atoms[i3::Atom::_NET_WORKAREA]);
+    xcb_delete_property(global.x->c_handle(), global.x->root, i3::atoms[i3::Atom::_NET_WORKAREA]);
 }
 
 /*
@@ -235,7 +235,7 @@ void ewmh_update_workarea() {
  */
 void ewmh_update_client_list(xcb_window_t *list, int num_windows) {
     xcb_change_property(
-        **global.x,
+        global.x->c_handle(),
         XCB_PROP_MODE_REPLACE,
         global.x->root,
         i3::atoms[i3::Atom::_NET_CLIENT_LIST],
@@ -251,7 +251,7 @@ void ewmh_update_client_list(xcb_window_t *list, int num_windows) {
  */
 void ewmh_update_client_list_stacking(xcb_window_t *stack, int num_windows) {
     xcb_change_property(
-        **global.x,
+        global.x->c_handle(),
         XCB_PROP_MODE_REPLACE,
         global.x->root,
         i3::atoms[i3::Atom::_NET_CLIENT_LIST_STACKING],
@@ -268,10 +268,10 @@ void ewmh_update_client_list_stacking(xcb_window_t *stack, int num_windows) {
 void ewmh_update_sticky(xcb_window_t window, bool sticky) {
     if (sticky) {
         DLOG(fmt::sprintf("Setting _NET_WM_STATE_STICKY for window = %08x.\n", window));
-        xcb_add_property_atom(**global.x, window, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_STICKY]);
+        xcb_add_property_atom(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_STICKY]);
     } else {
         DLOG(fmt::sprintf("Removing _NET_WM_STATE_STICKY for window = %08x.\n", window));
-        xcb_remove_property_atom(**global.x, window, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_STICKY]);
+        xcb_remove_property_atom(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_STICKY]);
     }
 }
 
@@ -282,10 +282,10 @@ void ewmh_update_sticky(xcb_window_t window, bool sticky) {
 void ewmh_update_focused(xcb_window_t window, bool is_focused) {
     if (is_focused) {
         DLOG(fmt::sprintf("Setting _NET_WM_STATE_FOCUSED for window = %08x.\n", window));
-        xcb_add_property_atom(**global.x, window, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_FOCUSED]);
+        xcb_add_property_atom(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_FOCUSED]);
     } else {
         DLOG(fmt::sprintf("Removing _NET_WM_STATE_FOCUSED for window = %08x.\n", window));
-        xcb_remove_property_atom(**global.x, window, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_FOCUSED]);
+        xcb_remove_property_atom(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_FOCUSED]);
     }
 }
 
@@ -336,11 +336,11 @@ void ewmh_setup_hints() {
      * present, a child window has to be created (and kept alive as long as the
      * window manager is running) which has the _NET_SUPPORTING_WM_CHECK and
      * _NET_WM_ATOMS. */
-    xcb_window_t ewmh_window = xcb_generate_id(**global.x);
+    xcb_window_t ewmh_window = xcb_generate_id(global.x->c_handle());
     /* We create the window and put it at (-1, -1) so that it is off-screen. */
     uint32_t v_list[]{1};
     xcb_create_window(
-        **global.x,
+        global.x->c_handle(),
         XCB_COPY_FROM_PARENT,        /* depth */
         ewmh_window,                 /* window id */
         global.x->root,              /* parent */
@@ -350,19 +350,19 @@ void ewmh_setup_hints() {
         XCB_COPY_FROM_PARENT,        /* visual */
         XCB_CW_OVERRIDE_REDIRECT,
         v_list);
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, ewmh_window, i3::atoms[i3::Atom::_NET_SUPPORTING_WM_CHECK], XCB_ATOM_WINDOW, 32, 1, &ewmh_window);
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, ewmh_window, i3::atoms[i3::Atom::_NET_WM_NAME], i3::atoms[i3::Atom::UTF8_STRING], 8, strlen("i3"), "i3");
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_SUPPORTING_WM_CHECK], XCB_ATOM_WINDOW, 32, 1, &ewmh_window);
+    xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, ewmh_window, i3::atoms[i3::Atom::_NET_SUPPORTING_WM_CHECK], XCB_ATOM_WINDOW, 32, 1, &ewmh_window);
+    xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, ewmh_window, i3::atoms[i3::Atom::_NET_WM_NAME], i3::atoms[i3::Atom::UTF8_STRING], 8, strlen("i3"), "i3");
+    xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_SUPPORTING_WM_CHECK], XCB_ATOM_WINDOW, 32, 1, &ewmh_window);
 
     /* I’m not entirely sure if we need to keep _NET_WM_NAME on root. */
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_WM_NAME], i3::atoms[i3::Atom::UTF8_STRING], 8, strlen("i3"), "i3");
+    xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_WM_NAME], i3::atoms[i3::Atom::UTF8_STRING], 8, strlen("i3"), "i3");
 
-    xcb_change_property(**global.x, XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_SUPPORTED], XCB_ATOM_ATOM, 32, /* number of atoms */ supported_atoms.size(), supported_atoms.data());
+    xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_SUPPORTED], XCB_ATOM_ATOM, 32, /* number of atoms */ supported_atoms.size(), supported_atoms.data());
 
     /* We need to map this window to be able to set the input focus to it if no other window is available to be focused. */
-    xcb_map_window(**global.x, ewmh_window);
+    xcb_map_window(global.x->c_handle(), ewmh_window);
     uint32_t value_list[]{XCB_STACK_MODE_BELOW};
-    xcb_configure_window(**global.x, ewmh_window, XCB_CONFIG_WINDOW_STACK_MODE, value_list);
+    xcb_configure_window(global.x->c_handle(), ewmh_window, XCB_CONFIG_WINDOW_STACK_MODE, value_list);
 
     global.x->ewmh_window = ewmh_window;
 }

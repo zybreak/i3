@@ -325,7 +325,7 @@ void con_enable_fullscreen(Con *con, fullscreen_mode_t fullscreen_mode) {
         old_focused->con_activate();
     }
 
-    con_set_fullscreen_mode(**global.x, con, fullscreen_mode);
+    con_set_fullscreen_mode(global.x->c_handle(), con, fullscreen_mode);
 }
 
 /*
@@ -346,7 +346,7 @@ void con_disable_fullscreen(Con *con) {
         return;
     }
 
-    con_set_fullscreen_mode(**global.x, con, CF_NONE);
+    con_set_fullscreen_mode(global.x->c_handle(), con, CF_NONE);
 }
 
 static bool _con_move_to_con(Con *con, Con *target, bool behind_focused, bool fix_coordinates, bool dont_warp, bool ignore_focus, bool fix_percentage) {

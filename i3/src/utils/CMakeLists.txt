@@ -14,5 +14,5 @@ target_sources(utils PRIVATE
         format_placeholders.cppm)
 #target_compile_options(utils PUBLIC "-pthread" "-fsized-deallocation")
 target_compile_options(utils PUBLIC "-Xclang" "-fno-validate-pch")
-target_link_libraries(utils PUBLIC i3_log)
+target_link_libraries(utils PUBLIC i3_log xcbpp::xcbpp xcbpp::xcbcompat)
 target_compile_features(utils PUBLIC cxx_std_26)

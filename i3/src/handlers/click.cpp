@@ -177,8 +177,8 @@ static bool tiling_resize(PropertyHandlers &handlers, Con *con, xcb_button_press
 }
 
 static void allow_replay_pointer(xcb_timestamp_t time) {
-    global.x->conn->allow_events(XCB_ALLOW_REPLAY_POINTER, time);
-    global.x->conn->flush();
+    xcb::xproto::allow_events(&global.x->connection(), xcb::xproto::allow_t::ALLOW_REPLAY_POINTER, time);
+    global.x->connection().flush();
     tree_render();
 }
 
@@ -210,8 +210,8 @@ void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, cl
         run_binding(bind, con);
 
         /* ASYNC_POINTER eats the event */
-        x.conn->allow_events(XCB_ALLOW_ASYNC_POINTER, event->time);
-        x.conn->flush();
+        xcb::xproto::allow_events(&x.connection(), xcb::xproto::allow_t::ALLOW_ASYNC_POINTER, event->time);
+        x.connection().flush();
 
         return;
     }
@@ -368,8 +368,8 @@ void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, cl
         }
         /* Avoid propagating events to clients, since the user expects
          * $mod+click to be handled by i3. */
-        x.conn->allow_events(XCB_ALLOW_ASYNC_POINTER, event->time);
-        x.conn->flush();
+        xcb::xproto::allow_events(&x.connection(), xcb::xproto::allow_t::ALLOW_ASYNC_POINTER, event->time);
+        x.connection().flush();
         return;
     }
     /* 10: otherwise, check for border/decoration clicks and resize */
@@ -437,8 +437,8 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
         }
 
         ELOG("Clicked into unknown window?!\n");
-        xcb_allow_events(*x, XCB_ALLOW_REPLAY_POINTER, event->time);
-        xcb_flush(*x);
+        xcb::xproto::allow_events(&x.connection(), xcb::xproto::allow_t::ALLOW_REPLAY_POINTER, event->time);
+        xcb_flush(x.c_handle());
         return;
     }
 

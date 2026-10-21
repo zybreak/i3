@@ -25,6 +25,7 @@ import std;
 import utils;
 import log;
 import rect;
+import xcb.proto.randr;
 
 /*
  * Updates *destination with new_value and returns true if it was changed or false
@@ -572,7 +573,7 @@ bool RandR::randr_query_outputs_15() {
     xcb_generic_error_t *err;
     xcb_randr_get_monitors_reply_t *monitors =
         xcb_randr_get_monitors_reply(
-            **global.x, xcb_randr_get_monitors(**global.x, global.x->root, true), &err);
+            global.x->c_handle(), xcb_randr_get_monitors(global.x->c_handle(), global.x->root, true), &err);
     if (err != nullptr) {
         ELOG(fmt::sprintf("Could not get RandR monitors: X11 error code %d\n", err->error_code));
         free(err);
@@ -599,7 +600,7 @@ bool RandR::randr_query_outputs_15() {
         xcb_randr_monitor_info_t const *monitor_info = iter.data;
         xcb_get_atom_name_reply_t *atom_reply =
             xcb_get_atom_name_reply(
-                **global.x, xcb_get_atom_name(**global.x, monitor_info->name), &err);
+                global.x->c_handle(), xcb_get_atom_name(global.x->c_handle(), monitor_info->name), &err);
         if (err != nullptr) {
             ELOG(fmt::sprintf("Could not get RandR monitor name: X11 error code %d\n", err->error_code));
             free(err);
@@ -619,8 +620,8 @@ bool RandR::randr_query_outputs_15() {
                 xcb_randr_output_t randr_output = randr_outputs[i];
 
                 xcb_randr_get_output_info_reply_t *info =
-                    xcb_randr_get_output_info_reply(**global.x,
-                                                    xcb_randr_get_output_info(**global.x, randr_output, monitors->timestamp),
+                    xcb_randr_get_output_info_reply(global.x->c_handle(),
+                                                    xcb_randr_get_output_info(global.x->c_handle(), randr_output, monitors->timestamp),
                                                     nullptr);
 
                 if (info != nullptr && info->crtc != XCB_NONE) {
@@ -675,10 +676,7 @@ bool RandR::randr_query_outputs_15() {
  * appropriate.
  *
  */
-void RandR::handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
-                          xcb_randr_get_output_info_reply_t *output,
-                          xcb_timestamp_t cts,
-                          xcb_randr_get_screen_resources_current_reply_t *res) {
+void RandR::handle_output(xcb_randr_output_t id, std::string name, xcb_randr_crtc_t output_crtc, xcb_timestamp_t cts) {
     Output *new_output = get_output_by_id(id);
     bool existing = (new_output != nullptr);
     if (!existing) {
@@ -687,14 +685,14 @@ void RandR::handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
     new_output->id = id;
     new_output->primary = (primary == id);
     new_output->names.clear();
-    new_output->names.emplace_back(reinterpret_cast<char *>(xcb_randr_get_output_info_name(output)), static_cast<std::string::size_type>(xcb_randr_get_output_info_name_length(output)));
+    new_output->names.push_back(std::move(name));
 
     DLOG(fmt::sprintf("found output with name %s\n", new_output->output_primary_name()));
 
     /* Even if no CRTC is used at the moment, we store the output so that
      * we do not need to change the list ever again (we only update the
      * position/size) */
-    if (output->crtc == XCB_NONE) {
+    if (output_crtc == XCB_NONE) {
         if (!existing) {
             if (new_output->primary) {
                 outputs.insert(outputs.begin(), new_output);
@@ -710,8 +708,8 @@ void RandR::handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
     /* each CRT controller has a position in which we are interested in */
     xcb_randr_get_crtc_info_reply_t *crtc;
 
-    xcb_randr_get_crtc_info_cookie_t icookie = xcb_randr_get_crtc_info(**global.x, output->crtc, cts);
-    if ((crtc = xcb_randr_get_crtc_info_reply(**global.x, icookie, nullptr)) == nullptr) {
+    xcb_randr_get_crtc_info_cookie_t icookie = xcb_randr_get_crtc_info(global.x->c_handle(), output_crtc, cts);
+    if ((crtc = xcb_randr_get_crtc_info_reply(global.x->c_handle(), icookie, nullptr)) == nullptr) {
         DLOG(fmt::sprintf("Skipping output %s: could not get CRTC (%p)\n",
                           new_output->output_primary_name(), fmt::ptr(crtc)));
         free(new_output);
@@ -757,45 +755,38 @@ void RandR::handle_output(xcb_connection_t *conn, xcb_randr_output_t id,
 void RandR::randr_query_outputs_14() {
     DLOG("Querying outputs using RandR ≤ 1.4\n");
 
-    try {
-        auto primary_res = global.x->conn->randr().get_output_primary(global.x->root);
-        if (primary_res->length == 0) {
-            ELOG("Could not get RandR primary output\n");
-        } else {
-            DLOG(fmt::sprintf("primary output is %08x\n", primary_res->output));
-        }
+    xcb::Connection *conn = &global.x->connection();
+    auto primary_res = xcb::randr::randr_get_output_primary(conn, global.x->root).get();
+    if (!primary_res) {
+        ELOG("Could not get RandR outputs: no primary output\n");
+        return;
+    }
+    DLOG(fmt::sprintf("primary output is %08x\n", primary_res->output));
+    primary = primary_res->output;
 
-        primary = primary_res->output;
+    /* Get screen resources (primary output, crtcs, outputs, modes) */
+    auto res = xcb::randr::randr_get_screen_resources_current(conn, global.x->root).get();
+    if (!res) {
+        ELOG("Could not query screen resources.\n");
+        return;
+    }
 
-        /* Get screen resources (primary output, crtcs, outputs, modes) */
-        auto res = global.x->conn->randr().get_screen_resources_current(global.x->root);
-        if (res->length == 0) {
-            ELOG("Could not query screen resources.\n");
+    /* timestamp of the configuration so that we get consistent replies to all
+     * requests (if the configuration changes between our different calls) */
+    xcb_timestamp_t const cts = res->config_timestamp;
+
+    /* an output is VGA-1, LVDS-1, etc. (usually physical video outputs) */
+    /* Loop through all outputs available for this X11 screen */
+    /* Request information for each output */
+    for (auto randr_output : res->outputs) {
+        auto output = xcb::randr::randr_get_output_info(conn, randr_output, cts).get();
+        if (!output) {
+            ELOG(fmt::sprintf("Could not get RandR outputs: no information on output %08x\n", randr_output));
             return;
         }
 
-        /* timestamp of the configuration so that we get consistent replies to all
-         * requests (if the configuration changes between our different calls) */
-        xcb_timestamp_t const cts = res->config_timestamp;
-
-        int const len = res->num_outputs;
-
-        /* an output is VGA-1, LVDS-1, etc. (usually physical video outputs) */
-        xcb_randr_output_t *randr_outputs = xcb_randr_get_screen_resources_current_outputs(res.get().get());
-
-        /* Loop through all outputs available for this X11 screen */
-        /* Request information for each output */
-        for (int i = 0; i < len; i++) {
-            auto output = global.x->conn->randr().get_output_info(randr_outputs[i], cts);
-
-            if (output->length == 0) {
-                continue;
-            }
-
-            handle_output(**global.x, randr_outputs[i], output.get().get(), cts, res.get().get());
-        }
-    } catch (std::exception const &e) {
-        ELOG(fmt::sprintf("Could not get RandR outputs: %s\n", e.what()));
+        handle_output(randr_output, std::string{reinterpret_cast<char const *>(output->name.data()), output->name.size()},
+                      output->crtc, cts);
     }
 }
 
@@ -974,7 +965,7 @@ void RandR::randr_query_outputs() {
         }
 
         if (output->changed) {
-            output_change_mode(**global.x, output);
+            output_change_mode(global.x->c_handle(), output);
             output->changed = false;
         }
     }
@@ -1050,7 +1041,7 @@ RandR::RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &worksp
     root_output = create_root_output(x);
     outputs.push_back(root_output);
 
-    extreply = xcb_get_extension_data(*x, &xcb_randr_id);
+    extreply = xcb_get_extension_data(x.c_handle(), &xcb_randr_id);
     if (!extreply->present) {
         DLOG("RandR is not present, activating root output.\n");
         fallback_to_root_output();
@@ -1060,7 +1051,7 @@ RandR::RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &worksp
     xcb_generic_error_t *err;
     xcb_randr_query_version_reply_t *randr_version =
         xcb_randr_query_version_reply(
-            *x, xcb_randr_query_version(*x, XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION), &err);
+            x.c_handle(), xcb_randr_query_version(x.c_handle(), XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION), &err);
     if (err != nullptr) {
         ELOG(fmt::sprintf("Could not query RandR version: X11 error code %d\n", err->error_code));
         free(err);
@@ -1077,11 +1068,11 @@ RandR::RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &worksp
 
     randr_base = extreply->first_event;
 
-    xcb_randr_select_input(*x, x.root,
+    xcb_randr_select_input(x.c_handle(), x.root,
                            XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE |
                                XCB_RANDR_NOTIFY_MASK_OUTPUT_CHANGE |
                                XCB_RANDR_NOTIFY_MASK_CRTC_CHANGE |
                                XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY);
 
-    xcb_flush(*x);
+    xcb_flush(x.c_handle());
 }

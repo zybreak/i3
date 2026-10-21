@@ -22,7 +22,6 @@ import std;
 import utils;
 import log;
 import rect;
-import xpp.proto.x;
 
 template <typename T>
 struct window_data {
@@ -47,23 +46,23 @@ struct window_data {
 
 static auto get_window_data(xcb_window_t window) {
     return window_data{
-        .wm_type_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-        .strut_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-        .state_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_STATE], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-        .utf8_title_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_NAME], XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
-        .leader_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-        .transient_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_TRANSIENT_FOR, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-        .title_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
-        .class_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLASS, XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
-        .role_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], XCB_GET_PROPERTY_TYPE_ANY, 0, 128),
-        .startup_id_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 0, 512),
-        .wm_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_HINTS, XCB_ATOM_WM_HINTS, 0L, XCB_ICCCM_NUM_WM_HINTS_ELEMENTS),
-        .wm_normal_hints_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS, 0L, XCB_ICCCM_NUM_WM_SIZE_HINTS_ELEMENTS),
-        .motif_wm_hints_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], XCB_GET_PROPERTY_TYPE_ANY, 0, 5 * sizeof(uint64_t)),
-        .wm_user_time_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-        .wm_desktop_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-        .wm_machine_cookie = global.x->conn->get_property(false, window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX),
-        .wm_icon_cookie = global.x->conn->get_property(false, window, i3::atoms[i3::Atom::_NET_WM_ICON], XCB_GET_PROPERTY_TYPE_ANY, 0, UINT32_MAX)};
+        .wm_type_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .strut_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .state_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_STATE], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .utf8_title_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_NAME], XCB_GET_PROPERTY_TYPE_ANY, 128),
+        .leader_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .transient_cookie = property_request(global.x->c_handle(), window, XCB_ATOM_WM_TRANSIENT_FOR, XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .title_cookie = property_request(global.x->c_handle(), window, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 128),
+        .class_cookie = property_request(global.x->c_handle(), window, XCB_ATOM_WM_CLASS, XCB_GET_PROPERTY_TYPE_ANY, 128),
+        .role_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], XCB_GET_PROPERTY_TYPE_ANY, 128),
+        .startup_id_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 512),
+        .wm_hints_cookie = property_request(global.x->c_handle(), window, XCB_ATOM_WM_HINTS, XCB_ATOM_WM_HINTS, XCB_ICCCM_NUM_WM_HINTS_ELEMENTS),
+        .wm_normal_hints_cookie = property_request(global.x->c_handle(), window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS, XCB_ICCCM_NUM_WM_SIZE_HINTS_ELEMENTS),
+        .motif_wm_hints_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], XCB_GET_PROPERTY_TYPE_ANY, 5 * sizeof(uint64_t)),
+        .wm_user_time_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .wm_desktop_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .wm_machine_cookie = property_request(global.x->c_handle(), window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .wm_icon_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_ICON], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX)};
 }
 
 /*
@@ -95,18 +94,21 @@ static void _remove_matches(Con *con) {
  */
 void manage_existing_windows(xcb_window_t root) {
     /* Get the tree of windows whose parent is the root window (= all) */
-    auto reply = global.x->conn->query_tree(root);
+    xcb::Connection *conn = &global.x->connection();
+    auto reply = xcb::xproto::query_tree(conn, root).get();
+    if (!reply) {
+        ELOG(std::format("Could not query the children of window {}", root));
+        return;
+    }
 
-    for (auto child : reply.children()) {
-        try {
-            auto attr = global.x->conn->get_window_attributes(child);
-            if (attr->map_state == XCB_MAP_STATE_VIEWABLE && !attr->override_redirect) {
-                manage_window(child, attr->visual);
-            } else {
-                DLOG(std::format("Existing window {} is already mapped, unviewable or has override redirect", child));
-            }
-        } catch (...) {
+    for (auto child : reply->children) {
+        auto attr = xcb::xproto::get_window_attributes(conn, child).get();
+        if (!attr) {
             DLOG(std::format("Could not get attributes on window {}", child));
+        } else if (attr->map_state == xcb::xproto::map_state_t::MAP_STATE_VIEWABLE && !attr->override_redirect) {
+            manage_window(child, attr->visual);
+        } else {
+            DLOG(std::format("Existing window {} is already mapped, unviewable or has override redirect", child));
         }
     }
 }
@@ -127,9 +129,9 @@ void restore_geometry() {
             DLOG(fmt::sprintf("Re-adding X11 border of %d px\n", con->border_width));
             con->get_window_rect().width += (2 * con->border_width);
             con->get_window_rect().height += (2 * con->border_width);
-            xcb_set_window_rect(**global.x, con->get_window()->id, con->get_window_rect());
+            xcb_set_window_rect(global.x->c_handle(), con->get_window()->id, con->get_window_rect());
             DLOG(fmt::sprintf("placing window %08x at %d %d\n", con->get_window()->id, con->rect.x, con->rect.y));
-            xcb_reparent_window(**global.x, con->get_window()->id, global.x->root,
+            xcb_reparent_window(global.x->c_handle(), con->get_window()->id, global.x->root,
                                 con->rect.x, con->rect.y);
         }
     }
@@ -137,10 +139,10 @@ void restore_geometry() {
     /* Strictly speaking, this line doesn’t really belong here, but since we
      * are syncing, let’s un-register as a window manager first */
     uint32_t value_list[]{XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT};
-    xcb_change_window_attributes(**global.x, global.x->root, XCB_CW_EVENT_MASK, value_list);
+    xcb_change_window_attributes(global.x->c_handle(), global.x->root, XCB_CW_EVENT_MASK, value_list);
 
     /* Make sure our changes reach the X server, we restart/exit now */
-    xcb_aux_sync(**global.x);
+    xcb_aux_sync(global.x->c_handle());
 }
 
 /*
@@ -355,7 +357,7 @@ static bool should_set_focus(i3Window *cwindow, Con *fs, WorkspaceCon *ws, ConCo
     return set_focus;
 }
 
-static void handle_dock(i3Window *cwindow, Con **search_at_p, xcb_get_geometry_reply_t *geom) {
+static void handle_dock(i3Window *cwindow, Con **search_at_p, xcb::xproto::GetGeometryReplyObj *geom) {
     Output *output = global.randr->get_output_containing(geom->x, geom->y);
     if (output != nullptr) {
         DLOG(fmt::sprintf("Starting search at output %s\n", output->output_primary_name()));
@@ -386,7 +388,7 @@ static void handle_dock(i3Window *cwindow, Con **search_at_p, xcb_get_geometry_r
 }
 
 template <typename Window_data>
-static i3Window *create_window(Window_data &w_data, xcb_window_t window, xcb_visualid_t visual, bool &urgency_hint, border_style_t &motif_border_style, bool &has_mwm_hints, xcb_get_geometry_reply_t *geom) {
+static i3Window *create_window(Window_data &w_data, xcb_window_t window, xcb_visualid_t visual, bool &urgency_hint, border_style_t &motif_border_style, bool &has_mwm_hints, xcb::xproto::GetGeometryReplyObj *geom) {
     auto cwindow = new i3Window(window);
     cwindow->depth = get_visual_depth(visual);
 
@@ -394,40 +396,40 @@ static i3Window *create_window(Window_data &w_data, xcb_window_t window, xcb_vis
     xcb_grab_buttons(window, buttons);
 
     /* update as much information as possible so far (some replies may be NULL) */
-    if (auto ret = handle_property::window_update_class(w_data.class_cookie.get().get()); ret) {
+    if (auto ret = handle_property::window_update_class(w_data.class_cookie.get()); ret) {
         cwindow->window_update_class(ret->class_name, ret->class_instance);
     }
-    if (auto ret = handle_property::window_update_name_legacy(w_data.title_cookie.get().get()); ret) {
+    if (auto ret = handle_property::window_update_name_legacy(w_data.title_cookie.get()); ret) {
         cwindow->window_update_name_legacy(*ret);
     }
-    if (auto ret = handle_property::window_update_name(w_data.utf8_title_cookie.get().get()); ret) {
+    if (auto ret = handle_property::window_update_name(w_data.utf8_title_cookie.get()); ret) {
         cwindow->window_update_name(*ret);
     }
-    if (w_data.wm_icon_cookie->value_len > 0) {
-        cwindow->window_update_icon(w_data.wm_icon_cookie.get().get());
+    if (w_data.wm_icon_cookie.value_len() > 0) {
+        cwindow->window_update_icon(w_data.wm_icon_cookie.get());
     }
-    if (w_data.leader_cookie->value_len > 0) {
-        cwindow->window_update_leader(w_data.leader_cookie.get().get());
+    if (w_data.leader_cookie.value_len() > 0) {
+        cwindow->window_update_leader(w_data.leader_cookie.get());
     }
-    if (w_data.transient_cookie->value_len > 0) {
-        cwindow->window_update_transient_for(w_data.transient_cookie.get().get());
+    if (w_data.transient_cookie.value_len() > 0) {
+        cwindow->window_update_transient_for(w_data.transient_cookie.get());
     }
-    if (w_data.strut_cookie->value_len > 0) {
-        cwindow->window_update_strut_partial(w_data.strut_cookie.get().get());
+    if (w_data.strut_cookie.value_len() > 0) {
+        cwindow->window_update_strut_partial(w_data.strut_cookie.get());
     }
-    if (w_data.role_cookie->value_len > 0) {
-        cwindow->window_update_role(w_data.role_cookie.get().get());
+    if (w_data.role_cookie.value_len() > 0) {
+        cwindow->window_update_role(w_data.role_cookie.get());
     }
-    if (w_data.wm_hints_cookie->value_len > 0) {
-        cwindow->window_update_hints(w_data.wm_hints_cookie.get().get(), &urgency_hint);
+    if (w_data.wm_hints_cookie.value_len() > 0) {
+        cwindow->window_update_hints(w_data.wm_hints_cookie.get(), &urgency_hint);
     }
-    if (w_data.motif_wm_hints_cookie->value_len > 0) {
-        has_mwm_hints = cwindow->window_update_motif_hints(w_data.motif_wm_hints_cookie.get().get(), &motif_border_style);
+    if (w_data.motif_wm_hints_cookie.value_len() > 0) {
+        has_mwm_hints = cwindow->window_update_motif_hints(w_data.motif_wm_hints_cookie.get(), &motif_border_style);
     }
-    if (w_data.wm_normal_hints_cookie->value_len > 0) {
-        cwindow->window_update_normal_hints(w_data.wm_normal_hints_cookie.get().get(), geom);
+    if (w_data.wm_normal_hints_cookie.value_len() > 0) {
+        cwindow->window_update_normal_hints(w_data.wm_normal_hints_cookie.get(), geom);
     }
-    if (auto machine = handle_property::window_update_machine(w_data.wm_machine_cookie.get().get()); machine) {
+    if (auto machine = handle_property::window_update_machine(w_data.wm_machine_cookie.get()); machine) {
         cwindow->window_update_machine(*machine);
     }
     return cwindow;
@@ -446,13 +448,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         return;
     }
 
-    auto opt_geom = [window]() -> std::optional<xpp::x::reply::checked::get_geometry<x_connection>> {
-        try {
-            return global.x->conn->get_geometry(static_cast<xcb_drawable_t>(window));
-        } catch (...) {
-            return std::nullopt;
-        }
-    }();
+    auto opt_geom = xcb::xproto::get_geometry(&global.x->connection(), window).get();
 
     /* Get the initial geometry (position, size, …) */
     if (!opt_geom) {
@@ -460,7 +456,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         return;
     }
 
-    auto &geom = opt_geom.value();
+    auto *geom = &opt_geom.value();
 
     uint32_t values[1];
 
@@ -476,8 +472,8 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     values[0] = XCB_EVENT_MASK_PROPERTY_CHANGE |
                 XCB_EVENT_MASK_STRUCTURE_NOTIFY;
     xcb_void_cookie_t event_mask_cookie =
-        xcb_change_window_attributes_checked(**global.x, window, XCB_CW_EVENT_MASK, values);
-    if (xcb_request_check(**global.x, event_mask_cookie) != nullptr) {
+        xcb_change_window_attributes_checked(global.x->c_handle(), window, XCB_CW_EVENT_MASK, values);
+    if (xcb_request_check(global.x->c_handle(), event_mask_cookie) != nullptr) {
         LOG("Could not change event mask, the window probably already disappeared.\n");
         return;
     }
@@ -487,17 +483,17 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     bool urgency_hint;
     border_style_t motif_border_style = border_style_t::BS_NORMAL;
     bool has_mwm_hints = false;
-    i3Window *cwindow = create_window(w_data, window, visual, urgency_hint, motif_border_style, has_mwm_hints, geom.get().get());
+    i3Window *cwindow = create_window(w_data, window, visual, urgency_hint, motif_border_style, has_mwm_hints, geom);
 
-    xcb_get_property_reply_t *type_reply = (w_data.wm_type_cookie->value_len > 0 ? w_data.wm_type_cookie.get().get() : nullptr);
-    xcb_get_property_reply_t *state_reply = (w_data.state_cookie->value_len > 0 ? w_data.state_cookie.get().get() : nullptr);
+    xcb_get_property_reply_t *type_reply = (w_data.wm_type_cookie.value_len() > 0 ? w_data.wm_type_cookie.get() : nullptr);
+    xcb_get_property_reply_t *state_reply = (w_data.state_cookie.value_len() > 0 ? w_data.state_cookie.get() : nullptr);
 
-    std::optional<std::string> startup_ws = global.applicationLauncher->startup_workspace_for_window(cwindow, (w_data.startup_id_cookie->value_len > 0 ? w_data.startup_id_cookie.get().get() : nullptr));
+    std::optional<std::string> startup_ws = global.applicationLauncher->startup_workspace_for_window(cwindow, (w_data.startup_id_cookie.value_len() > 0 ? w_data.startup_id_cookie.get() : nullptr));
     DLOG(fmt::format("startup workspace = {}", startup_ws.value_or("(null)")));
 
     /* Get _NET_WM_DESKTOP if it was set. */
     xcb_get_property_reply_t *wm_desktop_reply;
-    wm_desktop_reply = (w_data.wm_desktop_cookie->value_len > 0) ? w_data.wm_desktop_cookie.get().get() : nullptr;
+    wm_desktop_reply = (w_data.wm_desktop_cookie.value_len() > 0) ? w_data.wm_desktop_cookie.get() : nullptr;
     cwindow->wm_desktop = NET_WM_DESKTOP_NONE;
     if (wm_desktop_reply != nullptr && xcb_get_property_value_length(wm_desktop_reply) != 0) {
         auto *wm_desktops = (uint32_t *)xcb_get_property_value(wm_desktop_reply);
@@ -515,7 +511,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
 
     if (xcb_reply_contains_atom(type_reply, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK])) {
         LOG("This window is of type dock\n");
-        handle_dock(cwindow, &search_at, geom.get().get());
+        handle_dock(cwindow, &search_at, geom);
     }
 
     DLOG(fmt::sprintf("Initial geometry: (%d, %d, %d, %d)\n", geom->x, geom->y, geom->width, geom->height));
@@ -664,35 +660,35 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     /* to avoid getting an UnmapNotify event due to reparenting, we temporarily
      * declare no interest in any state change event of this window */
     values[0] = XCB_NONE;
-    xcb_change_window_attributes(**global.x, window, XCB_CW_EVENT_MASK, values);
+    xcb_change_window_attributes(global.x->c_handle(), window, XCB_CW_EVENT_MASK, values);
 
-    xcb_void_cookie_t rcookie = xcb_reparent_window_checked(**global.x, window, nc->frame->id, 0, 0);
-    if (xcb_request_check(**global.x, rcookie) != nullptr) {
+    xcb_void_cookie_t rcookie = xcb_reparent_window_checked(global.x->c_handle(), window, nc->frame->id, 0, 0);
+    if (xcb_request_check(global.x->c_handle(), rcookie) != nullptr) {
         LOG("Could not reparent the window, aborting\n");
         return;
     }
 
     values[0] = CHILD_EVENT_MASK & ~XCB_EVENT_MASK_ENTER_WINDOW;
-    xcb_change_window_attributes(**global.x, window, XCB_CW_EVENT_MASK, values);
-    xcb_flush(**global.x);
+    xcb_change_window_attributes(global.x->c_handle(), window, XCB_CW_EVENT_MASK, values);
+    xcb_flush(global.x->c_handle());
 
     /* Put the client inside the save set. Upon termination (whether killed or
      * normal exit does not matter) of the window manager, these clients will
      * be correctly reparented to their most closest living ancestor (=
      * cleanup) */
-    xcb_change_save_set(**global.x, XCB_SET_MODE_INSERT, window);
+    xcb::xproto::change_save_set(&global.x->connection(), xcb::xproto::set_mode_t::SET_MODE_INSERT, window);
 
     if (global.x->shape_supported) {
         /* Receive ShapeNotify events whenever the client altered its window
          * shape. */
-        xcb_shape_select_input(**global.x, window, true);
+        xcb_shape_select_input(global.x->c_handle(), window, true);
 
         /* Check if the window is shaped. Sadly, we can check only for the
          * bounding shape, not for the input shape. */
         xcb_shape_query_extents_cookie_t cookie =
-            xcb_shape_query_extents(**global.x, window);
+            xcb_shape_query_extents(global.x->c_handle(), window);
         xcb_shape_query_extents_reply_t *reply =
-            xcb_shape_query_extents_reply(**global.x, cookie, nullptr);
+            xcb_shape_query_extents_reply(global.x->c_handle(), cookie, nullptr);
         if (reply != nullptr && reply->bounding_shaped) {
             nc->get_window()->shaped = true;
         }
@@ -750,15 +746,13 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         DLOG(fmt::sprintf("Checking con = %p for _NET_WM_USER_TIME.\n", fmt::ptr(nc)));
 
         uint32_t *wm_user_time;
-        xcb_get_property_reply_t *wm_user_time_reply = (w_data.wm_user_time_cookie.get() != nullptr ? w_data.wm_user_time_cookie.get().get() : nullptr);
+        xcb_get_property_reply_t *wm_user_time_reply = w_data.wm_user_time_cookie.get();
         if (wm_user_time_reply != nullptr && xcb_get_property_value_length(wm_user_time_reply) != 0 &&
             (wm_user_time = (uint32_t *)xcb_get_property_value(wm_user_time_reply)) &&
             wm_user_time[0] == 0) {
             DLOG(fmt::sprintf("_NET_WM_USER_TIME set to 0, not focusing con = %p.\n", fmt::ptr(nc)));
             set_focus = false;
         }
-    } else {
-        xcb_discard_reply(**global.x, w_data.wm_user_time_cookie->sequence);
     }
 
     /* Even if the client doesn't want focus, we still need to focus the
@@ -782,7 +776,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     /* Destroy the old frame if we had to reframe the container. This needs to be done
      * after rendering in order to prevent the background from flickering in its place. */
     if (old_frame != XCB_NONE) {
-        xcb_destroy_window(**global.x, old_frame);
+        xcb_destroy_window(global.x->c_handle(), old_frame);
     }
 
     /* Windows might get managed with the urgency hint already set (Pidgin is
@@ -857,7 +851,7 @@ ConCon *remanage_window(ConCon *con) {
     /* Destroy the old frame if we had to reframe the container. This needs to be done
      * after rendering in order to prevent the background from flickering in its place. */
     if (old_frame != XCB_NONE) {
-        xcb_destroy_window(**global.x, old_frame);
+        xcb_destroy_window(global.x->c_handle(), old_frame);
     }
 
     global.assignmentManager->run_assignments(nc->get_window());

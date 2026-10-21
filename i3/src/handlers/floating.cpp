@@ -20,7 +20,7 @@ static void drag_window_callback(Con *con, Rect const &old_rect, uint32_t new_x,
 
     render_con(con);
     x_push_node(con);
-    xcb_flush(**global.x);
+    xcb_flush(global.x->c_handle());
 
     /* Check if we cross workspace boundaries while moving */
     if (!floating_maybe_reassign_ws(con)) {

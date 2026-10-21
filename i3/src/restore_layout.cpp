@@ -121,7 +121,7 @@ void restore_connect() {
     }
 
     int screen;
-    restore_conn = xcb_connect(nullptr, &screen);
+    restore_conn = x_connect(&screen);
     if (restore_conn == nullptr || xcb_connection_has_error(restore_conn)) {
         if (restore_conn != nullptr) {
             xcb_disconnect(restore_conn);
@@ -142,7 +142,7 @@ void restore_connect() {
     ev_prepare_start(global.main_loop, xcb_prepare);
 }
 
-static void update_placeholder_contents(x_connection *conn, placeholder_state *state) {
+static void update_placeholder_contents(X &conn, placeholder_state *state) {
     color_t const foreground = global.configManager->config->client.placeholder.text;
     color_t const background = global.configManager->config->client.placeholder.background;
 
@@ -194,7 +194,7 @@ static void update_placeholder_contents(x_connection *conn, placeholder_state *s
     xcb_aux_sync(restore_conn);
 }
 
-static void open_placeholder_window(x_connection *conn, Con *con) {
+static void open_placeholder_window(X &conn, Con *con) {
     if (con->con_is_leaf() &&
         (con->get_window() == nullptr || con->get_window()->id == XCB_NONE) &&
         !con->swallow.empty() &&

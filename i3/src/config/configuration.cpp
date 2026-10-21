@@ -113,11 +113,11 @@ static std::optional<std::filesystem::path> get_config_path(std::optional<std::f
 }
 
 void INIT_COLOR(X &x, Colortriple &color, char const *cborder, char const *cbackground, char const *ctext, char const *cindicator) {
-    color.border = draw_util_hex_to_color(*x, x.root_screen, cborder);
-    color.background = draw_util_hex_to_color(*x, x.root_screen, cbackground);
-    color.text = draw_util_hex_to_color(*x, x.root_screen, ctext);
-    color.indicator = draw_util_hex_to_color(*x, x.root_screen, cindicator);
-    color.child_border = draw_util_hex_to_color(*x, x.root_screen, cbackground);
+    color.border = draw_util_hex_to_color(x.c_handle(), x.root_screen, cborder);
+    color.background = draw_util_hex_to_color(x.c_handle(), x.root_screen, cbackground);
+    color.text = draw_util_hex_to_color(x.c_handle(), x.root_screen, ctext);
+    color.indicator = draw_util_hex_to_color(x.c_handle(), x.root_screen, cindicator);
+    color.child_border = draw_util_hex_to_color(x.c_handle(), x.root_screen, cbackground);
 }
 
 /*
@@ -219,7 +219,7 @@ void ConfigurationManager::set_config(std::unique_ptr<Config> _config) {
     if (!config->font) {
         ELOG("You did not specify required configuration option \"font\"\n");
         using namespace std::literals;
-        config->font = load_font(*x, x.root_screen, "fixed"s);
+        config->font = load_font(x.c_handle(), x.root_screen, "fixed"s);
     }
 
     // TODO: decide if we should call set_mode or no?
@@ -237,7 +237,7 @@ Config::Config() {
 
 void ConfigurationManager::init_color(Config &config) {
     /* Initialize default colors */
-    config.client.background = draw_util_hex_to_color(*x, x.root_screen, "#000000");
+    config.client.background = draw_util_hex_to_color(x.c_handle(), x.root_screen, "#000000");
     INIT_COLOR(x, config.client.focused, "#4c7899", "#285577", "#ffffff", "#2e9ef4");
     INIT_COLOR(x, config.client.focused_inactive, "#333333", "#5f676a", "#ffffff", "#484e50");
     INIT_COLOR(x, config.client.unfocused, "#333333", "#222222", "#888888", "#292d2e");
@@ -288,7 +288,7 @@ std::unique_ptr<Config> ConfigurationManager::load_configuration(std::optional<s
 
     LOG(fmt::sprintf("Parsing configfile %s\n", resolved_path.native()));
 
-    ResourceDatabase resourceDatabase{*x};
+    ResourceDatabase resourceDatabase{x.c_handle()};
     try {
         ConfigApplier configApplier{config.get()};
         std::ifstream stream{resolved_path};

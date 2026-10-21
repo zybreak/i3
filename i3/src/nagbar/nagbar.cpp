@@ -282,7 +282,7 @@ class Nagbar {
         btn_close.label = "X";
 
         int screens;
-        if ((conn = xcb_connect(nullptr, &screens)) == nullptr ||
+        if ((conn = x_connect(&screens)) == nullptr ||
             xcb_connection_has_error(conn)) {
             errx(EXIT_FAILURE, "Cannot open display");
         }
