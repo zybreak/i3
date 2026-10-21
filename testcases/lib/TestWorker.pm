@@ -17,6 +17,11 @@ use File::Basename qw(basename);
 my @x;
 my $options;
 
+our $EOF = "# end of file\n";
+
+# Test pid => pid of its watchdog (--timeout).
+our %watchdogs;
+
 sub worker {
     my ($display, $x, $outdir, $optref) = @_;
 
@@ -43,7 +48,20 @@ sub worker {
         close $ipc;
         undef @complete_run::CLEANUP;
         # reap dead test children
-        $SIG{CHLD} = sub { waitpid -1, POSIX::WNOHANG };
+        $SIG{CHLD} = sub {
+            while ((my $child = waitpid(-1, POSIX::WNOHANG)) > 0) {
+                my $status = $?;
+                my $watchdog = delete $watchdogs{$child};
+                next unless defined($watchdog);
+                kill('KILL', $watchdog);
+                # A test killed by a signal (by its watchdog, or by a crash in
+                # an XS module) wrote no EOF marker; write it for the test.
+                if (POSIX::WIFSIGNALED($status)) {
+                    syswrite($ipc_child, "not ok 999 - test process killed by signal "
+                             . POSIX::WTERMSIG($status) . "\n$EOF");
+                }
+            }
+        };
 
         $worker->{ipc} = $ipc_child;
 
@@ -66,7 +84,29 @@ sub worker {
 
 }
 
-our $EOF = "# end of file\n";
+# Kills a test that is still running 30 seconds after its --timeout, when its
+# alarm couldn't end it, along with the process groups of its children (the
+# i3 it started leads its own).
+sub start_watchdog {
+    my ($test_pid) = @_;
+    my $pid = fork // die "could not fork: $!";
+    return $pid if $pid != 0;
+
+    $SIG{CHLD} = 'DEFAULT';
+    sleep($options->{timeout} + 30);
+    my @children;
+    for my $stat (glob('/proc/[0-9]*/stat')) {
+        open(my $fh, '<', $stat) or next;
+        my ($child, $ppid) = (<$fh> // '') =~ /^(\d+) \(.*\) \S (\d+)/;
+        push @children, $child if defined($ppid) && $ppid == $test_pid;
+    }
+    # The test first: killing its i3 first would let the test react to the
+    # SIGCHLD (i3test bails out) and write output after its end.
+    kill('KILL', $test_pid);
+    kill('KILL', -$_) for @children;
+    POSIX::_exit(0);
+}
+
 sub worker_wait {
     my ($self, $outdir) = @_;
 
@@ -89,8 +129,17 @@ sub worker_wait {
         # start a new and self contained process:
         # whatever happens in the testfile should *NOT* affect us.
 
+        # SIGCHLD stays blocked until the test's watchdog is registered, so
+        # that a test which exits at once is reaped with its watchdog known.
+        my $chld = POSIX::SigSet->new(POSIX::SIGCHLD);
+        POSIX::sigprocmask(POSIX::SIG_BLOCK, $chld);
         my $pid = fork // die "could not fork: $!";
+        if ($pid != 0) {
+            $watchdogs{$pid} = start_watchdog($pid) if $options->{timeout};
+            POSIX::sigprocmask(POSIX::SIG_UNBLOCK, $chld);
+        }
         if ($pid == 0) {
+            POSIX::sigprocmask(POSIX::SIG_UNBLOCK, $chld);
             undef @complete_run::CLEANUP;
             local $SIG{CHLD};
 
@@ -124,6 +173,22 @@ sub worker_wait {
                    $options->{xtrace},
                    $options->{coverage},
                    $options->{restart});
+
+            # A test that hangs (waiting for an IPC reply or an event that
+            # never comes) fails after --timeout seconds instead of blocking
+            # its worker for the rest of the run. exit runs i3test's END
+            # block, which kills the test's i3. sigaction installs the
+            # handler undeferred, so that it also runs while the test blocks
+            # inside an XS call. A test that sets its own alarm (298) replaces
+            # it; the watchdog still applies.
+            if ($options->{timeout}) {
+                POSIX::sigaction(POSIX::SIGALRM, POSIX::SigAction->new(sub {
+                    $test->ok(0, "timed out after $options->{timeout} seconds");
+                    print $EOF;
+                    exit 0;
+                }));
+                alarm($options->{timeout});
+            }
 
             package main;
             local $@;

@@ -9,7 +9,14 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/complete-run.pl
         DEPENDS complete-run.pl.in
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_custom_target(complete-run
+# ALL: the ctest test below runs the generated script.
+add_custom_target(complete-run ALL
         DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/complete-run.pl ${CMAKE_CURRENT_BINARY_DIR}/lib/i3test.pm)
 
-#add_test(NAME it COMMAND complete-run.pl --parallel 1)
+# The Perl suite, label "it". It needs Xvfb, Xephyr and the CPAN modules that install-perl-deps.sh installs into
+# I3_TEST_PERL_PREFIX. It passes when every test in baseline/passing.txt passes.
+set(I3_TEST_PERL_PREFIX "${CMAKE_SOURCE_DIR}/build/perl5" CACHE PATH
+        "Prefix of the Perl suite's CPAN modules (testcases/install-perl-deps.sh)")
+add_test(NAME complete-run COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/run-it.sh WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+set_tests_properties(complete-run PROPERTIES LABELS it TIMEOUT 7200
+        ENVIRONMENT "PERL5LIB=${I3_TEST_PERL_PREFIX}/lib/perl5")

@@ -113,8 +113,13 @@ sub activate_i3 {
         if ($args{xtrace}) {
             my $out = "$outdir/xtrace-for-$test.log";
 
+            # xtrace's fake display defaults to :9 for every instance; with
+            # parallel tests, each gets its own, 1000 above the real one.
+            my ($display) = ($ENV{DISPLAY} // '') =~ /^:(\d+)/;
+            my $fake = defined($display) ? '-D :' . ($display + 1000) . ' ' : '';
+
             # See comment in $args{strace} branch.
-            $cmd = qq|xtrace -n -o "$out" -- | .
+            $cmd = qq|xtrace -n $fake-o "$out" -- | .
                      'sh -c "export LISTEN_PID=\$\$; ' . $cmd . '"';
         }
 

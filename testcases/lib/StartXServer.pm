@@ -61,6 +61,11 @@ https://www.freedesktop.org/wiki/Software/Xephyr/) and returns two arrayrefs: a
 list of X11 display numbers to the Xephyr processes and a list of PIDs of the
 processes.
 
+The words of C<$ENV{I3_TEST_XSERVER_ARGS}> are appended to Xephyr's
+arguments, e.g. C<-extension RANDR> for the extension matrix.
+C<$ENV{I3_TEST_SCREEN}> replaces the screen geometry C<1280x800>, e.g.
+C<1280x800x32> for depth 32.
+
 =cut
 
 sub start_xserver {
@@ -104,8 +109,9 @@ sub start_xserver {
     my @sockets_waiting;
     for (1 .. $parallel) {
         my $socket = fork_xserver($keep_xserver_output, $displaynum,
-                'Xephyr', ":$displaynum", '-screen', '1280x800',
-                '-nolisten', 'tcp', '-name', "i3test");
+                'Xephyr', ":$displaynum", '-screen', $ENV{I3_TEST_SCREEN} // '1280x800',
+                '-nolisten', 'tcp', '-name', "i3test",
+                split(' ', $ENV{I3_TEST_XSERVER_ARGS} // ''));
         push(@displays, ":$displaynum");
         push(@sockets_waiting, $socket);
         $displaynum++;
