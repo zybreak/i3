@@ -36,17 +36,27 @@ class i3(ConanFile):
 #self.requires("pango/1.54.0")
 #self.requires("di/1.3.2")
     def requirements(self):
-        self.requires("zlib/1.2.13")
-        self.requires("libev/4.33")
-        self.requires("pcre2/10.42")
-        self.requires("fmt/12.1.0", force=True)
-        self.requires("antlr4-cppruntime/4.13.1")
-        self.requires("glib/2.78.3")
-        self.requires("spdlog/1.16.0", options={"use_std_fmt": True})
+        self.requires("zlib/1.3.2")
+        # A local revision of conancenter's a74e6be: its ev.h gets ev.patch's edit, so that EV_P works in a module.
+        self.requires("libev/4.33#0aac1fcab07f7959366212337197f57c")
+        self.requires("pcre2/10.49", force=True)
+        # Header-only: built as a library under C++20 or later, fmt 12.2.0 also builds its C++ module, which doesn't
+        # compile against libc++.
+        self.requires("fmt/12.2.0", force=True, options={"header_only": True})
+        self.requires("antlr4-cppruntime/4.13.2")
+        # Shared: glib builds with the system's sysprof-capture when it finds it, and doesn't tell its users to link
+        # that static library; a shared glib links it itself.
+        self.requires("glib/2.86.5", options={"shared": True})
+        self.requires("spdlog/1.17.0", options={"use_std_fmt": True})
         self.requires("nlohmann_json/3.12.0")
-        self.requires("cairo/1.18.0")
-        self.requires("pango/1.54.0")
-        self.requires("di/1.3.0")
+        self.requires("cairo/1.18.4")
+        self.requires("pango/1.57.0")
+        self.requires("di/1.3.2")
+        # Newer versions of libraries that i3's dependencies require.
+        for library in ("asio/1.38.2", "brotli/1.2.0", "elfutils/0.195", "expat/2.9.0", "fontconfig/2.17.1",
+                        "freetype/2.14.3", "harfbuzz/12.3.0", "libffi/3.4.8", "libmount/2.40.2", "libpng/1.6.59",
+                        "libxft/2.3.9", "pixman/0.46.4", "xorg-macros/1.20.0"):
+            self.requires(library, override=True)
         self.requires("xpp/1.0.0#02e0c86b25ebbd654e0373212e3fe86a")
 
 

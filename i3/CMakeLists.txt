@@ -32,7 +32,7 @@ list(APPEND libraries glib::glib)
 list(APPEND libraries glib::gobject-2.0)
 
 find_package(fmt CONFIG REQUIRED)
-list(APPEND libraries fmt::fmt)
+list(APPEND libraries fmt::fmt-header-only)
 
 find_package(spdlog CONFIG REQUIRED)
 
