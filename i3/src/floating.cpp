@@ -540,7 +540,7 @@ void floating_center(Con *con, Rect rect) {
  *
  */
 void floating_move_to_pointer(Con *con) {
-    if (con->type == CT_FLOATING_CON) {
+    if (con->type != CT_FLOATING_CON) {
         ELOG("this is not a floating container\n");
         std::terminate();
     }

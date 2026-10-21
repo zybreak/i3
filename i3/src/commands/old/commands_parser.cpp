@@ -48,13 +48,15 @@ static i3_commands_old::cmdp_state next_state(cmdp_token const &token, stack &st
     if (token.next_state == i3_commands_old::cmdp_state::__CALL) {
         CommandsResultIR subcommand_output{};
         subcommand_output.needs_tree_render = false;
-        i3_commands_old::cmdp_state state;
 
+        /* GENERATED_call() sets subcommand_output.next_state before it calls
+         * the command, so parsing goes on after a command that failed. */
         try {
-            state = i3_commands_old::GENERATED_call(criteria_state, applier, stack, token.call_identifier, subcommand_output);
+            i3_commands_old::GENERATED_call(criteria_state, applier, stack, token.call_identifier, subcommand_output);
         } catch (std::exception const &e) {
             applier.append_json({{"success", false}, {"error", e.what()}});
         }
+        auto const state = static_cast<i3_commands_old::cmdp_state>(subcommand_output.next_state);
 
         /* If any subcommand requires a tree_render(), we need to make the
          * whole parser result request a tree_render(). */

@@ -257,18 +257,17 @@ void ConfigurationManager::init_color(Config &config) {
 }
 
 /*
- * (Re-)loads the configuration file (sets useful defaults before).
+ * Loads the configuration file (sets useful defaults before).
  *
  * If you specify override_configpath, only this path is used to look for a
  * configuration file.
  *
- * load_type specifies the type of loading: C_VALIDATE is used to only verify
- * the correctness of the config file (used with the flag -C). C_LOAD will load
- * the config for normal use and display errors in the nagbar. C_RELOAD will
- * also clear the previous config.
+ * Errors in the file (syntax, failed directives, duplicate bindings) are
+ * returned with the configuration. A configuration file that can't be found or
+ * read throws.
  *
  */
-std::unique_ptr<Config> ConfigurationManager::load_configuration(std::optional<std::filesystem::path> const override_configpath) {
+LoadedConfig ConfigurationManager::load_configuration(std::optional<std::filesystem::path> const override_configpath) {
     auto config = std::make_unique<Config>();
     init_color(*config);
 
@@ -289,30 +288,34 @@ std::unique_ptr<Config> ConfigurationManager::load_configuration(std::optional<s
     LOG(fmt::sprintf("Parsing configfile %s\n", resolved_path.native()));
 
     ResourceDatabase resourceDatabase{x.c_handle()};
-    try {
-        ConfigApplier configApplier{config.get()};
-        std::ifstream stream{resolved_path};
+    ConfigApplier configApplier{config.get()};
+    std::ifstream stream{resolved_path};
+    std::optional<std::string> errors{};
 
-        if (global.new_parser) {
-            NewParser np{resolved_path, stream, resourceDatabase, configApplier};
-            np.parse_file();
-        } else {
-            OldParser op{resolved_path, stream, resourceDatabase, configApplier};
+    if (global.new_parser) {
+        NewParser np{resolved_path, stream, resourceDatabase, configApplier};
+        np.parse_file();
+    } else {
+        /* OldParser::parse_file() reports errors by throwing std::domain_error
+         * with the error report. What it applied stays in config. */
+        OldParser op{resolved_path, stream, resourceDatabase, configApplier};
+        try {
             op.parse_file();
-            config->included_files = op.included_files;
+        } catch (std::domain_error const &e) {
+            errors = e.what();
         }
+        config->included_files = op.included_files;
+    }
 
-        if (has_duplicate_bindings(config.get())) {
-            throw std::domain_error(std::format("Duplicate bindings in configuration file: {}", strerror((*__errno_location()))));
-        }
-    } catch (std::domain_error const &e) {
-        throw;
+    if (has_duplicate_bindings(config.get())) {
+        /* has_duplicate_bindings() logged the bindings. */
+        errors = errors.value_or("") + "Duplicate keybinding in config file\n";
     }
 
     extract_workspace_names_from_bindings(config.get());
     reorder_bindings(config.get());
 
-    return config;
+    return {std::move(config), std::move(errors)};
 }
 
 /*

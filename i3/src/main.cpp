@@ -456,10 +456,17 @@ int main(int argc, char *argv[]) {
     auto &configManager = injector.create<ConfigurationManager &>();
 
     if (args.only_check_config) {
+        /* ConfigApplier reaches the X connection through global.x. */
+        global.x = &injector.create<X &>();
         try {
-            configManager.load_configuration(args.override_configpath);
+            auto loaded = configManager.load_configuration(args.override_configpath);
+            if (loaded.errors) {
+                ELOG(*loaded.errors);
+                exit(EXIT_FAILURE);
+            }
             exit(EXIT_SUCCESS);
-        } catch (std::exception &e) {
+        } catch (std::exception const &e) {
+            ELOG(e.what());
             exit(EXIT_FAILURE);
         }
     }
@@ -518,18 +525,28 @@ int main(int argc, char *argv[]) {
 
     init_dpi(x.c_handle(), x.root_screen);
 
+    /* Initialize the libev event loop. This needs to be done before loading
+     * the config file because the nagbar for config errors installs an
+     * ev_child watcher, and before restore_connect(). */
+    global.main_loop = ev_default_loop(0);
+    if (global.main_loop == nullptr) {
+        errx(EXIT_FAILURE, "Could not initialize libev. Bad LIBEV_FLAGS?\n");
+    }
+
+    LoadedConfig loaded;
     try {
-        configManager.set_config(configManager.load_configuration(args.override_configpath));
-    } catch (std::domain_error &e) {
-#if 0
+        loaded = configManager.load_configuration(args.override_configpath);
+    } catch (std::exception const &e) {
+        errx(EXIT_FAILURE, "%s", e.what());
+    }
+    configManager.set_config(std::move(loaded.config));
+    /* Like upstream i3, run with what could be parsed and show the errors. */
+    if (loaded.errors) {
+        ELOG(*loaded.errors);
         using namespace std::literals;
         std::vector<button_t> buttons{};
-        std::string prompt = e.what();
         std::string font = "fixed"s;
-        start_nagbar(&global.config_error_nagbar_pid, buttons, prompt, font, bar_type_t::TYPE_ERROR, false);
-#endif
-        std::cout << e.what() << std::endl;
-        std::exit(1);
+        start_nagbar(&global.config_error_nagbar_pid, buttons, *loaded.errors, font, bar_type_t::TYPE_ERROR, false);
     }
 
     if (!configManager.config->ipc_socket_path) {
@@ -571,6 +588,11 @@ int main(int argc, char *argv[]) {
        cursor until the first client is launched). */
     x.xcursor_set_root_cursor(XCURSOR_CURSOR_POINTER);
 
+    /* Before PropertyHandlers: it needs the TreeManager, whose constructor
+     * restores the layout and opens its placeholder windows on this
+     * connection. */
+    restore_connect();
+
     auto &xkb = injector.create<Xkb &>();
     global.xkb = &xkb;
 
@@ -578,8 +600,6 @@ int main(int argc, char *argv[]) {
 
     EventHandler &eventHandler = injector.create<EventHandler &>();
     global.eventHandler = &eventHandler;
-
-    restore_connect();
 
     global.handlers = &propertyHandlers;
 

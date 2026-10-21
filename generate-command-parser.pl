@@ -146,8 +146,10 @@ say $callfh "import :enums;";
 say $callfh "import :parser_stack;";
 say $callfh "import criteria_state;";
 say $callfh "export namespace i3_${prefix}_old {";
+# The next state goes into result.next_state before the call, so that the
+# called function can change it (cfg::criteria_pop_state() does), and so that
+# it is set when the called function throws.
 say $callfh "cmdp_state GENERATED_call(criteria_state *criteria_state, Base" . ucfirst($prefix) . "Applier &applier, stack &stack, const int call_identifier, $resultname &result) {";
-say $callfh '    cmdp_state next_state;';
 say $callfh '    switch (call_identifier) {';
 my $call_id = 0;
 for my $state (@keys) {
@@ -185,7 +187,7 @@ for my $state (@keys) {
         $fmt = $funcname . $fmt;
 
         say $callfh "         case $call_id:";
-        say $callfh "             next_state = cmdp_state::$next_state;";
+        say $callfh "             result.next_state = std::to_underlying(cmdp_state::$next_state);";
         my $real_cmd = $cmd;
         if ($real_cmd =~ /\(\)/) {
             $real_cmd =~ s/\(/(criteria_state, result/;
@@ -199,9 +201,9 @@ for my $state (@keys) {
     }
 }
 say $callfh '        default:';
-say $callfh '            throw new std::runtime_error(std::format("BUG in the parser. state = {}", call_identifier));';
+say $callfh '            throw std::runtime_error(std::format("BUG in the parser. state = {}", call_identifier));';
 say $callfh '    }';
-say $callfh '    return next_state;';
+say $callfh '    return static_cast<cmdp_state>(result.next_state);';
 say $callfh '}';
 say $callfh '}';
 close($callfh);

@@ -97,3 +97,40 @@ TEST(MatchTest, ParseProperty){
         m.parse_property("con_id", "foo");
     });
 }
+
+TEST(MatchTest, ParsePropertyIds) {
+    Match m{};
+
+    m.parse_property("id", "94371851");
+    EXPECT_EQ(m.id, 94371851u);
+    m.parse_property("id", "0x5a0000b");
+    EXPECT_EQ(m.id, 0x5a0000bu);
+
+    /* A con_id is the address of the container, as the IPC tree shows it. */
+    m.parse_property("con_id", "94371851");
+    EXPECT_EQ(reinterpret_cast<std::uintptr_t>(m.con_id), 94371851u);
+
+    EXPECT_THROW(m.parse_property("id", "foo"), std::runtime_error);
+    EXPECT_THROW(m.parse_property("con_id", "foobar"), std::runtime_error);
+}
+
+TEST(MatchTest, InvalidCriterionFailsTheUsersOfTheCriteria) {
+    criteria_state_impl cs{0};
+
+    cs.add_criterion("id", "foo");
+    cs.add_criterion("con_id", "bar");
+    cs.add_criterion("tiling", nullptr);
+
+    EXPECT_EQ(cs.current_match.window_mode, WM_TILING);
+    try {
+        cs.check_match();
+        FAIL() << "check_match() should throw the first invalid criterion";
+    } catch (std::runtime_error const &e) {
+        EXPECT_STREQ(e.what(), "Invalid match: invalid id");
+    }
+
+    Config config{};
+    ConfigApplier applier{&config};
+    EXPECT_THROW(applier.for_window(&cs, "kill"), std::runtime_error);
+    EXPECT_THROW(applier.no_focus(&cs), std::runtime_error);
+}

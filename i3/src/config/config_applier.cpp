@@ -39,6 +39,7 @@ void ConfigApplier::criteria_init(criteria_state *s, int _state) {
 
     DLOG(fmt::sprintf("Initializing criteria, current_match = %p, state = %d\n", fmt::ptr(&(st->current_match)), _state));
     st->current_match = Match();
+    st->match_error = nullptr;
 }
 
 int ConfigApplier::criteria_pop_state(criteria_state *c) {
@@ -49,8 +50,7 @@ int ConfigApplier::criteria_pop_state(criteria_state *c) {
 }
 
 void ConfigApplier::criteria_add(criteria_state *cs, char const *ctype, char const *cvalue) {
-    std::string val = (cvalue != nullptr) ? cvalue : "";
-    dynamic_cast<criteria_state_impl*>(cs)->current_match.parse_property(ctype, val);
+    dynamic_cast<criteria_state_impl*>(cs)->add_criterion(ctype, cvalue);
 }
 
 void ConfigApplier::font(std::string const &font) {
@@ -206,6 +206,7 @@ void ConfigApplier::smart_gaps(std::string const &enable) {
 
 void ConfigApplier::for_window(criteria_state *st, std::string const &command) {
     auto criteria_state = dynamic_cast<criteria_state_impl*>(st);
+    criteria_state->check_match();
     if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this for_window statement\n");
         return;
@@ -450,6 +451,7 @@ void ConfigApplier::color(std::string const &colorclass, std::string const &bord
 
 void ConfigApplier::assign_output(criteria_state *s, std::string const &output) {
     auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
+    criteria_state->check_match();
     if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;
@@ -466,6 +468,7 @@ void ConfigApplier::assign_output(criteria_state *s, std::string const &output) 
 
 void ConfigApplier::assign(criteria_state *s, std::string const &workspace, bool is_number) {
     auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
+    criteria_state->check_match();
     if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;
@@ -490,6 +493,7 @@ void ConfigApplier::assign(criteria_state *s, std::string const &workspace, bool
 
 void ConfigApplier::no_focus(criteria_state *s) {
     auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
+    criteria_state->check_match();
     if (criteria_state->current_match.match_is_empty()) {
         ELOG("Match is empty, ignoring this assignment\n");
         return;

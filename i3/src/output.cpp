@@ -71,23 +71,25 @@ Output *get_output_for_con(Con *con) {
  *
  */
 void output_push_sticky_windows(Con *old_focus) {
-    for (auto &output : global.croot->focused) {
-        auto visible_ws = std::ranges::find_if(dynamic_cast<OutputCon *>(output)->output_get_content()->nodes, [](auto &child) { return workspace_is_visible(child); });
+    /* Activating a window reorders the focus lists up to the root, so we
+     * iterate over copies of the lists. */
+    for (Con *output : global.croot->focused | std::ranges::to<std::vector>()) {
+        Con *content = dynamic_cast<OutputCon *>(output)->output_get_content();
+        auto visible_ws = std::ranges::find_if(content->nodes, [](auto &child) { return workspace_is_visible(child); });
+        auto *visible = (visible_ws != content->nodes.end()) ? dynamic_cast<WorkspaceCon *>(*visible_ws) : nullptr;
 
-        /* We use this loop instead of TAILQ_FOREACH to avoid problems if the
-         * sticky window was the last window on that workspace as moving it in
-         * this case will close the workspace. */
-        for (auto &current_ws : dynamic_cast<OutputCon *>(output)->output_get_content()->focused) {
+        /* Copies, too, because moving the sticky window closes the workspace
+         * if it was the last window there. */
+        for (Con *current_ws : content->focused | std::ranges::to<std::vector>()) {
             /* Since moving the windows actually removes them from the list of
-             * floating windows on this workspace, here too we need to use
-             * another loop than TAILQ_FOREACH. */
-            for (auto &current : current_ws->focused) {
+             * floating windows on this workspace, here too we need a copy. */
+            for (Con *current : current_ws->focused | std::ranges::to<std::vector>()) {
                 if (current->type != CT_FLOATING_CON || !current->con_is_sticky()) {
                     continue;
                 }
 
                 bool ignore_focus = (old_focus == nullptr) || (current != old_focus->parent);
-                con_move_to_workspace(current, dynamic_cast<WorkspaceCon *>(*visible_ws), true, false, ignore_focus);
+                con_move_to_workspace(current, visible, true, false, ignore_focus);
                 if (!ignore_focus) {
                     WorkspaceCon *current_ws = global.focused->con_get_workspace();
                     con_descend_focused(current)->con_activate();

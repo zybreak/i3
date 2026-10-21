@@ -22,16 +22,31 @@ export namespace utils {
     }
 
     /*
-     * Converts a string into a long using strtol().
-     * This is a convenience wrapper checking the parsing result. It returns true
-     * if the number could be parsed.
+     * Converts the whole of str into an integer. It returns true if the number
+     * could be parsed and fits into out. Base 0 detects the base like strtol():
+     * a "0x" or "0X" prefix selects base 16, a leading 0 base 8, anything else
+     * base 10.
      */
-    bool parse_long(std::string const str, std::integral auto &out, int base = 10) {
-        const char *begin = str.c_str();
-        const char *end = begin + str.length();
-        
-        auto [ptr, ec] = std::from_chars(begin, end, out, base);
-        
+    bool parse_long(std::string_view str, std::integral auto &out, int base = 10) {
+        if (base == 0) {
+            if (str.starts_with("0x") || str.starts_with("0X")) {
+                str.remove_prefix(2);
+                base = 16;
+            } else if (str.size() > 1 && str.starts_with('0')) {
+                str.remove_prefix(1);
+                base = 8;
+            } else {
+                base = 10;
+            }
+            /* std::from_chars() would accept a sign after the prefix. */
+            if (base != 10 && str.starts_with('-')) {
+                return false;
+            }
+        }
+
+        auto const *end = str.data() + str.size();
+        auto [ptr, ec] = std::from_chars(str.data(), end, out, base);
+
         return (ec == std::errc() && ptr == end);
     }
 

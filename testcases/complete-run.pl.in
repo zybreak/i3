@@ -58,6 +58,8 @@ my %options = (
     coverage => 0,
     restart => 0,
     xvfb => 1,
+    timeout => 0,
+    keep_going => 0,
 );
 my $keep_xserver_output = 0;
 
@@ -70,6 +72,8 @@ my $result = GetOptions(
     "xvfb!" => \$options{xvfb},
     "display=s" => \@displays,
     "parallel=i" => \$parallel,
+    "timeout=i" => \$options{timeout},
+    "keep-going" => \$options{keep_going},
     "help|?" => \$help,
 );
 
@@ -379,7 +383,11 @@ sub take_job {
                     status_completed(scalar @done);
                     say "";
                     say "test $test bailed out: " . $result->explanation;
-                    exit 1;
+                    exit 1 unless $options{keep_going};
+                    # The test's process exits without the EOF marker: the
+                    # test ends here, and failed.
+                    $t_eof = 1;
+                    last;
                 }
             }
 
@@ -482,5 +490,19 @@ instances for some reason).
 
   # Run all tests on a single Xephyr instance
   ./complete-run.pl -p 1
+
+=item B<--timeout>
+
+Fail a test that hasn't finished after this many seconds, instead of waiting
+for it forever. 0 (the default) means no limit.
+
+  # ctest's invocation
+  ./complete-run.pl --parallel 8 --timeout 60 --keep-going
+
+=item B<--keep-going>
+
+Count a test that bails out (for example because i3 died) as failed and go on
+with the other tests, instead of stopping the run. Output that test's process
+writes after bailing out can reach the next test on the same display.
 
 =back

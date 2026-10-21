@@ -57,3 +57,42 @@ TEST(UtilsTest, IsNullNew) {
         ASSERT_FALSE(result);
     }
 }
+
+TEST(UtilsTest, ParseLong) {
+    long out = 0;
+
+    EXPECT_TRUE(utils::parse_long("42", out));
+    EXPECT_EQ(out, 42);
+    EXPECT_TRUE(utils::parse_long("-42", out));
+    EXPECT_EQ(out, -42);
+    EXPECT_FALSE(utils::parse_long("", out));
+    EXPECT_FALSE(utils::parse_long("42a", out));
+    EXPECT_FALSE(utils::parse_long(" 42", out));
+    EXPECT_FALSE(utils::parse_long("0x2a", out));
+
+    int small = 0;
+    EXPECT_FALSE(utils::parse_long("4294967296", small));
+}
+
+TEST(UtilsTest, ParseLongDetectsTheBase) {
+    long out = 0;
+
+    EXPECT_TRUE(utils::parse_long("94371851", out, 0));
+    EXPECT_EQ(out, 94371851);
+    EXPECT_TRUE(utils::parse_long("-12", out, 0));
+    EXPECT_EQ(out, -12);
+    EXPECT_TRUE(utils::parse_long("0", out, 0));
+    EXPECT_EQ(out, 0);
+    EXPECT_TRUE(utils::parse_long("0x5a0000b", out, 0));
+    EXPECT_EQ(out, 0x5a0000b);
+    EXPECT_TRUE(utils::parse_long("0X2A", out, 0));
+    EXPECT_EQ(out, 42);
+    EXPECT_TRUE(utils::parse_long("052", out, 0));
+    EXPECT_EQ(out, 42);
+
+    EXPECT_FALSE(utils::parse_long("", out, 0));
+    EXPECT_FALSE(utils::parse_long("0x", out, 0));
+    EXPECT_FALSE(utils::parse_long("0x-5", out, 0));
+    EXPECT_FALSE(utils::parse_long("08", out, 0));
+    EXPECT_FALSE(utils::parse_long("foobar", out, 0));
+}

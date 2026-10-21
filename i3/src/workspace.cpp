@@ -559,8 +559,8 @@ WorkspaceCon *workspace_next() {
         WorkspaceCon *first = nullptr;
         WorkspaceCon *first_opposite = nullptr;
         auto it = std::ranges::find(current->parent->nodes, current);
-        if (std::next(it) == current->parent->nodes.end()) {
-            return dynamic_cast<WorkspaceCon *>(*(++it));
+        if (std::next(it) != current->parent->nodes.end()) {
+            return dynamic_cast<WorkspaceCon *>(*std::next(it));
         }
         bool found_current = false;
         for (auto &output : global.croot->nodes) {
@@ -582,6 +582,9 @@ WorkspaceCon *workspace_next() {
                 }
             }
         }
+
+        /* Wrap around, as for numbered workspaces. */
+        return first_opposite ? first_opposite : first;
     } else {
         /* If currently a numbered workspace, find next numbered workspace. */
         WorkspaceCon *next = nullptr;
@@ -626,8 +629,6 @@ WorkspaceCon *workspace_next() {
 
         return next;
     }
-
-    return nullptr;
 }
 
 /*
