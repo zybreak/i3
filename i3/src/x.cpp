@@ -836,7 +836,9 @@ static void x_unshape_frame(ConCon *con, xcb_shape_sk_t shape_kind) {
  * Shape or unshape container frame based on the con state.
  */
 static void set_shape_state(ConCon *con, bool need_reshape) {
-    if (!global.x->shape_supported) {
+    /* Only a container with a window can be shaped; a split container can be
+     * floating too. */
+    if (!global.x->shape_supported || con->get_window() == nullptr) {
         return;
     }
 

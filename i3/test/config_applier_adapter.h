@@ -2,6 +2,7 @@
 #include <fmt/core.h>
 
 import i3;
+import criteria_state;
 import i3_config_base;
 import i3_config_new;
 
@@ -23,7 +24,7 @@ class ConfigApplierAdapter : public BaseConfigApplier {
     }
 
     criteria_state* criteria_create(int _state) override {
-        criteria_state *cs = new criteria_state(_state);
+        auto *cs = new criteria_state_impl(_state);
 
         cs->current_match = Match();
 
@@ -31,17 +32,17 @@ class ConfigApplierAdapter : public BaseConfigApplier {
     }
 
     void criteria_init(criteria_state *cs, int _state) override {
-        cs->criteria_next_state = _state;
+        static_cast<criteria_state_impl *>(cs)->criteria_next_state = _state;
 
-        cs->current_match = Match();
+        static_cast<criteria_state_impl *>(cs)->current_match = Match();
     }
 
     int criteria_pop_state(criteria_state *cs) override {
-        return cs->criteria_next_state;
+        return static_cast<criteria_state_impl *>(cs)->criteria_next_state;
     }
 
     void criteria_add(criteria_state *cs, const char *ctype, const char *cvalue) override {
-        cs->current_match.parse_property(ctype, cvalue);
+        static_cast<criteria_state_impl *>(cs)->current_match.parse_property(ctype, cvalue);
         out << "cfg::criteria_add(" << ctype << ", " << cvalue << ")" << std::endl;
     }
 

@@ -666,11 +666,11 @@ void ipc_receive_message(EV_P_ ev_io *w, int revents) {
         return;
     }
 
-    try {
-        handler_t h = handlers.at(message_type);
-        h(client, message, 0, message_length, message_type);
-    } catch (std::out_of_range const &e) {
+    /* Removed features (GET_MARKS) leave an empty slot. */
+    if (message_type >= handlers.size() || handlers[message_type] == nullptr) {
         DLOG(fmt::sprintf("Unhandled message type: %d\n", message_type));
+    } else {
+        handlers[message_type](client, message, 0, message_length, message_type);
     }
 
     free(message);

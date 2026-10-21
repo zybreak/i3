@@ -1,6 +1,5 @@
 module;
 #include <ev.h>
-#include <err.h>
 #include <xcb/xcb.h>
 #include <fmt/printf.h>
 module i3;
@@ -112,14 +111,7 @@ void EventHandler::setup_term_handlers() {
 
 EventHandler::EventHandler(X &x, PropertyHandlers &handlers)
     : handlers(handlers), x(x) {
-    /* Initialize the libev event loop. This needs to be done before loading
-     * the config file because the parser will install an ev_child watcher
-     * for the nagbar when config errors are found. */
-    global.main_loop = ev_default_loop(0);
-    if (global.main_loop == nullptr) {
-        errx(EXIT_FAILURE, "Could not initialize libev. Bad LIBEV_FLAGS?\n");
-    }
-
+    /* main() initialized global.main_loop. */
     xcb_watcher = new ev_io();
     xcb_prepare = new ev_prepare();
     xcb_prepare->data = this;

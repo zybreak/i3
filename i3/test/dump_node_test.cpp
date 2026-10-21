@@ -2,6 +2,7 @@
 #include <gmock/gmock.h>
 
 import i3;
+import i3.json;
 import mocks;
 
 TEST(DumpNodeTest, Dump) {

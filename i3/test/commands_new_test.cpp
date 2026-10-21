@@ -13,5 +13,5 @@ using namespace i3_commands_new;
 
 TEST(CommandsNewTest, Nop) {
     CommandsApplierTest commandsApplier{};
-    parse_command("nop", commandsApplier);
+    i3_commands_new::parse_command("nop", commandsApplier);
 }

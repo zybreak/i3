@@ -2,6 +2,7 @@
 #include <gmock/gmock.h>
 
 import i3;
+import bindings;
 
 TEST(ConfigurationTest, foo) {
     auto config = std::make_unique<Config>();

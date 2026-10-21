@@ -883,3 +883,36 @@ TEST(LoadLayoutTest, AppendJson) {
     ASSERT_EQ(1, rootCon.nodes.size());
     ASSERT_EQ(con_type_t::CT_ROOT, rootCon.nodes[0]->type);
 }
+
+TEST(LoadLayoutTest, AppendJsonSetsDefaultsOnNestedContainers) {
+    MockX mockX{};
+    global.x = &mockX;
+    ConfigurationManager configManager{mockX};
+    global.configManager = &configManager;
+    global.configManager->config = std::make_unique<Config>();
+
+    using namespace std::literals::string_literals;
+    /* Like a hand-written layout file: no layout and no percent. */
+    auto input = std::istringstream{R"(
+        {
+            "type": "con",
+            "nodes": [
+                {"type": "con", "name": "left"},
+                {"type": "con", "name": "right"}
+            ]
+        }
+    )"s};
+
+    RootCon rootCon{true};
+
+    tree_append_json(&rootCon, std::move(input));
+
+    ASSERT_EQ(1, rootCon.nodes.size());
+    Con *split = rootCon.nodes[0];
+    EXPECT_EQ(layout_t::L_SPLITH, split->layout);
+    ASSERT_EQ(2, split->nodes.size());
+    for (Con *child : split->nodes) {
+        EXPECT_EQ(layout_t::L_SPLITH, child->layout);
+        EXPECT_DOUBLE_EQ(0.5, child->percent);
+    }
+}

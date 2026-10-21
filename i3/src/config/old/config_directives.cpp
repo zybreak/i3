@@ -131,7 +131,8 @@ namespace cfg {
     }
 
     void gaps(criteria_state *criteria_state, ConfigResultIR &result, char const *workspace, char const *type, long const value) {
-        result.parser.applier.gaps(workspace, type, value);
+        /* workspace is null for "gaps <scope> <size>", which sets the default gaps. */
+        result.parser.applier.gaps(null_to_empty_str(workspace), type, value);
     }
 
     void smart_borders(criteria_state *criteria_state, ConfigResultIR &result, char const *enable) {
@@ -229,7 +230,7 @@ namespace cfg {
 
     void color(criteria_state *criteria_state, ConfigResultIR &result, char const *colorclass, char const *border,
                char const *background, char const *text, char const *indicator, char const *child_border) {
-        result.parser.applier.color(colorclass, border, background, text, indicator, null_to_empty_str(child_border));
+        result.parser.applier.color(colorclass, border, background, text, null_to_empty_str(indicator), null_to_empty_str(child_border));
     }
 
     void assign_output(criteria_state *criteria_state, ConfigResultIR &result, char const *output) {

@@ -280,6 +280,18 @@ static void extract_basecon(json &j, Con *con, Con *parent, parser_context &ctx)
             LOG("Creating window\n");
             global.x->con_init(child);
         }
+
+        /* In case not all containers were restored, we need to fix the
+         * percentages, otherwise i3 will crash immediately when rendering the
+         * next time. */
+        con->con_fix_percent();
+    }
+
+    /* Set a few default values to simplify manually crafted layout files. This
+     * applies to every container: dump_node() refuses L_DEFAULT. */
+    if (con->layout == layout_t::L_DEFAULT) {
+        DLOG("Setting layout = L_SPLITH\n");
+        con->layout = layout_t::L_SPLITH;
     }
 }
 
@@ -408,12 +420,6 @@ static Con *extract_con(json &j, Con *parent, parser_context &ctx) {
 }
 
 static void con_massage(Con *con) {
-    /* Set a few default values to simplify manually crafted layout files. */
-    if (con->layout == layout_t::L_DEFAULT) {
-        DLOG("Setting layout = L_SPLITH\n");
-        con->layout = layout_t::L_SPLITH;
-    }
-
     /* Sanity check: swallow criteria don’t make any sense on a split
      * container. */
     if (con->con_is_split() > 0 && !con->swallow.empty()) {
@@ -465,16 +471,20 @@ static void con_massage(Con *con) {
 
         floating_check_size(con, false);
     }
+}
 
-    /* Fix erroneous JSON input regarding floating containers to avoid
-     * crashing, see #3901. */
+/* Fix erroneous JSON input regarding floating containers to avoid crashing,
+ * see #3901. floating_enable() renders the container, so it needs its frame:
+ * call this after X::con_init(). */
+static void con_fix_floating(Con *con) {
+    auto *window_con = dynamic_cast<ConCon *>(con);
     con_floating_t const old_floating_mode = con->floating;
-    if (std::to_underlying(old_floating_mode) >= std::to_underlying(con_floating_t::FLOATING_AUTO_ON) && con->parent->type != con_type_t::CT_FLOATING_CON) {
+    if (window_con != nullptr && std::to_underlying(old_floating_mode) >= std::to_underlying(con_floating_t::FLOATING_AUTO_ON) && con->parent->type != con_type_t::CT_FLOATING_CON) {
         LOG("Fixing floating node without CT_FLOATING_CON parent\n");
 
         /* Force floating_enable to work */
         con->floating = con_floating_t::FLOATING_AUTO_OFF;
-        floating_enable(dynamic_cast<ConCon *>(con), false);
+        floating_enable(window_con, false);
         con->floating = old_floating_mode;
     }
 }
@@ -495,12 +505,14 @@ void tree_append_json(Con *parent, std::istream &&fb) {
          * next time. */
         parent->con_fix_percent();
 
+        LOG("Creating window\n");
+        global.x->con_init(con);
+
+        con_fix_floating(con);
+
         if (ctx.to_focus != nullptr) {
             ctx.to_focus->con_activate();
         }
-
-        LOG("Creating window\n");
-        global.x->con_init(con);
     } catch (std::exception &e) {
         ELOG(fmt::sprintf("JSON parsing error: %s\n", e.what()));
     }

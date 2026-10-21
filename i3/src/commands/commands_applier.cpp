@@ -152,6 +152,7 @@ static WorkspaceCon *maybe_auto_back_and_forth_workspace(WorkspaceCon *workspace
  */
 static void HANDLE_EMPTY_MATCH(criteria_state *s) {
     auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
+    criteria_state->check_match();
     if (criteria_state->current_match.match_is_empty()) {
         criteria_state->owindows.clear();
         criteria_state->owindows.push_back(global.focused);
@@ -270,6 +271,7 @@ void CommandsApplier::criteria_init(criteria_state *s, CommandsResultIR &cmd_out
     auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     // DLOG(fmt::sprintf("Initializing criteria, current_match = %p\n",  (void*)criteria_state->current_match));
     criteria_state->current_match = Match();
+    criteria_state->match_error = nullptr;
     criteria_state->owindows.clear();
 }
 
@@ -334,7 +336,7 @@ void CommandsApplier::criteria_match_windows(criteria_state *s, CommandsResultIR
  */
 void CommandsApplier::criteria_add(criteria_state *s, CommandsResultIR &cmd_output, char const *ctype, char const *cvalue) {
     auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
-    criteria_state->current_match.parse_property(ctype, cvalue);
+    criteria_state->add_criterion(ctype, cvalue);
 }
 
 static void move_matches_to_workspace(criteria_state *s, WorkspaceCon *ws) {
@@ -1132,15 +1134,22 @@ void CommandsApplier::floating(criteria_state *s, CommandsResultIR &cmd_output, 
 
     for (auto current : criteria_state->owindows) {
         DLOG(fmt::sprintf("matching: %p / %s\n", fmt::ptr(current), current->name));
+        /* Like upstream i3, which refuses to float a workspace (after "focus
+         * parent", for example). */
+        auto *con = dynamic_cast<ConCon *>(current);
+        if (con == nullptr) {
+            LOG(fmt::sprintf("Container %p / %s can't float, not changing its floating mode.\n", fmt::ptr(current), current->name));
+            continue;
+        }
         if (strcmp(floating_mode, "toggle") == 0) {
             DLOG("should toggle mode\n");
-            toggle_floating_mode(dynamic_cast<ConCon *>(current), false);
+            toggle_floating_mode(con, false);
         } else {
             DLOG(fmt::sprintf("should switch mode to %s\n", floating_mode));
             if (strcmp(floating_mode, "enable") == 0) {
-                floating_enable(dynamic_cast<ConCon *>(current), false);
+                floating_enable(con, false);
             } else {
-                floating_disable(dynamic_cast<ConCon *>(current));
+                floating_disable(con);
             }
         }
     }
@@ -1406,6 +1415,7 @@ void CommandsApplier::focus(criteria_state *s, CommandsResultIR &cmd_output, boo
     auto criteria_state = dynamic_cast<criteria_state_impl*>(s);
     // DLOG(fmt::sprintf("current_match = %p\n", fmt::ptr(criteria_state->current_match)));
 
+    criteria_state->check_match();
     if (criteria_state->current_match.match_is_empty()) {
         ELOG("You have to specify which window/container should be focused.\n");
         ELOG("Example: [class=\"urxvt\" title=\"irssi\"] focus\n");
@@ -1595,6 +1605,7 @@ void CommandsApplier::layout_toggle(criteria_state *s, CommandsResultIR &cmd_out
     DLOG(fmt::sprintf("toggling layout (mode = %s)\n", toggle_mode));
 
     /* check if the match is empty, not if the result is empty */
+    criteria_state->check_match();
     if (criteria_state->current_match.match_is_empty()) {
         con_toggle_layout(global.focused, toggle_mode);
     } else {
@@ -1636,14 +1647,15 @@ void CommandsApplier::reload(criteria_state *criteria_state, CommandsResultIR &c
      * See #4104. */
     global.config_error_nagbar_pid = global.command_error_nagbar_pid = -1;
 
-    try {
-        global.configManager->set_config(global.configManager->load_configuration());
-    } catch (std::domain_error &e) {
+    /* A configuration with errors doesn't replace the running one. */
+    auto loaded = global.configManager->load_configuration();
+    if (loaded.errors) {
         using namespace std::literals;
         std::vector<button_t> buttons{};
-        std::string prompt = e.what();
         std::string font = "fixed"s;
-        start_nagbar(&global.config_error_nagbar_pid, buttons, prompt, font, bar_type_t::TYPE_ERROR, false);
+        start_nagbar(&global.config_error_nagbar_pid, buttons, *loaded.errors, font, bar_type_t::TYPE_ERROR, false);
+    } else {
+        global.configManager->set_config(std::move(loaded.config));
     }
 
     x_set_i3_atoms();

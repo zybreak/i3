@@ -906,3 +906,40 @@ CONFIG: Line   4: }
         //ASSERT_EQ(output.str(), "cfg::bar_start()\ncfg::bar_output(LVDS-1)\ncfg::bar_finish()\n");
     }
 }
+
+TEST(ConfigOldTest, test_failing_directive_doesnt_harm_subsequent_statements) {
+    std::stringbuf output;
+    std::ostream out{&output};
+    ConfigApplierAdapter applier{out};
+    MockedResourceDatabase resourceDatabase{};
+    /* The adapter's criteria_add() throws for the invalid id. */
+    std::istringstream in{R""""(for_window [id=foo] nop invalid
+font foo
+)""""};
+
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
+
+    EXPECT_THROW(p.parse_file(), std::domain_error);
+    ASSERT_EQ(output.str(), "cfg::for_window(nop invalid)\ncfg::font(foo)\n");
+}
+
+TEST(ConfigOldTest, test_optional_arguments_ok) {
+    std::stringbuf output;
+    std::ostream out{&output};
+    ConfigApplierAdapter applier{out};
+    MockedResourceDatabase resourceDatabase{};
+    /* Neither gives a workspace, an indicator or a child_border color. */
+    std::istringstream in{R""""(gaps inner 10
+client.focused #4c7899 #285577 #ffffff
+)""""};
+
+    OldParser p("/tmp/foo", in, resourceDatabase, applier);
+
+    try {
+        p.parse_file();
+    } catch (std::exception &e) {
+        FAIL() << "Error parsing configuration file" << e.what();
+    }
+
+    ASSERT_EQ(output.str(), "cfg::color(client.focused, #4c7899, #285577, #ffffff, , (null))\n");
+}

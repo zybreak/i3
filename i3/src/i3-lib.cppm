@@ -819,6 +819,17 @@ export {
         Config();
     };
 
+    /**
+     * A configuration file, as load_configuration() parsed it.
+     *
+     */
+    struct LoadedConfig {
+        std::unique_ptr<Config> config;
+        /* The errors found in the file, if any: config then holds what could
+         * be parsed, as upstream i3 uses it. */
+        std::optional<std::string> errors;
+    };
+
     class ConfigurationManager {
       private:
         X &x;
@@ -831,17 +842,16 @@ export {
         void set_config(std::unique_ptr<Config> _config);
 
         /**
-         * (Re-)loads the configuration file (sets useful defaults before).
+         * Loads the configuration file (sets useful defaults before).
          *
          * If you specify override_configpath, only this path is used to look for a
          * configuration file.
          *
-         * load_type specifies the type of loading: C_VALIDATE is used to only verify
-         * the correctness of the config file (used with the flag -C). C_LOAD will load
-         * the config for normal use and display errors in the nagbar. C_RELOAD will
-         * also clear the previous config.
+         * Errors in the file (syntax, failed directives, duplicate bindings) are
+         * returned with the configuration. A configuration file that can't be
+         * found or read throws.
          */
-        std::unique_ptr<Config> load_configuration(std::optional<std::filesystem::path> const configfile = std::nullopt);
+        LoadedConfig load_configuration(std::optional<std::filesystem::path> const configfile = std::nullopt);
 
         explicit ConfigurationManager(X &x)
             : x(x) {};
@@ -2769,8 +2779,12 @@ export class criteria_state_impl : public criteria_state {
   public:
     int criteria_next_state;
     Match current_match{};
+    /* The first invalid criterion of current_match. Like upstream i3's
+     * match->error, it fails the commands and config directives that use the
+     * criteria (check_match()), not the parsing of the criteria. */
+    std::exception_ptr match_error{};
     std::deque<Con *> owindows{};
-    
+
     criteria_state_impl(int criteria_next_state)
         : criteria_next_state(criteria_next_state) {
     }
@@ -2778,14 +2792,34 @@ export class criteria_state_impl : public criteria_state {
     criteria_state_impl(criteria_state_impl &&src) noexcept {
         std::swap(this->criteria_next_state, src.criteria_next_state);
         std::swap(this->current_match, src.current_match);
+        std::swap(this->match_error, src.match_error);
         std::swap(this->owindows, src.owindows);
     }
 
     criteria_state_impl &operator=(criteria_state_impl &&src) noexcept {
         std::swap(this->criteria_next_state, src.criteria_next_state);
         std::swap(this->current_match, src.current_match);
+        std::swap(this->match_error, src.match_error);
         std::swap(this->owindows, src.owindows);
         return *this;
+    }
+
+    /* Adds ctype=cvalue (cvalue may be null) to current_match. */
+    void add_criterion(std::string const &ctype, char const *cvalue) {
+        try {
+            current_match.parse_property(ctype, (cvalue != nullptr) ? cvalue : "");
+        } catch (std::runtime_error const &) {
+            if (!match_error) {
+                match_error = std::current_exception();
+            }
+        }
+    }
+
+    /* Throws the error of the first invalid criterion, if there is one. */
+    void check_match() const {
+        if (match_error) {
+            std::rethrow_exception(match_error);
+        }
     }
 };
 // resize.cppm

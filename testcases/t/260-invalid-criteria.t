@@ -23,5 +23,12 @@ open_window;
 my $result = cmd '[con_id=foobar] kill';
 is($result->[0]->{success}, 0, 'command was unsuccessful');
 is($result->[0]->{error}, 'Invalid match: invalid con_id', 'correct error is returned');
+is(scalar @$result, 1, 'only one reply');
+is(@{get_ws_content($ws)}, 1, 'the focused window was not killed');
+
+$result = cmd '[id=foobar] kill, kill; nop';
+is_deeply([ map { $_->{success} ? 1 : 0 } @$result ], [ 0, 0, 1 ], 'both commands with the criteria fail, the next one succeeds');
+is($result->[0]->{error}, 'Invalid match: invalid id', 'correct error is returned');
+is(@{get_ws_content($ws)}, 1, 'the focused window was not killed');
 
 done_testing;

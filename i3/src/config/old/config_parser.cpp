@@ -49,7 +49,15 @@ static void next_state(cmdp_token const &token, parser_ctx &ctx, OldParser &pars
             .parser = parser,
             .next_state = 0,
             .has_errors = false};
-        _next_state = i3_config_old::GENERATED_call(ctx.criteria_state, parser.applier, ctx.stack, token.call_identifier, subcommand_output);
+        /* GENERATED_call() sets subcommand_output.next_state before it calls
+         * the directive, so parsing goes on after a directive that failed. */
+        try {
+            i3_config_old::GENERATED_call(ctx.criteria_state, parser.applier, ctx.stack, token.call_identifier, subcommand_output);
+        } catch (std::exception const &e) {
+            ELOG(std::format("CONFIG: {}", e.what()));
+            subcommand_output.has_errors = true;
+        }
+        _next_state = static_cast<i3_config_old::cmdp_state>(subcommand_output.next_state);
         if (subcommand_output.has_errors) {
             ctx.has_errors = true;
         }
