@@ -152,3 +152,60 @@ TEST_F(TreeTest, CloseInternalClosesEveryChild) {
         EXPECT_FALSE(exists(child));
     }
 }
+
+/* Like upstream, level_down() refuses only when the focused container's focus stack is empty. */
+TEST_F(TreeTest, LevelDownFocusesTheOnlyChild) {
+    auto *s = split(ws, L_SPLITV);
+    auto *a = leaf(s);
+    global.focused = s;
+
+    EXPECT_TRUE(level_down());
+
+    EXPECT_EQ(global.focused, a);
+}
+
+TEST_F(TreeTest, LevelDownFocusesTheFirstChildInTheFocusStack) {
+    auto *s = split(ws, L_SPLITV);
+    leaf(s);
+    auto *b = leaf(s);
+    leaf(s);
+    b->con_focus();
+    global.focused = s;
+
+    EXPECT_TRUE(level_down());
+
+    EXPECT_EQ(global.focused, b);
+}
+
+TEST_F(TreeTest, LevelDownRefusesWithoutChildren) {
+    auto *a = leaf(ws);
+    global.focused = a;
+
+    EXPECT_FALSE(level_down());
+
+    EXPECT_EQ(global.focused, a);
+}
+
+/* A floating container is skipped: level_down() focuses its child. */
+TEST_F(TreeTest, LevelDownFocusesTheOnlyChildOfAFloatingContainer) {
+    leaf(ws);
+    auto *f = add(new FloatingCon{true}, ws);
+    auto *w = leaf(f);
+    f->con_focus();
+    global.focused = ws;
+
+    EXPECT_TRUE(level_down());
+
+    EXPECT_EQ(global.focused, w);
+}
+
+TEST_F(TreeTest, LevelDownRefusesAFloatingContainerWithoutChildren) {
+    leaf(ws);
+    auto *f = add(new FloatingCon{true}, ws);
+    f->con_focus();
+    global.focused = ws;
+
+    EXPECT_FALSE(level_down());
+
+    EXPECT_EQ(global.focused, ws);
+}

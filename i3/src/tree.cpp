@@ -408,14 +408,14 @@ bool level_up() {
 bool level_down() {
     /* Go down the focus stack of the current node */
     Con *next = con::first(global.focused->focused);
-    if (next == con::last(global.focused->focused)) {
+    if (next == nullptr) {
         DLOG("cannot go down\n");
         return false;
     } else if (next->type == CT_FLOATING_CON) {
         /* Floating cons shouldn't be directly focused; try immediately
          * going to the grandchild of the focused con. */
         Con *child = con::first(next->focused);
-        if (child == con::last(next->focused)) {
+        if (child == nullptr) {
             DLOG("cannot go down\n");
             return false;
         } else {
