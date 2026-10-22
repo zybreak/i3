@@ -23,6 +23,7 @@
 130-close-empty-split.t
 133-size-hints.t
 134-invalid-command.t
+135-floating-focus.t
 136-floating-ws-empty.t
 137-floating-unmap.t
 139-ws-numbers.t
@@ -89,6 +90,7 @@
 241-consistent-center.t
 242-no-focus.t
 244-new-workspace-floating-enable-center.t
+246-window-decoration-focus.t
 248-regress-urgency-clear.t
 249-layout-restore-floating.t
 251-command-criteria-focused.t
@@ -112,10 +114,13 @@
 284-ewmh-visible-name.t
 286-root-window-mouse-binding.t
 288-i3-floating-window-atom.t
+290-keypress-numlock.t
 292-regress-layout-toggle.t
 294-update-ewmh-atoms.t
 295-net-wm-state-focused.t
 298-ipc-misbehaving-connection.t
+301-shape.t
+303-regress-move-floating.t
 311-get-binding-modes.t
 312-regress-layout-default.t
 314-window-icon-padding.t

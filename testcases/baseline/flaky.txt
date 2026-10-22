@@ -1,2 +1,1 @@
-290-keypress-numlock.t
 540-sigterm-cleanup.t
