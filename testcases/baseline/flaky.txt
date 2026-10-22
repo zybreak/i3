@@ -1,2 +1,2 @@
-175-startup-notification.t
-553-popup_during_fullscreen.t
+290-keypress-numlock.t
+540-sigterm-cleanup.t
