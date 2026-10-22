@@ -61,6 +61,18 @@ else()
     message(STATUS "Xvfb, i3-msg, cc or xcb-xtest missing: the i3-xcbcompat-smoke tests are left out")
 endif()
 
+# i3 -C on a configuration with workspace assignments and for_window, assign and no_focus directives, which it parses
+# without i3's running state. It needs Xvfb: the configuration loads fonts and colours on an X connection.
+if(XVFB_PROGRAM)
+    add_test(NAME i3-check-config
+             COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/check_config.sh $<TARGET_FILE:i3> 931
+                     ${CMAKE_CURRENT_BINARY_DIR}/check-config)
+    set_tests_properties(i3-check-config PROPERTIES
+                         LABELS it RESOURCE_LOCK xvfb ENVIRONMENT_MODIFICATION "LD_LIBRARY_PATH=unset:")
+else()
+    message(STATUS "Xvfb missing: the i3-check-config test is left out")
+endif()
+
 #add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS RegexTest MatchTest ConTest ConfigNewTest ConfigOldTest)
 
 #add_custom_target(coverage COMMAND

@@ -447,6 +447,11 @@ export {
             assignments.push_back(std::move(assignment));
         }
 
+        /* Replaces the assignments with a configuration's (Config::assignments). */
+        void set_assignments(std::deque<std::unique_ptr<Assignment>> &&new_assignments) {
+            assignments = std::move(new_assignments);
+        }
+
         /**
          * Checks the list of assignments for the given window and runs all matching
          * ones (unless they have already been run for this specific window).
@@ -679,6 +684,32 @@ export {
     };
 
     /**
+     * Stores which workspace (by name or number) goes to which output and its gaps config.
+     *
+     */
+    class WorkspaceConfig {
+      public:
+        std::string name{};
+        std::string output{};
+        gaps_t gaps{};
+        gaps_mask_t gaps_mask{static_cast<gaps_mask_t>(0)};
+
+        auto operator<=>(WorkspaceConfig const &) const = default;
+        WorkspaceConfig &operator=(WorkspaceConfig const &) = default;
+
+        explicit WorkspaceConfig(std::string name)
+            : name(std::move(name)) {
+        }
+
+        WorkspaceConfig(std::string name, std::string output)
+            : name(std::move(name)), output(std::move(output)) {
+        }
+
+        WorkspaceConfig(WorkspaceConfig const &) = default;
+        WorkspaceConfig(WorkspaceConfig &&) = default;
+    };
+
+    /**
      * Holds part of the configuration
      *
      */
@@ -810,6 +841,16 @@ export {
         std::map<std::string, Mode> modes{{"default", Mode{"default"}}};
         std::vector<IncludedFile> included_files{};
         std::string _current_mode{"default"};
+
+        /* The file's workspace assignments ("workspace … output …") and
+         * per-workspace gaps, by workspace name, and its for_window, assign
+         * and no_focus directives, in order. The parser fills these instead of
+         * i3's running state, so that a configuration can be checked (-C) or
+         * rejected (a reload with errors) without effects.
+         * ConfigurationManager::set_config() moves them to the WorkspaceManager
+         * and the AssignmentManager, leaving them empty. */
+        std::map<std::string, WorkspaceConfig> workspace_configs{};
+        std::deque<std::unique_ptr<Assignment>> assignments{};
 
         Mode *current_mode() {
             return &modes.at(_current_mode);
@@ -2262,32 +2303,6 @@ export {
      * than 4294967279 workspaces open at a time. */
     uint32_t const NET_WM_DESKTOP_NONE = 0xFFFFFFF0;
     uint32_t const NET_WM_DESKTOP_ALL = 0xFFFFFFFF;
-    
-    /**
-     * Stores which workspace (by name or number) goes to which output and its gaps config.
-     *
-     */
-    class WorkspaceConfig {
-      public:
-        std::string name{};
-        std::string output{};
-        gaps_t gaps{};
-        gaps_mask_t gaps_mask{static_cast<gaps_mask_t>(0)};
-
-        auto operator<=>(WorkspaceConfig const &) const = default;
-        WorkspaceConfig &operator=(WorkspaceConfig const &) = default;
-
-        explicit WorkspaceConfig(std::string name)
-            : name(std::move(name)) {
-        }
-
-        WorkspaceConfig(std::string name, std::string output)
-            : name(std::move(name)), output(std::move(output)) {
-        }
-
-        WorkspaceConfig(WorkspaceConfig const &) = default;
-        WorkspaceConfig(WorkspaceConfig &&) = default;
-    };
 
     // TODO: I feel this should reside with the configuration
     class WorkspaceManager {
@@ -2327,6 +2342,11 @@ export {
         void add_workspace_config(WorkspaceConfig &&config) {
             auto name = config.name;
             ws_assignments.insert_or_assign(name, std::forward<WorkspaceConfig>(config));
+        }
+
+        /* Replaces the workspace configs with a configuration's (Config::workspace_configs). */
+        void set_workspace_configs(std::map<std::string, WorkspaceConfig> &&configs) {
+            ws_assignments = std::move(configs);
         }
 
         void clear() {

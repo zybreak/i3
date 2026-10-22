@@ -216,6 +216,11 @@ void ConfigurationManager::set_config(std::unique_ptr<Config> _config) {
 
     config = std::move(_config);
 
+    /* What the file assigns takes effect only now: the parser left it in the
+     * configuration (see Config::workspace_configs). */
+    global.workspaceManager->set_workspace_configs(std::exchange(config->workspace_configs, {}));
+    global.assignmentManager->set_assignments(std::exchange(config->assignments, {}));
+
     if (!config->font) {
         ELOG("You did not specify required configuration option \"font\"\n");
         using namespace std::literals;

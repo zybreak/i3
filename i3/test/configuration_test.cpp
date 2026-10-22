@@ -10,6 +10,7 @@
 
 import i3;
 import bindings;
+import mocks;
 
 namespace {
 /* Storage filled with a non-zero byte pattern before an object is constructed
@@ -111,6 +112,60 @@ TEST(ConfigurationTest, WorkspaceConfigHasNoGaps) {
     auto const &assigned = by_output.value_initialise("1", "output");
     EXPECT_EQ(std::to_underlying(assigned.gaps_mask), 0);
     EXPECT_EQ(assigned.gaps, gaps_t{});
+}
+
+/* i3 -C parses the configuration without a WorkspaceManager or an
+ * AssignmentManager, and a reload with errors must not change the running
+ * ones: what the file assigns stays in the configuration until
+ * ConfigurationManager::set_config(). */
+TEST(ConfigurationTest, AssignmentsStayInTheConfiguration) {
+    MockX x{};
+    global.x = &x; /* ConfigApplier::gaps() scales by its screen's DPI. */
+    global.workspaceManager = nullptr;
+    global.assignmentManager = nullptr;
+    Config config{};
+    ConfigApplier applier{&config};
+
+    applier.workspace("1", "DP-1");
+    applier.workspace("1", "HDMI-1"); /* A duplicate: ignored. */
+    applier.gaps("1", "top", 3);
+    applier.gaps("2", "inner", 5);
+
+    criteria_state_impl for_window{0};
+    for_window.add_criterion("class", "XTerm");
+    applier.for_window(&for_window, "border pixel 1");
+    criteria_state_impl assign{0};
+    assign.add_criterion("class", "Firefox");
+    applier.assign(&assign, "3", false);
+    criteria_state_impl assign_output{0};
+    assign_output.add_criterion("class", "mpv");
+    applier.assign_output(&assign_output, "DP-1");
+    criteria_state_impl no_focus{0};
+    no_focus.add_criterion("class", "Dialog");
+    applier.no_focus(&no_focus);
+
+    ASSERT_EQ(config.workspace_configs.size(), 2u);
+    auto const &one = config.workspace_configs.at("1");
+    EXPECT_EQ(one.name, "1");
+    EXPECT_EQ(one.output, "DP-1");
+    EXPECT_EQ(one.gaps_mask, GAPS_TOP);
+    EXPECT_EQ(one.gaps.top, 3);
+    auto const &two = config.workspace_configs.at("2");
+    EXPECT_EQ(two.output, "");
+    EXPECT_EQ(two.gaps_mask, GAPS_INNER);
+    EXPECT_EQ(two.gaps.inner, 5);
+
+    ASSERT_EQ(config.assignments.size(), 4u);
+    auto const *command = dynamic_cast<CommandAssignment const *>(config.assignments[0].get());
+    ASSERT_NE(command, nullptr);
+    EXPECT_EQ(command->command, "border pixel 1");
+    auto const *workspace = dynamic_cast<WorkspaceAssignment const *>(config.assignments[1].get());
+    ASSERT_NE(workspace, nullptr);
+    EXPECT_EQ(workspace->workspace, "3");
+    auto const *output = dynamic_cast<OutputAssignment const *>(config.assignments[2].get());
+    ASSERT_NE(output, nullptr);
+    EXPECT_EQ(output->output, "DP-1");
+    EXPECT_NE(dynamic_cast<NoFocusAssignment const *>(config.assignments[3].get()), nullptr);
 }
 
 TEST(ConfigurationTest, foo) {

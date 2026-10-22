@@ -129,24 +129,16 @@ static void apply_gaps(gaps_t *gaps, gaps_mask_t mask, int value) {
     }
 }
 
-static void create_gaps_assignment(std::string const &workspace, gaps_mask_t const mask, int const pixels) {
+static void create_gaps_assignment(Config &config, std::string const &workspace, gaps_mask_t const mask, int const pixels) {
     if (mask == 0) {
         return;
     }
 
     DLOG(fmt::sprintf("Setting gaps for workspace %s", workspace));
 
-    auto found = global.workspaceManager->get_workspace_config(workspace);
-    WorkspaceConfig config{workspace};
-
-    if (found) {
-        config = found.value();
-    }
-
-    config.gaps_mask = static_cast<gaps_mask_t>(std::to_underlying(config.gaps_mask) | std::to_underlying(mask));
-    apply_gaps(&config.gaps, mask, pixels);
-
-    global.workspaceManager->add_workspace_config(std::move(config));
+    auto &workspace_config = config.workspace_configs.try_emplace(workspace, workspace).first->second;
+    workspace_config.gaps_mask = static_cast<gaps_mask_t>(std::to_underlying(workspace_config.gaps_mask) | std::to_underlying(mask));
+    apply_gaps(&workspace_config.gaps, mask, pixels);
 }
 
 static gaps_mask_t gaps_scope_to_mask(std::string const &scope) {
@@ -178,7 +170,7 @@ void ConfigApplier::gaps(std::string const &workspace, std::string const &scope,
     if (workspace.empty()) {
         apply_gaps(&this->config->gaps, mask, pixels);
     } else {
-        create_gaps_assignment(workspace, mask, pixels);
+        create_gaps_assignment(*this->config, workspace, mask, pixels);
     }
 }
 
@@ -212,7 +204,7 @@ void ConfigApplier::for_window(criteria_state *st, std::string const &command) {
         return;
     }
     DLOG(fmt::sprintf("\t should execute command %s for the criteria mentioned above\n", command));
-    global.assignmentManager->add(std::make_unique<CommandAssignment>(std::move(criteria_state->current_match), command));
+    this->config->assignments.push_back(std::make_unique<CommandAssignment>(std::move(criteria_state->current_match), command));
 }
 
 void ConfigApplier::floating_minimum_size(long const width, long const height) {
@@ -379,15 +371,15 @@ void ConfigApplier::title_align(std::string const &alignment) {
 }
 
 void ConfigApplier::workspace(std::string const &workspace, std::string const &output) {
-    auto found = global.workspaceManager->get_workspace_config(workspace);
-    if (found && found->name == workspace && !found->output.empty()) {
+    auto &workspace_configs = this->config->workspace_configs;
+    if (auto found = workspace_configs.find(workspace); found != workspace_configs.end() && !found->second.output.empty()) {
         ELOG(fmt::sprintf("You have a duplicate workspace assignment for workspace \"%s\"\n", workspace));
         return;
     }
 
     DLOG(fmt::sprintf("Assigning workspace \"%s\" to output \"%s\"\n", workspace, output));
 
-    global.workspaceManager->add_workspace_config(WorkspaceConfig{workspace, output});
+    workspace_configs.insert_or_assign(workspace, WorkspaceConfig{workspace, output});
 }
 
 void ConfigApplier::ipc_socket(std::string const &path) {
@@ -463,7 +455,7 @@ void ConfigApplier::assign_output(criteria_state *s, std::string const &output) 
     }
 
     DLOG(fmt::sprintf("New assignment, using above criteria, to output \"%s\".\n", output));
-    global.assignmentManager->add(std::make_unique<OutputAssignment>(std::move(criteria_state->current_match), output));
+    this->config->assignments.push_back(std::make_unique<OutputAssignment>(std::move(criteria_state->current_match), output));
 }
 
 void ConfigApplier::assign(criteria_state *s, std::string const &workspace, bool is_number) {
@@ -488,7 +480,7 @@ void ConfigApplier::assign(criteria_state *s, std::string const &workspace, bool
     auto assignment = std::make_unique<WorkspaceAssignment>(std::move(criteria_state->current_match));
     assignment->type = is_number ? workspace_assignment_type::WORKSPACE_NUMBER : workspace_assignment_type::WORKSPACE;
     assignment->workspace = workspace;
-    global.assignmentManager->add(std::move(assignment));
+    this->config->assignments.push_back(std::move(assignment));
 }
 
 void ConfigApplier::no_focus(criteria_state *s) {
@@ -500,7 +492,7 @@ void ConfigApplier::no_focus(criteria_state *s) {
     }
 
     DLOG("New assignment, using above criteria, to ignore focus on manage.\n");
-    global.assignmentManager->add(std::make_unique<NoFocusAssignment>(std::move(criteria_state->current_match)));
+    this->config->assignments.push_back(std::make_unique<NoFocusAssignment>(std::move(criteria_state->current_match)));
 }
 
 void ConfigApplier::ipc_kill_timeout(long const timeout_ms) {
