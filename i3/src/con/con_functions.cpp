@@ -1193,7 +1193,7 @@ CommandResult run_binding(Binding *bind, Con *con) {
     if (result.parse_error) {
         std::vector<button_t> buttons{};
         auto prompt = std::string("The configured command for this shortcut could not be run successfully.");
-        start_nagbar(&global.command_error_nagbar_pid, buttons, prompt, global.configManager->config->font->pattern, bar_type_t::TYPE_ERROR, false);
+        start_nagbar(nagbar_kind_t::COMMAND_ERROR, buttons, prompt, global.configManager->config->font->pattern, bar_type_t::TYPE_ERROR, false);
     }
 
     global.ipcManager->ipc_send_binding_event("run", &bind_cp, modename.c_str());

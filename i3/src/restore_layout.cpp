@@ -56,6 +56,8 @@ struct placeholder_state {
 static std::deque<std::unique_ptr<placeholder_state>> states{};
 
 static xcb_connection_t *restore_conn;
+/* The drawing state of restore_conn, for the placeholders' surfaces. */
+static std::optional<DrawContext> restore_drawing;
 
 static ev_io *xcb_watcher;
 static ev_prepare *xcb_prepare;
@@ -110,6 +112,7 @@ void restore_connect() {
         ev_prepare_stop(global.main_loop, xcb_prepare);
 
         states.clear();
+        restore_drawing.reset();
 
         /* xcb_disconnect leaks memory in libxcb versions earlier than 1.11,
          * but it’s the right function to call. See
@@ -131,6 +134,7 @@ void restore_connect() {
 #endif
         errx(EXIT_FAILURE, "Cannot open display");
     }
+    restore_drawing.emplace(restore_conn, xcb_aux_get_screen(restore_conn, screen));
 
     xcb_watcher = new ev_io{};
     xcb_prepare = new ev_prepare{};
@@ -233,7 +237,7 @@ static void open_placeholder_window(X &conn, Con *con) {
         state->con = con;
         state->rect = con->rect;
 
-        state->surface = std::make_unique<surface_t>(restore_conn, placeholder, get_visualtype(global.x->root_screen), state->rect.width, state->rect.height);
+        state->surface = std::make_unique<surface_t>(*restore_drawing, placeholder, get_visualtype(restore_drawing->screen()), state->rect.width, state->rect.height);
         update_placeholder_contents(conn, state.get());
         states.push_back(std::move(state));
 

@@ -100,6 +100,7 @@ X::X() {
     this->conn_screen = screen;
     this->root_screen = xcb_aux_get_screen(handle.get(), this->conn_screen);
     this->root = root_screen->root;
+    draw_context.emplace(handle.get(), root_screen);
 
     root_depth = root_screen->root_depth;
     colormap = root_screen->default_colormap;
@@ -127,6 +128,7 @@ X::X() {
 }
 
 void X::disconnect() {
+    draw_context.reset();
     xcbpp_conn = nullptr;
     handle.reset();
 }
@@ -220,10 +222,10 @@ void X::con_init(Con *con, std::optional<xcb_drawable_t> id) {
 
     Rect dims = {(uint32_t)-15, (uint32_t)-15, 10, 10};
     if (id) {
-        con->frame = std::make_unique<surface_t>(c_handle(), *id, get_visualtype_by_id(visual), dims.width, dims.height);
+        con->frame = std::make_unique<surface_t>(drawing(), *id, get_visualtype_by_id(visual), dims.width, dims.height);
     } else {
         xcb_window_t frame_id = create_window(c_handle(), dims, con->depth, visual, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER, false, mask, values);
-        con->frame = std::make_unique<surface_t>(c_handle(), frame_id, get_visualtype_by_id(visual), dims.width, dims.height);
+        con->frame = std::make_unique<surface_t>(drawing(), frame_id, get_visualtype_by_id(visual), dims.width, dims.height);
     }
     xcb_change_property(c_handle(),
                         XCB_PROP_MODE_REPLACE,
@@ -1062,7 +1064,7 @@ void x_push_node(Con *con) {
             auto id = xcb_generate_id(global.x->c_handle());
             DLOG(fmt::sprintf("creating %d x %d pixmap for con %p (con->frame_buffer.id = (pixmap_t)0x%08x) (con->frame.id (drawable_t)0x%08x)\n", width, height, fmt::ptr(con), id, con->frame->id));
             xcb_create_pixmap(global.x->c_handle(), win_depth, id, con->frame->id, width, height);
-            con->frame_buffer = std::make_unique<surface_t>(global.x->c_handle(), id,
+            con->frame_buffer = std::make_unique<surface_t>(global.x->drawing(), id,
                                                             get_visualtype_by_id(get_visualid_by_depth(win_depth)), width, height);
             con->frame_buffer->draw_util_clear_surface((color_t){.red = 0.0, .green = 0.0, .blue = 0.0});
 

@@ -2,8 +2,8 @@
 # smoke.sh <i3> <display number> <work directory> [depth]
 #
 # Runs i3 on Xvfb and checks that it runs on xcbpp's libxcb compatibility layer, manages a window, replays a click
-# to it (GrabButton and AllowEvents), runs a key binding (GrabKey), exits on request, and that its save set gives the
-# window back to the root window. The test client (client.c) runs on the system's libxcb, as X clients do; it is
+# to it (GrabButton and AllowEvents), runs a key binding (GrabKey), shows and closes nagbars, exits on request (with a
+# nagbar open), and that its save set gives the window back to the root window. The test client (client.c) runs on the system's libxcb, as X clients do; it is
 # compiled here with pkg-config, because i3's own build links the layer in libxcb's place.
 #
 # Exits 0 if every check passes. With depth 8, i3 allocates its colors on the server (AllocColor).
@@ -62,6 +62,24 @@ check "the click is replayed to the window" grep -q '^click ok' "$W/client.out"
 "$W/client" key 75
 for _ in $(seq 20); do [ -e "$W/key-marker" ] && break; sleep 0.1; done
 check "the key binding runs" test -e "$W/key-marker"
+
+# Each nagbar runs on a thread of its own, with a connection of its own (at depth 8, its colors are allocated on
+# it). The first one is closed with its close button, which closes its connection; the second one, on a new
+# connection, is still open when i3 exits.
+nagbar() {
+    i3-msg -s "$W/ipc" "nagbar warning \"smoke $1\" \"pango:monospace 8\" false \"Touch\" \"touch $W/nagbar-marker\" false" \
+        > /dev/null 2>&1
+}
+wait_docks() {  # wait_docks <number of dock windows>
+    for _ in $(seq 30); do [ "$("$W/client" docks)" = "docks $1" ] && return 0; sleep 0.1; done
+    return 1
+}
+nagbar 1
+check "a nagbar is shown" wait_docks 1
+"$W/client" close-dock
+check "its close button closes it" wait_docks 0
+nagbar 2
+check "a second nagbar is shown" wait_docks 1
 
 i3-msg -s "$W/ipc" exit > /dev/null 2>&1
 for _ in $(seq 30); do kill -0 "$I3PID" 2>/dev/null || break; sleep 0.1; done

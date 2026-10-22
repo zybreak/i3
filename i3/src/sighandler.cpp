@@ -205,7 +205,7 @@ static void sighandler_create_dialogs() {
                                    XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER,
                                    true, mask, values);
 
-        dialog->surface = std::make_unique<surface_t>(global.x->c_handle(), dialog->id, get_visualtype_by_id(visual),
+        dialog->surface = std::make_unique<surface_t>(global.x->drawing(), dialog->id, get_visualtype_by_id(visual),
                                                       dialog->dims.width, dialog->dims.height);
 
         xcb_grab_keyboard(global.x->c_handle(), false, dialog->id, XCB_CURRENT_TIME, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);

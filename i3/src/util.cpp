@@ -116,8 +116,7 @@ static std::string store_restart_layout() {
  *
  */
 void i3_restart(bool forget_layout) {
-    kill_nagbar(global.config_error_nagbar_pid, true);
-    kill_nagbar(global.command_error_nagbar_pid, true);
+    kill_nagbars();
 
     restore_geometry();
 

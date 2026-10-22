@@ -1,14 +1,15 @@
 module;
-#include <err.h>
 #include <fcntl.h>
+#include <poll.h>
+#include <unistd.h>
 
+#include <sys/eventfd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
 // #include "config_parser.h"
 
 #include <libgen.h>
-#include <sys/wait.h>
 #include <fmt/core.h>
 #include <fmt/printf.h>
 #include <getopt.h>
@@ -38,12 +39,24 @@ static button_t const *get_button_at(std::vector<button_t> const &buttons, int16
     return nullptr;
 }
 
+/*
+ * A nagbar runs on a thread of its own (start_nagbar()), with a connection of
+ * its own. It uses only that connection, its screen and what it was given by
+ * value, and leaves i3's state (global) alone: the one exception is
+ * handle_button_release(), see there.
+ *
+ * The members are destroyed in reverse order: the surface and the font before
+ * the drawing state, and all of them before the connection is closed.
+ */
 class Nagbar {
   private:
+    /* The connection, which the nagbar owns: it is closed last. */
+    xcb::xcbcompat::unique_handle handle{};
     xcb_connection_t *conn;
+    xcb_screen_t *root_screen;
+    std::optional<DrawContext> drawing{};
     std::unique_ptr<surface_t> bar{};
     button_t btn_close;
-    xcb_screen_t *root_screen;
     std::unique_ptr<i3Font> font{};
     std::string prompt;
     std::vector<button_t> buttons;
@@ -99,6 +112,9 @@ class Nagbar {
             return;
         }
 
+        /* With no_startup_id, start_application() only forks and executes the
+         * action, and touches i3's state only in the child, so this thread may
+         * call it. The launcher exists before any nagbar with buttons does. */
         global.applicationLauncher->start_application(button->action, true);
 
         /* TODO: unset flag, re-render */
@@ -130,7 +146,7 @@ class Nagbar {
         }
 
         coordinates = xcb_translate_coordinates_reply(
-            conn, xcb_translate_coordinates(conn, input_focus->focus, global.x->root, geometry->x, geometry->y), nullptr);
+            conn, xcb_translate_coordinates(conn, input_focus->focus, root_screen->root, geometry->x, geometry->y), nullptr);
         if (coordinates == nullptr) {
             LOG("Failed to translate coordinates.\n");
             goto free_resources;
@@ -185,8 +201,8 @@ class Nagbar {
      * Tries to position the rectangle on the primary output.
      */
     void set_window_position_primary(xcb_rectangle_t *result) {
-        xcb_randr_get_screen_resources_current_cookie_t rcookie = xcb_randr_get_screen_resources_current(conn, global.x->root);
-        xcb_randr_get_output_primary_cookie_t pcookie = xcb_randr_get_output_primary(conn, global.x->root);
+        xcb_randr_get_screen_resources_current_cookie_t rcookie = xcb_randr_get_screen_resources_current(conn, root_screen->root);
+        xcb_randr_get_output_primary_cookie_t pcookie = xcb_randr_get_output_primary(conn, root_screen->root);
 
         xcb_randr_get_output_primary_reply_t *primary = nullptr;
         xcb_randr_get_screen_resources_current_reply_t *res = nullptr;
@@ -282,9 +298,10 @@ class Nagbar {
         btn_close.label = "X";
 
         int screens;
-        if ((conn = x_connect(&screens)) == nullptr ||
-            xcb_connection_has_error(conn)) {
-            errx(EXIT_FAILURE, "Cannot open display");
+        handle.reset(x_connect(&screens));
+        conn = handle.get();
+        if (xcb_connection_has_error(conn)) {
+            throw std::runtime_error("Cannot open display");
         }
 
         /* Init startup notification. */
@@ -293,7 +310,7 @@ class Nagbar {
         // sn_display_unref(sndisplay);
 
         root_screen = xcb_aux_get_screen(conn, screens);
-        // global.x->root = root_screen->root;
+        drawing.emplace(conn, root_screen);
 
         if (bar_type == bar_type_t::TYPE_ERROR) {
             /* Red theme for error messages */
@@ -311,7 +328,8 @@ class Nagbar {
             color_border_bottom = draw_util_hex_to_color(conn, root_screen, "#ab7100");
         }
 
-        init_dpi(conn, root_screen);
+        /* No init_dpi(): i3 set the DPI, which logical_px() reads, before it
+         * started any nagbar. */
         font = load_font(conn, root_screen, pattern);
 
         /* Place requests for the atoms we need as soon as possible */
@@ -326,10 +344,6 @@ class Nagbar {
         BAR_BORDER = logical_px(root_screen, 2);
     }
 
-    ~Nagbar() {
-        xcb_disconnect(conn);
-    }
-
     void create_window(bool position_on_primary) {
         /* Default values if we cannot determine the preferred window position. */
         xcb_rectangle_t win_pos = (xcb_rectangle_t){50, 50, 500, static_cast<uint16_t>(font->height + 2 * MSG_PADDING + BAR_BORDER)};
@@ -341,7 +355,7 @@ class Nagbar {
 
         xcb_cursor_context_t *cursor_ctx;
         if (xcb_cursor_context_new(conn, root_screen, &cursor_ctx) < 0) {
-            errx(EXIT_FAILURE, "Cannot allocate xcursor context");
+            throw std::runtime_error("Cannot allocate xcursor context");
         }
         xcb_cursor_t cursor = xcb_cursor_load_cursor(cursor_ctx, "left_ptr");
         xcb_cursor_context_free(cursor_ctx);
@@ -364,7 +378,7 @@ class Nagbar {
             conn,
             XCB_COPY_FROM_PARENT,
             win,                                                 /* the window id */
-            global.x->root,                                      /* parent == root */
+            root_screen->root,                                   /* parent == root */
             win_pos.x, win_pos.y, win_pos.width, win_pos.height, /* dimensions */
             0,                                                   /* x11 border = 0, we draw our own */
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
@@ -382,7 +396,7 @@ class Nagbar {
         xcb_intern_atom_reply_t *reply;
         reply = xcb_intern_atom_reply(conn, ATOM_cookie, nullptr);
         if (!reply) {
-            errx(EXIT_FAILURE, "Could not get atom ATOM");
+            throw std::runtime_error("Could not get atom ATOM");
         }
 
         A_ATOM = reply->atom;
@@ -390,7 +404,7 @@ class Nagbar {
 
         reply = xcb_intern_atom_reply(conn, CARDINAL_cookie, nullptr);
         if (!reply) {
-            errx(EXIT_FAILURE, "Could not get atom CARDINAL");
+            throw std::runtime_error("Could not get atom CARDINAL");
         }
 
         A_CARDINAL = reply->atom;
@@ -437,7 +451,7 @@ class Nagbar {
                             &strut_partial);
 
         /* Initialize the drawable bar */
-        bar = std::make_unique<surface_t>(conn, win, get_visualtype(root_screen), win_pos.width, win_pos.height);
+        bar = std::make_unique<surface_t>(*drawing, win, get_visualtype(root_screen), win_pos.width, win_pos.height);
 
         /* Startup complete. */
         // if (sncontext) {
@@ -446,12 +460,34 @@ class Nagbar {
         // }
     }
 
-    void start_event_loop() {
+    /*
+     * Handles the nagbar's events until its window is destroyed, its
+     * connection fails, or wake_fd becomes readable (i3 stops the nagbar).
+     *
+     */
+    void start_event_loop(int wake_fd) {
         /* Grab the keyboard to get all input */
         xcb_flush(conn);
 
-        xcb_generic_event_t *event;
-        while (running && (event = xcb_wait_for_event(conn)) != nullptr) {
+        std::array fds{pollfd{.fd = xcb_get_file_descriptor(conn), .events = POLLIN, .revents = 0},
+                       pollfd{.fd = wake_fd, .events = POLLIN, .revents = 0}};
+        while (running) {
+            std::unique_ptr<xcb_generic_event_t, decltype(&std::free)> event{xcb_poll_for_event(conn), &std::free};
+            if (!event) {
+                if (xcb_connection_has_error(conn)) {
+                    break;
+                }
+                xcb_flush(conn);
+                if (poll(fds.data(), fds.size(), -1) == -1 && errno != EINTR) {
+                    ELOG(fmt::sprintf("poll() failed: %s\n", std::strerror(errno)));
+                    break;
+                }
+                if (fds[1].revents != 0) {
+                    break;
+                }
+                continue;
+            }
+
             if (event->response_type == 0) {
                 ELOG(fmt::sprintf("X11 Error received! sequence %x\n", event->sequence));
                 continue;
@@ -462,22 +498,22 @@ class Nagbar {
 
             switch (type) {
                 case XCB_EXPOSE:
-                    if (((xcb_expose_event_t *)event)->count == 0) {
-                        handle_expose((xcb_expose_event_t *)event);
+                    if (((xcb_expose_event_t *)event.get())->count == 0) {
+                        handle_expose((xcb_expose_event_t *)event.get());
                     }
 
                     break;
 
                 case XCB_BUTTON_PRESS:
-                    nagbar_handle_button_press((xcb_button_press_event_t *)event);
+                    nagbar_handle_button_press((xcb_button_press_event_t *)event.get());
                     break;
 
                 case XCB_BUTTON_RELEASE:
-                    handle_button_release((xcb_button_release_event_t *)event);
+                    handle_button_release((xcb_button_release_event_t *)event.get());
                     break;
 
                 case XCB_CONFIGURE_NOTIFY: {
-                    auto *configure_notify = (xcb_configure_notify_event_t *)event;
+                    auto *configure_notify = (xcb_configure_notify_event_t *)event.get();
                     if (configure_notify->width > 0 && configure_notify->height > 0) {
                         bar->draw_util_surface_set_size(configure_notify->width, configure_notify->height);
                     }
@@ -494,65 +530,95 @@ class Nagbar {
                     LOG(fmt::sprintf("Unhandled event of type %d\n", type));
                     break;
             }
-
-            free(event);
         }
     }
 };
 
-static void draw_nagbar(std::string prompt,
+/*
+ * The nagbar's thread. NagbarThread's destructor stops it, which makes
+ * wake_fd readable: the event loop ends, and the nagbar closes its window and
+ * its connection.
+ *
+ */
+static void draw_nagbar(std::stop_token stop,
+                        int wake_fd,
+                        std::atomic<bool> *done,
+                        std::string prompt,
                         std::vector<button_t> buttons,
                         bar_type_t bar_type,
                         bool position_on_primary,
                         std::string pattern) {
-    Nagbar nagbar{bar_type, prompt, pattern, buttons};
+    std::stop_callback wake{stop, [wake_fd] {
+                                std::uint64_t const one = 1;
+                                [[maybe_unused]] auto const written = write(wake_fd, &one, sizeof(one));
+                            }};
 
-    nagbar.create_window(position_on_primary);
+    /* An exception that left this thread would terminate i3, and exit() would
+     * end i3 under its main thread. */
+    try {
+        Nagbar nagbar{bar_type, prompt, pattern, buttons};
 
-    nagbar.start_event_loop();
+        nagbar.create_window(position_on_primary);
+
+        nagbar.start_event_loop(wake_fd);
+    } catch (std::exception const &e) {
+        ELOG(fmt::sprintf("Could not show the nagbar: %s\n", e.what()));
+    }
+
+    done->store(true, std::memory_order_release);
+}
+
+NagbarThread::wake_fd_t::wake_fd_t()
+    : fd(eventfd(0, EFD_CLOEXEC)) {
+    if (fd == -1) {
+        throw std::system_error(errno, std::system_category(), "eventfd()");
+    }
+}
+
+NagbarThread::wake_fd_t::~wake_fd_t() {
+    close(fd);
+}
+
+NagbarThread::NagbarThread(nagbar_kind_t kind, std::vector<button_t> buttons, std::string prompt,
+                           std::string pattern, bar_type_t bar_type, bool position_on_primary)
+    : kind(kind),
+      thread(draw_nagbar, wake.fd, &done, std::move(prompt), std::move(buttons), bar_type, position_on_primary,
+             std::move(pattern)) {
 }
 
 /*
- * Starts an i3-nagbar instance with the given parameters. Takes care of
- * handling SIGCHLD and killing i3-nagbar when i3 exits.
- *
- * The resulting PID will be stored in *nagbar_pid and can be used with
- * kill_nagbar() to kill the bar later on.
+ * Shows a nagbar with the given parameters, unless kind is CONFIG_ERROR or
+ * COMMAND_ERROR and a nagbar of that kind is shown already. It runs until its
+ * user closes it, or until kill_nagbars() closes it.
  *
  */
-void start_nagbar(pid_t *nagbar_pid,
+void start_nagbar(nagbar_kind_t kind,
                   std::vector<button_t> buttons,
                   std::string prompt,
                   std::string pattern,
                   bar_type_t bar_type,
                   bool position_on_primary) {
-    auto nagbar_thread = std::thread(draw_nagbar, prompt, buttons, bar_type, position_on_primary, pattern);
-    nagbar_thread.detach();
+    /* Joins the threads of the nagbars that their users closed. */
+    std::erase_if(global.nagbars, [](NagbarThread const &nagbar) { return !nagbar.running(); });
+
+    if (kind != nagbar_kind_t::OTHER &&
+        std::ranges::any_of(global.nagbars, [kind](NagbarThread const &nagbar) { return nagbar.kind == kind; })) {
+        DLOG("A nagbar of this kind is shown already, not starting another one.\n");
+        return;
+    }
+
+    try {
+        global.nagbars.emplace_back(kind, std::move(buttons), std::move(prompt), std::move(pattern), bar_type, position_on_primary);
+    } catch (std::system_error const &e) {
+        ELOG(fmt::sprintf("Could not start the nagbar: %s\n", e.what()));
+    }
 }
 
 /*
- * Kills the i3-nagbar process, if nagbar_pid != -1.
- *
- * If wait_for_it is set (restarting i3), this function will waitpid(),
- * otherwise, ev is assumed to handle it (reloading).
+ * Closes the nagbars of the given kind, or all of them, and waits until their
+ * threads have ended.
  *
  */
-void kill_nagbar(pid_t nagbar_pid, bool wait_for_it) {
-    if (nagbar_pid == -1) {
-        return;
-    }
-
-    if (kill(nagbar_pid, SIGTERM) == -1) {
-        warn("kill(configerror_nagbar) failed");
-    }
-
-    if (!wait_for_it) {
-        return;
-    }
-
-    /* When restarting, we don’t enter the ev main loop anymore and after the
-     * exec(), our old pid is no longer watched. So, ev won’t handle SIGCHLD
-     * for us and we would end up with a <defunct> process. Therefore we
-     * waitpid() here. */
-    waitpid(nagbar_pid, nullptr, 0);
+void kill_nagbars(std::optional<nagbar_kind_t> kind) {
+    std::erase_if(global.nagbars, [kind](NagbarThread const &nagbar) { return !kind || nagbar.kind == *kind; });
 }

@@ -36,6 +36,20 @@ static bool surface_initialized(surface_t *surface) {
     return true;
 }
 
+DrawContext::~DrawContext() {
+    for (xcb_gcontext_t const gc : gcs | std::views::values) {
+        xcb_free_gc(conn, gc);
+    }
+
+    /* cairo has no lookup of the device it keeps for a connection: a surface
+     * gives it (and makes one if none was made). */
+    cairo_surface_t *surface = cairo_xcb_surface_create(conn, root_screen->root, get_visualtype(root_screen), 1, 1);
+    cairo_device_t *device = cairo_device_reference(cairo_surface_get_device(surface));
+    cairo_surface_destroy(surface);
+    cairo_device_finish(device);
+    cairo_device_destroy(device);
+}
+
 /*
  * Get a GC for the given depth. The given drawable must have this depth.
  *
@@ -43,26 +57,9 @@ static bool surface_initialized(surface_t *surface) {
  * > The gcontext can be used with any destination drawable having the same root
  * > and depth as the specified drawable;
  */
-static xcb_gcontext_t get_gc(xcb_connection_t *conn, uint8_t depth, xcb_drawable_t drawable, bool *should_free) {
-    static struct {
-        uint8_t depth;
-        xcb_gcontext_t gc;
-    } gc_cache[2] = {
-        {0, 0},
-    };
-
-    size_t index = 0;
-    bool cache = false;
-
-    *should_free = false;
-    for (; index < sizeof(gc_cache) / sizeof(gc_cache[0]); index++) {
-        if (gc_cache[index].depth == depth) {
-            return gc_cache[index].gc;
-        }
-        if (gc_cache[index].depth == 0) {
-            cache = true;
-            break;
-        }
+xcb_gcontext_t DrawContext::get_gc(uint8_t depth, xcb_drawable_t drawable) {
+    if (auto const it = gcs.find(depth); it != gcs.end()) {
+        return it->second;
     }
 
     xcb_gcontext_t gc = xcb_generate_id(conn);
@@ -70,20 +67,13 @@ static xcb_gcontext_t get_gc(xcb_connection_t *conn, uint8_t depth, xcb_drawable
      * tied to the drawable and it can be re-used with different drawables. */
     xcb_void_cookie_t gc_cookie = xcb_create_gc_checked(conn, gc, drawable, 0, nullptr);
 
-    xcb_generic_error_t *error = xcb_request_check(conn, gc_cookie);
-    if (error != nullptr) {
+    std::unique_ptr<xcb_generic_error_t, decltype(&std::free)> error{xcb_request_check(conn, gc_cookie), &std::free};
+    if (error) {
         ELOG(fmt::sprintf("Could not create graphical context. Error code: %d. Please report this bug.\n", error->error_code));
-        free(error);
         return gc;
     }
 
-    if (cache) {
-        gc_cache[index].depth = depth;
-        gc_cache[index].gc = gc;
-    } else {
-        *should_free = true;
-    }
-
+    gcs.emplace(depth, gc);
     return gc;
 }
 
@@ -92,9 +82,18 @@ static xcb_gcontext_t get_gc(xcb_connection_t *conn, uint8_t depth, xcb_drawable
  *
  */
 uint16_t get_visual_depth(xcb_visualid_t visual_id) {
+    return get_visual_depth(global.x->root_screen, visual_id);
+}
+
+/*
+ * Get depth of visual specified by visualid, among the visuals of the given
+ * screen.
+ *
+ */
+uint16_t get_visual_depth(xcb_screen_t *screen, xcb_visualid_t visual_id) {
     xcb_depth_iterator_t depth_iter;
 
-    depth_iter = xcb_screen_allowed_depths_iterator(global.x->root_screen);
+    depth_iter = xcb_screen_allowed_depths_iterator(screen);
     for (; depth_iter.rem; xcb_depth_next(&depth_iter)) {
         xcb_visualtype_iterator_t visual_iter;
 
@@ -108,8 +107,8 @@ uint16_t get_visual_depth(xcb_visualid_t visual_id) {
     return 0;
 }
 
-surface_t::surface_t(xcb_connection_t *conn, xcb_drawable_t drawable, xcb_visualtype_t *_visual, int width, int height)
-    : conn(conn), id(drawable), width(width), height(height) {
+surface_t::surface_t(DrawContext &context, xcb_drawable_t drawable, xcb_visualtype_t *_visual, int width, int height)
+    : conn(context.connection()), id(drawable), width(width), height(height) {
     xcb_visualtype_t *visual;
     if (_visual == nullptr) {
         visual = global.x->visual_type;
@@ -117,7 +116,7 @@ surface_t::surface_t(xcb_connection_t *conn, xcb_drawable_t drawable, xcb_visual
         visual = _visual;
     }
 
-    gc = get_gc(conn, get_visual_depth(visual->visual_id), drawable, &owns_gc);
+    gc = context.get_gc(get_visual_depth(context.screen(), visual->visual_id), drawable);
     surface = cairo_xcb_surface_create(conn, id, visual, width, height);
     cr = cairo_create(surface);
 }
@@ -136,9 +135,6 @@ surface_t::~surface_t() {
                          std::to_underlying(status), cairo_status_to_string(status)));
     }
 
-    if (this->owns_gc) {
-        xcb_free_gc(conn, this->gc);
-    }
     cairo_surface_destroy(this->surface);
     cairo_destroy(this->cr);
 }

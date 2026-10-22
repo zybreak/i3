@@ -1638,14 +1638,10 @@ void CommandsApplier::exit(criteria_state *criteria_state, CommandsResultIR &cmd
 void CommandsApplier::reload(criteria_state *criteria_state, CommandsResultIR &cmd_output) {
     LOG("reloading\n");
 
-    kill_nagbar(global.config_error_nagbar_pid, false);
-    kill_nagbar(global.command_error_nagbar_pid, false);
-    /* start_nagbar() will refuse to start a new process if the passed pid is
-     * set. This will happen when our child watcher is triggered by libev when
-     * the loop re-starts. However, config errors might be detected before
-     * that since we will read the config right now with load_configuration.
-     * See #4104. */
-    global.config_error_nagbar_pid = global.command_error_nagbar_pid = -1;
+    /* start_nagbar() refuses to show a second nagbar of a kind: close the
+     * ones of the configuration that is replaced. */
+    kill_nagbars(nagbar_kind_t::CONFIG_ERROR);
+    kill_nagbars(nagbar_kind_t::COMMAND_ERROR);
 
     /* A configuration with errors doesn't replace the running one. */
     auto loaded = global.configManager->load_configuration();
@@ -1653,7 +1649,7 @@ void CommandsApplier::reload(criteria_state *criteria_state, CommandsResultIR &c
         using namespace std::literals;
         std::vector<button_t> buttons{};
         std::string font = "fixed"s;
-        start_nagbar(&global.config_error_nagbar_pid, buttons, *loaded.errors, font, bar_type_t::TYPE_ERROR, false);
+        start_nagbar(nagbar_kind_t::CONFIG_ERROR, buttons, *loaded.errors, font, bar_type_t::TYPE_ERROR, false);
     } else {
         global.configManager->set_config(std::move(loaded.config));
     }
@@ -2101,7 +2097,7 @@ void CommandsApplier::nagbar(criteria_state *criteria_state, CommandsResultIR &c
     std::string message_str = message;
     std::string font_str = font;
 
-    start_nagbar(nullptr, buttons, message_str, font_str, strcmp(type, "warning") == 0 ? bar_type_t::TYPE_WARNING : bar_type_t::TYPE_ERROR, strcmp(primary, "true") == 0);
+    start_nagbar(nagbar_kind_t::OTHER, buttons, message_str, font_str, strcmp(type, "warning") == 0 ? bar_type_t::TYPE_WARNING : bar_type_t::TYPE_ERROR, strcmp(primary, "true") == 0);
     ysuccess(json_gen, true);
 }
 

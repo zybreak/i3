@@ -88,15 +88,15 @@ static bool is_debug_build() {
  *
  */
 static void i3_exit() {
+    /* First, so that no nagbar's thread runs while exit() destroys what it
+     * uses (closing i3's connection wakes them, too). */
+    kill_nagbars();
+
     global.ipcManager->ipc_shutdown(shutdown_reason_t::SHUTDOWN_REASON_EXIT);
     if (global.configManager->config->ipc_socket_path) {
         unlink(global.configManager->config->ipc_socket_path->c_str());
     }
     global.x->disconnect();
-
-    /* If a nagbar is active, kill it */
-    kill_nagbar(global.config_error_nagbar_pid, false);
-    kill_nagbar(global.command_error_nagbar_pid, false);
 
 #ifdef I3_ASAN_ENABLED
     __lsan_do_leak_check();
@@ -546,7 +546,7 @@ int main(int argc, char *argv[]) {
         using namespace std::literals;
         std::vector<button_t> buttons{};
         std::string font = "fixed"s;
-        start_nagbar(&global.config_error_nagbar_pid, buttons, *loaded.errors, font, bar_type_t::TYPE_ERROR, false);
+        start_nagbar(nagbar_kind_t::CONFIG_ERROR, buttons, *loaded.errors, font, bar_type_t::TYPE_ERROR, false);
     }
 
     if (!configManager.config->ipc_socket_path) {

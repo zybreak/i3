@@ -898,20 +898,62 @@ export {
 }
 // draw.cppm
 export {
+    /**
+     * The drawing state of one X connection: the screen its surfaces are on, the
+     * graphics contexts they share, one per depth (a GC can be used with any
+     * drawable of the same root and depth), and cairo's device for the
+     * connection.
+     *
+     * A GC belongs to the connection that created it, and the server frees it
+     * when that connection closes, so each connection has its own context, used
+     * by the thread that uses the connection. Destroy it after the surfaces made
+     * with it and before the connection is closed: it frees the GCs and finishes
+     * cairo's device, which cairo would otherwise keep for the xcb_connection_t*
+     * and hand to a later connection at the same address.
+     */
+    class DrawContext {
+        xcb_connection_t *conn;
+        xcb_screen_t *root_screen;
+        std::map<uint8_t, xcb_gcontext_t> gcs{};
+
+      public:
+        DrawContext(xcb_connection_t *conn, xcb_screen_t *root_screen)
+            : conn(conn), root_screen(root_screen) {
+        }
+        DrawContext(DrawContext const &) = delete;
+        DrawContext &operator=(DrawContext const &) = delete;
+        ~DrawContext();
+
+        xcb_connection_t *connection() const {
+            return conn;
+        }
+
+        xcb_screen_t *screen() const {
+            return root_screen;
+        }
+
+        /**
+         * Returns the GC for drawables of the given depth on this connection's
+         * screen. The drawable must be one of them.
+         *
+         */
+        xcb_gcontext_t get_gc(uint8_t depth, xcb_drawable_t drawable);
+    };
+
     /* A wrapper grouping an XCB drawable and both a graphics context
      * and the corresponding cairo objects representing it. */
     class surface_t {
       private:
         /* The connection to the X server. */
         xcb_connection_t *conn;
-        
+
       public:
         /* The drawable which is being represented. */
         xcb_drawable_t id{};
-        
-        /* A classic XCB graphics context. */
+
+        /* A classic XCB graphics context, shared with the surfaces of the same
+         * depth: it belongs to the DrawContext the surface was made with. */
         xcb_gcontext_t gc{};
-        bool owns_gc;
 
         int width;
         int height;
@@ -922,7 +964,9 @@ export {
         /* The cairo object representing the drawable. In general,
          * this is what one should use for any drawing operation. */
         cairo_t *cr{};
-        surface_t(xcb_connection_t *conn, xcb_drawable_t drawable,
+        /* The drawable is on context's connection and screen. A null visual
+         * means i3's default visual (X::visual_type), on i3's connection. */
+        surface_t(DrawContext &context, xcb_drawable_t drawable,
                   xcb_visualtype_t *visual, int width, int height);
         ~surface_t();
 
@@ -930,7 +974,6 @@ export {
         surface_t(surface_t const &) = delete;
         void operator=(surface_t const &) = delete;
         surface_t(surface_t &&other) noexcept {
-            auto tmp_owns_gc = this->owns_gc;
             auto tmp_cr = this->cr;
             auto tmp_gc = this->gc;
             auto tmp_surface = this->surface;
@@ -938,7 +981,6 @@ export {
             this->conn = other.conn;
             this->id = other.id;
             this->gc = other.gc;
-            this->owns_gc = other.owns_gc;
             this->width = other.width;
             this->height = other.height;
             this->surface = other.surface;
@@ -946,11 +988,9 @@ export {
 
             other.surface = tmp_surface;
             other.cr = tmp_cr;
-            other.owns_gc = tmp_owns_gc;
             other.gc = tmp_gc;
         }
         void operator=(surface_t &&other) noexcept {
-            auto tmp_owns_gc = this->owns_gc;
             auto tmp_cr = this->cr;
             auto tmp_gc = this->gc;
             auto tmp_surface = this->surface;
@@ -958,7 +998,6 @@ export {
             this->conn = other.conn;
             this->id = other.id;
             this->gc = other.gc;
-            this->owns_gc = other.owns_gc;
             this->width = other.width;
             this->height = other.height;
             this->surface = other.surface;
@@ -966,7 +1005,6 @@ export {
 
             other.surface = tmp_surface;
             other.cr = tmp_cr;
-            other.owns_gc = tmp_owns_gc;
             other.gc = tmp_gc;
         }
 
@@ -1954,6 +1992,8 @@ export {
         /* The connection's libxcb handle, which owns the xcbpp connection behind it. */
         xcb::xcbcompat::unique_handle handle{};
         xcb::Connection *xcbpp_conn{};
+        /* The drawing state of the connection, destroyed before it. */
+        std::optional<DrawContext> draw_context{};
 
       protected:
         xcb_cursor_context_t *ctx;
@@ -2025,6 +2065,14 @@ export {
          */
         xcb_connection_t *c_handle() const {
             return handle.get();
+        }
+
+        /**
+         * The drawing state of the connection, for the surfaces drawn on it. Throws
+         * std::bad_optional_access once the connection is closed, or without one (tests).
+         */
+        DrawContext &drawing() {
+            return draw_context.value();
         }
 
         /**
@@ -3685,6 +3733,13 @@ export {
     uint16_t get_visual_depth(xcb_visualid_t visual_id);
 
     /**
+     * Get depth of visual specified by visualid, among the visuals of the
+     * given screen.
+     *
+     */
+    uint16_t get_visual_depth(xcb_screen_t * screen, xcb_visualid_t visual_id);
+
+    /**
      * Get visual type specified by visualid
      *
      */
@@ -4354,14 +4409,67 @@ export {
     };
 
     /**
-     * Starts an i3-nagbar instance with the given parameters. Takes care of
-     * handling SIGCHLD and killing i3-nagbar when i3 exits.
-     *
-     * The resulting PID will be stored in *nagbar_pid and can be used with
-     * kill_nagbar() to kill the bar later on.
+     * What a nagbar reports: an error in the configuration, a command that
+     * failed, or anything else (the nagbar command). i3 shows one nagbar of
+     * each of the first two kinds at a time.
      *
      */
-    void start_nagbar(pid_t * nagbar_pid,
+    enum class nagbar_kind_t {
+        CONFIG_ERROR,
+        COMMAND_ERROR,
+        OTHER
+    };
+
+    /**
+     * A nagbar that start_nagbar() shows: a window on a connection of its own,
+     * served by a thread of its own. Destroying it closes the window and joins
+     * the thread.
+     *
+     */
+    class NagbarThread {
+        /* An eventfd, which wakes the nagbar's thread when it is stopped. */
+        struct wake_fd_t {
+            int fd;
+
+            wake_fd_t();
+            ~wake_fd_t();
+            wake_fd_t(wake_fd_t const &) = delete;
+            wake_fd_t &operator=(wake_fd_t const &) = delete;
+        } wake{};
+        /* Set by the thread when it ends: the nagbar's user closed it. */
+        std::atomic<bool> done{false};
+
+      public:
+        nagbar_kind_t const kind;
+
+      private:
+        /* Destroyed first, which stops and joins the thread. */
+        std::jthread thread;
+
+      public:
+        NagbarThread(nagbar_kind_t kind, std::vector<button_t> buttons, std::string prompt, std::string pattern,
+                     bar_type_t bar_type, bool position_on_primary);
+        NagbarThread(NagbarThread const &) = delete;
+        NagbarThread &operator=(NagbarThread const &) = delete;
+
+        /**
+         * Returns false once the nagbar's thread has ended.
+         *
+         */
+        bool running() const {
+            return !done.load(std::memory_order_acquire);
+        }
+    };
+
+    /**
+     * Shows a nagbar with the given parameters, unless kind is CONFIG_ERROR or
+     * COMMAND_ERROR and a nagbar of that kind is shown already. It runs until
+     * its user closes it, or until kill_nagbars() closes it.
+     *
+     * Call it from i3's main thread, which owns the nagbars (global.nagbars).
+     *
+     */
+    void start_nagbar(nagbar_kind_t kind,
                       std::vector<button_t> buttons,
                       std::string prompt,
                       std::string pattern,
@@ -4369,13 +4477,14 @@ export {
                       bool position_on_primary);
 
     /**
-     * Kills the i3-nagbar process, if nagbar_pid != -1.
+     * Closes the nagbars of the given kind, or all of them, and waits until
+     * their threads have ended. i3 closes all of them before it exits or
+     * restarts.
      *
-     * If wait_for_it is set (restarting i3), this function will waitpid(),
-     * otherwise, ev is assumed to handle it (reloading).
+     * Call it from i3's main thread.
      *
      */
-    void kill_nagbar(pid_t nagbar_pid, bool wait_for_it);
+    void kill_nagbars(std::optional<nagbar_kind_t> kind = std::nullopt);
 }
 // manage.cppm
 export {
@@ -5203,8 +5312,9 @@ export class Global {
 
     std::vector<std::string> start_argv{};
 
-    pid_t config_error_nagbar_pid = -1;
-    pid_t command_error_nagbar_pid = -1;
+    /* The nagbars that are shown (start_nagbar()). Only the main thread uses
+     * the list. */
+    std::list<NagbarThread> nagbars{};
 
     X *x;
     RandR *randr;

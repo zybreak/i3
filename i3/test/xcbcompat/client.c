@@ -4,7 +4,10 @@
  *                   waits for the ButtonPress that i3 replays (grab_button + allow_events), printing "click ok".
  * client key <kc> : presses and releases keycode <kc> on the root window (exercises i3's key grabs).
  * client orphans  : prints how many top-level windows named "phase2-client" are children of the root
- *                   (after i3 exits, its save set puts them back there). */
+ *                   (after i3 exits, its save set puts them back there).
+ * client docks    : prints "docks <n>", the number of windows of type _NET_WM_WINDOW_TYPE_DOCK (i3's nagbars).
+ * client close-dock : clicks 10 pixels left of the right edge of the first dock window, onto a nagbar's close
+ *                   button (the rightmost, at least 12 pixels wide). */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,6 +27,39 @@ static void fake(xcb_connection_t *c, uint8_t type, uint8_t detail, xcb_window_t
     xcb_test_fake_input(c, type, detail, XCB_CURRENT_TIME, root, x, y, 0);
     xcb_flush(c);
     usleep(50000);
+}
+
+static xcb_atom_t atom(xcb_connection_t *c, const char *name) {
+    xcb_intern_atom_reply_t *r = xcb_intern_atom_reply(c, xcb_intern_atom(c, 0, strlen(name), name), NULL);
+    xcb_atom_t a = r ? r->atom : XCB_NONE;
+    free(r);
+    return a;
+}
+
+/* Collects the dock windows below w into docks (at most max), returns how many there are. */
+static int find_docks(xcb_connection_t *c, xcb_window_t w, xcb_atom_t type, xcb_atom_t dock, xcb_window_t *docks, int max) {
+    int n = 0;
+    xcb_get_property_reply_t *p = xcb_get_property_reply(c, xcb_get_property(c, 0, w, type, XCB_ATOM_ATOM, 0, 16), NULL);
+    if (p) {
+        xcb_atom_t *types = xcb_get_property_value(p);
+        for (int i = 0; i < xcb_get_property_value_length(p) / 4; i++) {
+            if (types[i] == dock) {
+                if (n < max) docks[n] = w;
+                n++;
+                break;
+            }
+        }
+        free(p);
+    }
+    xcb_query_tree_reply_t *r = xcb_query_tree_reply(c, xcb_query_tree(c, w), NULL);
+    if (r) {
+        xcb_window_t *kids = xcb_query_tree_children(r);
+        for (int i = 0; i < xcb_query_tree_children_length(r); i++) {
+            n += find_docks(c, kids[i], type, dock, n < max ? docks + n : NULL, n < max ? max - n : 0);
+        }
+        free(r);
+    }
+    return n;
 }
 
 int main(int argc, char **argv) {
@@ -56,6 +92,26 @@ int main(int argc, char **argv) {
         printf("orphans %d\n", n);
         xcb_disconnect(c);
         return 0;
+    }
+
+    if (argc >= 2 && (strcmp(argv[1], "docks") == 0 || strcmp(argv[1], "close-dock") == 0)) {
+        xcb_window_t docks[1];
+        int n = find_docks(c, s->root, atom(c, "_NET_WM_WINDOW_TYPE"), atom(c, "_NET_WM_WINDOW_TYPE_DOCK"), docks, 1);
+        if (strcmp(argv[1], "docks") == 0) {
+            printf("docks %d\n", n);
+        } else if (n > 0) {
+            xcb_get_geometry_reply_t *g = xcb_get_geometry_reply(c, xcb_get_geometry(c, docks[0]), NULL);
+            xcb_translate_coordinates_reply_t *t = xcb_translate_coordinates_reply(
+                c, xcb_translate_coordinates(c, docks[0], s->root, g->width - 10, 8), NULL);
+            fake(c, XCB_MOTION_NOTIFY, 0, s->root, t->dst_x, t->dst_y);
+            fake(c, XCB_BUTTON_PRESS, 1, s->root, 0, 0);
+            fake(c, XCB_BUTTON_RELEASE, 1, s->root, 0, 0);
+            free(t);
+            free(g);
+        }
+        int found = n > 0 || strcmp(argv[1], "docks") == 0;
+        xcb_disconnect(c);
+        return found ? 0 : 1;
     }
 
     /* manage */

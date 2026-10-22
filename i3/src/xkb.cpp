@@ -295,7 +295,7 @@ static void start_config_error_nagbar(bool has_errors) {
     std::string text = has_errors ? "You have an error in your i3 config file!" : "Your config is outdated. Please fix the warnings to make sure everything works.";
     
     std::vector<button_t> buttons{};
-    start_nagbar(&global.config_error_nagbar_pid, buttons, text, font_pattern, type, false);
+    start_nagbar(nagbar_kind_t::CONFIG_ERROR, buttons, text, font_pattern, type, false);
 }
 
 /*

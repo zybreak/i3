@@ -21,7 +21,11 @@ struct Colorpixel {
     uint32_t pixel;
 };
 
-static std::vector<std::unique_ptr<Colorpixel>> colorpixels{};
+/* A pixel belongs to the connection that allocated it, which the server frees
+ * with it, so each thread has its own cache: a thread allocates colors on one
+ * connection (a nagbar's thread on its own, i3's main thread on i3's), and the
+ * cache of a nagbar's thread ends with the thread, after its connection. */
+static thread_local std::vector<std::unique_ptr<Colorpixel>> colorpixels{};
 
 /*
  * Returns the colorpixel to use for the given hex color (think of HTML).
