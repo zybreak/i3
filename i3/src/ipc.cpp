@@ -186,13 +186,23 @@ static void ipc_send_client_message(ipc_client *client, i3ipc::REPLY_TYPE const 
     ipc_send_client_message(client, static_cast<uint32_t const>(message_type), payload);
 }
 
+/*
+ * Closes the client's connection (unless its fd is exempt_fd) and destroys the
+ * client: the reference is dangling afterwards.
+ *
+ */
 void IPCManager::free_ipc_client(ipc_client &client, int exempt_fd) {
     if (client.fd != exempt_fd) {
         DLOG(fmt::sprintf("Disconnecting client on fd %d\n", client.fd));
         close(client.fd);
     }
 
-    std::erase_if(all_clients, [&client](auto &c) { return *c == client; });
+    /* Find the client by address first, then erase it. Erasing destroys it, so
+     * a predicate that reads it (std::erase_if) would read freed memory once
+     * remove_if moves a later client over its unique_ptr. */
+    auto const it = std::ranges::find_if(all_clients, [&client](auto const &c) { return c.get() == &client; });
+    assert(it != all_clients.end());
+    all_clients.erase(it);
 }
 
 /*

@@ -18,6 +18,7 @@ target_sources(UnitTest PRIVATE
         con_test.cpp
         dump_node_test.cpp
         format_placeholders_test.cpp
+        ipc_test.cpp
         load_layout_test.cpp
         match_test.cpp
         rect_test.cpp
