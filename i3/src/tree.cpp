@@ -31,6 +31,26 @@ import rect;
 import program_arguments;
 
 /*
+ * Calls fn on each container in cons, in order, like upstream's TAILQ_FOREACH_SAFE: fn may remove the container it
+ * is called on from cons and insert containers before it. The next container is taken before fn runs, so the
+ * containers fn inserts are not visited. Either change can invalidate every iterator into the deque, so the next
+ * container is found again by its address. fn must not remove any other container from cons.
+ *
+ */
+template <std::derived_from<Con> T, std::invocable<T *> F>
+static void for_each_safe(std::deque<T *> &cons, F &&fn) {
+    auto next_of = [&cons](T *con) -> T * {
+        auto it = std::ranges::find(cons, con);
+        return (it == cons.end() || std::next(it) == cons.end()) ? nullptr : *std::next(it);
+    };
+    for (T *current = cons.empty() ? nullptr : cons.front(); current != nullptr;) {
+        T *next = next_of(current);
+        std::invoke(fn, current);
+        current = next;
+    }
+}
+
+/*
  * Loads tree from 'path' (used for in-place restarts).
  *
  */
@@ -183,14 +203,13 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
 
     DLOG(fmt::sprintf("closing %p, kill_window = %d\n", fmt::ptr(con), std::to_underlying(kill_window)));
     bool abort_kill = false;
-    /* We cannot use TAILQ_FOREACH because the children get deleted
-     * in their parent’s nodes */
-    for (auto &child : con->nodes) {
+    /* Each child that gets closed removes itself from con->nodes. */
+    for_each_safe(con->nodes, [&](Con *child) {
         DLOG(fmt::sprintf("killing child=%p\n", fmt::ptr(child)));
         if (!tree_close_internal(child, kill_window, true)) {
             abort_kill = true;
         }
-    }
+    });
 
     if (abort_kill) {
         DLOG("One of the children could not be killed immediately (WM_DELETE sent), aborting.\n");
@@ -637,6 +656,20 @@ Con *get_tree_next_sibling(Con *con, position_t direction) {
 }
 
 /*
+ * Calls tree_flatten() on each child of con, tiling and floating. tree_flatten()
+ * closes a redundant child after moving the child's grandchildren into con,
+ * before the child.
+ *
+ */
+static void tree_flatten_children(Con *con) {
+    for_each_safe(con->nodes, tree_flatten);
+
+    if (auto *ws = dynamic_cast<WorkspaceCon *>(con); ws != nullptr) {
+        for_each_safe(ws->floating_windows, tree_flatten);
+    }
+}
+
+/*
  * tree_flatten() removes pairs of redundant split containers, e.g.:
  *       [workspace, horizontal]
  *   [v-split]           [child3]
@@ -657,31 +690,13 @@ void tree_flatten(Con *con) {
     if (con->type != CT_CON ||
         parent->layout == L_OUTPUT || /* con == "content" */
         con->get_window() != nullptr) {
-        /* We cannot use normal foreach here because tree_flatten might close the current container. */
-        for (auto &current : con->nodes) {
-            tree_flatten(current);
-        }
-
-        if (dynamic_cast<WorkspaceCon *>(con)) {
-            for (auto &current : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
-                tree_flatten(current);
-            }
-        }
+        tree_flatten_children(con);
         return;
     }
 
     /* Ensure it got only one child */
     if (con->nodes.size() != 1) {
-        /* We cannot use normal foreach here because tree_flatten might close the current container. */
-        for (auto &current : con->nodes) {
-            tree_flatten(current);
-        }
-
-        if (dynamic_cast<WorkspaceCon *>(con)) {
-            for (auto &c : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
-                tree_flatten(c);
-            }
-        }
+        tree_flatten_children(con);
         return;
     }
 
@@ -697,16 +712,7 @@ void tree_flatten(Con *con) {
         (child->layout != L_SPLITH && child->layout != L_SPLITV) ||
         con_orientation(con) == con_orientation(child) ||
         con_orientation(child) != con_orientation(parent)) {
-        /* We cannot use normal foreach here because tree_flatten might close the current container. */
-        for (auto &current : con->nodes) {
-            tree_flatten(current);
-        }
-
-        if (dynamic_cast<WorkspaceCon *>(con)) {
-            for (auto &current : dynamic_cast<WorkspaceCon *>(con)->floating_windows) {
-                tree_flatten(current);
-            }
-        }
+        tree_flatten_children(con);
         return;
     }
 
@@ -745,4 +751,10 @@ void tree_flatten(Con *con) {
     /* 4: close the redundant cons */
     DLOG("closing redundant cons\n");
     tree_close_internal(con, kill_window_t::DONT_KILL_WINDOW, true);
+
+    /* Well, we got to abort the recursion here because we destroyed the
+     * container. However, if tree_flatten() is called sufficiently often,
+     * there can’t be the situation of having two pairs of redundant containers
+     * at once. Therefore, we can safely abort the recursion on this level
+     * after flattening. */
 }

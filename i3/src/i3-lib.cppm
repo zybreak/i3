@@ -2042,8 +2042,11 @@ export {
 
         xcb_visualtype_t *get_visual_type_for_root();
 
-        /* For tests: no connection. */
-        explicit X(std::nullptr_t) {
+        /* For tests: no connection. c_handle() is the handle libxcb's xcb_connect() returns for a connection that
+         * couldn't be made, on which requests are dropped and no reply arrives, so that code which sends requests
+         * (x_con_kill(), …) can run in tests. */
+        explicit X(std::nullptr_t)
+            : handle{xcb::xcbcompat::adopt(std::unique_ptr<xcb::Connection>{})} {
         }
 
       public:

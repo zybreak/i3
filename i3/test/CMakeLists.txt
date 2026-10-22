@@ -23,6 +23,7 @@ target_sources(UnitTest PRIVATE
         match_test.cpp
         rect_test.cpp
         regex_test.cpp
+        tree_test.cpp
         utils_test.cpp
         util_test.cpp
         workspace_manager_test.cpp
