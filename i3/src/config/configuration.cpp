@@ -229,12 +229,6 @@ void ConfigurationManager::set_config(std::unique_ptr<Config> _config) {
     }
 }
 
-Config::Config() {
-    auto *config = this;
-    Mode default_mode{"default"};
-    config->modes.insert_or_assign("default", default_mode);
-}
-
 void ConfigurationManager::init_color(Config &config) {
     /* Initialize default colors */
     config.client.background = draw_util_hex_to_color(x.c_handle(), x.root_screen, "#000000");

@@ -694,10 +694,11 @@ export {
         std::optional<std::string> restart_state_path{};
 
         layout_t default_layout{layout_t::L_DEFAULT};
-        int container_stack_limit;
-        int container_stack_limit_value;
-        int default_border_width;
-        int default_floating_border_width;
+        int container_stack_limit{0};
+        int container_stack_limit_value{0};
+        /* Unscaled; ConfigurationManager::init_color() sets logical_px(2). */
+        int default_border_width{2};
+        int default_floating_border_width{2};
 
         /** Default orientation for new containers */
         orientation_t default_orientation{orientation_t::NO_ORIENTATION};
@@ -706,7 +707,7 @@ export {
          * turn this off (and instead rely only on the keyboard for changing
          * focus), we allow them to do this with this relatively special option.
          * It is not planned to add any different focus models. */
-        bool disable_focus_follows_mouse;
+        bool disable_focus_follows_mouse{false};
 
         /** By default, when switching focus to a window on a different output
          * (e.g. focusing a window on workspace 3 on output VGA-1, coming from
@@ -728,7 +729,7 @@ export {
          * If you want to have a more fancy bar, it is recommended to replace
          * the whole bar by dzen2, for example using the i3-wsbar script which
          * comes with i3. Thus, you can turn it off entirely. */
-        bool disable_workspace_bar;  // TODO: remove
+        bool disable_workspace_bar{false};  // TODO: remove
 
         /** When focus wrapping is enabled (the default), attempting to
          * move focus past the edge of the screen (in other words, in a
@@ -753,7 +754,7 @@ export {
          * switch to the currently active workspace will switch to the
          * previously focused one instead, making it possible to fast toggle
          * between two workspaces. */
-        bool workspace_auto_back_and_forth;
+        bool workspace_auto_back_and_forth{false};
 
         /** By default, urgency is cleared immediately when switching to another
          * workspace leads to focusing the con with the urgency hint. When having
@@ -763,7 +764,7 @@ export {
         float workspace_urgency_timer{0.5};
 
         /** Behavior when a window sends a NET_ACTIVE_WINDOW message. */
-        conf_fowa_t focus_on_window_activation;
+        conf_fowa_t focus_on_window_activation{conf_fowa_t::FOWA_SMART};
 
         /** Title alignment options. */
         title_align_t title_align{title_align_t::ALIGN_LEFT};
@@ -776,21 +777,22 @@ export {
 
         /** The modifier which needs to be pressed in combination with your mouse
          * buttons to do things with floating windows (move, resize) */
-        uint32_t floating_modifier;
+        uint32_t floating_modifier{0};
         
-        /** Maximum and minimum dimensions of a floating window */
-        int32_t floating_maximum_width;
-        int32_t floating_maximum_height;
-        int32_t floating_minimum_width;
-        int32_t floating_minimum_height;
+        /** Maximum and minimum dimensions of a floating window: 0 means i3's
+         * built-in limit, -1 means unconstrained. */
+        int32_t floating_maximum_width{0};
+        int32_t floating_maximum_height{0};
+        int32_t floating_minimum_width{0};
+        int32_t floating_minimum_height{0};
 
         /* Color codes are stored here */
         config_client client{};
 
-        config_bar bar;  // TODO: remove
+        config_bar bar{};  // TODO: remove
 
         /** What should happen when a new popup is opened during fullscreen mode */
-        conf_pdf_t popup_during_fullscreen;
+        conf_pdf_t popup_during_fullscreen{conf_pdf_t::PDF_SMART};
 
         tiling_drag_t tiling_drag{tiling_drag_t::TILING_DRAG_MODIFIER};
         
@@ -805,15 +807,13 @@ export {
         smart_gaps_t smart_gaps{smart_gaps_t::SMART_GAPS_OFF};
 
         std::filesystem::path current_configpath{};
-        std::map<std::string, Mode> modes{};
+        std::map<std::string, Mode> modes{{"default", Mode{"default"}}};
         std::vector<IncludedFile> included_files{};
         std::string _current_mode{"default"};
 
         Mode *current_mode() {
             return &modes.at(_current_mode);
         };
-
-        Config();
     };
 
     /**
@@ -2271,8 +2271,8 @@ export {
       public:
         std::string name{};
         std::string output{};
-        gaps_t gaps;
-        gaps_mask_t gaps_mask;
+        gaps_t gaps{};
+        gaps_mask_t gaps_mask{static_cast<gaps_mask_t>(0)};
 
         auto operator<=>(WorkspaceConfig const &) const = default;
         WorkspaceConfig &operator=(WorkspaceConfig const &) = default;
