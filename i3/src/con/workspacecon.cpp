@@ -48,10 +48,6 @@ void WorkspaceCon::con_attach(Con *parent, bool ignore_focus, Con *previous_con)
         } else {
             while (current && current->num != -1 && this->num >= current->num) {
                 current = dynamic_cast<WorkspaceCon *>(con::next(current, parent->nodes));
-                if (current == con::last(parent->nodes)) {
-                    current = nullptr;
-                    break;
-                }
             }
             /* we need to insert con before current, if current is not NULL */
             if (current) {
