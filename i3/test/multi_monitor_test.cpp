@@ -99,6 +99,24 @@ namespace {
         return std::nullopt;
     }
 
+    /* The outputs (their names) whose dock areas hold a client window in i3's tree @p root: i3's nagbars are docks. */
+    std::vector<std::string> outputs_with_docks(json const &root) {
+        std::vector<std::string> outputs;
+        for (auto const &output : root.at("nodes")) {
+            for (auto const &area : output.at("nodes")) {
+                if (area.value("type", "") != "dockarea") {
+                    continue;
+                }
+                for (auto const &dock : area.at("nodes")) {
+                    if (dock.contains("window") && dock.at("window").is_number()) {
+                        outputs.push_back(output.at("name").get<std::string>());
+                    }
+                }
+            }
+        }
+        return outputs;
+    }
+
     /* A mapped top-level window of a client of the test's own, on xcbpp. */
     class TestWindow {
       public:
@@ -124,6 +142,13 @@ namespace {
 
         [[nodiscard]] std::uint32_t id() const noexcept {
             return id_;
+        }
+
+        /* Gives the window the input focus (SetInputFocus at CurrentTime), and waits until the server has. */
+        [[nodiscard]] bool focus() const {
+            xcb::xproto::set_input_focus(connection_.get(), xcb::xproto::input_focus_t::INPUT_FOCUS_POINTER_ROOT, id_, 0);
+            auto const reply = xcb::xproto::get_input_focus(connection_.get()).get();
+            return reply && reply->focus == id_;
         }
 
       private:
@@ -157,6 +182,11 @@ namespace {
             ASSERT_TRUE(set) << set.error();
         }
 
+        void set_primary_output(std::string const &name) {
+            auto const set = monitors().set_primary_output(name);
+            ASSERT_TRUE(set) << set.error();
+        }
+
         void delete_monitor(std::string const &name) {
             auto const removed = monitors().remove(name);
             ASSERT_TRUE(removed) << removed.error();
@@ -170,9 +200,10 @@ namespace {
             return std::move(*listed);
         }
 
-        void start_i3() {
+        /* Starts i3 with a configuration of a font, the IPC socket, and @p extra_config. */
+        void start_i3(std::string_view extra_config = {}) {
             auto const config = work_dir() / "config";
-            std::ofstream{config} << std::format("# i3 config file (v4)\nfont pango:monospace 8\nipc-socket {}\n", ipc_socket().native());
+            std::ofstream{config} << std::format("# i3 config file (v4)\nfont pango:monospace 8\nipc-socket {}\n{}", ipc_socket().native(), extra_config);
             auto i3 = I3Process::start({.binary = I3_TEST_I3,
                                         .config = config,
                                         .ipc_socket = ipc_socket(),
@@ -330,6 +361,100 @@ TEST_F(MultiMonitorTest, DISABLED_FocusOutputFocusesTheNamedOutput) {
 
     ASSERT_NO_FATAL_FAILURE(command("focus output right"));
     EXPECT_THAT(workspaces(), UnorderedElementsAre(WorkspaceState{"1", "left", left_half, true, false}, WorkspaceState{"2", "right", right_half, true, true}));
+}
+
+/*
+ * Focus moving to another output warps the pointer to the middle of its workspace (mouse_warping output, the default):
+ * x_push_changes() queries the pointer and, if it is on another output, warps it.
+ */
+TEST_F(MultiMonitorTest, FocusMovingToAnotherOutputWarpsThePointer) {
+    ASSERT_NO_FATAL_FAILURE(set_monitor(left_monitor()));
+    ASSERT_NO_FATAL_FAILURE(set_monitor(right_monitor()));
+    ASSERT_NO_FATAL_FAILURE(start_i3());
+    int screen = 0;
+    auto connection = xcb::connect(server().display(), &screen);
+    ASSERT_TRUE(connection) << "error " << std::to_underlying(connection.error());
+    auto const root = xcb::get_setup(**connection)->get_roots()[static_cast<std::size_t>(screen)].root;
+    auto const pointer = [&] {
+        auto const reply = xcb::xproto::query_pointer(connection->get(), root).get();
+        return reply ? std::pair{static_cast<int>(reply->root_x), static_cast<int>(reply->root_y)} : std::pair{-1, -1};
+    };
+
+    ASSERT_NO_FATAL_FAILURE(command("focus right"));
+    EXPECT_EQ(pointer(), (std::pair{1536, 384}));
+    ASSERT_NO_FATAL_FAILURE(command("focus left"));
+    EXPECT_EQ(pointer(), (std::pair{512, 384}));
+    /* On the same output, focus doesn't warp. */
+    ASSERT_NO_FATAL_FAILURE(command("workspace 3"));
+    EXPECT_EQ(pointer(), (std::pair{512, 384}));
+}
+
+/*
+ * A RandR 1.5 monitor (RandR::randr_query_outputs_15(): GetMonitors, GetAtomName, GetOutputInfo) is an output named
+ * after the monitor, which also answers to the names of the RandR outputs it shows: "left" shows Xvfb's "screen".
+ */
+TEST_F(MultiMonitorTest, AMonitorIsAlsoNamedAfterItsRandROutputs) {
+    ASSERT_NO_FATAL_FAILURE(set_monitor(left_monitor()));
+    ASSERT_NO_FATAL_FAILURE(set_monitor(right_monitor()));
+    ASSERT_NO_FATAL_FAILURE(start_i3());
+    ASSERT_NO_FATAL_FAILURE(command("workspace 2"));
+    /* Defect: i3 crashes at startup with a workspace assigned to an output (global.randr is null while RandR's
+     * constructor sets up the outputs' workspaces), so the assignment comes with a reload. */
+    std::ofstream{work_dir() / "config", std::ios::app} << "workspace 7 output screen\n";
+    ASSERT_NO_FATAL_FAILURE(command("reload"));
+
+    ASSERT_NO_FATAL_FAILURE(command("workspace 7"));
+
+    /* Without the alias, workspace 7 would open on the focused output, "right". Workspace 1, empty, is gone. */
+    EXPECT_THAT(workspaces(), UnorderedElementsAre(WorkspaceState{"2", "right", right_half, true, false}, WorkspaceState{"7", "left", left_half, true, true}));
+}
+
+/*
+ * A nagbar (nagbar.cpp, a connection and a thread of its own) is placed where the focused window is
+ * (set_window_position_focus(): GetInputFocus, GetGeometry, TranslateCoordinates), and i3 docks it on that output.
+ */
+TEST_F(MultiMonitorTest, ANagbarIsShownOnTheOutputOfTheFocusedWindow) {
+    ASSERT_NO_FATAL_FAILURE(set_monitor(left_monitor()));
+    ASSERT_NO_FATAL_FAILURE(set_monitor(right_monitor()));
+    ASSERT_NO_FATAL_FAILURE(start_i3());
+    ASSERT_NO_FATAL_FAILURE(command("workspace 2"));
+    auto window = TestWindow::map(server().display());
+    ASSERT_TRUE(window) << window.error();
+    ASSERT_TRUE(poll_until([&] { return workspace_of_window(request(i3ipc::MESSAGE_TYPE::GET_TREE), window->id()) == "2"; }, std::chrono::seconds{5}))
+        << "i3 manages the window on workspace 2, on the right output";
+    /* Defect (HEAD too): i3 focuses the window, but it doesn't always get the X input focus (6 of 40 runs). The nagbar
+     * reads the X input focus, so the test gives it the focus itself. */
+    ASSERT_TRUE(window->focus()) << "the window has the input focus";
+
+    ASSERT_NO_FATAL_FAILURE(command(R"(nagbar error "on the focused output" "pango:monospace 8" false "OK" "true" false)"));
+
+    EXPECT_TRUE(poll_until([&] { return !outputs_with_docks(request(i3ipc::MESSAGE_TYPE::GET_TREE)).empty(); }, std::chrono::seconds{5}));
+    EXPECT_THAT(outputs_with_docks(request(i3ipc::MESSAGE_TYPE::GET_TREE)), ElementsAre("right"));
+    /* The window's position on the root window: inside its frame, on the right half. */
+    EXPECT_THAT(read_file(work_dir() / "i3.log"), ::testing::ContainsRegex("Found current focus at x = 1[0-9][0-9][0-9] / y = [0-9]+\\."));
+}
+
+/*
+ * A nagbar on the primary output (set_window_position_primary(): RandR GetScreenResourcesCurrent, GetOutputPrimary,
+ * GetOutputInfo and GetCrtcInfo) is placed at the primary RandR output's CRTC, whatever has the focus: Xvfb's only
+ * RandR output, "screen", whose CRTC shows the whole screen from (0, 0), so i3 docks it on the left output.
+ */
+TEST_F(MultiMonitorTest, ANagbarOnThePrimaryOutputIsShownAtItsCrtc) {
+    ASSERT_NO_FATAL_FAILURE(set_monitor(left_monitor()));
+    ASSERT_NO_FATAL_FAILURE(set_monitor(right_monitor()));
+    ASSERT_NO_FATAL_FAILURE(set_primary_output("screen"));
+    ASSERT_NO_FATAL_FAILURE(start_i3());
+    ASSERT_NO_FATAL_FAILURE(command("workspace 2"));
+    auto window = TestWindow::map(server().display());
+    ASSERT_TRUE(window) << window.error();
+    ASSERT_TRUE(poll_until([&] { return workspace_of_window(request(i3ipc::MESSAGE_TYPE::GET_TREE), window->id()) == "2"; }, std::chrono::seconds{5}))
+        << "i3 manages the window on workspace 2, on the right output";
+
+    ASSERT_NO_FATAL_FAILURE(command(R"(nagbar error "on the primary output" "pango:monospace 8" true "OK" "true" false)"));
+
+    EXPECT_TRUE(poll_until([&] { return !outputs_with_docks(request(i3ipc::MESSAGE_TYPE::GET_TREE)).empty(); }, std::chrono::seconds{5}));
+    EXPECT_THAT(outputs_with_docks(request(i3ipc::MESSAGE_TYPE::GET_TREE)), ElementsAre("left"));
+    EXPECT_THAT(read_file(work_dir() / "i3.log"), ::testing::HasSubstr("Found primary output on position x = 0 / y = 0 / w = 2048 / h = 768."));
 }
 
 TEST_F(MultiMonitorTest, DeletingAMonitorMovesItsFocusedWorkspaceToThePrimaryOutput) {

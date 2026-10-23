@@ -181,20 +181,20 @@ static void handle_frame_extents(xcb_client_message_event_t *event) {
     DLOG(fmt::sprintf("_NET_REQUEST_FRAME_EXTENTS for window 0x%08x\n", event->window));
 
     /* The reply data: approximate frame size */
-    Rect r = {
+    std::array<uint32_t, 4> const r{
         static_cast<uint32_t>(global.configManager->config->default_border_width), /* left */
         static_cast<uint32_t>(global.configManager->config->default_border_width), /* right */
         static_cast<uint32_t>(render_deco_height()),                               /* top */
         static_cast<uint32_t>(global.configManager->config->default_border_width)  /* bottom */
     };
-    xcb_change_property(
-        global.x->c_handle(),
-        XCB_PROP_MODE_REPLACE,
+    x_change_property(
+        global.x->connection(),
+        xcb::xproto::prop_mode_t::PROP_MODE_REPLACE,
         event->window,
         i3::atoms[i3::Atom::_NET_FRAME_EXTENTS],
-        XCB_ATOM_CARDINAL, 32, 4,
-        &r);
-    xcb_flush(global.x->c_handle());
+        XCB_ATOM_CARDINAL,
+        std::span{r});
+    global.x->connection().flush();
 }
 
 static void handle_current_desktop(xcb_client_message_event_t *event) {
@@ -221,9 +221,9 @@ static void handle_change_state(xcb_client_message_event_t *event) {
         /* For compatibility reasons, Wine will request iconic state and cannot ensure that the WM has agreed on it;
          * immediately revert to normal to avoid being stuck in a paused state. */
         DLOG(fmt::sprintf("Client has requested iconic state, rejecting. (window = %08x)\n", event->window));
-        long data[] = {XCB_ICCCM_WM_STATE_NORMAL, XCB_NONE};
-        xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, event->window,
-                            i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], 32, 2, data);
+        std::array<uint32_t, 2> const data{XCB_ICCCM_WM_STATE_NORMAL, XCB_NONE};
+        x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, event->window,
+                          i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], std::span{data});
     } else {
         DLOG(fmt::sprintf("Not handling WM_CHANGE_STATE request. (window = %08x, state = %d)\n", event->window, event->data.data32[0]));
     }

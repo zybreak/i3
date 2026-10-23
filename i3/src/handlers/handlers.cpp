@@ -313,27 +313,31 @@ void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *e
     if (con == nullptr) {
         DLOG("Configure request for unmanaged window, can do that.\n");
 
-        uint32_t mask = 0;
-        uint32_t values[7];
-        int c = 0;
-#define COPY_MASK_MEMBER(mask_member, event_member) \
-    do {                                            \
-        if (event->value_mask & mask_member) {      \
-            mask |= mask_member;                    \
-            values[c++] = event->event_member;      \
-        }                                           \
-    } while (0)
+        xcb::xproto::ConfigureWindowValueList values{};
+        if (event->value_mask & XCB_CONFIG_WINDOW_X) {
+            values.with_x(event->x);
+        }
+        if (event->value_mask & XCB_CONFIG_WINDOW_Y) {
+            values.with_y(event->y);
+        }
+        if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
+            values.with_width(event->width);
+        }
+        if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
+            values.with_height(event->height);
+        }
+        if (event->value_mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+            values.with_border_width(event->border_width);
+        }
+        if (event->value_mask & XCB_CONFIG_WINDOW_SIBLING) {
+            values.with_sibling(event->sibling);
+        }
+        if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+            values.with_stack_mode(static_cast<xcb::xproto::stack_mode_t>(event->stack_mode));
+        }
 
-        COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_X, x);
-        COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_Y, y);
-        COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_WIDTH, width);
-        COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_HEIGHT, height);
-        COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_BORDER_WIDTH, border_width);
-        COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_SIBLING, sibling);
-        COPY_MASK_MEMBER(XCB_CONFIG_WINDOW_STACK_MODE, stack_mode);
-
-        xcb_configure_window(x.c_handle(), event->window, mask, values);
-        xcb_flush(x.c_handle());
+        xcb::xproto::configure_window(&x.connection(), event->window, values);
+        x.connection().flush();
 
         return;
     }
@@ -457,9 +461,8 @@ void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
 
     /* The geometry of the root window is used for “fullscreen global” and
      * changes when new outputs are added. */
-    xcb_get_geometry_cookie_t cookie = xcb_get_geometry(x.c_handle(), x.root);
-    xcb_get_geometry_reply_t *reply = xcb_get_geometry_reply(x.c_handle(), cookie, nullptr);
-    if (reply == nullptr) {
+    auto const reply = xcb::xproto::get_geometry(&x.connection(), x.root).get();
+    if (!reply) {
         ELOG("Could not get geometry of the root window, exiting\n");
         exit(EXIT_FAILURE);
     }
@@ -480,7 +483,7 @@ void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
  */
 void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event) {
     DLOG(fmt::sprintf("UnmapNotify for 0x%08x (received from 0x%08x), serial %d\n", event->window, event->event, event->sequence));
-    xcb_get_input_focus_cookie_t cookie;
+    std::future<std::expected<xcb::xproto::GetInputFocusReplyObj, xcb::generic_error_t>> cookie{};
     ConCon *con = con_by_window_id(event->window);
     if (con == nullptr) {
         /* This could also be an UnmapNotify for the frame. We need to
@@ -495,13 +498,13 @@ void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event
             con->ignore_unmap--;
         }
         /* See the end of this function. */
-        cookie = xcb_get_input_focus(x.c_handle());
+        cookie = xcb::xproto::get_input_focus(&x.connection());
         DLOG(fmt::sprintf("ignore_unmap = %d for frame of container %p\n", con->ignore_unmap, fmt::ptr(con)));
         goto ignore_end;
     }
 
     /* See the end of this function. */
-    cookie = xcb_get_input_focus(global.x->c_handle());
+    cookie = xcb::xproto::get_input_focus(&global.x->connection());
 
     if (con->ignore_unmap > 0) {
         DLOG(fmt::sprintf("ignore_unmap = %d, dec\n", con->ignore_unmap));
@@ -511,8 +514,8 @@ void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event
 
     /* Since we close the container, we need to unset _NET_WM_DESKTOP and
      * _NET_WM_STATE according to the spec. */
-    xcb_delete_property(global.x->c_handle(), event->window, i3::atoms[i3::Atom::_NET_WM_DESKTOP]);
-    xcb_delete_property(global.x->c_handle(), event->window, i3::atoms[i3::Atom::_NET_WM_STATE]);
+    xcb::xproto::delete_property(&global.x->connection(), event->window, i3::atoms[i3::Atom::_NET_WM_DESKTOP]);
+    xcb::xproto::delete_property(&global.x->connection(), event->window, i3::atoms[i3::Atom::_NET_WM_STATE]);
 
     tree_close_internal(con, kill_window_t::DONT_KILL_WINDOW, false);
     tree_render();
@@ -538,7 +541,7 @@ ignore_end:
      * into fullscreen and moving the pointer to a different window, without
      * using GetInputFocus, subsequent (legitimate) EnterNotify events arrived
      * with the same sequence and thus were ignored (see ticket #609). */
-    free(xcb_get_input_focus_reply(global.x->c_handle(), cookie, nullptr));
+    std::ignore = cookie.get();
 }
 
 /*
@@ -583,7 +586,7 @@ void PropertyHandlers::handle_expose_event(xcb_expose_event_t *event) {
      * only tell us that the X server lost (parts of) the window contents. */
     draw_util_copy_surface(parent->frame_buffer.get(), parent->frame.get(),
                            0, 0, 0, 0, parent->rect.width, parent->rect.height);
-    xcb_flush(global.x->c_handle());
+    global.x->connection().flush();
 }
 
 static uint32_t const _NET_WM_MOVERESIZE_SIZE_TOPLEFT = 0;

@@ -180,16 +180,16 @@ static void create_indicator(drop_type_t drop_type, direction_t direction, Con *
         if (*(params->indicator) == 0) {
             *(params->indicator) = create_drop_indicator(rect);
         } else {
-            uint32_t const values[4] = {rect.x, rect.y, rect.width, rect.height};
-            uint32_t const mask = XCB_CONFIG_WINDOW_X |
-                                  XCB_CONFIG_WINDOW_Y |
-                                  XCB_CONFIG_WINDOW_WIDTH |
-                                  XCB_CONFIG_WINDOW_HEIGHT;
-            xcb_configure_window(global.x->c_handle(), *(params->indicator), mask, values);
+            xcb::xproto::configure_window(&global.x->connection(), *(params->indicator),
+                                          xcb::xproto::ConfigureWindowValueList{}
+                                              .with_x(static_cast<int32_t>(rect.x))
+                                              .with_y(static_cast<int32_t>(rect.y))
+                                              .with_width(rect.width)
+                                              .with_height(rect.height));
         }
     }
     x_mask_event_mask(~XCB_EVENT_MASK_ENTER_WINDOW);
-    xcb_flush(global.x->c_handle());
+    global.x->connection().flush();
 
     *(params->target) = target;
     *(params->direction) = direction;
@@ -201,29 +201,23 @@ static void create_indicator(drop_type_t drop_type, direction_t direction, Con *
  *
  */
 static xcb_window_t create_drop_indicator(Rect rect) {
-    uint32_t mask = 0;
-    uint32_t values[2];
+    auto const values = xcb::xproto::CreateWindowValueList{}
+                            .with_background_pixel(global.configManager->config->client.focused.indicator.colorpixel)
+                            .with_override_redirect(1);
 
-    mask = XCB_CW_BACK_PIXEL;
-    values[0] = global.configManager->config->client.focused.indicator.colorpixel;
-
-    mask |= XCB_CW_OVERRIDE_REDIRECT;
-    values[1] = 1;
-
-    xcb_window_t indicator = create_window(global.x->c_handle(), rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
-                                           XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_MOVE, false, mask, values);
+    xcb_window_t indicator = create_window(global.x->connection(), rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
+                                           XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_MOVE, false, values);
     /* Change the window class to "i3-drag", so that it can be matched in a
      * compositor configuration. Note that the class needs to be changed before
      * mapping the window. */
-    xcb_change_property(global.x->c_handle(),
-                        XCB_PROP_MODE_REPLACE,
-                        indicator,
-                        XCB_ATOM_WM_CLASS,
-                        XCB_ATOM_STRING,
-                        8,
-                        (strlen("i3-drag") + 1) * 2,
-                        "i3-drag\0i3-drag\0");
-    xcb_map_window(global.x->c_handle(), indicator);
+    using namespace std::string_view_literals;
+    x_change_property(global.x->connection(),
+                      xcb::xproto::prop_mode_t::PROP_MODE_REPLACE,
+                      indicator,
+                      XCB_ATOM_WM_CLASS,
+                      XCB_ATOM_STRING,
+                      "i3-drag\0i3-drag\0"sv);
+    xcb::xproto::map_window(&global.x->connection(), indicator);
     xcb::xproto::circulate_window(&global.x->connection(), xcb::xproto::circulate_t::CIRCULATE_RAISE_LOWEST, indicator);
 
     return indicator;
@@ -300,7 +294,7 @@ static void drag_callback(Con *con, Rect const &old_rect, uint32_t new_x, uint32
     /* target == con makes sense only when we are moving away from target's parent. */
     if (drop_type != DT_PARENT && target == con) {
         draw_window = false;
-        xcb_destroy_window(global.x->c_handle(), *(params->indicator));
+        xcb::xproto::destroy_window(&global.x->connection(), *(params->indicator));
         *(params->indicator) = 0;
         return create_indicator(drop_type, direction, target, rect, draw_window, con, old_rect, new_x, new_y, event, params);
     }
@@ -342,7 +336,7 @@ void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bo
 
     /* Don't change focus while dragging. */
     x_mask_event_mask(~XCB_EVENT_MASK_ENTER_WINDOW);
-    xcb_flush(x.c_handle());
+    x.connection().flush();
 
     /* Indicate drop location while dragging. This blocks until the drag is completed. */
     Con *target = nullptr;
@@ -357,7 +351,7 @@ void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bo
     drag_result_t drag_result = inputManager.drag_pointer(con, event, XCB_NONE, XCURSOR_CURSOR_MOVE, use_threshold, cb);
 
     /* Dragging is done. We don't need the indicator window any more. */
-    xcb_destroy_window(x.c_handle(), indicator);
+    xcb::xproto::destroy_window(&x.connection(), indicator);
 
     if (drag_result == DRAG_REVERT ||
         target == nullptr ||

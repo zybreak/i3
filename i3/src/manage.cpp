@@ -9,12 +9,10 @@
  */
 module;
 #include <xcb/xcb.h>
-#include <xcb/xcb_aux.h>
 #include <xcb/xcb_icccm.h>
 #include <fmt/core.h>
 #include <fmt/printf.h>
 
-#include <xcb/shape.h>
 #include <xcb/xcb_keysyms.h>
 module i3;
 
@@ -22,6 +20,7 @@ import std;
 import utils;
 import log;
 import rect;
+import xcb.proto.shape;
 
 template <typename T>
 struct window_data {
@@ -129,20 +128,20 @@ void restore_geometry() {
             DLOG(fmt::sprintf("Re-adding X11 border of %d px\n", con->border_width));
             con->get_window_rect().width += (2 * con->border_width);
             con->get_window_rect().height += (2 * con->border_width);
-            xcb_set_window_rect(global.x->c_handle(), con->get_window()->id, con->get_window_rect());
+            xcb_set_window_rect(global.x->connection(), con->get_window()->id, con->get_window_rect());
             DLOG(fmt::sprintf("placing window %08x at %d %d\n", con->get_window()->id, con->rect.x, con->rect.y));
-            xcb_reparent_window(global.x->c_handle(), con->get_window()->id, global.x->root,
-                                con->rect.x, con->rect.y);
+            xcb::xproto::reparent_window(&global.x->connection(), con->get_window()->id, global.x->root,
+                                         con->rect.x, con->rect.y);
         }
     }
 
     /* Strictly speaking, this line doesn’t really belong here, but since we
      * are syncing, let’s un-register as a window manager first */
-    uint32_t value_list[]{XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT};
-    xcb_change_window_attributes(global.x->c_handle(), global.x->root, XCB_CW_EVENT_MASK, value_list);
+    xcb::xproto::change_window_attributes(&global.x->connection(), global.x->root,
+                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_REDIRECT));
 
-    /* Make sure our changes reach the X server, we restart/exit now */
-    xcb_aux_sync(global.x->c_handle());
+    /* Make sure our changes reach the X server, we restart/exit now: a round trip, as xcb_aux_sync() makes. */
+    std::ignore = xcb::xproto::get_input_focus(&global.x->connection()).get();
 }
 
 /*
@@ -458,8 +457,6 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
 
     auto *geom = &opt_geom.value();
 
-    uint32_t values[1];
-
     /* Set a temporary event mask for the new window, consisting only of
      * PropertyChange and StructureNotify. We need to be notified of
      * PropertyChanges because the client can change its properties *after* we
@@ -469,11 +466,13 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
      * we get to re-parent it.
      * If this request fails, we assume the client has already unmapped the
      * window between the MapRequest and our event mask change. */
-    values[0] = XCB_EVENT_MASK_PROPERTY_CHANGE |
-                XCB_EVENT_MASK_STRUCTURE_NOTIFY;
-    xcb_void_cookie_t event_mask_cookie =
-        xcb_change_window_attributes_checked(global.x->c_handle(), window, XCB_CW_EVENT_MASK, values);
-    if (xcb_request_check(global.x->c_handle(), event_mask_cookie) != nullptr) {
+    auto const event_mask_error =
+        xcb::xproto::change_window_attributes_checked(&global.x->connection(), window,
+                                                      xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(
+                                                          xcb::xproto::event_mask_t::EVENT_MASK_PROPERTY_CHANGE |
+                                                          xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY))
+            .get();
+    if (event_mask_error) {
         LOG("Could not change event mask, the window probably already disappeared.\n");
         return;
     }
@@ -659,18 +658,20 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
 
     /* to avoid getting an UnmapNotify event due to reparenting, we temporarily
      * declare no interest in any state change event of this window */
-    values[0] = XCB_NONE;
-    xcb_change_window_attributes(global.x->c_handle(), window, XCB_CW_EVENT_MASK, values);
+    xcb::Connection &conn = global.x->connection();
+    xcb::xproto::change_window_attributes(&conn, window,
+                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_NO_EVENT));
 
-    xcb_void_cookie_t rcookie = xcb_reparent_window_checked(global.x->c_handle(), window, nc->frame->id, 0, 0);
-    if (xcb_request_check(global.x->c_handle(), rcookie) != nullptr) {
+    if (xcb::xproto::reparent_window_checked(&conn, window, nc->frame->id, 0, 0).get()) {
         LOG("Could not reparent the window, aborting\n");
         return;
     }
 
-    values[0] = CHILD_EVENT_MASK & ~XCB_EVENT_MASK_ENTER_WINDOW;
-    xcb_change_window_attributes(global.x->c_handle(), window, XCB_CW_EVENT_MASK, values);
-    xcb_flush(global.x->c_handle());
+    /* event_mask_t is a bit mask: any combination of its bits is valid. */
+    xcb::xproto::change_window_attributes(&conn, window,
+                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(
+                                              static_cast<xcb::xproto::event_mask_t>(CHILD_EVENT_MASK & ~XCB_EVENT_MASK_ENTER_WINDOW))); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+    conn.flush();
 
     /* Put the client inside the save set. Upon termination (whether killed or
      * normal exit does not matter) of the window manager, these clients will
@@ -681,19 +682,14 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     if (global.x->shape_supported) {
         /* Receive ShapeNotify events whenever the client altered its window
          * shape. */
-        xcb_shape_select_input(global.x->c_handle(), window, true);
+        xcb::shape::shape_select_input(&conn, window, true);
 
         /* Check if the window is shaped. Sadly, we can check only for the
          * bounding shape, not for the input shape. */
-        xcb_shape_query_extents_cookie_t cookie =
-            xcb_shape_query_extents(global.x->c_handle(), window);
-        xcb_shape_query_extents_reply_t *reply =
-            xcb_shape_query_extents_reply(global.x->c_handle(), cookie, nullptr);
-        if (reply != nullptr && reply->bounding_shaped) {
+        auto const reply = xcb::shape::shape_query_extents(&conn, window).get();
+        if (reply && reply->bounding_shaped) {
             nc->get_window()->shaped = true;
         }
-        free(reply);
-        reply = nullptr;
     }
 
     /* Check if any assignments match */
@@ -776,7 +772,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     /* Destroy the old frame if we had to reframe the container. This needs to be done
      * after rendering in order to prevent the background from flickering in its place. */
     if (old_frame != XCB_NONE) {
-        xcb_destroy_window(global.x->c_handle(), old_frame);
+        xcb::xproto::destroy_window(&global.x->connection(), old_frame);
     }
 
     /* Windows might get managed with the urgency hint already set (Pidgin is
@@ -851,7 +847,7 @@ ConCon *remanage_window(ConCon *con) {
     /* Destroy the old frame if we had to reframe the container. This needs to be done
      * after rendering in order to prevent the background from flickering in its place. */
     if (old_frame != XCB_NONE) {
-        xcb_destroy_window(global.x->c_handle(), old_frame);
+        xcb::xproto::destroy_window(&global.x->connection(), old_frame);
     }
 
     global.assignmentManager->run_assignments(nc->get_window());

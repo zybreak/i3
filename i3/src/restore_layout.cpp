@@ -55,46 +55,44 @@ struct placeholder_state {
 
 static std::deque<std::unique_ptr<placeholder_state>> states{};
 
+/* The placeholders' connection: its libxcb handle, which owns it, for xcb-icccm and the drawing code, and the xcbpp
+ * connection behind it. */
 static xcb_connection_t *restore_conn;
+static xcb::Connection *restore_xconn;
 /* The drawing state of restore_conn, for the placeholders' surfaces. */
 static std::optional<DrawContext> restore_drawing;
 
 static ev_io *xcb_watcher;
 static ev_prepare *xcb_prepare;
 
-static void restore_handle_event(int type, xcb_generic_event_t *event);
+static void restore_handle_event(int type, xcb::generic_event_t *event);
 
 /* Documentation for these functions can be found in src/main.c, starting at xcb_got_event */
 static void restore_xcb_got_event(EV_P_ ev_io *w, int revents) {
 }
 
 static void restore_xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
-    xcb_generic_event_t *event;
-
-    if (xcb_connection_has_error(restore_conn)) {
+    if (restore_xconn->connection_has_error()) {
         DLOG("restore X11 connection has an error, reconnecting\n");
         restore_connect();
         return;
     }
 
-    while ((event = xcb_poll_for_event(restore_conn)) != nullptr) {
+    while (auto const event = restore_xconn->poll_for_event()) {
         if (event->response_type == 0) {
-            auto *error = (xcb_generic_error_t *)event;
+            auto const *error = reinterpret_cast<xcb::generic_error_t const *>(event.get());
             DLOG(fmt::sprintf("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
                               error->sequence, error->error_code));
-            free(event);
             continue;
         }
 
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
 
-        restore_handle_event(type, event);
-
-        free(event);
+        restore_handle_event(type, event.get());
     }
 
-    xcb_flush(restore_conn);
+    restore_xconn->flush();
 }
 
 /*
@@ -125,7 +123,9 @@ void restore_connect() {
 
     int screen;
     restore_conn = x_connect(&screen);
-    if (restore_conn == nullptr || xcb_connection_has_error(restore_conn)) {
+    /* Null for libxcb's handle of a connection that couldn't be made. */
+    restore_xconn = xcb::xcbcompat::connection(restore_conn);
+    if (restore_xconn == nullptr || restore_xconn->connection_has_error()) {
         if (restore_conn != nullptr) {
             xcb_disconnect(restore_conn);
         }
@@ -139,7 +139,7 @@ void restore_connect() {
     xcb_watcher = new ev_io{};
     xcb_prepare = new ev_prepare{};
 
-    ev_io_init(xcb_watcher, restore_xcb_got_event, xcb_get_file_descriptor(restore_conn), EV_READ);
+    ev_io_init(xcb_watcher, restore_xcb_got_event, restore_xconn->get_file_descriptor(), EV_READ);
     ev_io_start(global.main_loop, xcb_watcher);
 
     ev_prepare_init(xcb_prepare, restore_xcb_prepare_cb);
@@ -153,7 +153,8 @@ static void update_placeholder_contents(X &conn, placeholder_state *state) {
     state->surface->draw_util_clear_surface(background);
 
     // TODO: make i3font functions per-connection, at least these two for now…?
-    xcb_aux_sync(restore_conn);
+    /* A round trip, as xcb_aux_sync() makes. */
+    std::ignore = xcb::xproto::get_input_focus(restore_xconn).get();
 
     int n = 0;
     for (auto &swallows : state->con->swallow) {
@@ -195,7 +196,7 @@ static void update_placeholder_contents(X &conn, placeholder_state *state) {
     int x = (state->rect.width / 2) - (text_width / 2);
     int y = (state->rect.height / 2) - (global.configManager->config->font->height / 2);
     state->surface->draw_util_text(*global.configManager->config->font, line, foreground, background, x, y, text_width);
-    xcb_aux_sync(restore_conn);
+    std::ignore = xcb::xproto::get_input_focus(restore_xconn).get();
 }
 
 static void open_placeholder_window(X &conn, Con *con) {
@@ -203,19 +204,17 @@ static void open_placeholder_window(X &conn, Con *con) {
         (con->get_window() == nullptr || con->get_window()->id == XCB_NONE) &&
         !con->swallow.empty() &&
         con->type == CT_CON) {
-        uint32_t values[]{
-            global.configManager->config->client.placeholder.background.colorpixel,
-            XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY,
-        };
+        auto const values = xcb::xproto::CreateWindowValueList{}
+                                .with_background_pixel(global.configManager->config->client.placeholder.background.colorpixel)
+                                .with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_EXPOSURE | xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY);
         xcb_window_t placeholder = create_window(
-            restore_conn,
+            *restore_xconn,
             con->rect,
             XCB_COPY_FROM_PARENT,
             XCB_COPY_FROM_PARENT,
             XCB_WINDOW_CLASS_INPUT_OUTPUT,
             XCURSOR_CURSOR_POINTER,
             true,
-            XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK,
             values);
         /* Make i3 not focus this window. */
         xcb_icccm_wm_hints_t hints;
@@ -226,8 +225,8 @@ static void open_placeholder_window(X &conn, Con *con) {
          * slightly confusing in the first instant, this brings additional
          * clarity to which placeholder is waiting for which actual window. */
         if (!con->name.empty()) {
-            xcb_change_property(restore_conn, XCB_PROP_MODE_REPLACE, placeholder,
-                                i3::atoms[i3::Atom::_NET_WM_NAME], i3::atoms[i3::Atom::UTF8_STRING], 8, con->name.length(), con->name.c_str());
+            x_change_property(*restore_xconn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, placeholder,
+                              i3::atoms[i3::Atom::_NET_WM_NAME], i3::atoms[i3::Atom::UTF8_STRING], std::string_view{con->name});
         }
         DLOG(fmt::sprintf("Created placeholder window 0x%08x for leaf container %p / %s\n",
                           placeholder, fmt::ptr(con), con->name));
@@ -275,7 +274,7 @@ void restore_open_placeholder_windows(Con *parent) {
         }
     }
 
-    xcb_flush(restore_conn);
+    restore_xconn->flush();
 }
 
 /*
@@ -292,7 +291,7 @@ bool restore_kill_placeholder(xcb_window_t placeholder) {
             continue;
         }
 
-        xcb_destroy_window(restore_conn, state->window);
+        xcb::xproto::destroy_window(restore_xconn, state->window);
         state->surface.reset();
         state_ptr = states.erase(state_ptr);
         DLOG(fmt::sprintf("placeholder window 0x%08x destroyed.\n", placeholder));
@@ -303,7 +302,7 @@ bool restore_kill_placeholder(xcb_window_t placeholder) {
     return false;
 }
 
-static void expose_event(xcb_expose_event_t *event) {
+static void expose_event(xcb::xproto::expose_event_t *event) {
     for (auto &state : states) {
         if (state->window != event->window) {
             continue;
@@ -325,7 +324,7 @@ static void expose_event(xcb_expose_event_t *event) {
  * re-rendering.
  *
  */
-static void configure_notify(xcb_configure_notify_event_t *event) {
+static void configure_notify(xcb::xproto::configure_notify_event_t *event) {
     for (auto &state : states) {
         if (state->window != event->window) {
             continue;
@@ -347,16 +346,16 @@ static void configure_notify(xcb_configure_notify_event_t *event) {
     ELOG(fmt::sprintf("Received ConfigureNotify for unknown window 0x%08x\n", event->window));
 }
 
-static void restore_handle_event(int type, xcb_generic_event_t *event) {
+static void restore_handle_event(int type, xcb::generic_event_t *event) {
     switch (type) {
         case XCB_EXPOSE:
-            if (((xcb_expose_event_t *)event)->count == 0) {
-                expose_event((xcb_expose_event_t *)event);
+            if (auto *expose = reinterpret_cast<xcb::xproto::expose_event_t *>(event); expose->count == 0) {
+                expose_event(expose);
             }
 
             break;
         case XCB_CONFIGURE_NOTIFY:
-            configure_notify((xcb_configure_notify_event_t *)event);
+            configure_notify(reinterpret_cast<xcb::xproto::configure_notify_event_t *>(event));
             break;
         default:
             DLOG(fmt::sprintf("Received unhandled X11 event of type %d\n", type));

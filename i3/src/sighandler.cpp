@@ -33,8 +33,8 @@ class dialog_t {
     Rect dims{};
     std::unique_ptr<surface_t> surface{};
     ~dialog_t() {
-        xcb_free_colormap(global.x->c_handle(), colormap);
-        xcb_destroy_window(global.x->c_handle(), id);
+        xcb::xproto::free_colormap(&global.x->connection(), colormap);
+        xcb::xproto::destroy_window(&global.x->connection(), id);
     }
 };
 
@@ -170,27 +170,22 @@ static void sighandler_create_dialogs() {
         auto dialog = std::make_unique<dialog_t>();
 
         xcb_visualid_t visual = get_visualid_by_depth(global.x->root_depth);
-        dialog->colormap = xcb_generate_id(global.x->c_handle());
-        xcb_create_colormap(global.x->c_handle(), XCB_COLORMAP_ALLOC_NONE, dialog->colormap, global.x->root, visual);
+        dialog->colormap = global.x->connection().generate_id();
+        xcb::xproto::create_colormap(&global.x->connection(), xcb::xproto::colormap_alloc_t::COLORMAP_ALLOC_NONE, dialog->colormap,
+                                     global.x->root, visual);
 
-        uint32_t mask = 0;
-        uint32_t values[4];
-        int i = 0;
-
-        /* Needs to be set in the case of a 32-bit root depth. */
-        mask |= XCB_CW_BACK_PIXEL;
-        values[i++] = global.x->root_screen->black_pixel;
+        xcb::xproto::CreateWindowValueList values{};
 
         /* Needs to be set in the case of a 32-bit root depth. */
-        mask |= XCB_CW_BORDER_PIXEL;
-        values[i++] = global.x->root_screen->black_pixel;
-
-        mask |= XCB_CW_OVERRIDE_REDIRECT;
-        values[i++] = 1;
+        values.with_background_pixel(global.x->root_screen->black_pixel);
 
         /* Needs to be set in the case of a 32-bit root depth. */
-        mask |= XCB_CW_COLORMAP;
-        values[i++] = dialog->colormap;
+        values.with_border_pixel(global.x->root_screen->black_pixel);
+
+        values.with_override_redirect(1);
+
+        /* Needs to be set in the case of a 32-bit root depth. */
+        values.with_colormap(dialog->colormap);
 
         dialog->dims.x = output->rect.x + (output->rect.width / 2);
         dialog->dims.y = output->rect.y + (output->rect.height / 2);
@@ -201,30 +196,33 @@ static void sighandler_create_dialogs() {
         dialog->dims.x -= dialog->dims.width / 2;
         dialog->dims.y -= dialog->dims.height / 2;
 
-        dialog->id = create_window((xcb_connection_t *)global.x->c_handle(), dialog->dims, global.x->root_depth, visual,
+        dialog->id = create_window(global.x->connection(), dialog->dims, global.x->root_depth, visual,
                                    XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER,
-                                   true, mask, values);
+                                   true, values);
 
         dialog->surface = std::make_unique<surface_t>(global.x->drawing(), dialog->id, get_visualtype_by_id(visual),
                                                       dialog->dims.width, dialog->dims.height);
 
-        xcb_grab_keyboard(global.x->c_handle(), false, dialog->id, XCB_CURRENT_TIME, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC);
+        /* The replies aren't waited for: dropping their futures discards them. */
+        std::ignore = xcb::xproto::grab_keyboard(&global.x->connection(), false, dialog->id, XCB_CURRENT_TIME,
+                                                 xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC, xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC);
 
         /* Confine the pointer to the crash dialog. */
-        xcb_grab_pointer(global.x->c_handle(), false, dialog->id, XCB_NONE, XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC, dialog->id,
-                         XCB_NONE, XCB_CURRENT_TIME);
+        std::ignore = xcb::xproto::grab_pointer(&global.x->connection(), false, dialog->id, xcb::xproto::event_mask_t::EVENT_MASK_NO_EVENT,
+                                                xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC, xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC, dialog->id,
+                                                XCB_NONE, XCB_CURRENT_TIME);
 
         dialogs.push_back(std::move(dialog));
     }
 
     sighandler_handle_expose();
-    xcb_flush(global.x->c_handle());
+    global.x->connection().flush();
 }
 
 static void sighandler_destroy_dialogs() {
     dialogs.clear();
 
-    xcb_flush(global.x->c_handle());
+    global.x->connection().flush();
 }
 
 static void sighandler_handle_expose() {
@@ -232,7 +230,7 @@ static void sighandler_handle_expose() {
         sighandler_draw_dialog(current.get());
     }
 
-    xcb_flush(global.x->c_handle());
+    global.x->connection().flush();
 }
 
 static void sighandler_draw_dialog(dialog_t *dialog) {
@@ -310,24 +308,22 @@ static void handle_signal(int sig, siginfo_t *info, void *data) {
     sighandler_setup();
     sighandler_create_dialogs();
 
-    xcb_generic_event_t *event;
     /* Yay, more own eventhandlers… */
-    while ((event = xcb_wait_for_event(global.x->c_handle()))) {
+    while (auto const event = global.x->connection().wait_for_event()) {
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
         switch (type) {
             case XCB_KEY_PRESS:
-                sighandler_handle_key_press((xcb_key_press_event_t *)event);
+                /* libxcb's type: xcb-keysyms takes it (Xkb::key_press_lookup_keysym()). The layouts are the same. */
+                sighandler_handle_key_press(reinterpret_cast<xcb_key_press_event_t *>(event.get()));
                 break;
             case XCB_EXPOSE:
-                if (((xcb_expose_event_t *)event)->count == 0) {
+                if (reinterpret_cast<xcb::xproto::expose_event_t const *>(event.get())->count == 0) {
                     sighandler_handle_expose();
                 }
 
                 break;
         }
-
-        free(event);
     }
 }
 

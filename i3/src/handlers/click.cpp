@@ -438,7 +438,7 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
 
         ELOG("Clicked into unknown window?!\n");
         xcb::xproto::allow_events(&x.connection(), xcb::xproto::allow_t::ALLOW_REPLAY_POINTER, event->time);
-        xcb_flush(x.c_handle());
+        x.connection().flush();
         return;
     }
 

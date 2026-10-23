@@ -24,31 +24,28 @@ static void xcb_got_event(EV_P_ ev_io *w, int revents) {
 void EventHandler::xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
     /* Process all queued (and possibly new) events before the event loop
        sleeps. */
-    xcb_generic_event_t *event;
-
-    while ((event = xcb_poll_for_event(x.c_handle())) != nullptr) {
+    while (auto const event = x.connection().poll_for_event()) {
         if (event->response_type == 0) {
+            /* The 16-bit sequence, as before (task 5.3 changes the comparison). */
             if (handlers.event_is_ignored(event->sequence, 0)) {
                 DLOG(fmt::sprintf("Expected X11 Error received for sequence %x\n", event->sequence));
             } else {
-                auto *error = (xcb_generic_error_t *)event;
+                auto const *error = reinterpret_cast<xcb::generic_error_t const *>(event.get());
                 DLOG(fmt::sprintf("X11 Error received (probably harmless)! sequence 0x%x, error_code = %d\n",
                                   error->sequence, error->error_code));
             }
-            free(event);
             continue;
         }
 
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
 
-        handlers.handle_event(type, event);
-
-        free(event);
+        /* The handlers take libxcb's event types (task 5.2), whose layouts are xcbpp's. */
+        handlers.handle_event(type, reinterpret_cast<xcb_generic_event_t *>(event.get()));
     }
 
     /* Flush all queued events to X11. */
-    xcb_flush(x.c_handle());
+    x.connection().flush();
 }
 
 /**
@@ -116,7 +113,7 @@ EventHandler::EventHandler(X &x, PropertyHandlers &handlers)
     xcb_prepare = new ev_prepare();
     xcb_prepare->data = this;
 
-    ev_io_init(xcb_watcher, xcb_got_event, xcb_get_file_descriptor(x.c_handle()), EV_READ);
+    ev_io_init(xcb_watcher, xcb_got_event, x.connection().get_file_descriptor(), EV_READ);
     ev_io_start(global.main_loop, xcb_watcher);
 
     ev_prepare_init(xcb_prepare, [](EV_P_ ev_prepare *w, int revents) { ((EventHandler *)w->data)->xcb_prepare_cb(EV_A_ w, revents); });

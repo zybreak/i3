@@ -2036,18 +2036,19 @@ export {
         /* The drawing state of the connection, destroyed before it. */
         std::optional<DrawContext> draw_context{};
 
+        /* Sets up the X state of the connection behind handle, on the given screen. */
+        void init(int screen);
+
       protected:
         xcb_cursor_context_t *ctx;
         std::map<xcursor_cursor_t, xcb_cursor_t> cursors{};
 
         xcb_visualtype_t *get_visual_type_for_root();
 
-        /* For tests: no connection. c_handle() is the handle libxcb's xcb_connect() returns for a connection that
-         * couldn't be made, on which requests are dropped and no reply arrives, so that code which sends requests
-         * (x_con_kill(), …) can run in tests. */
-        explicit X(std::nullptr_t)
-            : handle{xcb::xcbcompat::adopt(std::unique_ptr<xcb::Connection>{})} {
-        }
+        /* For tests: an X on a connection the test made (a fake X server's, see i3/test/fake_x_server.cppm), owned
+         * by @p handle, a handle from xcb::xcbcompat::adopt(), on screen @p screen. It is set up as X() sets up the
+         * display's. */
+        X(xcb::xcbcompat::unique_handle handle, int screen);
 
       public:
         /**
@@ -2161,6 +2162,26 @@ export {
         return xcb::xcbcompat::adopt(xcb::connect(nullptr, screen)).release();
     }
 
+    /**
+     * Changes a property of a window (ChangeProperty, unchecked) to, or by, @p data, in the format of its elements:
+     * 8, 16 or 32 bits.
+     */
+    template <typename T, std::size_t N>
+        requires(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4) && std::is_trivially_copyable_v<T>
+    void x_change_property(xcb::Connection &conn, xcb::xproto::prop_mode_t mode, xcb_window_t window, xcb_atom_t property,
+                           xcb_atom_t type, std::span<T, N> data) {
+        auto const bytes = std::as_bytes(data);
+        /* xcbpp's change_property() takes the value as a span of non-const bytes, which it only reads. */
+        auto *const first = const_cast<xcb::xproto::xcbvoid_t *>(reinterpret_cast<xcb::xproto::xcbvoid_t const *>(bytes.data()));
+        xcb::xproto::change_property(&conn, mode, window, property, type, sizeof(T) * 8, std::span{first, bytes.size()});
+    }
+
+    /** @overload A string's characters, in format 8, without a terminating null. */
+    inline void x_change_property(xcb::Connection &conn, xcb::xproto::prop_mode_t mode, xcb_window_t window,
+                                  xcb_atom_t property, xcb_atom_t type, std::string_view data) {
+        x_change_property(conn, mode, window, property, type, std::span{data});
+    }
+
     /*
      * Moves a child window from Container src to Container dest.
      *
@@ -2204,7 +2225,7 @@ export {
      * Kills the given X11 window using WM_DELETE_WINDOW (if supported).
      *
      */
-    void x_window_kill(xcb_connection_t * c, xcb_window_t window, kill_window_t kill_window);
+    void x_window_kill(X & x, xcb_window_t window, kill_window_t kill_window);
 
     /**
      * Draws the decoration of the given container onto its parent.
@@ -3388,7 +3409,7 @@ export {
 export void sync_respond(X *x, xcb_window_t window, uint32_t rnd) {
     DLOG(fmt::sprintf("[i3 sync protocol] Sending random value %d back to X11 window 0x%08x\n", rnd, window));
     
-    xcb_client_message_event_t ev{};
+    xcb::xproto::client_message_event_t ev{};
 
     ev.response_type = XCB_CLIENT_MESSAGE;
     ev.window = window;
@@ -3397,8 +3418,9 @@ export void sync_respond(X *x, xcb_window_t window, uint32_t rnd) {
     ev.data.data32[0] = window;
     ev.data.data32[1] = rnd;
 
-    xcb_send_event(x->c_handle(), false, window, XCB_EVENT_MASK_NO_EVENT, (char *)&ev);
-    xcb_flush(x->c_handle());
+    xcb::xproto::send_event(&x->connection(), false, window, xcb::xproto::event_mask_t::EVENT_MASK_NO_EVENT,
+                            std::bit_cast<std::array<char, 32>>(ev));
+    x->connection().flush();
 }
 // output.cppm
 export {
@@ -3713,10 +3735,13 @@ export {
      * Convenience wrapper around xcb_create_window which takes care of depth,
      * generating an ID and checking for errors.
      *
+     * The window is a child of i3's root window and gets i3's cursor @p cursor, whichever connection @p conn is.
+     * CreateWindow is unchecked (an error goes to the event loop), followed by a round trip.
+     *
      */
-    xcb_window_t create_window(xcb_connection_t * conn, Rect dims,
+    xcb_window_t create_window(xcb::Connection & conn, Rect dims,
                                uint16_t depth, xcb_visualid_t visual, uint16_t window_class,
-                               enum xcursor_cursor_t cursor, bool map, uint32_t mask, uint32_t *values);
+                               enum xcursor_cursor_t cursor, bool map, xcb::xproto::CreateWindowValueList const &values);
 
     /**
      * Generates a configure_notify_event with absolute coordinates (relative to
@@ -3735,7 +3760,7 @@ export {
      * Configures the given window to have the size/position specified by given rect
      *
      */
-    void xcb_set_window_rect(xcb_connection_t * conn, xcb_window_t window, Rect r);
+    void xcb_set_window_rect(xcb::Connection & conn, xcb_window_t window, Rect r);
 
     /**
      * Returns the first supported _NET_WM_WINDOW_TYPE atom.
@@ -3779,7 +3804,7 @@ export {
      * This is useful, for example, for manipulating _NET_WM_STATE.
      *
      */
-    void xcb_add_property_atom(xcb_connection_t * conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t atom);
+    void xcb_add_property_atom(xcb::Connection & conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t atom);
 
     /**
      * Remove an atom from a list of atoms the given property defines without
@@ -3787,7 +3812,7 @@ export {
      * manipulating _NET_WM_STATE.
      *
      */
-    void xcb_remove_property_atom(xcb_connection_t * conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t atom);
+    void xcb_remove_property_atom(xcb::Connection & conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t atom);
 
     /**
      * Grab the specified buttons on a window when managing it.
@@ -4343,70 +4368,53 @@ export {
  * established.
  *
  */
-export std::optional<std::string> root_atom_contents(char const *atomname, xcb_connection_t *provided_conn, int screen) {
-    xcb_intern_atom_cookie_t atom_cookie;
-    xcb_intern_atom_reply_t *atom_reply;
+export std::optional<std::string> root_atom_contents(char const *atomname, xcb::Connection *provided_conn, int screen) {
     char *content = nullptr;
     size_t content_max_words = 256;
-    xcb_connection_t *conn = provided_conn;
-    
-    if (provided_conn == nullptr &&
-        ((conn = x_connect(&screen)) == nullptr ||
-         xcb_connection_has_error(conn))) {
-        return std::nullopt;
+    std::unique_ptr<xcb::Connection> own_conn{};
+    xcb::Connection *conn = provided_conn;
+
+    if (provided_conn == nullptr) {
+        auto connection = xcb::connect(nullptr, &screen);
+        if (!connection) {
+            return std::nullopt;
+        }
+        own_conn = std::move(*connection);
+        conn = own_conn.get();
     }
 
-    atom_cookie = xcb_intern_atom(conn, 0, std::strlen(atomname), atomname);
+    auto atom_cookie = xcb::xproto::intern_atom(conn, false, atomname);
 
-    xcb_screen_t *root_screen = xcb_aux_get_screen(conn, screen);
-    xcb_window_t root = root_screen->root;
+    xcb_window_t root = xcb::get_setup(*conn)->get_roots()[static_cast<std::size_t>(screen)].root;
 
-    atom_reply = xcb_intern_atom_reply(conn, atom_cookie, nullptr);
-    if (atom_reply == nullptr) {
-        goto out_conn;
-    }
-
-    xcb_get_property_cookie_t prop_cookie;
-    xcb_get_property_reply_t *prop_reply;
-    prop_cookie = xcb_get_property_unchecked(conn, false, root, atom_reply->atom,
-                                             XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
-    prop_reply = xcb_get_property_reply(conn, prop_cookie, nullptr);
-    if (prop_reply == nullptr) {
-        goto out_atom;
-    }
-    if (xcb_get_property_value_length(prop_reply) > 0 && prop_reply->bytes_after > 0) {
-        /* We received an incomplete value. Ask again but with a properly
-         * adjusted size. */
-        content_max_words += std::ceil(prop_reply->bytes_after / 4.0);
-        /* Repeat the request, with adjusted size */
-        std::free(prop_reply);
-        prop_cookie = xcb_get_property_unchecked(conn, false, root, atom_reply->atom,
-                                                 XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words);
-        prop_reply = xcb_get_property_reply(conn, prop_cookie, nullptr);
-        if (prop_reply == nullptr) {
-            goto out_atom;
+    auto atom_reply = atom_cookie.get();
+    if (atom_reply) {
+        auto prop_reply = xcb::xproto::get_property_unchecked(conn, false, root, atom_reply->atom,
+                                                              XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words)
+                              .get();
+        if (prop_reply && !prop_reply->value.empty() && prop_reply->bytes_after > 0) {
+            /* We received an incomplete value. Ask again but with a properly
+             * adjusted size. */
+            content_max_words += std::ceil(prop_reply->bytes_after / 4.0);
+            /* Repeat the request, with adjusted size */
+            prop_reply = xcb::xproto::get_property_unchecked(conn, false, root, atom_reply->atom,
+                                                             XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words)
+                             .get();
+        }
+        if (prop_reply && !prop_reply->value.empty()) {
+            if (prop_reply->type == XCB_ATOM_CARDINAL) {
+                /* We treat a CARDINAL as a >= 32-bit unsigned int. The only CARDINAL
+                 * we query is I3_PID, which is 32-bit. */
+                unsigned int value = 0;
+                std::memcpy(&value, prop_reply->value.data(), std::min(sizeof(value), prop_reply->value.size()));
+                sasprintf(&content, "%u", value);
+            } else {
+                sasprintf(&content, "%.*s", static_cast<int>(prop_reply->value.size()),
+                          reinterpret_cast<char const *>(prop_reply->value.data()));
+            }
         }
     }
-    if (xcb_get_property_value_length(prop_reply) == 0) {
-        goto out;
-    }
-    if (prop_reply->type == XCB_ATOM_CARDINAL) {
-        /* We treat a CARDINAL as a >= 32-bit unsigned int. The only CARDINAL
-         * we query is I3_PID, which is 32-bit. */
-        sasprintf(&content, "%u", *((unsigned int *)xcb_get_property_value(prop_reply)));
-    } else {
-        sasprintf(&content, "%.*s", xcb_get_property_value_length(prop_reply),
-                  (char *)xcb_get_property_value(prop_reply));
-    }
 
-out:
-    std::free(prop_reply);
-out_atom:
-    std::free(atom_reply);
-out_conn:
-    if (provided_conn == nullptr) {
-        xcb_disconnect(conn);
-    }
     return std::make_optional<std::string>(content);
 }
 // nagbar.cppm
@@ -4661,43 +4669,39 @@ static cairo_region_t *unobscured_region(X &conn, xcb_window_t window,
     rectangle.height = window_height;
     region = cairo_region_create_rectangle(&rectangle);
 
-    xcb_query_tree_reply_t *tree = xcb_query_tree_reply(conn.c_handle(), xcb_query_tree_unchecked(conn.c_handle(), window), nullptr);
+    xcb::Connection *c = &conn.connection();
+    auto tree = xcb::xproto::query_tree_unchecked(c, window).get();
     if (!tree) {
         return region;
     }
 
     /* Get information about children */
-    uint16_t const n_children = tree->children_len;
-    xcb_window_t *children = xcb_query_tree_children(tree);
+    std::vector<xcb::xproto::window_t> const &children = tree->children;
 
-    std::vector<xcb_get_geometry_cookie_t> geometries{};
-    geometries.reserve(n_children);
-    std::vector<xcb_get_window_attributes_cookie_t> attributes{};
-    attributes.reserve(n_children);
+    std::vector<std::future<std::optional<xcb::xproto::GetGeometryReplyObj>>> geometries{};
+    geometries.reserve(children.size());
+    std::vector<std::future<std::optional<xcb::xproto::GetWindowAttributesReplyObj>>> attributes{};
+    attributes.reserve(children.size());
 
-    for (int i = 0; i < n_children; i++) {
-        geometries.push_back(xcb_get_geometry_unchecked(conn.c_handle(), children[i]));
-        attributes.push_back(xcb_get_window_attributes_unchecked(conn.c_handle(), children[i]));
+    for (xcb_window_t const child : children) {
+        geometries.push_back(xcb::xproto::get_geometry_unchecked(c, child));
+        attributes.push_back(xcb::xproto::get_window_attributes_unchecked(c, child));
     }
 
     /* Remove every visible child from the region */
-    for (int i = 0; i < n_children; i++) {
-        xcb_get_geometry_reply_t *geom = xcb_get_geometry_reply(conn.c_handle(), geometries.at(i), nullptr);
-        xcb_get_window_attributes_reply_t *attr = xcb_get_window_attributes_reply(conn.c_handle(), attributes.at(i), nullptr);
+    for (std::size_t i = 0; i < children.size(); i++) {
+        auto geom = geometries.at(i).get();
+        auto attr = attributes.at(i).get();
 
-        if (geom && attr && attr->map_state == XCB_MAP_STATE_VIEWABLE) {
+        if (geom && attr && attr->map_state == xcb::xproto::map_state_t::MAP_STATE_VIEWABLE) {
             rectangle.x = geom->x;
             rectangle.y = geom->y;
             rectangle.width = geom->width;
             rectangle.height = geom->height;
             cairo_region_subtract_rectangle(region, &rectangle);
         }
-
-        free(geom);
-        free(attr);
     }
 
-    free(tree);
     return region;
 }
 
@@ -4727,7 +4731,8 @@ static uint32_t flicker_window_at(X &conn, xcb_screen_t *screen, uint16_t x, uin
                                xcb::xproto::CreateWindowValueList{}.with_background_pixel(pixel).with_override_redirect(1));
     xcb::xproto::map_window(c, window);
     xcb::xproto::clear_area(c, 0, window, 0, 0, 0, 0);
-    xcb_aux_sync(conn.c_handle());
+    /* A round trip, as xcb_aux_sync() makes. */
+    std::ignore = xcb::xproto::get_input_focus(c).get();
     xcb::xproto::destroy_window(c, window);
 
     auto img = xcb::xproto::get_image_unchecked(c, xcb::xproto::image_format_t::IMAGE_FORMAT_Z_PIXMAP, screen->root, x, y, 1, 1, ~0).get();

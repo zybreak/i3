@@ -570,13 +570,10 @@ bool RandR::randr_query_outputs_15() {
     /* RandR 1.5 available at run-time (supported by the server and not
      * disabled by the user) */
     DLOG("Querying outputs using RandR 1.5\n");
-    xcb_generic_error_t *err;
-    xcb_randr_get_monitors_reply_t *monitors =
-        xcb_randr_get_monitors_reply(
-            global.x->c_handle(), xcb_randr_get_monitors(global.x->c_handle(), global.x->root, true), &err);
-    if (err != nullptr) {
-        ELOG(fmt::sprintf("Could not get RandR monitors: X11 error code %d\n", err->error_code));
-        free(err);
+    xcb::Connection *conn = &global.x->connection();
+    auto const monitors = xcb::randr::randr_get_monitors(conn, global.x->root, true).get();
+    if (!monitors) {
+        ELOG(fmt::sprintf("Could not get RandR monitors: X11 error code %d\n", monitors.error().error_code));
         /* Fall back to RandR ≤ 1.4 */
         return false;
     }
@@ -590,54 +587,38 @@ bool RandR::randr_query_outputs_15() {
     }
 
     DLOG(fmt::sprintf("%d RandR monitors found (timestamp %d)\n",
-                      xcb_randr_get_monitors_monitors_length(monitors),
+                      monitors->monitors.size(),
                       monitors->timestamp));
 
-    xcb_randr_monitor_info_iterator_t iter;
-    for (iter = xcb_randr_get_monitors_monitors_iterator(monitors);
-         iter.rem;
-         xcb_randr_monitor_info_next(&iter)) {
-        xcb_randr_monitor_info_t const *monitor_info = iter.data;
-        xcb_get_atom_name_reply_t *atom_reply =
-            xcb_get_atom_name_reply(
-                global.x->c_handle(), xcb_get_atom_name(global.x->c_handle(), monitor_info->name), &err);
-        if (err != nullptr) {
-            ELOG(fmt::sprintf("Could not get RandR monitor name: X11 error code %d\n", err->error_code));
-            free(err);
+    for (auto const &monitor_info : monitors->monitors) {
+        auto const atom_reply = xcb::xproto::get_atom_name(conn, monitor_info.name).get();
+        if (!atom_reply) {
+            ELOG(fmt::sprintf("Could not get RandR monitor name: X11 error code %d\n", atom_reply.error().error_code));
             continue;
         }
-        std::string name{xcb_get_atom_name_name(atom_reply), static_cast<std::string::size_type>(xcb_get_atom_name_name_length(atom_reply))};
-        free(atom_reply);
+        std::string name{atom_reply->name};
 
         Output *new_output = get_output_by_name(name, false);
         if (new_output == nullptr) {
             new_output = new Output();
 
             /* Register associated output names in addition to the monitor name */
-            xcb_randr_output_t *randr_outputs = xcb_randr_monitor_info_outputs(monitor_info);
-            int randr_output_len = xcb_randr_monitor_info_outputs_length(monitor_info);
-            for (int i = 0; i < randr_output_len; i++) {
-                xcb_randr_output_t randr_output = randr_outputs[i];
+            for (xcb_randr_output_t const randr_output : monitor_info.outputs) {
+                auto const info = xcb::randr::randr_get_output_info(conn, randr_output, monitors->timestamp).get();
 
-                xcb_randr_get_output_info_reply_t *info =
-                    xcb_randr_get_output_info_reply(global.x->c_handle(),
-                                                    xcb_randr_get_output_info(global.x->c_handle(), randr_output, monitors->timestamp),
-                                                    nullptr);
-
-                if (info != nullptr && info->crtc != XCB_NONE) {
-                    std::string oname{reinterpret_cast<char *>(xcb_randr_get_output_info_name(info)), static_cast<std::string::size_type>(xcb_randr_get_output_info_name_length(info))};
+                if (info && info->crtc != XCB_NONE) {
+                    std::string oname{reinterpret_cast<char const *>(info->name.data()), info->name.size()};
 
                     if (name != oname) {
                         new_output->names.insert(new_output->names.begin(), oname);
                     }
                 }
-                free(info);
             }
 
             /* Insert the monitor name last, so that it's used as the primary name */
             new_output->names.insert(new_output->names.begin(), name);
 
-            if (monitor_info->primary) {
+            if (monitor_info.primary) {
                 outputs.push_front(new_output);
             } else {
                 outputs.push_back(new_output);
@@ -648,22 +629,21 @@ bool RandR::randr_query_outputs_15() {
         new_output->active = true;
         new_output->to_be_disabled = false;
 
-        new_output->primary = monitor_info->primary;
+        new_output->primary = monitor_info.primary;
 
-        bool const update_x = update_if_necessary(&(new_output->rect.x), monitor_info->x);
-        bool const update_y = update_if_necessary(&(new_output->rect.y), monitor_info->y);
-        bool const update_w = update_if_necessary(&(new_output->rect.width), monitor_info->width);
-        bool const update_h = update_if_necessary(&(new_output->rect.height), monitor_info->height);
+        bool const update_x = update_if_necessary(&(new_output->rect.x), monitor_info.x);
+        bool const update_y = update_if_necessary(&(new_output->rect.y), monitor_info.y);
+        bool const update_w = update_if_necessary(&(new_output->rect.width), monitor_info.width);
+        bool const update_h = update_if_necessary(&(new_output->rect.height), monitor_info.height);
 
         new_output->changed = update_x || update_y || update_w || update_h;
 
         DLOG(fmt::sprintf("name %s, x %d, y %d, width %d px, height %d px, width %d mm, height %d mm, primary %d, automatic %d\n",
                           name,
-                          monitor_info->x, monitor_info->y, monitor_info->width, monitor_info->height,
-                          monitor_info->width_in_millimeters, monitor_info->height_in_millimeters,
-                          monitor_info->primary, monitor_info->automatic));
+                          monitor_info.x, monitor_info.y, monitor_info.width, monitor_info.height,
+                          monitor_info.width_in_millimeters, monitor_info.height_in_millimeters,
+                          monitor_info.primary, monitor_info.automatic));
     }
-    free(monitors);
     return true;
 #endif
 }
@@ -706,12 +686,10 @@ void RandR::handle_output(xcb_randr_output_t id, std::string name, xcb_randr_crt
     }
 
     /* each CRT controller has a position in which we are interested in */
-    xcb_randr_get_crtc_info_reply_t *crtc;
-
-    xcb_randr_get_crtc_info_cookie_t icookie = xcb_randr_get_crtc_info(global.x->c_handle(), output_crtc, cts);
-    if ((crtc = xcb_randr_get_crtc_info_reply(global.x->c_handle(), icookie, nullptr)) == nullptr) {
-        DLOG(fmt::sprintf("Skipping output %s: could not get CRTC (%p)\n",
-                          new_output->output_primary_name(), fmt::ptr(crtc)));
+    auto const crtc = xcb::randr::randr_get_crtc_info(&global.x->connection(), output_crtc, cts).get();
+    if (!crtc) {
+        DLOG(fmt::sprintf("Skipping output %s: could not get CRTC (X11 error code %d)\n",
+                          new_output->output_primary_name(), crtc.error().error_code));
         free(new_output);
         return;
     }
@@ -721,7 +699,6 @@ void RandR::handle_output(xcb_randr_output_t id, std::string name, xcb_randr_crt
     bool const update_w = update_if_necessary(&(new_output->rect.width), crtc->width);
     bool const update_h = update_if_necessary(&(new_output->rect.height), crtc->height);
     bool const updated = update_x || update_y || update_w || update_h;
-    free(crtc);
     new_output->active = (new_output->rect.width != 0 && new_output->rect.height != 0);
     if (!new_output->active) {
         DLOG("width/height 0/0, disabling output\n");
@@ -1036,25 +1013,19 @@ RandR::RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &worksp
     : x(x), configManager(configManager), workspaceManager(workspaceManager) {
     DLOG("Checking for XRandR...\n");
 
-    xcb_query_extension_reply_t const *extreply;
-
     root_output = create_root_output(x);
     outputs.push_back(root_output);
 
-    extreply = xcb_get_extension_data(x.c_handle(), &xcb_randr_id);
-    if (!extreply->present) {
+    auto const extreply = xcb::get_extension_data(x.connection(), xcb::randr::randr_id);
+    if (!extreply || !extreply->present) {
         DLOG("RandR is not present, activating root output.\n");
         fallback_to_root_output();
         return;
     }
 
-    xcb_generic_error_t *err;
-    xcb_randr_query_version_reply_t *randr_version =
-        xcb_randr_query_version_reply(
-            x.c_handle(), xcb_randr_query_version(x.c_handle(), XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION), &err);
-    if (err != nullptr) {
-        ELOG(fmt::sprintf("Could not query RandR version: X11 error code %d\n", err->error_code));
-        free(err);
+    auto const randr_version = xcb::randr::randr_query_version(&x.connection(), XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION).get();
+    if (!randr_version) {
+        ELOG(fmt::sprintf("Could not query RandR version: X11 error code %d\n", randr_version.error().error_code));
         fallback_to_root_output();
         return;
     }
@@ -1062,17 +1033,15 @@ RandR::RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &worksp
     has_randr_1_5 = (randr_version->major_version >= 1) &&
                     (randr_version->minor_version >= 5);
 
-    free(randr_version);
-
     randr_query_outputs();
 
     randr_base = extreply->first_event;
 
-    xcb_randr_select_input(x.c_handle(), x.root,
-                           XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE |
-                               XCB_RANDR_NOTIFY_MASK_OUTPUT_CHANGE |
-                               XCB_RANDR_NOTIFY_MASK_CRTC_CHANGE |
-                               XCB_RANDR_NOTIFY_MASK_OUTPUT_PROPERTY);
+    xcb::randr::randr_select_input(&x.connection(), x.root,
+                                   xcb::randr::randr_notify_mask_t::RANDR_NOTIFY_MASK_SCREEN_CHANGE |
+                                       xcb::randr::randr_notify_mask_t::RANDR_NOTIFY_MASK_OUTPUT_CHANGE |
+                                       xcb::randr::randr_notify_mask_t::RANDR_NOTIFY_MASK_CRTC_CHANGE |
+                                       xcb::randr::randr_notify_mask_t::RANDR_NOTIFY_MASK_OUTPUT_PROPERTY);
 
-    xcb_flush(x.c_handle());
+    x.connection().flush();
 }

@@ -14,7 +14,6 @@ module;
 #include <fmt/printf.h>
 #include <getopt.h>
 
-#include <xcb/randr.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/xcb_cursor.h>
@@ -28,6 +27,7 @@ module i3;
 import std;
 import utils;
 import log;
+import xcb.proto.randr;
 
 static button_t const *get_button_at(std::vector<button_t> const &buttons, int16_t x, int16_t y) {
     for (auto const &button : buttons) {
@@ -50,9 +50,12 @@ static button_t const *get_button_at(std::vector<button_t> const &buttons, int16
  */
 class Nagbar {
   private:
-    /* The connection, which the nagbar owns: it is closed last. */
+    /* The connection, which the nagbar owns: it is closed last. The nagbar's requests go through xconn; the drawing
+     * code and the C libraries (cairo, pango, xcb-cursor) take its libxcb handle, conn, and its screen as libxcb's
+     * xcb_screen_t. */
     xcb::xcbcompat::unique_handle handle{};
     xcb_connection_t *conn;
+    xcb::Connection *xconn;
     xcb_screen_t *root_screen;
     std::optional<DrawContext> drawing{};
     std::unique_ptr<surface_t> bar{};
@@ -79,15 +82,15 @@ class Nagbar {
 
     xcb_atom_t A_ATOM;
     xcb_atom_t A_CARDINAL;
-    xcb_intern_atom_cookie_t ATOM_cookie;
-    xcb_intern_atom_cookie_t CARDINAL_cookie;
+    std::future<std::expected<xcb::xproto::InternAtomReplyObj, xcb::generic_error_t>> ATOM_cookie;
+    std::future<std::expected<xcb::xproto::InternAtomReplyObj, xcb::generic_error_t>> CARDINAL_cookie;
 
     void window_kill() {
-        xcb_destroy_window(conn, win);
-        xcb_flush(conn);
+        xcb::xproto::destroy_window(xconn, win);
+        xconn->flush();
     }
 
-    void nagbar_handle_button_press(xcb_button_press_event_t *event) {
+    void nagbar_handle_button_press(xcb::xproto::button_press_event_t *event) {
         LOG(fmt::sprintf("button pressed on x = %d, y = %d\n",
                          event->event_x, event->event_y));
         /* TODO: set a flag for the button, re-render */
@@ -98,7 +101,7 @@ class Nagbar {
      * coordinates are over a button and executes the appropriate action.
      *
      */
-    void handle_button_release(xcb_button_release_event_t *event) {
+    void handle_button_release(xcb::xproto::button_release_event_t *event) {
         LOG(fmt::sprintf("button released on x = %d, y = %d\n",
                          event->event_x, event->event_y));
         /* If the user hits the close button, we exit(0) */
@@ -124,44 +127,27 @@ class Nagbar {
      * Tries to position the rectangle on the output with input focus.
      * If unsuccessful, try to position on primary output.
      */
-    void set_window_position_focus(xcb_rectangle_t *result) {
+    void set_window_position_focus(xcb::xproto::rectangle_t *result) {
         bool success = false;
-        xcb_get_input_focus_reply_t *input_focus = nullptr;
-        xcb_get_geometry_reply_t *geometry = nullptr;
-        xcb_translate_coordinates_reply_t *coordinates = nullptr;
 
         /* To avoid the input window disappearing while determining its position */
-        xcb_grab_server(conn);
+        xcb::xproto::grab_server(xconn);
 
-        input_focus = xcb_get_input_focus_reply(conn, xcb_get_input_focus(conn), nullptr);
-        if (input_focus == nullptr || input_focus->focus == XCB_NONE) {
+        if (auto const input_focus = xcb::xproto::get_input_focus(xconn).get(); !input_focus || input_focus->focus == XCB_NONE) {
             LOG("Failed to receive the current input focus or no window has the input focus right now.\n");
-            goto free_resources;
-        }
-
-        geometry = xcb_get_geometry_reply(conn, xcb_get_geometry(conn, input_focus->focus), nullptr);
-        if (geometry == nullptr) {
+        } else if (auto const geometry = xcb::xproto::get_geometry(xconn, input_focus->focus).get(); !geometry) {
             LOG("Failed to received window geometry.\n");
-            goto free_resources;
-        }
-
-        coordinates = xcb_translate_coordinates_reply(
-            conn, xcb_translate_coordinates(conn, input_focus->focus, root_screen->root, geometry->x, geometry->y), nullptr);
-        if (coordinates == nullptr) {
+        } else if (auto const coordinates = xcb::xproto::translate_coordinates(xconn, input_focus->focus, root_screen->root, geometry->x, geometry->y).get();
+                   !coordinates) {
             LOG("Failed to translate coordinates.\n");
-            goto free_resources;
+        } else {
+            LOG(fmt::sprintf("Found current focus at x = %i / y = %i.\n", coordinates->dst_x, coordinates->dst_y));
+            result->x = coordinates->dst_x;
+            result->y = coordinates->dst_y;
+            success = true;
         }
 
-        LOG(fmt::sprintf("Found current focus at x = %i / y = %i.\n", coordinates->dst_x, coordinates->dst_y));
-        result->x = coordinates->dst_x;
-        result->y = coordinates->dst_y;
-        success = true;
-
-    free_resources:
-        xcb_ungrab_server(conn);
-        free(input_focus);
-        free(coordinates);
-        free(geometry);
+        xcb::xproto::ungrab_server(xconn);
         if (!success) {
             LOG(fmt::sprintf("Could not position on focused output, trying to position on primary output.\n"));
             set_window_position_primary(result);
@@ -200,46 +186,31 @@ class Nagbar {
     /**
      * Tries to position the rectangle on the primary output.
      */
-    void set_window_position_primary(xcb_rectangle_t *result) {
-        xcb_randr_get_screen_resources_current_cookie_t rcookie = xcb_randr_get_screen_resources_current(conn, root_screen->root);
-        xcb_randr_get_output_primary_cookie_t pcookie = xcb_randr_get_output_primary(conn, root_screen->root);
+    void set_window_position_primary(xcb::xproto::rectangle_t *result) {
+        auto resources_cookie = xcb::randr::randr_get_screen_resources_current(xconn, root_screen->root);
+        auto primary_cookie = xcb::randr::randr_get_output_primary(xconn, root_screen->root);
 
-        xcb_randr_get_output_primary_reply_t *primary = nullptr;
-        xcb_randr_get_screen_resources_current_reply_t *res = nullptr;
-
-        if ((primary = xcb_randr_get_output_primary_reply(conn, pcookie, nullptr)) == nullptr) {
+        auto const primary = primary_cookie.get();
+        if (!primary) {
             LOG("Could not determine the primary output.\n");
-            free(res);
-            free(primary);
             return;
         }
 
-        if ((res = xcb_randr_get_screen_resources_current_reply(conn, rcookie, nullptr)) == nullptr) {
+        auto const res = resources_cookie.get();
+        if (!res) {
             LOG("Could not query screen resources.\n");
-            free(res);
-            free(primary);
             return;
         }
 
-        xcb_randr_get_output_info_reply_t *output =
-            xcb_randr_get_output_info_reply(conn,
-                                            xcb_randr_get_output_info(conn, primary->output, res->config_timestamp),
-                                            nullptr);
-        if (output == nullptr || output->crtc == XCB_NONE) {
+        auto const output = xcb::randr::randr_get_output_info(xconn, primary->output, res->config_timestamp).get();
+        if (!output || output->crtc == XCB_NONE) {
             LOG("Could not query primary screen.\n");
-            free(res);
-            free(primary);
             return;
         }
 
-        xcb_randr_get_crtc_info_reply_t *crtc =
-            xcb_randr_get_crtc_info_reply(conn,
-                                          xcb_randr_get_crtc_info(conn, output->crtc, res->config_timestamp),
-                                          nullptr);
-        if (crtc == nullptr) {
+        auto const crtc = xcb::randr::randr_get_crtc_info(xconn, output->crtc, res->config_timestamp).get();
+        if (!crtc) {
             LOG("Could not get CRTC.\n");
-            free(res);
-            free(primary);
             return;
         }
 
@@ -247,15 +218,11 @@ class Nagbar {
                          crtc->x, crtc->y, crtc->width, crtc->height));
         if (crtc->width == 0 || crtc->height == 0) {
             LOG("Primary output is not active, ignoring it.\n");
-            free(res);
-            free(primary);
             return;
         }
 
         result->x = crtc->x;
         result->y = crtc->y;
-        free(res);
-        free(primary);
     }
 
     /*
@@ -263,7 +230,7 @@ class Nagbar {
      * be called from the code with event == NULL or from X with event != NULL.
      *
      */
-    int handle_expose(xcb_expose_event_t *event) {
+    int handle_expose(xcb::xproto::expose_event_t *event) {
         /* draw background */
         bar->draw_util_clear_surface(color_background);
         /* draw message */
@@ -286,7 +253,7 @@ class Nagbar {
         /* border line at the bottom */
         bar->draw_util_rectangle(color_border_bottom, 0, bar->height - BAR_BORDER, bar->width, BAR_BORDER);
 
-        xcb_flush(conn);
+        xconn->flush();
         return 1;
     }
 
@@ -298,11 +265,13 @@ class Nagbar {
         btn_close.label = "X";
 
         int screens;
-        handle.reset(x_connect(&screens));
-        conn = handle.get();
-        if (xcb_connection_has_error(conn)) {
+        auto connection = xcb::connect(nullptr, &screens);
+        if (!connection) {
             throw std::runtime_error("Cannot open display");
         }
+        handle = xcb::xcbcompat::adopt(std::move(*connection));
+        conn = handle.get();
+        xconn = xcb::xcbcompat::connection(conn);
 
         /* Init startup notification. */
         // SnDisplay *sndisplay = sn_xcb_display_new(conn, nullptr, nullptr);
@@ -333,8 +302,8 @@ class Nagbar {
         font = load_font(conn, root_screen, pattern);
 
         /* Place requests for the atoms we need as soon as possible */
-        ATOM_cookie = xcb_intern_atom(conn, 0, strlen("ATOM"), "ATOM");
-        CARDINAL_cookie = xcb_intern_atom(conn, 0, strlen("CARDINAL"), "CARDINAL");
+        ATOM_cookie = xcb::xproto::intern_atom(xconn, false, "ATOM");
+        CARDINAL_cookie = xcb::xproto::intern_atom(xconn, false, "CARDINAL");
 
         MSG_PADDING = logical_px(root_screen, 8);
         BTN_PADDING = logical_px(root_screen, 3);
@@ -346,7 +315,7 @@ class Nagbar {
 
     void create_window(bool position_on_primary) {
         /* Default values if we cannot determine the preferred window position. */
-        xcb_rectangle_t win_pos = (xcb_rectangle_t){50, 50, 500, static_cast<uint16_t>(font->height + 2 * MSG_PADDING + BAR_BORDER)};
+        xcb::xproto::rectangle_t win_pos{50, 50, 500, static_cast<uint16_t>(font->height + 2 * MSG_PADDING + BAR_BORDER)};
         if (position_on_primary) {
             set_window_position_primary(&win_pos);
         } else {
@@ -361,94 +330,59 @@ class Nagbar {
         xcb_cursor_context_free(cursor_ctx);
 
         /* Open an input window */
-        win = xcb_generate_id(conn);
+        win = xconn->generate_id();
 
-        uint32_t mask, mask_list[3];
-
-        mask_list[0] = 0;
-        mask_list[1] = XCB_EVENT_MASK_EXPOSURE |
-                       XCB_EVENT_MASK_STRUCTURE_NOTIFY |
-                       XCB_EVENT_MASK_BUTTON_PRESS |
-                       XCB_EVENT_MASK_BUTTON_RELEASE;
-        mask_list[2] = cursor;
-
-        mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_CURSOR;
-
-        xcb_create_window(
-            conn,
+        xcb::xproto::create_window(
+            xconn,
             XCB_COPY_FROM_PARENT,
             win,                                                 /* the window id */
             root_screen->root,                                   /* parent == root */
             win_pos.x, win_pos.y, win_pos.width, win_pos.height, /* dimensions */
             0,                                                   /* x11 border = 0, we draw our own */
-            XCB_WINDOW_CLASS_INPUT_OUTPUT,
-            XCB_WINDOW_CLASS_COPY_FROM_PARENT,                   /* copy visual from parent */
-            mask,
-            mask_list);
+            xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT,
+            XCB_COPY_FROM_PARENT, /* copy visual from parent */
+            xcb::xproto::CreateWindowValueList{}
+                .with_background_pixel(0)
+                .with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_EXPOSURE |
+                                 xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY |
+                                 xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_PRESS |
+                                 xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_RELEASE)
+                .with_cursor(cursor));
         // if (sncontext) {
         //     sn_launchee_context_setup_window(sncontext, win);
         // }
 
         /* Map the window (make it visible) */
-        xcb_map_window(conn, win);
+        xcb::xproto::map_window(xconn, win);
 
         /* Setup NetWM atoms */
-        xcb_intern_atom_reply_t *reply;
-        reply = xcb_intern_atom_reply(conn, ATOM_cookie, nullptr);
-        if (!reply) {
+        auto const atom_reply = ATOM_cookie.get();
+        if (!atom_reply) {
             throw std::runtime_error("Could not get atom ATOM");
         }
+        A_ATOM = atom_reply->atom;
 
-        A_ATOM = reply->atom;
-        free(reply);
-
-        reply = xcb_intern_atom_reply(conn, CARDINAL_cookie, nullptr);
-        if (!reply) {
+        auto const cardinal_reply = CARDINAL_cookie.get();
+        if (!cardinal_reply) {
             throw std::runtime_error("Could not get atom CARDINAL");
         }
-
-        A_CARDINAL = reply->atom;
-        free(reply);
+        A_CARDINAL = cardinal_reply->atom;
 
         /* Set dock mode */
-        xcb_change_property(conn,
-                            XCB_PROP_MODE_REPLACE,
-                            win,
-                            i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE],
-                            A_ATOM,
-                            32,
-                            1,
-                            (unsigned char *)&i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK]);
+        xcb_atom_t const dock = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK];
+        x_change_property(*xconn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, win, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE],
+                          A_ATOM, std::span{&dock, 1});
 
-        /* Reserve some space at the top of the screen */
-        struct {
-            uint32_t left;
-            uint32_t right;
-            uint32_t top;
-            uint32_t bottom;
-            uint32_t left_start_y;
-            uint32_t left_end_y;
-            uint32_t right_start_y;
-            uint32_t right_end_y;
-            uint32_t top_start_x;
-            uint32_t top_end_x;
-            uint32_t bottom_start_x;
-            uint32_t bottom_end_x;
-        } __attribute__((__packed__)) strut_partial{};
-        memset(&strut_partial, 0, sizeof(strut_partial));
+        /* Reserve some space at the top of the screen: _NET_WM_STRUT_PARTIAL's left, right, top, bottom,
+         * left_start_y, left_end_y, right_start_y, right_end_y, top_start_x, top_end_x, bottom_start_x and
+         * bottom_end_x. */
+        std::array<uint32_t, 12> strut_partial{};
+        strut_partial[2] = static_cast<uint32_t>(font->height + logical_px(root_screen, 6)); /* top */
+        strut_partial[8] = 0;                                                                 /* top_start_x */
+        strut_partial[9] = 800;                                                               /* top_end_x */
 
-        strut_partial.top = font->height + logical_px(root_screen, 6);
-        strut_partial.top_start_x = 0;
-        strut_partial.top_end_x = 800;
-
-        xcb_change_property(conn,
-                            XCB_PROP_MODE_REPLACE,
-                            win,
-                            i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL],
-                            A_CARDINAL,
-                            32,
-                            12,
-                            &strut_partial);
+        x_change_property(*xconn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, win, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL],
+                          A_CARDINAL, std::span{strut_partial});
 
         /* Initialize the drawable bar */
         bar = std::make_unique<surface_t>(*drawing, win, get_visualtype(root_screen), win_pos.width, win_pos.height);
@@ -467,17 +401,17 @@ class Nagbar {
      */
     void start_event_loop(int wake_fd) {
         /* Grab the keyboard to get all input */
-        xcb_flush(conn);
+        xconn->flush();
 
-        std::array fds{pollfd{.fd = xcb_get_file_descriptor(conn), .events = POLLIN, .revents = 0},
+        std::array fds{pollfd{.fd = xconn->get_file_descriptor(), .events = POLLIN, .revents = 0},
                        pollfd{.fd = wake_fd, .events = POLLIN, .revents = 0}};
         while (running) {
-            std::unique_ptr<xcb_generic_event_t, decltype(&std::free)> event{xcb_poll_for_event(conn), &std::free};
+            auto const event = xconn->poll_for_event();
             if (!event) {
-                if (xcb_connection_has_error(conn)) {
+                if (xconn->connection_has_error()) {
                     break;
                 }
-                xcb_flush(conn);
+                xconn->flush();
                 if (poll(fds.data(), fds.size(), -1) == -1 && errno != EINTR) {
                     ELOG(fmt::sprintf("poll() failed: %s\n", std::strerror(errno)));
                     break;
@@ -498,22 +432,22 @@ class Nagbar {
 
             switch (type) {
                 case XCB_EXPOSE:
-                    if (((xcb_expose_event_t *)event.get())->count == 0) {
-                        handle_expose((xcb_expose_event_t *)event.get());
+                    if (auto *expose = reinterpret_cast<xcb::xproto::expose_event_t *>(event.get()); expose->count == 0) {
+                        handle_expose(expose);
                     }
 
                     break;
 
                 case XCB_BUTTON_PRESS:
-                    nagbar_handle_button_press((xcb_button_press_event_t *)event.get());
+                    nagbar_handle_button_press(reinterpret_cast<xcb::xproto::button_press_event_t *>(event.get()));
                     break;
 
                 case XCB_BUTTON_RELEASE:
-                    handle_button_release((xcb_button_release_event_t *)event.get());
+                    handle_button_release(reinterpret_cast<xcb::xproto::button_release_event_t *>(event.get()));
                     break;
 
                 case XCB_CONFIGURE_NOTIFY: {
-                    auto *configure_notify = (xcb_configure_notify_event_t *)event.get();
+                    auto *configure_notify = reinterpret_cast<xcb::xproto::configure_notify_event_t *>(event.get());
                     if (configure_notify->width > 0 && configure_notify->height > 0) {
                         bar->draw_util_surface_set_size(configure_notify->width, configure_notify->height);
                     }

@@ -1,5 +1,6 @@
 /*
- * RandR 1.5 monitors for the tests: what `xrandr --setmonitor` and `--delmonitor` do, through xcbpp.
+ * RandR 1.5 monitors for the tests: what `xrandr --setmonitor`, `--delmonitor` and `--output … --primary` do, through
+ * xcbpp.
  *
  * A monitor is a named rectangle of a screen, which i3 makes an output of (RandR::randr_query_outputs_15()). Monitors
  * on one Xvfb screen are how a test gives i3 several outputs: i3 manages its default screen only.
@@ -115,6 +116,19 @@ export {
             }
             if (auto const error = xcb::randr::randr_delete_monitor_checked(connection_.get(), root_, *atom_of_name).get()) {
                 return std::unexpected{std::format("RRDeleteMonitor {}: X error {}", name, error->error_code)};
+            }
+            return {};
+        }
+
+        /** Makes the RandR output named @p name the primary output (RRSetOutputPrimary, as `xrandr --output … --primary`).
+         *  The server has made the change when this returns. */
+        std::expected<void, std::string> set_primary_output(std::string const &name) {
+            auto const output = output_named(name);
+            if (!output) {
+                return std::unexpected{output.error()};
+            }
+            if (auto const error = xcb::randr::randr_set_output_primary_checked(connection_.get(), root_, *output).get()) {
+                return std::unexpected{std::format("RRSetOutputPrimary {}: X error {}", name, error->error_code)};
             }
             return {};
         }

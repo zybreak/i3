@@ -37,8 +37,11 @@ static bool surface_initialized(surface_t *surface) {
 }
 
 DrawContext::~DrawContext() {
-    for (xcb_gcontext_t const gc : gcs | std::views::values) {
-        xcb_free_gc(conn, gc);
+    /* Null for libxcb's handle of a connection that failed, on which libxcb's calls did nothing. */
+    if (xcb::Connection *const c = xcb::xcbcompat::connection(conn)) {
+        for (xcb_gcontext_t const gc : gcs | std::views::values) {
+            xcb::xproto::free_gc(c, gc);
+        }
     }
 
     /* cairo has no lookup of the device it keeps for a connection: a surface
@@ -62,12 +65,12 @@ xcb_gcontext_t DrawContext::get_gc(uint8_t depth, xcb_drawable_t drawable) {
         return it->second;
     }
 
-    xcb_gcontext_t gc = xcb_generate_id(conn);
+    /* The drawing state of a connection exists only on one that was made (X, a nagbar, the placeholders). */
+    xcb::Connection &c = *xcb::xcbcompat::connection(conn);
+    xcb_gcontext_t gc = c.generate_id();
     /* The drawable is only used to get the root and depth, thus the GC is not
      * tied to the drawable and it can be re-used with different drawables. */
-    xcb_void_cookie_t gc_cookie = xcb_create_gc_checked(conn, gc, drawable, 0, nullptr);
-
-    std::unique_ptr<xcb_generic_error_t, decltype(&std::free)> error{xcb_request_check(conn, gc_cookie), &std::free};
+    auto const error = xcb::xproto::create_gc_checked(&c, gc, drawable, xcb::xproto::CreateGcValueList{}).get();
     if (error) {
         ELOG(fmt::sprintf("Could not create graphical context. Error code: %d. Please report this bug.\n", error->error_code));
         return gc;

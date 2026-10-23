@@ -29,6 +29,7 @@ import log;
 import utils;
 import rect;
 import program_arguments;
+import xcb.proto.shape;
 
 /*
  * Calls fn on each container in cons, in order, like upstream's TAILQ_FOREACH_SAFE: fn may remove the container it
@@ -218,44 +219,52 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
 
     if (ConCon *con2 = dynamic_cast<ConCon *>(con); con2 != nullptr && con2->get_window() != nullptr) {
         if (kill_window != kill_window_t::DONT_KILL_WINDOW) {
-            x_window_kill(global.x->c_handle(), con2->get_window()->id, kill_window);
+            x_window_kill(*global.x, con2->get_window()->id, kill_window);
             return false;
         } else {
-            xcb_void_cookie_t cookie;
+            xcb::Connection &conn = global.x->connection();
+            xcb_window_t const window = con2->get_window()->id;
+            /* The sequence numbers the ignore list keeps are the low 32 bits of the requests' numbers, as libxcb's
+             * cookies carried them (task 5.3 changes how they are compared). This connection is used by one thread
+             * only, so the last request sent is the one just sent. */
+            auto const last_sequence = [&conn] { return static_cast<int>(static_cast<uint32_t>(xcb::last_request_sent(conn))); };
+
             /* Ignore any further events by clearing the event mask,
              * unmap the window,
              * then reparent it to the root window. */
-            uint32_t value_list[]{XCB_NONE};
-            xcb_change_window_attributes(global.x->c_handle(), con2->get_window()->id,
-                                         XCB_CW_EVENT_MASK, value_list);
-            xcb_unmap_window(global.x->c_handle(), con2->get_window()->id);
-            cookie = xcb_reparent_window(global.x->c_handle(), con2->get_window()->id, global.x->root, con2->rect.x, con2->rect.y);
+            xcb::xproto::change_window_attributes(&conn, window,
+                                                  xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_NO_EVENT));
+            xcb::xproto::unmap_window(&conn, window);
+            xcb::xproto::reparent_window(&conn, window, global.x->root, con2->rect.x, con2->rect.y);
 
             /* Ignore X11 errors for the ReparentWindow request.
              * X11 Errors are returned when the window was already destroyed */
-            global.handlers->add_ignore_event(cookie.sequence, 0);
+            global.handlers->add_ignore_event(last_sequence(), 0);
 
             /* We are no longer handling this window, thus set WM_STATE to
              * WM_STATE_WITHDRAWN (see ICCCM 4.1.3.1) */
-            long data[] = {XCB_ICCCM_WM_STATE_WITHDRAWN, XCB_NONE};
-            cookie = xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE,
-                                         con2->get_window()->id, i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], 32, 2, data);
+            std::array<uint32_t, 2> const data{XCB_ICCCM_WM_STATE_WITHDRAWN, XCB_NONE};
+            x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE,
+                              window, i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], std::span{data});
+            /* The second ignore below is this ChangeProperty's sequence, as it was before the port, though its comment
+             * names the ReparentWindow. */
+            int const change_property_sequence = last_sequence();
 
             /* Remove the window from the save set. All windows in the save set
              * will be mapped when i3 closes its connection (e.g. when
              * restarting). This is not what we want, since some apps keep
              * unmapped windows around and don’t expect them to suddenly be
              * mapped. See https://bugs.i3wm.org/1617 */
-            xcb::xproto::change_save_set(&global.x->connection(), xcb::xproto::set_mode_t::SET_MODE_DELETE, con2->get_window()->id);
+            xcb::xproto::change_save_set(&conn, xcb::xproto::set_mode_t::SET_MODE_DELETE, window);
 
             /* Stop receiving ShapeNotify events. */
             if (global.x->shape_supported) {
-                xcb_shape_select_input(global.x->c_handle(), con2->get_window()->id, false);
+                xcb::shape::shape_select_input(&conn, window, false);
             }
 
             /* Ignore X11 errors for the ReparentWindow request.
              * X11 Errors are returned when the window was already destroyed */
-            global.handlers->add_ignore_event(cookie.sequence, 0);
+            global.handlers->add_ignore_event(change_property_sequence, 0);
         }
         global.ipcManager->ipc_send_window_event("close", con2);
         con2->set_window(nullptr);

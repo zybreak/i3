@@ -28,9 +28,17 @@ target_sources(UnitTest PRIVATE
         util_test.cpp
         workspace_manager_test.cpp
         manage_test.cpp
+        ewmh_test.cpp
+        draw_test.cpp
+        xkb_test.cpp
+        fake_x_server_test.cpp
+        x_test.cpp
+        i3_lib_test.cpp
+        xcb_test.cpp
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES
+        fake_x_server.cppm
         mocks.cppm
 )
 target_link_libraries(UnitTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
@@ -60,6 +68,9 @@ if(XVFB_PROGRAM)
     add_executable(ITTest)
     target_sources(ITTest PRIVATE
             check_config_test.cpp
+            command_line_test.cpp
+            manage_window_test.cpp
+            wm_selection_test.cpp
             multi_monitor_test.cpp
             PUBLIC
             FILE_SET cxx_modules TYPE CXX_MODULES

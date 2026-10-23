@@ -56,14 +56,14 @@ static void floating_set_hint_atom(Con *con, bool floating) {
     }
 
     if (floating) {
-        uint32_t val = 1;
-        xcb_change_property(global.x->c_handle(), XCB_PROP_MODE_REPLACE, con->get_window()->id,
-                            i3::atoms[i3::Atom::I3_FLOATING_WINDOW], XCB_ATOM_CARDINAL, 32, 1, &val);
+        uint32_t const val = 1;
+        x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, con->get_window()->id,
+                          i3::atoms[i3::Atom::I3_FLOATING_WINDOW], XCB_ATOM_CARDINAL, std::span{&val, 1});
     } else {
-        xcb_delete_property(global.x->c_handle(), con->get_window()->id, i3::atoms[i3::Atom::I3_FLOATING_WINDOW]);
+        xcb::xproto::delete_property(&global.x->connection(), con->get_window()->id, i3::atoms[i3::Atom::I3_FLOATING_WINDOW]);
     }
 
-    xcb_flush(global.x->c_handle());
+    global.x->connection().flush();
 }
 
 /*
@@ -545,8 +545,8 @@ void floating_move_to_pointer(Con *con) {
         std::terminate();
     }
 
-    xcb_query_pointer_reply_t *reply = xcb_query_pointer_reply(global.x->c_handle(), xcb_query_pointer(global.x->c_handle(), global.x->root), nullptr);
-    if (reply == nullptr) {
+    auto const reply = xcb::xproto::query_pointer(&global.x->connection(), global.x->root).get();
+    if (!reply) {
         ELOG("could not query pointer position, not moving this container\n");
         return;
     }
@@ -560,7 +560,6 @@ void floating_move_to_pointer(Con *con) {
     /* Determine where to put the window. */
     int32_t x = reply->root_x - con->rect.width / 2;
     int32_t y = reply->root_y - con->rect.height / 2;
-    free(reply);
 
     /* Correct target coordinates to be in-bounds. */
     x = std::max(x, static_cast<int32_t>(output->rect.x));
