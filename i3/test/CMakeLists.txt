@@ -44,34 +44,58 @@ add_test(NAME i3-loads-xcbcompat
                  -P ${CMAKE_CURRENT_SOURCE_DIR}/check_xcbcompat.cmake)
 set_tests_properties(i3-loads-xcbcompat PROPERTIES ENVIRONMENT_MODIFICATION "LD_LIBRARY_PATH=unset:")
 
-# i3 on Xvfb, on the layer: grabs, AllowEvents, the save set and AllocColor (depth 8). Its test client is compiled
-# against the system's libxcb and XTEST, so the test needs Xvfb, i3-msg, a C compiler and pkg-config's xcb-xtest.
 find_program(XVFB_PROGRAM Xvfb)
-find_program(I3_MSG_PROGRAM i3-msg)
 find_program(CC_PROGRAM cc)
-pkg_check_modules(xcb_xtest_dep QUIET xcb-xtest)
-if(XVFB_PROGRAM AND I3_MSG_PROGRAM AND CC_PROGRAM AND xcb_xtest_dep_FOUND)
-    foreach(depth IN ITEMS 24 8)
-        add_test(NAME i3-xcbcompat-smoke-depth${depth}
-                 COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/xcbcompat/smoke.sh $<TARGET_FILE:i3> 9${depth}
-                         ${CMAKE_CURRENT_BINARY_DIR}/xcbcompat-smoke-depth${depth} ${depth})
-        set_tests_properties(i3-xcbcompat-smoke-depth${depth} PROPERTIES
-                             LABELS it RESOURCE_LOCK xvfb ENVIRONMENT_MODIFICATION "LD_LIBRARY_PATH=unset:")
-    endforeach()
-else()
-    message(STATUS "Xvfb, i3-msg, cc or xcb-xtest missing: the i3-xcbcompat-smoke tests are left out")
-endif()
 
-# i3 -C on a configuration with workspace assignments and for_window, assign and no_focus directives, which it parses
-# without i3's running state. It needs Xvfb: the configuration loads fonts and colours on an X connection.
+# Tests on Xvfb (label "it"): i3 -C (CheckConfigTest), i3 on the layer driven by a test client (XcbcompatSmokeTest:
+# grabs, AllowEvents, nagbars, the save set, and AllocColor at depth 8) and i3 with several RandR 1.5 monitors
+# (MultiMonitorTest). Each test starts an Xvfb of its own, on a display that Xvfb picks (-displayfd), so they run in
+# parallel without a resource lock; see xvfb_fixture.cppm.
+#
+# They run without LD_LIBRARY_PATH, as i3 runs installed: i3 finds xcbpp's libxcb compatibility layer through its
+# RUNPATH, which LD_LIBRARY_PATH would override (with the system libxcb's directory, a fallback, i3 would load the
+# system's libxcb and fail XcbcompatSmokeTest's checks of the layer), and the smoke test's client must load the system's
+# libxcb, not a libxcb.so.1 found on LD_LIBRARY_PATH.
 if(XVFB_PROGRAM)
-    add_test(NAME i3-check-config
-             COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/check_config.sh $<TARGET_FILE:i3> 931
-                     ${CMAKE_CURRENT_BINARY_DIR}/check-config)
-    set_tests_properties(i3-check-config PROPERTIES
-                         LABELS it RESOURCE_LOCK xvfb ENVIRONMENT_MODIFICATION "LD_LIBRARY_PATH=unset:")
+    add_executable(ITTest)
+    target_sources(ITTest PRIVATE
+            check_config_test.cpp
+            multi_monitor_test.cpp
+            PUBLIC
+            FILE_SET cxx_modules TYPE CXX_MODULES
+            FILES
+            child_process.cppm
+            i3_runner.cppm
+            randr_monitors.cppm
+            xvfb_fixture.cppm
+            xvfb_server.cppm
+    )
+    target_link_libraries(ITTest PUBLIC xcbpp::xcbpp libi3ipc i3_json GTest::gtest_main GTest::gmock)
+    target_compile_definitions(ITTest PRIVATE I3_TEST_XVFB="${XVFB_PROGRAM}" I3_TEST_I3="$<TARGET_FILE:i3>")
+    target_compile_features(ITTest PUBLIC cxx_std_26)
+    add_dependencies(ITTest i3)
+
+    # The smoke test's client (xcbcompat/client.c) runs on the system's libxcb and XTEST, so it is compiled with cc
+    # and pkg-config's flags, outside of i3's link, which links the layer in libxcb's place.
+    pkg_check_modules(xcbcompat_client_dep QUIET xcb xcb-xtest)
+    if(CC_PROGRAM AND xcbcompat_client_dep_FOUND)
+        set(xcbcompat_client ${CMAKE_CURRENT_BINARY_DIR}/xcbcompat-test-client)
+        add_custom_command(OUTPUT ${xcbcompat_client}
+                COMMAND ${CC_PROGRAM} -O1 -o ${xcbcompat_client} ${CMAKE_CURRENT_SOURCE_DIR}/xcbcompat/client.c
+                        ${xcbcompat_client_dep_CFLAGS} ${xcbcompat_client_dep_LDFLAGS}
+                DEPENDS xcbcompat/client.c
+                VERBATIM)
+        add_custom_target(xcbcompat-client DEPENDS ${xcbcompat_client})
+        add_dependencies(ITTest xcbcompat-client)
+        target_sources(ITTest PRIVATE xcbcompat_smoke_test.cpp)
+        target_compile_definitions(ITTest PRIVATE I3_TEST_XCBCOMPAT_CLIENT="${xcbcompat_client}")
+    else()
+        message(STATUS "cc or pkg-config's xcb-xtest missing: XcbcompatSmokeTest is left out of ITTest")
+    endif()
+
+    gtest_discover_tests(ITTest PROPERTIES LABELS it TIMEOUT 120 ENVIRONMENT_MODIFICATION "LD_LIBRARY_PATH=unset:")
 else()
-    message(STATUS "Xvfb missing: the i3-check-config test is left out")
+    message(STATUS "Xvfb missing: the tests on Xvfb (ITTest) are left out")
 endif()
 
 #add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS RegexTest MatchTest ConTest ConfigNewTest ConfigOldTest)
