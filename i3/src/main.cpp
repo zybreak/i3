@@ -611,7 +611,9 @@ int main(int argc, char *argv[]) {
     translate_keysyms(xkb.keymap());
     grab_all_keys(x);
 
-    RandR randr = injector.create<RandR &>();
+    /* The injector's RandR, which PropertyHandlers updates on RandR events: a copy would keep the outputs of
+     * startup. */
+    RandR &randr = injector.create<RandR &>();
     global.randr = &randr;
 
     ewmh_update_desktop_properties();
