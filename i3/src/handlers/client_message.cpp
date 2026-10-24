@@ -104,7 +104,7 @@ static void handle_net_wm_state_change(ConCon *con, uint32_t change, uint32_t at
     tree_render();
 }
 
-static void handle_state(xcb_client_message_event_t *event) {
+static void handle_state(xcb::xproto::client_message_event_t *event) {
     if (event->format != 32) {
         DLOG(std::format("Unknown format {} in ClientMessage\n", event->format));
         return;
@@ -121,7 +121,7 @@ static void handle_state(xcb_client_message_event_t *event) {
     }
 }
 
-static void handle_active_window(xcb_client_message_event_t *event) {
+static void handle_active_window(xcb::xproto::client_message_event_t *event) {
     if (event->format != 32) {
         return;
     }
@@ -165,7 +165,7 @@ static void handle_active_window(xcb_client_message_event_t *event) {
     tree_render();
 }
 
-static void handle_frame_extents(xcb_client_message_event_t *event) {
+static void handle_frame_extents(xcb::xproto::client_message_event_t *event) {
     /*
      * A client can request an estimate for the frame size which the window
      * manager will put around it before actually mapping its window. Java
@@ -197,7 +197,7 @@ static void handle_frame_extents(xcb_client_message_event_t *event) {
     global.x->connection().flush();
 }
 
-static void handle_current_desktop(xcb_client_message_event_t *event) {
+static void handle_current_desktop(xcb::xproto::client_message_event_t *event) {
     /* This request is used by pagers and bars to change the current
      * desktop likely as a result of some user action. We interpret this as
      * a request to focus the given workspace. See
@@ -215,7 +215,7 @@ static void handle_current_desktop(xcb_client_message_event_t *event) {
     tree_render();
 }
 
-static void handle_change_state(xcb_client_message_event_t *event) {
+static void handle_change_state(xcb::xproto::client_message_event_t *event) {
     /* http://tronche.com/gui/x/icccm/sec-4.html#s-4.1.4 */
     if (event->data.data32[0] == XCB_ICCCM_WM_STATE_ICONIC) {
         /* For compatibility reasons, Wine will request iconic state and cannot ensure that the WM has agreed on it;
@@ -229,7 +229,7 @@ static void handle_change_state(xcb_client_message_event_t *event) {
     }
 }
 
-static void handle_desktop(xcb_client_message_event_t *event) {
+static void handle_desktop(xcb::xproto::client_message_event_t *event) {
     uint32_t index = event->data.data32[0];
     DLOG(fmt::sprintf("Request to move window %d to EWMH desktop index %d\n", event->window, index));
 
@@ -265,7 +265,7 @@ static void handle_desktop(xcb_client_message_event_t *event) {
     ewmh_update_wm_desktop();
 }
 
-static void handle_close_window(xcb_client_message_event_t *event) {
+static void handle_close_window(xcb::xproto::client_message_event_t *event) {
     /*
      * Pagers wanting to close a window MUST send a _NET_CLOSE_WINDOW
      * client message request to the root window.
@@ -286,7 +286,7 @@ static void handle_close_window(xcb_client_message_event_t *event) {
     }
 }
 
-void PropertyHandlers::handle_move_resize(xcb_client_message_event_t *event) {
+void PropertyHandlers::handle_move_resize(xcb::xproto::client_message_event_t *event) {
     /*
      * Client-side decorated Gtk3 windows emit this signal when being
      * dragged by their GtkHeaderBar
@@ -300,8 +300,8 @@ void PropertyHandlers::handle_move_resize(xcb_client_message_event_t *event) {
     uint32_t direction = event->data.data32[2];
     uint32_t x_root = event->data.data32[0];
     uint32_t y_root = event->data.data32[1];
-    /* construct fake xcb_button_press_event_t */
-    xcb_button_press_event_t fake = {
+    /* construct fake button_press_event_t */
+    xcb::xproto::button_press_event_t fake = {
         .root_x = static_cast<int16_t>(x_root),
         .root_y = static_cast<int16_t>(y_root),
         .event_x = static_cast<int16_t>(x_root - (con->rect.x)),
@@ -319,10 +319,10 @@ void PropertyHandlers::handle_move_resize(xcb_client_message_event_t *event) {
     }
 }
 
-static xcb_configure_request_event_t handle_move_resize_window(xcb_client_message_event_t *event) {
+static xcb::xproto::configure_request_event_t handle_move_resize_window(xcb::xproto::client_message_event_t *event) {
     DLOG("Received _NET_MOVE_RESIZE_WINDOW. Handling by faking a configure request.\n");
 
-    xcb_configure_request_event_t generated_event{};
+    xcb::xproto::configure_request_event_t generated_event{};
 
     generated_event.window = event->window;
     generated_event.response_type = XCB_CONFIGURE_REQUEST;
@@ -352,10 +352,11 @@ static xcb_configure_request_event_t handle_move_resize_window(xcb_client_messag
  * Handle client messages (EWMH)
  *
  */
-void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) {
+void PropertyHandlers::handle_client_message(xcb::xproto::client_message_event_t *event) {
     /* If this is a startup notification ClientMessage, the library will handle
-     * it and call our monitor_event() callback. */
-    if (sn_xcb_display_process_event(global.applicationLauncher->sndisplay, (xcb_generic_event_t *)event)) {
+     * it and call our monitor_event() callback. libsn takes libxcb's event
+     * type: event is the event loop's xcbpp event, whose layout is libxcb's. */
+    if (sn_xcb_display_process_event(global.applicationLauncher->sndisplay, reinterpret_cast<xcb_generic_event_t *>(event))) {
         return;
     }
 
@@ -381,7 +382,7 @@ void PropertyHandlers::handle_client_message(xcb_client_message_event_t *event) 
     } else if (event->type == i3::atoms[i3::Atom::_NET_WM_MOVERESIZE]) {
         handle_move_resize(event);
     } else if (event->type == i3::atoms[i3::Atom::_NET_MOVERESIZE_WINDOW]) {
-        xcb_configure_request_event_t generated_event = handle_move_resize_window(event);
+        xcb::xproto::configure_request_event_t generated_event = handle_move_resize_window(event);
         handle_configure_request(&generated_event);
     } else {
         DLOG(fmt::sprintf("Skipping client message for unhandled type %d\n", event->type));

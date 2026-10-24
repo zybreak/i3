@@ -305,7 +305,7 @@ static void ignore_restart_events(X &x) {
              * timespan starting from when we register as a window manager and
              * this piece of code which drops events. */
             if (type == XCB_MAP_REQUEST) {
-                global.handlers->handle_event(type, reinterpret_cast<xcb_generic_event_t *>(event.get()));
+                global.handlers->handle_event(type, event.get());
             }
         }
         manage_existing_windows(global.x->root);

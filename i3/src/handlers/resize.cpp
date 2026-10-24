@@ -34,7 +34,7 @@ struct callback_params {
 };
 
 static void resize_callback(Con *con, Rect const &, uint32_t new_x, uint32_t new_y,
-                            xcb_button_press_event_t const *event, callback_params const *params) {
+                            xcb::xproto::button_press_event_t const *event, callback_params const *params) {
     Con *output = params->output;
     DLOG(fmt::sprintf("new x = %d, y = %d\n", new_x, new_y));
 
@@ -81,7 +81,7 @@ static void resize_callback(Con *con, Rect const &, uint32_t new_x, uint32_t new
 }
 
 void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orientation_t orientation,
-                                                xcb_button_press_event_t const *event,
+                                                xcb::xproto::button_press_event_t const *event,
                                                 bool use_threshold) {
     Con *output = first->con_get_output();
     DLOG(fmt::sprintf("x = %d, width = %d\n", output->rect.x, output->rect.width));
@@ -167,7 +167,7 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
     tree_render();
 
     auto cb = [&params](Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y,
-                        xcb_button_press_event_t const *event) {
+                        xcb::xproto::button_press_event_t const *event) {
         resize_callback(con, old_rect, new_x, new_y, event, &params);
     };
 

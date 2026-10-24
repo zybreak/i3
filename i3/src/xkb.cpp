@@ -194,12 +194,15 @@ unsigned int Xkb::get_numlock_mask() {
     return aio_get_mod_mask_for(x, XCB_NUM_LOCK, keysyms().keysyms);
 }
 
-xcb_keysym_t Xkb::key_press_lookup_keysym(xcb_key_press_event_t *event, uint16_t state) {
-    return xcb_key_press_lookup_keysym(keysyms().keysyms, event, state);
+/* xcb-keysyms takes libxcb's event types: these copy xcbpp's events, whose layouts are libxcb's, into them. */
+xcb_keysym_t Xkb::key_press_lookup_keysym(xcb::xproto::key_press_event_t const *event, uint16_t state) {
+    auto c_event = std::bit_cast<xcb_key_press_event_t>(*event);
+    return xcb_key_press_lookup_keysym(keysyms().keysyms, &c_event, state);
 }
 
-void Xkb::refresh_keyboard_mapping(xcb_mapping_notify_event_t *event) {
-    xcb_refresh_keyboard_mapping(keysyms().keysyms, event);
+void Xkb::refresh_keyboard_mapping(xcb::xproto::mapping_notify_event_t const *event) {
+    auto c_event = std::bit_cast<xcb_mapping_notify_event_t>(*event);
+    xcb_refresh_keyboard_mapping(keysyms().keysyms, &c_event);
 }
 
 Xkb::Xkb(X &x)

@@ -45,6 +45,7 @@ import regex;
 import log;
 import xcb;
 import xcb.xcbcompat;
+import xcb.proto.randr;
 import i3.json;
 
 using std::int32_t;
@@ -2720,8 +2721,8 @@ export class Xkb {
     explicit Xkb(X &x);
 
     unsigned int get_numlock_mask();
-    xcb_keysym_t key_press_lookup_keysym(xcb_key_press_event_t *event, uint16_t state);
-    void refresh_keyboard_mapping(xcb_mapping_notify_event_t *event);
+    xcb_keysym_t key_press_lookup_keysym(xcb::xproto::key_press_event_t const *event, uint16_t state);
+    void refresh_keyboard_mapping(xcb::xproto::mapping_notify_event_t const *event);
 };
 
 /**
@@ -2773,18 +2774,18 @@ export {
          * Initiates a mouse drag operation on a tiled window.
          *
          */
-        void tiling_drag(Con *con, xcb_button_press_event_t *event, bool use_threshold);
+        void tiling_drag(Con *con, xcb::xproto::button_press_event_t *event, bool use_threshold);
 
-        void route_click(Con *con, xcb_button_press_event_t *event, click_destination_t const dest);
+        void route_click(Con *con, xcb::xproto::button_press_event_t *event, click_destination_t const dest);
 
         /**
          * Called when the user clicked on the titlebar of a floating window.
          * Calls the drag_pointer function with the drag_window callback
          *
          */
-        void floating_drag_window(Con *con, xcb_button_press_event_t const *event, bool use_threshold);
+        void floating_drag_window(Con *con, xcb::xproto::button_press_event_t const *event, bool use_threshold);
 
-        void handle_move_resize(xcb_client_message_event_t *event);
+        void handle_move_resize(xcb::xproto::client_message_event_t *event);
 
         /**
          * Called when the user clicked on a floating window while holding the
@@ -2792,12 +2793,12 @@ export {
          * Calls the drag_pointer function with the resize_window callback
          *
          */
-        void floating_resize_window(Con *con, bool proportional, xcb_button_press_event_t const *event);
+        void floating_resize_window(Con *con, bool proportional, xcb::xproto::button_press_event_t const *event);
 
       public:
         // TODO: make private
         void resize_graphical_handler(Con *first, Con *second, orientation_t orientation,
-                                      xcb_button_press_event_t const *event,
+                                      xcb::xproto::button_press_event_t const *event,
                                       bool use_threshold);
 
       private:
@@ -2809,43 +2810,43 @@ export {
          * Then, route_click is called on the appropriate con.
          *
          */
-        void handle_button_press(xcb_button_press_event_t *event);
+        void handle_button_press(xcb::xproto::button_press_event_t *event);
 
         /**
          * When the user moves the mouse pointer onto a window, this callback gets called.
          */
-        void handle_enter_notify(xcb_enter_notify_event_t *event);
+        void handle_enter_notify(xcb::xproto::enter_notify_event_t *event);
 
         /**
          * When the user moves the mouse but does not change the active window
          * (e.g. when having no windows opened but moving mouse on the root screen
          * and crossing virtual screen boundaries), this callback gets called.
          */
-        void handle_motion_notify(xcb_motion_notify_event_t *event);
+        void handle_motion_notify(xcb::xproto::motion_notify_event_t *event);
 
         /**
          * When the user moves the mouse but does not change the active window
          * (e.g. when having no windows opened but moving mouse on the root screen
          * and crossing virtual screen boundaries), this callback gets called.
          */
-        void handle_mapping_notify(xcb_mapping_notify_event_t *event);
+        void handle_mapping_notify(xcb::xproto::mapping_notify_event_t *event);
 
         /**
          * A new window appeared on the screen (=was mapped), so let’s manage it.
          */
-        void handle_map_request(xcb_map_request_event_t *event);
+        void handle_map_request(xcb::xproto::map_request_event_t *event);
 
         /**
          * Gets triggered upon a RandR screen change event, that is when the user
          * changes the screen configuration in any way (mode, position, …)
          */
-        void handle_screen_change(xcb_generic_event_t *e);
+        void handle_screen_change(xcb::randr::randr_screen_change_notify_event_t *e);
 
         /**
          * Our window decorations were unmapped. That means, the window will be killed
          * now, so we better clean up before.
          */
-        void handle_unmap_notify_event(xcb_unmap_notify_event_t *event);
+        void handle_unmap_notify_event(xcb::xproto::unmap_notify_event_t *event);
 
         /**
          * A destroy notify event is sent when the window is not unmapped, but
@@ -2855,45 +2856,45 @@ export {
          * We just pass on the event to the unmap notify handler (by copying the
          * important fields in the event data structure).
          */
-        void handle_destroy_notify_event(xcb_destroy_notify_event_t *event);
+        void handle_destroy_notify_event(xcb::xproto::destroy_notify_event_t *event);
 
         /**
          * Expose event means we should redraw our windows (= title bar)
          */
-        void handle_expose_event(xcb_expose_event_t *event);
+        void handle_expose_event(xcb::xproto::expose_event_t *event);
 
         /**
          * Handle client messages (EWMH)
          */
-        void handle_client_message(xcb_client_message_event_t *event);
+        void handle_client_message(xcb::xproto::client_message_event_t *event);
 
         /**
          * Handles FocusIn events which are generated by clients (i3’s focus changes
          * don’t generate FocusIn events due to a different EventMask) and updates the
          * decorations accordingly.
          */
-        void handle_focus_in(xcb_focus_in_event_t *event);
+        void handle_focus_in(xcb::xproto::focus_in_event_t *event);
 
         /**
          * Log FocusOut events.
          */
-        void handle_focus_out(xcb_focus_in_event_t *event);
+        void handle_focus_out(xcb::xproto::focus_in_event_t *event);
 
         /**
          * Handles ConfigureNotify events for the root window, which are generated when
          * the monitor configuration changed.
          *
          */
-        void handle_configure_notify(xcb_configure_notify_event_t *event);
+        void handle_configure_notify(xcb::xproto::configure_notify_event_t *event);
 
-        void property_notify(xcb_property_notify_event_t *event);
+        void property_notify(xcb::xproto::property_notify_event_t *event);
 
         /**
          * There was a KeyPress or KeyRelease (both events have the same fields). We
          * compare this key code with our bindings table and pass the bound action to
          * parse_command().
          */
-        void handle_key_press(xcb_key_press_event_t *event);
+        void handle_key_press(xcb::xproto::key_press_event_t *event);
 
       public:
         PropertyHandlers() = delete;
@@ -2914,7 +2915,7 @@ export {
          * We generate a synthetic configure notify event to signalize the client its
          * "new" position.
          */
-        void handle_configure_request(xcb_configure_request_event_t *event);
+        void handle_configure_request(xcb::xproto::configure_request_event_t *event);
 
         /**
          * Adds the given sequence to the list of events which are ignored.
@@ -2933,11 +2934,11 @@ export {
         bool event_is_ignored(int sequence, int response_type);
 
         /**
-         * Takes an xcb_generic_event_t and calls the appropriate handler, based on the
+         * Takes an xcb::generic_event_t and calls the appropriate handler, based on the
          * event type.
          *
          */
-        void handle_event(int type, xcb_generic_event_t *event);
+        void handle_event(int type, xcb::generic_event_t *event);
     };
 }
 // criteria_state.cppm
@@ -3823,7 +3824,7 @@ export {
 // drag.cppm
 export {
     /** Callback for dragging */
-    using callback_t = std::function<void(Con *, Rect const &, uint32_t, uint32_t, xcb_button_press_event_t const *)>;
+    using callback_t = std::function<void(Con *, Rect const &, uint32_t, uint32_t, xcb::xproto::button_press_event_t const *)>;
     
     /**
      * This is the return value of a drag operation like drag_pointer.
@@ -3868,7 +3869,7 @@ export {
          * callback will not be called until then.
          *
          */
-        drag_result_t drag_pointer(Con *con, xcb_button_press_event_t const *event,
+        drag_result_t drag_pointer(Con *con, xcb::xproto::button_press_event_t const *event,
                                    xcb_window_t confine_to, int cursor,
                                    bool use_threshold, callback_t callback);
     };

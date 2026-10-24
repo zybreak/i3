@@ -298,7 +298,7 @@ struct property_handler_t {
     }
 };
 
-void PropertyHandlers::property_notify(xcb_property_notify_event_t *event) {
+void PropertyHandlers::property_notify(xcb::xproto::property_notify_event_t *event) {
     global.last_timestamp = event->time;
 
     uint8_t state = event->state;

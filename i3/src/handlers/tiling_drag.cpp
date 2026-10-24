@@ -175,7 +175,7 @@ static bool con_on_side_of_parent(Con *con, direction_t direction) {
 }
 
 static void create_indicator(drop_type_t drop_type, direction_t direction, Con *target, Rect rect, bool draw_window, Con *con, Rect const &, uint32_t new_x, uint32_t new_y,
-                             xcb_button_press_event_t const *event, callback_params const *params) {
+                             xcb::xproto::button_press_event_t const *event, callback_params const *params) {
     if (draw_window) {
         if (*(params->indicator) == 0) {
             *(params->indicator) = create_drop_indicator(rect);
@@ -231,7 +231,7 @@ static xcb_window_t create_drop_indicator(Rect rect) {
  * passed out using the callback params.
  *
  */
-static void drag_callback(Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y, xcb_button_press_event_t const *event, callback_params const *params) {
+static void drag_callback(Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y, xcb::xproto::button_press_event_t const *event, callback_params const *params) {
     /* 30% of the container (minus the parent indicator) is used to drop the
      * dragged container as a sibling to the target */
     double const sibling_indicator_percent_of_rect = 0.3;
@@ -329,7 +329,7 @@ static bool con_swap(Con *con, Con *con2) {
  * Initiates a mouse drag operation on a tiled window.
  *
  */
-void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bool use_threshold) {
+void PropertyHandlers::tiling_drag(Con *con, xcb::xproto::button_press_event_t *event, bool use_threshold) {
     DLOG(fmt::sprintf("Start dragging tiled container: con = %p\n", fmt::ptr(con)));
     bool set_focus = (con == global.focused);
     bool set_fs = con->fullscreen_mode != CF_NONE;
@@ -344,7 +344,7 @@ void PropertyHandlers::tiling_drag(Con *con, xcb_button_press_event_t *event, bo
     drop_type_t drop_type;
     xcb_window_t indicator = 0;
     callback_params const params{.indicator = &indicator, .target = &target, .direction = &direction, .drop_type = &drop_type};
-    auto cb = [&params](Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y, xcb_button_press_event_t const *event) {
+    auto cb = [&params](Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y, xcb::xproto::button_press_event_t const *event) {
         drag_callback(con, old_rect, new_x, new_y, event, &params);
     };
 

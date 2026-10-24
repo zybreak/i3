@@ -190,7 +190,8 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
  * event or NULL if no such binding exists.
  *
  */
-Binding *get_binding_from_xcb_event(xcb_generic_event_t *event, std::vector<Binding> &bindings) {
+template <typename Event>
+static Binding *get_binding_from_event(Event const *event, std::vector<Binding> &bindings) {
     bool const is_release = (event->response_type == XCB_KEY_RELEASE ||
                              event->response_type == XCB_BUTTON_RELEASE);
 
@@ -199,8 +200,8 @@ Binding *get_binding_from_xcb_event(xcb_generic_event_t *event, std::vector<Bind
                                          ? B_MOUSE
                                          : B_KEYBOARD);
 
-    uint16_t const event_state = ((xcb_key_press_event_t *)event)->state;
-    uint16_t const event_detail = ((xcb_key_press_event_t *)event)->detail;
+    uint16_t const event_state = event->state;
+    uint16_t const event_detail = event->detail;
 
     /* Remove the CapsLock bit */
     i3_event_state_mask_t state_filtered = event_state & ~XCB_MOD_MASK_LOCK;
@@ -231,6 +232,14 @@ Binding *get_binding_from_xcb_event(xcb_generic_event_t *event, std::vector<Bind
     state_filtered &= ~0x6000;
     DLOG(fmt::sprintf("(transformed keyboard group, state = 0x%x)\n", state_filtered));
     return get_binding(state_filtered, is_release, event_detail, input_type, bindings);
+}
+
+Binding *get_binding_from_xcb_event(xcb::xproto::key_press_event_t const *event, std::vector<Binding> &bindings) {
+    return get_binding_from_event(event, bindings);
+}
+
+Binding *get_binding_from_xcb_event(xcb::xproto::button_press_event_t const *event, std::vector<Binding> &bindings) {
+    return get_binding_from_event(event, bindings);
 }
 
 /*

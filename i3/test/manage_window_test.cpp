@@ -683,3 +683,34 @@ TEST_F(ManageWindowTest, IconicStateIsRefused) {
     EXPECT_TRUE(poll_until([&] { return property(window, wm_state) == std::string{"\x01\0\0\0\0\0\0\0", 8}; }, std::chrono::seconds{5}))
         << "WM_STATE is Normal again";
 }
+
+/*
+ * _NET_WM_MOVERESIZE with _NET_WM_MOVERESIZE_MOVE (EWMH), as a client-side decorated window sends when its header bar
+ * is dragged: i3 drags the floating window from the given pointer position (handle_move_resize() hands drag_pointer() a
+ * ButtonPress of its own) until a button is released.
+ */
+TEST_F(ManageWindowTest, NetWmMoveresizeDragsAFloatingWindow) {
+    ASSERT_NO_FATAL_FAILURE(start_i3());
+    ASSERT_NO_FATAL_FAILURE(connect_client());
+    auto const window = create_window();
+    ASSERT_FALSE(xcb::xproto::map_window_checked(&client(), window).get());
+    ASSERT_TRUE(poll_until([&] { return manages(request(i3ipc::MESSAGE_TYPE::GET_TREE), window); }, std::chrono::seconds{5}));
+    ASSERT_NO_FATAL_FAILURE(command(std::format("[id={}] floating enable", window)));
+    auto const frame = parent_of(window);
+    auto const before = xcb::xproto::get_geometry(&client(), frame).get();
+    ASSERT_TRUE(before);
+    ASSERT_NO_FATAL_FAILURE(move_pointer(400, 300));
+    ASSERT_TRUE(poll_until([&] { return pointer() == std::pair{400, 300}; }, std::chrono::seconds{5}));
+
+    ASSERT_NO_FATAL_FAILURE(client_message(window, atom("_NET_WM_MOVERESIZE"), {400, 300, 8 /* _NET_WM_MOVERESIZE_MOVE */, 1, 0}));
+    ASSERT_TRUE(poll_until([&] { return !keyboard_grabbable(); }, std::chrono::seconds{5})) << "i3's drag loop grabs the keyboard";
+    ASSERT_NO_FATAL_FAILURE(move_pointer(450, 340));
+    ASSERT_NO_FATAL_FAILURE(button1(true));
+    ASSERT_NO_FATAL_FAILURE(button1(false));
+
+    ASSERT_TRUE(poll_until([&] { return keyboard_grabbable(); }, std::chrono::seconds{5})) << "the drag is over";
+    EXPECT_TRUE(poll_until([&] {
+        auto const geometry = xcb::xproto::get_geometry(&client(), frame).get();
+        return geometry && geometry->x == before->x + 50 && geometry->y == before->y + 40;
+    }, std::chrono::seconds{5})) << "the window moved with the pointer";
+}

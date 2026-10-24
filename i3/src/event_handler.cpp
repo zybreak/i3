@@ -1,6 +1,5 @@
 module;
 #include <ev.h>
-#include <xcb/xcb.h>
 #include <fmt/printf.h>
 module i3;
 
@@ -40,8 +39,7 @@ void EventHandler::xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
 
-        /* The handlers take libxcb's event types (task 5.2), whose layouts are xcbpp's. */
-        handlers.handle_event(type, reinterpret_cast<xcb_generic_event_t *>(event.get()));
+        handlers.handle_event(type, event.get());
     }
 
     /* Flush all queued events to X11. */

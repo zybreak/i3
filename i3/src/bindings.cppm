@@ -15,6 +15,7 @@ export module bindings;
 
 import std;
 import i3_commands_base;
+import xcb;
 
 export {
     /**
@@ -142,7 +143,8 @@ export {
      * no such binding exists.
      *
      */
-    Binding *get_binding_from_xcb_event(xcb_generic_event_t *event, std::vector<Binding> &bindings);
+    Binding *get_binding_from_xcb_event(xcb::xproto::key_press_event_t const *event, std::vector<Binding> &bindings);
+    Binding *get_binding_from_xcb_event(xcb::xproto::button_press_event_t const *event, std::vector<Binding> &bindings);
 
     /**
      * Returns a list of buttons that should be grabbed on a window.

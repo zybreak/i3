@@ -33,6 +33,7 @@ import log;
 import rect;
 import utils;
 import i3ipc;
+import xcb.proto.shape;
 
 static uint32_t const _NET_WM_STATE_REMOVE = 0;
 static uint32_t const _NET_WM_STATE_ADD = 1;
@@ -118,7 +119,7 @@ static void check_crossing_screen_boundary(uint32_t x, uint32_t y) {
  * When the user moves the mouse pointer onto a window, this callback gets called.
  *
  */
-void PropertyHandlers::handle_enter_notify(xcb_enter_notify_event_t *event) {
+void PropertyHandlers::handle_enter_notify(xcb::xproto::enter_notify_event_t *event) {
     Con *con;
 
     global.last_timestamp = event->time;
@@ -193,7 +194,7 @@ void PropertyHandlers::handle_enter_notify(xcb_enter_notify_event_t *event) {
  * and crossing virtual screen boundaries), this callback gets called.
  *
  */
-void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
+void PropertyHandlers::handle_motion_notify(xcb::xproto::motion_notify_event_t *event) {
     global.last_timestamp = event->time;
 
     /* Skip events where the pointer was over a child window, we are only
@@ -252,7 +253,7 @@ void PropertyHandlers::handle_motion_notify(xcb_motion_notify_event_t *event) {
  * we need to update our key bindings then (re-translate symbols).
  *
  */
-void PropertyHandlers::handle_mapping_notify(xcb_mapping_notify_event_t *event) {
+void PropertyHandlers::handle_mapping_notify(xcb::xproto::mapping_notify_event_t *event) {
     if (event->request != XCB_MAPPING_KEYBOARD &&
         event->request != XCB_MAPPING_MODIFIER) {
         return;
@@ -272,7 +273,7 @@ void PropertyHandlers::handle_mapping_notify(xcb_mapping_notify_event_t *event) 
  * A new window appeared on the screen (=was mapped), so let’s manage it.
  *
  */
-void PropertyHandlers::handle_map_request(xcb_map_request_event_t *event) {
+void PropertyHandlers::handle_map_request(xcb::xproto::map_request_event_t *event) {
     auto attr = xcb::xproto::get_window_attributes(&x.connection(), event->window).get();
     if (!attr) {
         DLOG(fmt::format("Could not manage window = 0x%08x", event->window));
@@ -302,7 +303,7 @@ void PropertyHandlers::handle_map_request(xcb_map_request_event_t *event) {
  * "new" position.
  *
  */
-void PropertyHandlers::handle_configure_request(xcb_configure_request_event_t *event) {
+void PropertyHandlers::handle_configure_request(xcb::xproto::configure_request_event_t *event) {
     DLOG(fmt::sprintf("window 0x%08x wants to be at %dx%d with %dx%d\n",
                       event->window, event->x, event->y, event->width, event->height));
 
@@ -456,7 +457,7 @@ out:
  * changes the screen configuration in any way (mode, position, …)
  *
  */
-void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
+void PropertyHandlers::handle_screen_change(xcb::randr::randr_screen_change_notify_event_t *e) {
     DLOG("RandR screen change\n");
 
     /* The geometry of the root window is used for “fullscreen global” and
@@ -481,7 +482,7 @@ void PropertyHandlers::handle_screen_change(xcb_generic_event_t *e) {
  * now, so we better clean up before.
  *
  */
-void PropertyHandlers::handle_unmap_notify_event(xcb_unmap_notify_event_t *event) {
+void PropertyHandlers::handle_unmap_notify_event(xcb::xproto::unmap_notify_event_t *event) {
     DLOG(fmt::sprintf("UnmapNotify for 0x%08x (received from 0x%08x), serial %d\n", event->window, event->event, event->sequence));
     std::future<std::expected<xcb::xproto::GetInputFocusReplyObj, xcb::generic_error_t>> cookie{};
     ConCon *con = con_by_window_id(event->window);
@@ -553,13 +554,10 @@ ignore_end:
  * important fields in the event data structure).
  *
  */
-void PropertyHandlers::handle_destroy_notify_event(xcb_destroy_notify_event_t *event) {
+void PropertyHandlers::handle_destroy_notify_event(xcb::xproto::destroy_notify_event_t *event) {
     DLOG(fmt::sprintf("destroy notify for 0x%08x, 0x%08x\n", event->event, event->window));
 
-    xcb_unmap_notify_event_t unmap;
-    unmap.sequence = event->sequence;
-    unmap.event = event->event;
-    unmap.window = event->window;
+    xcb::xproto::unmap_notify_event_t unmap{.sequence = event->sequence, .event = event->event, .window = event->window};
 
     handle_unmap_notify_event(&unmap);
 }
@@ -568,7 +566,7 @@ void PropertyHandlers::handle_destroy_notify_event(xcb_destroy_notify_event_t *e
  * Expose event means we should redraw our windows (= title bar)
  *
  */
-void PropertyHandlers::handle_expose_event(xcb_expose_event_t *event) {
+void PropertyHandlers::handle_expose_event(xcb::xproto::expose_event_t *event) {
     if (event->count != 0) {
         return;
     }
@@ -613,7 +611,7 @@ static uint32_t const _NET_MOVERESIZE_WINDOW_HEIGHT = (1 << 11);
  * decorations accordingly.
  *
  */
-void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
+void PropertyHandlers::handle_focus_in(xcb::xproto::focus_in_event_t *event) {
     DLOG(fmt::sprintf("focus change in, for window 0x%08x\n", event->event));
 
     if (event->event == x.root) {
@@ -666,7 +664,7 @@ void PropertyHandlers::handle_focus_in(xcb_focus_in_event_t *event) {
  * Log FocusOut events.
  *
  */
-void PropertyHandlers::handle_focus_out(xcb_focus_in_event_t *event) {
+void PropertyHandlers::handle_focus_out(xcb::xproto::focus_in_event_t *event) {
     ConCon *con = con_by_window_id(event->event);
     char const *window_name, *mode, *detail;
 
@@ -737,7 +735,7 @@ void PropertyHandlers::handle_focus_out(xcb_focus_in_event_t *event) {
  * the monitor configuration changed.
  *
  */
-void PropertyHandlers::handle_configure_notify(xcb_configure_notify_event_t *event) {
+void PropertyHandlers::handle_configure_notify(xcb::xproto::configure_notify_event_t *event) {
     if (event->event != x.root) {
         DLOG(fmt::sprintf("ConfigureNotify for non-root window 0x%08x, ignoring\n", event->event));
         return;
@@ -753,7 +751,7 @@ void PropertyHandlers::handle_configure_notify(xcb_configure_notify_event_t *eve
  * Handles SelectionClear events for the root window, which are generated when
  * we lose ownership of a selection.
  */
-static void handle_selection_clear(xcb_selection_clear_event_t *event) {
+static void handle_selection_clear(xcb::xproto::selection_clear_event_t *event) {
     if (event->selection != global.x->wm_sn) {
         DLOG(fmt::sprintf("SelectionClear for unknown selection %d, ignoring\n", event->selection));
         return;
@@ -779,14 +777,14 @@ PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, Con
  * parse_command().
  *
  */
-void PropertyHandlers::handle_key_press(xcb_key_press_event_t *event) {
+void PropertyHandlers::handle_key_press(xcb::xproto::key_press_event_t *event) {
     bool const key_release = (event->response_type == XCB_KEY_RELEASE);
 
     global.last_timestamp = event->time;
 
     DLOG(fmt::sprintf("%s %d, state raw = 0x%x\n", (key_release ? "KeyRelease" : "KeyPress"), event->detail, event->state));
 
-    Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event, global.configManager->config->current_mode()->bindings);
+    Binding *bind = get_binding_from_xcb_event(event, global.configManager->config->current_mode()->bindings);
 
     /* if we couldn't find a binding, we are done */
     if (bind == nullptr) {
@@ -797,24 +795,25 @@ void PropertyHandlers::handle_key_press(xcb_key_press_event_t *event) {
 }
 
 /*
- * Takes an xcb_generic_event_t and calls the appropriate handler, based on the
+ * Takes an xcb::generic_event_t and calls the appropriate handler, based on the
  * event type.
  *
  */
-void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
+void PropertyHandlers::handle_event(int type, xcb::generic_event_t *event) {
     if (type != XCB_MOTION_NOTIFY) {
         DLOG(fmt::sprintf("event type %d, xkb_base %d\n", type, global.xkb->xkb_base));
     }
 
     if (randr.randr_base > -1 &&
         type == randr.randr_base + XCB_RANDR_SCREEN_CHANGE_NOTIFY) {
-        handle_screen_change(event);
+        handle_screen_change(reinterpret_cast<xcb::randr::randr_screen_change_notify_event_t *>(event));
         return;
     }
 
     if (global.xkb->xkb_base > -1 && type == global.xkb->xkb_base) {
         DLOG("xkb event, need to handle it.\n");
 
+        /* libxcb-xkb's event types: xcbpp has no XKB module, i3's XKB goes through libxcb-xkb and xkbcommon-x11. */
         auto *state = (xcb_xkb_state_notify_event_t *)event;
         if (state->xkbType == XCB_XKB_NEW_KEYBOARD_NOTIFY) {
             DLOG(fmt::sprintf("xkb new keyboard notify, sequence %d, time %d\n", state->sequence, state->time));
@@ -851,7 +850,7 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
     }
 
     if (x.shape_supported && type == x.shape_base + XCB_SHAPE_NOTIFY) {
-        auto *shape = reinterpret_cast<xcb_shape_notify_event_t *>(event);
+        auto *shape = reinterpret_cast<xcb::shape::shape_notify_event_t *>(event);
 
         DLOG(fmt::sprintf("shape_notify_event for window 0x%08x, shape_kind = %d, shaped = %d\n",
                           shape->affected_window, shape->shape_kind, shape->shaped));
@@ -874,75 +873,75 @@ void PropertyHandlers::handle_event(int type, xcb_generic_event_t *event) {
     switch (type) {
         case XCB_KEY_PRESS:
         case XCB_KEY_RELEASE:
-            handle_key_press(reinterpret_cast<xcb_key_press_event_t *>(event));
+            handle_key_press(reinterpret_cast<xcb::xproto::key_press_event_t *>(event));
             break;
 
         case XCB_BUTTON_PRESS:
         case XCB_BUTTON_RELEASE:
-            handle_button_press(reinterpret_cast<xcb_button_press_event_t *>(event));
+            handle_button_press(reinterpret_cast<xcb::xproto::button_press_event_t *>(event));
             break;
 
         case XCB_MAP_REQUEST:
-            handle_map_request(reinterpret_cast<xcb_map_request_event_t *>(event));
+            handle_map_request(reinterpret_cast<xcb::xproto::map_request_event_t *>(event));
             break;
 
         case XCB_UNMAP_NOTIFY:
-            handle_unmap_notify_event(reinterpret_cast<xcb_unmap_notify_event_t *>(event));
+            handle_unmap_notify_event(reinterpret_cast<xcb::xproto::unmap_notify_event_t *>(event));
             break;
 
         case XCB_DESTROY_NOTIFY:
-            handle_destroy_notify_event(reinterpret_cast<xcb_destroy_notify_event_t *>(event));
+            handle_destroy_notify_event(reinterpret_cast<xcb::xproto::destroy_notify_event_t *>(event));
             break;
 
         case XCB_EXPOSE:
-            handle_expose_event(reinterpret_cast<xcb_expose_event_t *>(event));
+            handle_expose_event(reinterpret_cast<xcb::xproto::expose_event_t *>(event));
             break;
 
         case XCB_MOTION_NOTIFY:
-            handle_motion_notify(reinterpret_cast<xcb_motion_notify_event_t *>(event));
+            handle_motion_notify(reinterpret_cast<xcb::xproto::motion_notify_event_t *>(event));
             break;
 
         /* Enter window = user moved their mouse over the window */
         case XCB_ENTER_NOTIFY:
-            handle_enter_notify(reinterpret_cast<xcb_enter_notify_event_t *>(event));
+            handle_enter_notify(reinterpret_cast<xcb::xproto::enter_notify_event_t *>(event));
             break;
 
         /* Client message are sent to the root window. The only interesting
          * client message for us is _NET_WM_STATE, we honour
          * _NET_WM_STATE_FULLSCREEN and _NET_WM_STATE_DEMANDS_ATTENTION */
         case XCB_CLIENT_MESSAGE:
-            handle_client_message(reinterpret_cast<xcb_client_message_event_t *>(event));
+            handle_client_message(reinterpret_cast<xcb::xproto::client_message_event_t *>(event));
             break;
 
         /* Configure request = window tried to change size on its own */
         case XCB_CONFIGURE_REQUEST:
-            handle_configure_request(reinterpret_cast<xcb_configure_request_event_t *>(event));
+            handle_configure_request(reinterpret_cast<xcb::xproto::configure_request_event_t *>(event));
             break;
 
         /* Mapping notify = keyboard mapping changed (Xmodmap), re-grab bindings */
         case XCB_MAPPING_NOTIFY:
-            handle_mapping_notify(reinterpret_cast<xcb_mapping_notify_event_t *>(event));
+            handle_mapping_notify(reinterpret_cast<xcb::xproto::mapping_notify_event_t *>(event));
             break;
 
         case XCB_FOCUS_IN:
-            handle_focus_in(reinterpret_cast<xcb_focus_in_event_t *>(event));
+            handle_focus_in(reinterpret_cast<xcb::xproto::focus_in_event_t *>(event));
             break;
 
         case XCB_FOCUS_OUT:
-            handle_focus_out(reinterpret_cast<xcb_focus_out_event_t *>(event));
+            handle_focus_out(reinterpret_cast<xcb::xproto::focus_out_event_t *>(event));
             break;
 
         case XCB_PROPERTY_NOTIFY: {
-            property_notify(reinterpret_cast<xcb_property_notify_event_t *>(event));
+            property_notify(reinterpret_cast<xcb::xproto::property_notify_event_t *>(event));
             break;
         }
 
         case XCB_CONFIGURE_NOTIFY:
-            handle_configure_notify(reinterpret_cast<xcb_configure_notify_event_t *>(event));
+            handle_configure_notify(reinterpret_cast<xcb::xproto::configure_notify_event_t *>(event));
             break;
 
         case XCB_SELECTION_CLEAR:
-            handle_selection_clear(reinterpret_cast<xcb_selection_clear_event_t *>(event));
+            handle_selection_clear(reinterpret_cast<xcb::xproto::selection_clear_event_t *>(event));
             break;
 
         default:

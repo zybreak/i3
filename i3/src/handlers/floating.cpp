@@ -13,7 +13,7 @@ import log;
 import rect;
 
 static void drag_window_callback(Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y,
-                                 xcb_button_press_event_t const *event) {
+                                 xcb::xproto::button_press_event_t const *event) {
     /* Reposition the client correctly while moving */
     con->rect.x = old_rect.x + (new_x - event->root_x);
     con->rect.y = old_rect.y + (new_y - event->root_y);
@@ -36,7 +36,7 @@ static void drag_window_callback(Con *con, Rect const &old_rect, uint32_t new_x,
  * Calls the drag_pointer function with the drag_window callback
  *
  */
-void PropertyHandlers::floating_drag_window(Con *con, xcb_button_press_event_t const *event, bool use_threshold) {
+void PropertyHandlers::floating_drag_window(Con *con, xcb::xproto::button_press_event_t const *event, bool use_threshold) {
     DLOG("floating_drag_window\n");
 
     /* Push changes before dragging, so that the window gets raised now and not
@@ -76,7 +76,7 @@ struct resize_window_callback_params {
 };
 
 static void resize_window_callback(Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y,
-                                   xcb_button_press_event_t const *event, resize_window_callback_params const *params) {
+                                   xcb::xproto::button_press_event_t const *event, resize_window_callback_params const *params) {
     border_t corner = params->corner;
 
     int32_t dest_x = con->rect.x;
@@ -135,7 +135,7 @@ static void resize_window_callback(Con *con, Rect const &old_rect, uint32_t new_
  *
  */
 void PropertyHandlers::floating_resize_window(Con *con, bool const proportional,
-                                              xcb_button_press_event_t const *event) {
+                                              xcb::xproto::button_press_event_t const *event) {
     DLOG("floating_resize_window\n");
 
     /* Push changes before resizing, so that the window gets raised now and not
@@ -167,7 +167,7 @@ void PropertyHandlers::floating_resize_window(Con *con, bool const proportional,
     Rect initial_rect = con->rect;
 
     auto cb = [&params](Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y,
-                        xcb_button_press_event_t const *event) {
+                        xcb::xproto::button_press_event_t const *event) {
         resize_window_callback(con, old_rect, new_x, new_y, event, &params);
     };
     drag_result_t drag_result = inputManager.drag_pointer(con, event, XCB_NONE, cursor, false, cb);

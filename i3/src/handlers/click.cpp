@@ -33,7 +33,7 @@ import rect;
  * then calls resize_graphical_handler().
  *
  */
-static bool tiling_resize_for_border(PropertyHandlers &handlers, Con *con, border_t border, xcb_button_press_event_t *event, bool use_threshold) {
+static bool tiling_resize_for_border(PropertyHandlers &handlers, Con *con, border_t border, xcb::xproto::button_press_event_t *event, bool use_threshold) {
     DLOG(fmt::sprintf("border = %d, con = %p\n", std::to_underlying(border), fmt::ptr(con)));
     Con *second = nullptr;
     Con *first = con;
@@ -97,7 +97,7 @@ static bool tiling_resize_for_border(PropertyHandlers &handlers, Con *con, borde
  * to the client).
  *
  */
-static bool floating_mod_on_tiled_client(PropertyHandlers &handlers, Con *con, xcb_button_press_event_t *event) {
+static bool floating_mod_on_tiled_client(PropertyHandlers &handlers, Con *con, xcb::xproto::button_press_event_t *event) {
     /* The client is in tiling layout. We can still initiate a resize with the
      * right mouse button, by choosing the border which is the most near one to
      * the position of the mouse pointer */
@@ -140,7 +140,7 @@ static bool floating_mod_on_tiled_client(PropertyHandlers &handlers, Con *con, x
  * Finds out which border was clicked on and calls tiling_resize_for_border().
  *
  */
-static bool tiling_resize(PropertyHandlers &handlers, Con *con, xcb_button_press_event_t *event, click_destination_t const dest, bool use_threshold) {
+static bool tiling_resize(PropertyHandlers &handlers, Con *con, xcb::xproto::button_press_event_t *event, click_destination_t const dest, bool use_threshold) {
     /* check if this was a click on the window border (and on which one) */
     Rect bsr = con_border_style_rect(con);
     DLOG(fmt::sprintf("BORDER x = %d, y = %d for con %p, window 0x%08x\n",
@@ -187,7 +187,7 @@ static void allow_replay_pointer(xcb_timestamp_t time) {
  * functions for resizing/dragging.
  *
  */
-void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, click_destination_t const dest) {
+void PropertyHandlers::route_click(Con *con, xcb::xproto::button_press_event_t *event, click_destination_t const dest) {
     const uint32_t mod = (configManager.config->floating_modifier & 0xFFFF);
     const bool mod_pressed = (mod != 0 && (event->state & mod) == mod);
     
@@ -203,7 +203,7 @@ void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, cl
 
     /* if the user has bound an action to this click, it should override the
      * default behavior. */
-    Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event, global.configManager->config->current_mode()->bindings);
+    Binding *bind = get_binding_from_xcb_event(event, global.configManager->config->current_mode()->bindings);
     if (bind && ((dest == CLICK_DECORATION && !bind->exclude_titlebar) ||
                  (dest == CLICK_INSIDE && bind->whole_window) ||
                  (dest == CLICK_BORDER && bind->border))) {
@@ -390,7 +390,7 @@ void PropertyHandlers::route_click(Con *con, xcb_button_press_event_t *event, cl
  * Then, route_click is called on the appropriate con.
  *
  */
-void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
+void PropertyHandlers::handle_button_press(xcb::xproto::button_press_event_t *event) {
     DLOG(fmt::sprintf("Button %d (state %d) %s on window 0x%08x (child 0x%08x) at (%d, %d) (root %d, %d)\n",
                       event->detail, event->state, (event->response_type == XCB_BUTTON_PRESS ? "press" : "release"),
                       event->event, event->child, event->event_x, event->event_y, event->root_x,
@@ -409,7 +409,7 @@ void PropertyHandlers::handle_button_press(xcb_button_press_event_t *event) {
          * if --whole-window was set as that's the equivalent for a normal
          * window. */
         if (event->event == x.root) {
-            Binding *bind = get_binding_from_xcb_event((xcb_generic_event_t *)event, global.configManager->config->current_mode()->bindings);
+            Binding *bind = get_binding_from_xcb_event(event, global.configManager->config->current_mode()->bindings);
             if (bind != nullptr && bind->whole_window) {
                 run_binding(bind, nullptr);
             }

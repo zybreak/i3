@@ -48,7 +48,7 @@ static void sighandler_create_dialogs();
 static void sighandler_destroy_dialogs();
 static void sighandler_handle_expose();
 static void sighandler_draw_dialog(dialog_t *dialog);
-static void sighandler_handle_key_press(xcb_key_press_event_t *event);
+static void sighandler_handle_key_press(xcb::xproto::key_press_event_t *event);
 
 static std::string message_intro{"i3 has just crashed. Please report a bug for this."};
 static std::string message_intro2{"To debug this problem, you can either attach gdb or choose from the following options:"};
@@ -269,7 +269,7 @@ static void sighandler_draw_dialog(dialog_t *dialog) {
     y += global.configManager->config->font->height;
 }
 
-static void sighandler_handle_key_press(xcb_key_press_event_t *event) {
+static void sighandler_handle_key_press(xcb::xproto::key_press_event_t *event) {
     uint16_t state = event->state;
 
     /* Apparently, after activating numlock once, the numlock modifier
@@ -314,8 +314,7 @@ static void handle_signal(int sig, siginfo_t *info, void *data) {
         int type = (event->response_type & 0x7F);
         switch (type) {
             case XCB_KEY_PRESS:
-                /* libxcb's type: xcb-keysyms takes it (Xkb::key_press_lookup_keysym()). The layouts are the same. */
-                sighandler_handle_key_press(reinterpret_cast<xcb_key_press_event_t *>(event.get()));
+                sighandler_handle_key_press(reinterpret_cast<xcb::xproto::key_press_event_t *>(event.get()));
                 break;
             case XCB_EXPOSE:
                 if (reinterpret_cast<xcb::xproto::expose_event_t const *>(event.get())->count == 0) {

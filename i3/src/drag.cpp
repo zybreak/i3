@@ -33,7 +33,7 @@ struct drag_x11_cb {
     Con *con;
 
     /* The original event that initiated the drag. */
-    xcb_button_press_event_t const *event;
+    xcb::xproto::button_press_event_t const *event;
 
     /* The dimensions of con when the loop was started. */
     Rect old_rect;
@@ -70,8 +70,6 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
 
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
-        /* The handlers take libxcb's event type, whose layout is xcbpp's. */
-        auto *generic = reinterpret_cast<xcb_generic_event_t *>(event.get());
 
         switch (type) {
             case XCB_BUTTON_RELEASE:
@@ -81,7 +79,7 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
             case XCB_KEY_PRESS:
                 DLOG("A key was pressed during drag, reverting changes.\n");
                 dragloop->result = DRAG_REVERT;
-                handlers->handle_event(type, generic);
+                handlers->handle_event(type, event.get());
                 break;
 
             case XCB_UNMAP_NOTIFY: {
@@ -97,7 +95,7 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
                     }
                 }
 
-                handlers->handle_event(type, generic);
+                handlers->handle_event(type, event.get());
                 break;
             }
 
@@ -108,7 +106,7 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
 
             default:
                 DLOG("Passing to original handler\n");
-                handlers->handle_event(type, generic);
+                handlers->handle_event(type, event.get());
                 break;
         }
 
@@ -169,7 +167,7 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
  * callback will not be called until then.
  *
  */
-drag_result_t InputManager::drag_pointer(Con *con, xcb_button_press_event_t const *event,
+drag_result_t InputManager::drag_pointer(Con *con, xcb::xproto::button_press_event_t const *event,
                                          xcb_window_t confine_to, int cursor,
                                          bool use_threshold, callback_t callback) {
     xcb_cursor_t xcursor = cursor ? x.xcursor_get_cursor(static_cast<xcursor_cursor_t>(cursor)) : XCB_NONE;
