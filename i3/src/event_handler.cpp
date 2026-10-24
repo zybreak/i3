@@ -25,8 +25,7 @@ void EventHandler::xcb_prepare_cb(EV_P_ ev_prepare *w, int revents) {
        sleeps. */
     while (auto const event = x.connection().poll_for_event()) {
         if (event->response_type == 0) {
-            /* The 16-bit sequence, as before (task 5.3 changes the comparison). */
-            if (handlers.event_is_ignored(event->sequence, 0)) {
+            if (handlers.event_is_ignored(event->full_sequence, 0)) {
                 DLOG(fmt::sprintf("Expected X11 Error received for sequence %x\n", event->sequence));
             } else {
                 auto const *error = reinterpret_cast<xcb::generic_error_t const *>(event.get());

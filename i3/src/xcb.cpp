@@ -125,16 +125,14 @@ void send_take_focus(xcb_window_t window, xcb_timestamp_t timestamp) {
  *
  */
 void xcb_set_window_rect(xcb::Connection &conn, xcb_window_t window, Rect r) {
-    xcb::xproto::configure_window(&conn, window,
-                                  xcb::xproto::ConfigureWindowValueList{}
-                                      .with_x(static_cast<int32_t>(r.x))
-                                      .with_y(static_cast<int32_t>(r.y))
-                                      .with_width(r.width)
-                                      .with_height(r.height));
-    /* ignore events which are generated because we configured a window. The sequence is the low 32 bits of the
-     * request's number, as libxcb's cookie carried it (task 5.3 changes how it is compared). The connection is used
-     * by one thread only, so the last request sent is the ConfigureWindow. */
-    global.handlers->add_ignore_event(static_cast<int>(static_cast<uint32_t>(xcb::last_request_sent(conn))), -1);
+    std::uint64_t const sequence = xcb::xproto::configure_window(&conn, window,
+                                                                 xcb::xproto::ConfigureWindowValueList{}
+                                                                     .with_x(static_cast<int32_t>(r.x))
+                                                                     .with_y(static_cast<int32_t>(r.y))
+                                                                     .with_width(r.width)
+                                                                     .with_height(r.height));
+    /* ignore events which are generated because we configured a window */
+    global.handlers->add_ignore_event(sequence, -1);
 }
 
 /*

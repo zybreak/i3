@@ -40,14 +40,16 @@ static uint32_t const _NET_WM_STATE_ADD = 1;
 static uint32_t const _NET_WM_STATE_TOGGLE = 2;
 
 /*
- * Adds the given sequence to the list of events which are ignored.
+ * Adds the given sequence to the list of events which are ignored: a 64-bit
+ * request number, as xcbpp's request functions return it, or an event's
+ * full_sequence, never its 16-bit sequence.
  * If this ignore should only affect a specific response_type, pass
  * response_type, otherwise, pass -1.
  *
  * Every ignored sequence number gets garbage collected after 5 seconds.
  *
  */
-void PropertyHandlers::add_ignore_event(int const sequence, int const response_type) {
+void PropertyHandlers::add_ignore_event(std::uint64_t const sequence, int const response_type) { // NOLINT(bugprone-easily-swappable-parameters)
     std::lock_guard<std::mutex> guard(mtx);
     auto event = std::make_unique<Ignore_Event>();
 
@@ -59,10 +61,11 @@ void PropertyHandlers::add_ignore_event(int const sequence, int const response_t
 }
 
 /*
- * Checks if the given sequence is ignored and returns true if so.
+ * Checks if events and errors with the given full_sequence (never the 16-bit
+ * sequence) are ignored and returns true if so.
  *
  */
-bool PropertyHandlers::event_is_ignored(int const sequence, int const response_type) {
+bool PropertyHandlers::event_is_ignored(std::uint32_t const full_sequence, int const response_type) {
     using namespace std::literals;
     std::lock_guard<std::mutex> guard(mtx);
 
@@ -72,8 +75,8 @@ bool PropertyHandlers::event_is_ignored(int const sequence, int const response_t
     return std::any_of(
         ignore_events.begin(),
         ignore_events.end(),
-        [&response_type, &sequence](auto const &event) {
-        return (event->sequence == sequence && (event->response_type == -1 || event->response_type == response_type));
+        [&response_type, &full_sequence](auto const &event) {
+        return (sequence_matches(event->sequence, full_sequence) && (event->response_type == -1 || event->response_type == response_type));
     });
 }
 
@@ -119,7 +122,7 @@ static void check_crossing_screen_boundary(uint32_t x, uint32_t y) {
  * When the user moves the mouse pointer onto a window, this callback gets called.
  *
  */
-void PropertyHandlers::handle_enter_notify(xcb::xproto::enter_notify_event_t *event) {
+void PropertyHandlers::handle_enter_notify(xcb::xproto::enter_notify_event_t *event, std::uint32_t const full_sequence) {
     Con *con;
 
     global.last_timestamp = event->time;
@@ -133,7 +136,7 @@ void PropertyHandlers::handle_enter_notify(xcb::xproto::enter_notify_event_t *ev
     }
     /* Some events are not interesting, because they were not generated
      * actively by the user, but by reconfiguration of windows */
-    if (event_is_ignored(event->sequence, XCB_ENTER_NOTIFY)) {
+    if (event_is_ignored(full_sequence, XCB_ENTER_NOTIFY)) {
         DLOG("Event ignored\n");
         return;
     }
@@ -273,7 +276,7 @@ void PropertyHandlers::handle_mapping_notify(xcb::xproto::mapping_notify_event_t
  * A new window appeared on the screen (=was mapped), so let’s manage it.
  *
  */
-void PropertyHandlers::handle_map_request(xcb::xproto::map_request_event_t *event) {
+void PropertyHandlers::handle_map_request(xcb::xproto::map_request_event_t *event, std::uint32_t const full_sequence) {
     auto attr = xcb::xproto::get_window_attributes(&x.connection(), event->window).get();
     if (!attr) {
         DLOG(fmt::format("Could not manage window = 0x%08x", event->window));
@@ -281,7 +284,7 @@ void PropertyHandlers::handle_map_request(xcb::xproto::map_request_event_t *even
     }
     try {
         DLOG(fmt::sprintf("window = 0x%08x, serial is %d.\n", event->window, event->sequence));
-        add_ignore_event(event->sequence, -1);
+        add_ignore_event(full_sequence, -1);
 
         /* Don’t manage clients with the override_redirect flag */
         if (attr->override_redirect) {
@@ -482,7 +485,7 @@ void PropertyHandlers::handle_screen_change(xcb::randr::randr_screen_change_noti
  * now, so we better clean up before.
  *
  */
-void PropertyHandlers::handle_unmap_notify_event(xcb::xproto::unmap_notify_event_t *event) {
+void PropertyHandlers::handle_unmap_notify_event(xcb::xproto::unmap_notify_event_t *event, std::uint32_t const full_sequence) {
     DLOG(fmt::sprintf("UnmapNotify for 0x%08x (received from 0x%08x), serial %d\n", event->window, event->event, event->sequence));
     std::future<std::expected<xcb::xproto::GetInputFocusReplyObj, xcb::generic_error_t>> cookie{};
     ConCon *con = con_by_window_id(event->window);
@@ -535,7 +538,7 @@ ignore_end:
      *
      * Therefore, we ignore all EnterNotify events which have the same sequence
      * as an UnmapNotify event. */
-    add_ignore_event(event->sequence, XCB_ENTER_NOTIFY);
+    add_ignore_event(full_sequence, XCB_ENTER_NOTIFY);
 
     /* Since we just ignored the sequence of this UnmapNotify, we want to make
      * sure that following events use a different sequence. When putting xterm
@@ -554,12 +557,12 @@ ignore_end:
  * important fields in the event data structure).
  *
  */
-void PropertyHandlers::handle_destroy_notify_event(xcb::xproto::destroy_notify_event_t *event) {
+void PropertyHandlers::handle_destroy_notify_event(xcb::xproto::destroy_notify_event_t *event, std::uint32_t const full_sequence) {
     DLOG(fmt::sprintf("destroy notify for 0x%08x, 0x%08x\n", event->event, event->window));
 
     xcb::xproto::unmap_notify_event_t unmap{.sequence = event->sequence, .event = event->event, .window = event->window};
 
-    handle_unmap_notify_event(&unmap);
+    handle_unmap_notify_event(&unmap, full_sequence);
 }
 
 /*
@@ -825,11 +828,11 @@ void PropertyHandlers::handle_event(int type, xcb::generic_event_t *event) {
             translate_keysyms(xkb.keymap());
             grab_all_keys(x);
         } else if (state->xkbType == XCB_XKB_MAP_NOTIFY) {
-            if (event_is_ignored(event->sequence, type)) {
+            if (event_is_ignored(event->full_sequence, type)) {
                 DLOG(fmt::sprintf("Ignoring map notify event for sequence %d.\n", state->sequence));
             } else {
                 DLOG(fmt::sprintf("xkb map notify, sequence %d, time %d\n", state->sequence, state->time));
-                add_ignore_event(event->sequence, type);
+                add_ignore_event(event->full_sequence, type);
                 xkb.key_symbols_alloc();
                 ungrab_all_keys(x);
                 translate_keysyms(xkb.keymap());
@@ -882,15 +885,15 @@ void PropertyHandlers::handle_event(int type, xcb::generic_event_t *event) {
             break;
 
         case XCB_MAP_REQUEST:
-            handle_map_request(reinterpret_cast<xcb::xproto::map_request_event_t *>(event));
+            handle_map_request(reinterpret_cast<xcb::xproto::map_request_event_t *>(event), event->full_sequence);
             break;
 
         case XCB_UNMAP_NOTIFY:
-            handle_unmap_notify_event(reinterpret_cast<xcb::xproto::unmap_notify_event_t *>(event));
+            handle_unmap_notify_event(reinterpret_cast<xcb::xproto::unmap_notify_event_t *>(event), event->full_sequence);
             break;
 
         case XCB_DESTROY_NOTIFY:
-            handle_destroy_notify_event(reinterpret_cast<xcb::xproto::destroy_notify_event_t *>(event));
+            handle_destroy_notify_event(reinterpret_cast<xcb::xproto::destroy_notify_event_t *>(event), event->full_sequence);
             break;
 
         case XCB_EXPOSE:
@@ -903,7 +906,7 @@ void PropertyHandlers::handle_event(int type, xcb::generic_event_t *event) {
 
         /* Enter window = user moved their mouse over the window */
         case XCB_ENTER_NOTIFY:
-            handle_enter_notify(reinterpret_cast<xcb::xproto::enter_notify_event_t *>(event));
+            handle_enter_notify(reinterpret_cast<xcb::xproto::enter_notify_event_t *>(event), event->full_sequence);
             break;
 
         /* Client message are sent to the root window. The only interesting

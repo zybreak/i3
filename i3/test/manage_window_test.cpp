@@ -41,6 +41,15 @@ namespace {
         return found[0].at("window").get<std::uint32_t>();
     }
 
+    /* How often @p text contains @p what. */
+    std::size_t occurrences(std::string_view text, std::string_view what) {
+        std::size_t count = 0;
+        for (auto at = text.find(what); at != std::string_view::npos; at = text.find(what, at + what.size())) {
+            ++count;
+        }
+        return count;
+    }
+
     /* Whether i3's tree @p node holds the container of X window @p window. */
     bool manages(json const &node, std::uint32_t window) {
         if (node.contains("window") && node.at("window").is_number() && node.at("window").get<std::uint32_t>() == window) {
@@ -713,4 +722,63 @@ TEST_F(ManageWindowTest, NetWmMoveresizeDragsAFloatingWindow) {
         auto const geometry = xcb::xproto::get_geometry(&client(), frame).get();
         return geometry && geometry->x == before->x + 50 && geometry->y == before->y + 40;
     }, std::chrono::seconds{5})) << "the window moved with the pointer";
+}
+
+/*
+ * The ignore list past 65536 requests, where the 16-bit sequence of i3's events and errors has wrapped: i3 compares
+ * their full_sequence with the 64-bit numbers of its requests. A window that its client destroys is released
+ * (tree_close_internal()), and i3's requests on it fail with BadWindow. i3 put two of them on the ignore list,
+ * ReparentWindow and ChangeProperty, and logs their errors as expected. It logs the others as received: two
+ * DeleteProperty, ChangeWindowAttributes, UnmapWindow, ChangeSaveSet and ShapeSelectInput. While i3 compared the 16-bit
+ * sequence, it took the two for unexpected errors once it had sent 65536 requests.
+ */
+TEST_F(ManageWindowTest, ErrorsOnTheIgnoreListAreIgnoredPast65536Requests) {
+    ASSERT_NO_FATAL_FAILURE(start_i3());
+    ASSERT_NO_FATAL_FAILURE(connect_client());
+    auto const net_wm_name = atom("_NET_WM_NAME");
+    auto const utf8_string = atom("UTF8_STRING");
+    auto const busy = create_window();
+    ASSERT_FALSE(xcb::xproto::map_window_checked(&client(), busy).get());
+    ASSERT_TRUE(poll_until([&] { return manages(request(i3ipc::MESSAGE_TYPE::GET_TREE), busy); }, std::chrono::seconds{5}));
+
+    /* For each new title i3 reads the property and redraws the window's decoration, with about 30 requests (3000 titles
+     * took it to request 87845 on 2026-10-24). */
+    constexpr int titles = 6000;
+    for (int i = 1; i <= titles; ++i) {
+        std::string const title = std::format("title {}", i);
+        std::vector<xcb::xproto::xcbvoid_t> bytes{title.begin(), title.end()};
+        xcb::xproto::change_property(&client(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, busy, net_wm_name, utf8_string, 8, bytes);
+    }
+    client().flush();
+    ASSERT_TRUE(poll_until([&] { return window_of_container(request(i3ipc::MESSAGE_TYPE::GET_TREE), std::format("title {}", titles)) == busy; },
+                           std::chrono::seconds{60}))
+        << "i3 shows the last title";
+
+    auto const window = create_window();
+    ASSERT_FALSE(xcb::xproto::map_window_checked(&client(), window).get());
+    ASSERT_TRUE(poll_until([&] { return manages(request(i3ipc::MESSAGE_TYPE::GET_TREE), window); }, std::chrono::seconds{5}));
+    auto const log = work_dir() / "i3.log";
+    /* x_push_node() logs the number of the MapWindow request of the window's frame. */
+    std::string const mapping = std::format("mapping container {:08x} (serial ", parent_of(window));
+    std::string const before = read_file(log);
+    auto const at = before.rfind(mapping);
+    ASSERT_NE(at, std::string::npos) << "i3 logs " << mapping;
+    std::uint64_t serial = 0;
+    std::from_chars(before.data() + at + mapping.size(), before.data() + before.size(), serial);
+    ASSERT_GT(serial, 65536U) << "i3 has sent more than 65536 requests";
+
+    ASSERT_FALSE(xcb::xproto::destroy_window_checked(&client(), window).get());
+
+    ASSERT_TRUE(poll_until([&] { return !manages(request(i3ipc::MESSAGE_TYPE::GET_TREE), window); }, std::chrono::seconds{5}));
+    std::string_view const ignored = "Expected X11 Error received for sequence";
+    std::string_view const received = "X11 Error received (probably harmless)!";
+    auto const errors_logged = [&] {
+        std::string const after = read_file(log).substr(before.size());
+        return std::pair{occurrences(after, ignored), occurrences(after, received)};
+    };
+    EXPECT_TRUE(poll_until([&] { auto const [i, r] = errors_logged(); return i + r >= 8; }, std::chrono::seconds{5}))
+        << "i3 logs the errors of the eight requests";
+    auto const [ignored_errors, received_errors] = errors_logged();
+    EXPECT_EQ(ignored_errors, 2U) << "the errors of ReparentWindow and ChangeProperty";
+    EXPECT_EQ(received_errors, 6U);
 }

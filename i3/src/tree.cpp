@@ -224,10 +224,6 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
         } else {
             xcb::Connection &conn = global.x->connection();
             xcb_window_t const window = con2->get_window()->id;
-            /* The sequence numbers the ignore list keeps are the low 32 bits of the requests' numbers, as libxcb's
-             * cookies carried them (task 5.3 changes how they are compared). This connection is used by one thread
-             * only, so the last request sent is the one just sent. */
-            auto const last_sequence = [&conn] { return static_cast<int>(static_cast<uint32_t>(xcb::last_request_sent(conn))); };
 
             /* Ignore any further events by clearing the event mask,
              * unmap the window,
@@ -235,20 +231,21 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
             xcb::xproto::change_window_attributes(&conn, window,
                                                   xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_NO_EVENT));
             xcb::xproto::unmap_window(&conn, window);
-            xcb::xproto::reparent_window(&conn, window, global.x->root, con2->rect.x, con2->rect.y);
+            std::uint64_t const reparent_sequence = xcb::xproto::reparent_window(&conn, window, global.x->root, static_cast<std::int16_t>(con2->rect.x),
+                                                                                 static_cast<std::int16_t>(con2->rect.y));
 
             /* Ignore X11 errors for the ReparentWindow request.
              * X11 Errors are returned when the window was already destroyed */
-            global.handlers->add_ignore_event(last_sequence(), 0);
+            global.handlers->add_ignore_event(reparent_sequence, 0);
 
             /* We are no longer handling this window, thus set WM_STATE to
              * WM_STATE_WITHDRAWN (see ICCCM 4.1.3.1) */
             std::array<uint32_t, 2> const data{XCB_ICCCM_WM_STATE_WITHDRAWN, XCB_NONE};
-            x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE,
-                              window, i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], std::span{data});
             /* The second ignore below is this ChangeProperty's sequence, as it was before the port, though its comment
              * names the ReparentWindow. */
-            int const change_property_sequence = last_sequence();
+            std::uint64_t const change_property_sequence =
+                x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE,
+                                  window, i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], std::span{data});
 
             /* Remove the window from the save set. All windows in the save set
              * will be mapped when i3 closes its connection (e.g. when

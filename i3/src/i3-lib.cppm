@@ -2166,21 +2166,23 @@ export {
     /**
      * Changes a property of a window (ChangeProperty, unchecked) to, or by, @p data, in the format of its elements:
      * 8, 16 or 32 bits.
+     *
+     * @return The request's 64-bit sequence number, as xcb::xproto::change_property() returns it.
      */
     template <typename T, std::size_t N>
         requires(sizeof(T) == 1 || sizeof(T) == 2 || sizeof(T) == 4) && std::is_trivially_copyable_v<T>
-    void x_change_property(xcb::Connection &conn, xcb::xproto::prop_mode_t mode, xcb_window_t window, xcb_atom_t property,
-                           xcb_atom_t type, std::span<T, N> data) {
+    std::uint64_t x_change_property(xcb::Connection &conn, xcb::xproto::prop_mode_t mode, xcb_window_t window, xcb_atom_t property,
+                                    xcb_atom_t type, std::span<T, N> data) {
         auto const bytes = std::as_bytes(data);
         /* xcbpp's change_property() takes the value as a span of non-const bytes, which it only reads. */
         auto *const first = const_cast<xcb::xproto::xcbvoid_t *>(reinterpret_cast<xcb::xproto::xcbvoid_t const *>(bytes.data()));
-        xcb::xproto::change_property(&conn, mode, window, property, type, sizeof(T) * 8, std::span{first, bytes.size()});
+        return xcb::xproto::change_property(&conn, mode, window, property, type, sizeof(T) * 8, std::span{first, bytes.size()});
     }
 
     /** @overload A string's characters, in format 8, without a terminating null. */
-    inline void x_change_property(xcb::Connection &conn, xcb::xproto::prop_mode_t mode, xcb_window_t window,
-                                  xcb_atom_t property, xcb_atom_t type, std::string_view data) {
-        x_change_property(conn, mode, window, property, type, std::span{data});
+    inline std::uint64_t x_change_property(xcb::Connection &conn, xcb::xproto::prop_mode_t mode, xcb_window_t window,
+                                           xcb_atom_t property, xcb_atom_t type, std::string_view data) {
+        return x_change_property(conn, mode, window, property, type, std::span{data});
     }
 
     /*
@@ -2739,8 +2741,19 @@ enum click_destination_t {
 };
 
 export {
+    /**
+     * Whether an event or error whose full_sequence is @p full_sequence belongs to request @p sequence, a 64-bit request
+     * number as xcbpp's request functions return it: the request was the last one the server had processed when it
+     * generated the event. An event or error carries only the low 32 bits of that number. Its 16-bit sequence wraps
+     * every 65536 requests, so it is never compared.
+     */
+    constexpr bool sequence_matches(std::uint64_t sequence, std::uint32_t full_sequence) noexcept {
+        return static_cast<std::uint32_t>(sequence) == full_sequence;
+    }
+
     struct Ignore_Event {
-        int sequence;
+        /** A 64-bit request number, or the full_sequence of an event. */
+        std::uint64_t sequence;
         int response_type;
         std::chrono::time_point<std::chrono::system_clock> added{};
     };
@@ -2814,8 +2827,9 @@ export {
 
         /**
          * When the user moves the mouse pointer onto a window, this callback gets called.
+         * @p full_sequence is the event's full_sequence.
          */
-        void handle_enter_notify(xcb::xproto::enter_notify_event_t *event);
+        void handle_enter_notify(xcb::xproto::enter_notify_event_t *event, std::uint32_t full_sequence);
 
         /**
          * When the user moves the mouse but does not change the active window
@@ -2833,8 +2847,9 @@ export {
 
         /**
          * A new window appeared on the screen (=was mapped), so let’s manage it.
+         * @p full_sequence is the event's full_sequence.
          */
-        void handle_map_request(xcb::xproto::map_request_event_t *event);
+        void handle_map_request(xcb::xproto::map_request_event_t *event, std::uint32_t full_sequence);
 
         /**
          * Gets triggered upon a RandR screen change event, that is when the user
@@ -2845,8 +2860,9 @@ export {
         /**
          * Our window decorations were unmapped. That means, the window will be killed
          * now, so we better clean up before.
+         * @p full_sequence is the event's full_sequence.
          */
-        void handle_unmap_notify_event(xcb::xproto::unmap_notify_event_t *event);
+        void handle_unmap_notify_event(xcb::xproto::unmap_notify_event_t *event, std::uint32_t full_sequence);
 
         /**
          * A destroy notify event is sent when the window is not unmapped, but
@@ -2855,8 +2871,9 @@ export {
          *
          * We just pass on the event to the unmap notify handler (by copying the
          * important fields in the event data structure).
+         * @p full_sequence is the event's full_sequence.
          */
-        void handle_destroy_notify_event(xcb::xproto::destroy_notify_event_t *event);
+        void handle_destroy_notify_event(xcb::xproto::destroy_notify_event_t *event, std::uint32_t full_sequence);
 
         /**
          * Expose event means we should redraw our windows (= title bar)
@@ -2918,20 +2935,23 @@ export {
         void handle_configure_request(xcb::xproto::configure_request_event_t *event);
 
         /**
-         * Adds the given sequence to the list of events which are ignored.
+         * Adds the given sequence to the list of events which are ignored: a
+         * 64-bit request number, as xcbpp's request functions return it, or an
+         * event's full_sequence, never its 16-bit sequence.
          * If this ignore should only affect a specific response_type, pass
          * response_type, otherwise, pass -1.
          *
          * Every ignored sequence number gets garbage collected after 5 seconds.
          *
          */
-        void add_ignore_event(int sequence, int response_type);
+        void add_ignore_event(std::uint64_t sequence, int response_type);
 
         /**
-         * Checks if the given sequence is ignored and returns true if so.
+         * Checks if events and errors with the given full_sequence (never the
+         * 16-bit sequence) are ignored and returns true if so (sequence_matches()).
          *
          */
-        bool event_is_ignored(int sequence, int response_type);
+        bool event_is_ignored(std::uint32_t full_sequence, int response_type);
 
         /**
          * Takes an xcb::generic_event_t and calls the appropriate handler, based on the

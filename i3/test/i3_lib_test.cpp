@@ -1,6 +1,6 @@
 /*
  * The requests of the X code in i3-lib.cppm (sync_respond(), root_atom_contents(), is_background_set()), on a fake X
- * server (fake_x_server.cppm).
+ * server (fake_x_server.cppm), and the ignore list's sequence comparison (sequence_matches()).
  */
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -161,4 +161,31 @@ TEST_F(I3LibTest, IsBackgroundSetFlickersAnUnobscuredPixel) {
     EXPECT_EQ(requests[10].i16(8), 100);
     EXPECT_EQ(requests[10].i16(10), 0);
     EXPECT_THAT(server.unanswered(), IsEmpty());
+}
+
+/*
+ * The ignore list keeps 64-bit request numbers and compares them with the full_sequence of an event or error, the low
+ * 32 bits of the number of the last request the server had processed. Past 65536 requests the event's 16-bit sequence
+ * has wrapped: request 0x10005's events carry full_sequence 0x10005 and sequence 5, which i3 compared before, and which
+ * matched no request number from there on.
+ */
+TEST(SequenceMatchesTest, TheFullSequenceIsComparedPastTheSixteenBitWrap) {
+    EXPECT_TRUE(sequence_matches(5, 5));
+    EXPECT_FALSE(sequence_matches(5, 6));
+    EXPECT_TRUE(sequence_matches(0xffff, 0xffff));
+    EXPECT_TRUE(sequence_matches(0x10000, 0x10000));
+    EXPECT_FALSE(sequence_matches(0x10000, 0));
+    EXPECT_TRUE(sequence_matches(0x10005, 0x10005));
+    EXPECT_FALSE(sequence_matches(0x10005, 5)) << "the 16-bit sequence of request 0x10005's events";
+}
+
+/* Past 2^32 requests the full_sequence wraps too: the low 32 bits of the request number are what it is compared with. */
+TEST(SequenceMatchesTest, TheLow32BitsAreComparedPastTheirWrap) {
+    EXPECT_TRUE(sequence_matches(0xffff'ffff, 0xffff'ffff));
+    EXPECT_FALSE(sequence_matches(0xffff'ffff, 0));
+    EXPECT_TRUE(sequence_matches(0x1'0000'0000, 0));
+    EXPECT_FALSE(sequence_matches(0x1'0000'0000, 0xffff'ffff));
+    EXPECT_TRUE(sequence_matches(0x1'0000'0005, 5));
+    EXPECT_FALSE(sequence_matches(0x1'0000'0005, 6));
+    EXPECT_TRUE(sequence_matches(0x2'0001'0005, 0x1'0005));
 }
