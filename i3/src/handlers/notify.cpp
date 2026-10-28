@@ -10,7 +10,6 @@
  */
 module;
 #include <xcb/xcb.h>
-#include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
 
 #include <config.h>
@@ -41,7 +40,7 @@ static bool window_name_changed(i3Window const *window, std::string &old_name) {
  * Called when a window changes its title
  *
  */
-static bool handle_windowname_change(ConCon *con, xcb_get_property_reply_t *prop) {
+static bool handle_windowname_change(ConCon *con, xcb::xproto::GetPropertyReplyObj const *prop) {
     if (auto ret = handle_property::window_update_name(prop); ret) {
         std::string old_name = con->get_window()->name;
 
@@ -63,7 +62,7 @@ static bool handle_windowname_change(ConCon *con, xcb_get_property_reply_t *prop
  * Handles the WM_HINTS property for extracting the urgency state of the window.
  *
  */
-static bool handle_hints(ConCon *con, xcb_get_property_reply_t *reply) {
+static bool handle_hints(ConCon *con, xcb::xproto::GetPropertyReplyObj const *reply) {
     bool urgency_hint;
     con->get_window()->window_update_hints(reply, &urgency_hint);
     con->con_set_urgency(urgency_hint);
@@ -77,7 +76,7 @@ static bool handle_hints(ConCon *con, xcb_get_property_reply_t *reply) {
  * window_update_name_legacy().
  *
  */
-static bool handle_windowname_change_legacy(ConCon *con, xcb_get_property_reply_t *prop) {
+static bool handle_windowname_change_legacy(ConCon *con, xcb::xproto::GetPropertyReplyObj const *prop) {
     if (auto ret = handle_property::window_update_name_legacy(prop); ret) {
         std::string old_name = con->get_window()->name;
 
@@ -102,7 +101,7 @@ static bool handle_windowname_change_legacy(ConCon *con, xcb_get_property_reply_
  * See ICCCM 4.1.2.3 for more details
  *
  */
-static bool handle_normal_hints(ConCon *con, xcb_get_property_reply_t *reply) {
+static bool handle_normal_hints(ConCon *con, xcb::xproto::GetPropertyReplyObj const *reply) {
     bool changed = con->get_window()->window_update_normal_hints(reply, nullptr);
 
     if (changed) {
@@ -121,7 +120,7 @@ static bool handle_normal_hints(ConCon *con, xcb_get_property_reply_t *reply) {
  * toolwindow (or similar) and to which window it belongs (logical parent).
  *
  */
-static bool handle_clientleader_change(ConCon *con, xcb_get_property_reply_t *prop) {
+static bool handle_clientleader_change(ConCon *con, xcb::xproto::GetPropertyReplyObj const *prop) {
     con->get_window()->window_update_leader(prop);
     return true;
 }
@@ -133,7 +132,7 @@ static bool handle_clientleader_change(ConCon *con, xcb_get_property_reply_t *pr
  * See ICCCM 4.1.2.6 for more details
  *
  */
-static bool handle_transient_for(ConCon *con, xcb_get_property_reply_t *prop) {
+static bool handle_transient_for(ConCon *con, xcb::xproto::GetPropertyReplyObj const *prop) {
     con->get_window()->window_update_transient_for(prop);
     return true;
 }
@@ -142,7 +141,7 @@ static bool handle_transient_for(ConCon *con, xcb_get_property_reply_t *prop) {
  * Called when a window changes its WM_WINDOW_ROLE.
  *
  */
-static bool handle_windowrole_change(ConCon *con, xcb_get_property_reply_t *prop) {
+static bool handle_windowrole_change(ConCon *con, xcb::xproto::GetPropertyReplyObj const *prop) {
     con->get_window()->window_update_role(prop);
 
     con = remanage_window(con);
@@ -154,7 +153,7 @@ static bool handle_windowrole_change(ConCon *con, xcb_get_property_reply_t *prop
  * Handles the WM_CLASS property for assignments and criteria selection.
  *
  */
-static bool handle_class_change(ConCon *con, xcb_get_property_reply_t *prop) {
+static bool handle_class_change(ConCon *con, xcb::xproto::GetPropertyReplyObj const *prop) {
     auto ret = handle_property::window_update_class(prop);
     if (ret) {
         con->get_window()->window_update_class(ret->class_name, ret->class_instance);
@@ -167,7 +166,7 @@ static bool handle_class_change(ConCon *con, xcb_get_property_reply_t *prop) {
  * Handles the _NET_WM_STRUT_PARTIAL property for allocating space for dock clients.
  *
  */
-static bool handle_strut_partial_change(ConCon *con, xcb_get_property_reply_t *prop) {
+static bool handle_strut_partial_change(ConCon *con, xcb::xproto::GetPropertyReplyObj const *prop) {
     con->get_window()->window_update_strut_partial(prop);
 
     /* we only handle this change for dock clients */
@@ -217,7 +216,7 @@ static bool handle_strut_partial_change(ConCon *con, xcb_get_property_reply_t *p
     return true;
 }
 
-static bool handle_window_type(ConCon *con, xcb_get_property_reply_t *reply) {
+static bool handle_window_type(ConCon *con, xcb::xproto::GetPropertyReplyObj const *reply) {
     if (con->get_window()->window_update_type(reply)) {
         global.assignmentManager->run_assignments(con->get_window());
     }
@@ -235,7 +234,7 @@ static bool handle_window_type(ConCon *con, xcb_get_property_reply_t *reply) {
  * state for the original command.
  *
  */
-static bool handle_i3_floating(ConCon *con, xcb_get_property_reply_t *prop) {
+static bool handle_i3_floating(ConCon *con, xcb::xproto::GetPropertyReplyObj const *prop) {
     DLOG(fmt::sprintf("floating change for con %p\n", fmt::ptr(con)));
 
     remanage_window(con);
@@ -247,7 +246,7 @@ static bool handle_i3_floating(ConCon *con, xcb_get_property_reply_t *prop) {
  * Handles the WM_CLIENT_MACHINE property for assignments and criteria selection.
  *
  */
-static bool handle_machine_change(ConCon *con, xcb_get_property_reply_t *prop) {
+static bool handle_machine_change(ConCon *con, xcb::xproto::GetPropertyReplyObj const *prop) {
     if (auto opt_machine = handle_property::window_update_machine(prop)) {
         con->get_window()->window_update_machine(*opt_machine);
     }
@@ -259,7 +258,7 @@ static bool handle_machine_change(ConCon *con, xcb_get_property_reply_t *prop) {
  * Handles the _MOTIF_WM_HINTS property of specifyng window decoration settings.
  *
  */
-static bool handle_motif_hints_change(ConCon *con, xcb_get_property_reply_t *prop) {
+static bool handle_motif_hints_change(ConCon *con, xcb::xproto::GetPropertyReplyObj const *prop) {
     border_style_t motif_border_style;
     bool has_mwm_hints = con->get_window()->window_update_motif_hints(prop, &motif_border_style);
 
@@ -273,7 +272,7 @@ static bool handle_motif_hints_change(ConCon *con, xcb_get_property_reply_t *pro
     return true;
 }
 
-static bool handle_windowicon_change(ConCon *con, xcb_get_property_reply_t *prop) {
+static bool handle_windowicon_change(ConCon *con, xcb::xproto::GetPropertyReplyObj const *prop) {
     con->get_window()->window_update_icon(prop);
 
     x_push_changes(global.croot);
@@ -283,7 +282,7 @@ static bool handle_windowicon_change(ConCon *con, xcb_get_property_reply_t *prop
 
 /* Returns false if the event could not be processed (e.g. the window could not
  * be found), true otherwise */
-using cb_property_handler_t = bool (*)(ConCon *con, xcb_get_property_reply_t *property);
+using cb_property_handler_t = bool (*)(ConCon *con, xcb::xproto::GetPropertyReplyObj const *property);
 
 struct property_handler_t {
     xcb_atom_t atom;
@@ -338,7 +337,7 @@ void PropertyHandlers::property_notify(xcb::xproto::property_notify_event_t *eve
     }
 
     if (state != XCB_PROPERTY_DELETE) {
-        property_request propr{global.x->c_handle(), window, atom, XCB_GET_PROPERTY_TYPE_ANY, handler.long_len};
+        property_request propr{global.x->connection(), window, atom, XCB_GET_PROPERTY_TYPE_ANY, handler.long_len};
         if (propr.get() == nullptr) {
             DLOG(fmt::sprintf("got an error when getting property of atom %d\n", atom));
         } else {

@@ -14,7 +14,6 @@ module;
 #include <sys/types.h>
 
 #include <xcb/xcb.h>
-#include <xcb/xcb_icccm.h>
 #include <xcb/xcb_cursor.h>
 #include <xcb/xcb_aux.h>
 #include <xcb/shape.h>
@@ -35,6 +34,7 @@ import rect;
 import xcb;
 import xcb.xcbcompat;
 import xcb.proto.shape;
+import xcb.icccm;
 
 using xcb::xproto::prop_mode_t;
 
@@ -327,25 +327,13 @@ void x_con_reframe(Con *con) {
  *
  */
 bool window_supports_protocol(xcb_window_t window, xcb_atom_t atom) {
-    xcb_get_property_cookie_t cookie;
-    xcb_icccm_get_wm_protocols_reply_t protocols;
-    bool result = false;
-
-    cookie = xcb_icccm_get_wm_protocols(global.x->c_handle(), window, i3::atoms[i3::Atom::WM_PROTOCOLS]);
-    if (xcb_icccm_get_wm_protocols_reply(global.x->c_handle(), cookie, &protocols, nullptr) != 1) {
+    auto const protocols = xcb::icccm::get_wm_protocols(&global.x->connection(), window, i3::atoms[i3::Atom::WM_PROTOCOLS]).get();
+    if (!protocols || !*protocols) {
         return false;
     }
 
     /* Check if the client’s protocols have the requested atom set */
-    for (uint32_t i = 0; i < protocols.atoms_len; i++) {
-        if (protocols.atoms[i] == atom) {
-            result = true;
-        }
-    }
-
-    xcb_icccm_get_wm_protocols_reply_wipe(&protocols);
-
-    return result;
+    return std::ranges::contains(**protocols, atom);
 }
 
 /*
@@ -1139,7 +1127,7 @@ void x_push_node(Con *con) {
         if (con->get_window() != nullptr) {
             /* Set WM_STATE_NORMAL because GTK applications don’t want to
              * drag & drop if we don’t. Also, xprop(1) needs it. */
-            std::array<uint32_t, 2> const data{XCB_ICCCM_WM_STATE_NORMAL, XCB_NONE};
+            std::array<uint32_t, 2> const data{std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_NORMAL), XCB_NONE};
             x_change_property(conn, prop_mode_t::PROP_MODE_REPLACE, con->get_window()->id,
                               i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], std::span{data});
         }
@@ -1208,7 +1196,7 @@ static void x_push_node_unmaps(Con *con) {
         xcb::Connection &conn = global.x->connection();
         if (con->get_window() != nullptr) {
             /* Set WM_STATE_WITHDRAWN, it seems like Java apps need it */
-            std::array<uint32_t, 2> const data{XCB_ICCCM_WM_STATE_WITHDRAWN, XCB_NONE};
+            std::array<uint32_t, 2> const data{std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_WITHDRAWN), XCB_NONE};
             x_change_property(conn, prop_mode_t::PROP_MODE_REPLACE, con->get_window()->id,
                               i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], std::span{data});
         }

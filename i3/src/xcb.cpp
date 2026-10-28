@@ -135,22 +135,27 @@ void xcb_set_window_rect(xcb::Connection &conn, xcb_window_t window, Rect r) {
     global.handlers->add_ignore_event(sequence, -1);
 }
 
+uint32_t property_value32(xcb::xproto::GetPropertyReplyObj const &reply, std::size_t index) {
+    uint32_t value = 0;
+    if (index < reply.value.size() / 4) {
+        std::memcpy(&value, reply.value.data() + (index * 4), sizeof value);
+    } else if (index * 4 < reply.value.size()) {
+        std::memcpy(&value, reply.value.data() + (index * 4), reply.value.size() - (index * 4));
+    }
+    return value;
+}
+
 /*
  * Returns the first supported _NET_WM_WINDOW_TYPE atom.
  *
  */
-xcb_atom_t xcb_get_preferred_window_type(xcb_get_property_reply_t *reply) {
-    if (reply == nullptr || xcb_get_property_value_length(reply) == 0) {
+xcb_atom_t xcb_get_preferred_window_type(xcb::xproto::GetPropertyReplyObj const *reply) {
+    if (reply == nullptr || reply->value.empty()) {
         return XCB_NONE;
     }
 
-    xcb_atom_t *atoms;
-    if ((atoms = (xcb_atom_t *)xcb_get_property_value(reply)) == nullptr) {
-        return XCB_NONE;
-    }
-
-    for (int i = 0; i < xcb_get_property_value_length(reply) / (reply->format / 8); i++) {
-        xcb_atom_t atom = atoms[i];
+    for (std::size_t i = 0; i < reply->value.size() / (reply->format / 8U); i++) {
+        xcb_atom_t atom = property_value32(*reply, i);
         if (atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NORMAL] ||
             atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DIALOG] ||
             atom == i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_UTILITY] ||
@@ -172,18 +177,13 @@ xcb_atom_t xcb_get_preferred_window_type(xcb_get_property_reply_t *reply) {
  * Returns true if the given reply contains the given atom.
  *
  */
-bool xcb_reply_contains_atom(xcb_get_property_reply_t *prop, xcb_atom_t atom) {
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+bool xcb_reply_contains_atom(xcb::xproto::GetPropertyReplyObj const *prop, xcb_atom_t atom) {
+    if (prop == nullptr || prop->value.empty()) {
         return false;
     }
 
-    xcb_atom_t *atoms;
-    if ((atoms = (xcb_atom_t *)xcb_get_property_value(prop)) == nullptr) {
-        return false;
-    }
-
-    for (int i = 0; i < xcb_get_property_value_length(prop) / (prop->format / 8); i++) {
-        if (atoms[i] == atom) {
+    for (std::size_t i = 0; i < prop->value.size() / (prop->format / 8U); i++) {
+        if (property_value32(*prop, i) == atom) {
             return true;
         }
     }

@@ -1,0 +1,25 @@
+# cmake -DPROGRAMS=<program>[;<program>…] -DREADELF=<readelf> -P check_no_libxcb_wm.cmake
+#
+# Checks that no program needs libxcb-wm's libxcb-icccm or libxcb-ewmh, neither directly (readelf's NEEDED) nor through
+# the libraries it loads (ldd): i3 has xcbpp's xcb.icccm and xcb.ewmh in their place. Run it without LD_LIBRARY_PATH.
+foreach(program IN LISTS PROGRAMS)
+    execute_process(COMMAND ${READELF} -d ${program} OUTPUT_VARIABLE dynamic ERROR_VARIABLE err RESULT_VARIABLE rc)
+    if(NOT rc EQUAL 0)
+        message(FATAL_ERROR "readelf -d ${program} failed:\n${dynamic}${err}")
+    endif()
+    string(REGEX MATCHALL "\\(NEEDED\\)[^\n]*" needed "${dynamic}")
+    execute_process(COMMAND ldd ${program} OUTPUT_VARIABLE loaded ERROR_VARIABLE err RESULT_VARIABLE rc)
+    if(NOT rc EQUAL 0)
+        message(FATAL_ERROR "ldd ${program} failed:\n${loaded}${err}")
+    endif()
+    foreach(library libxcb-icccm libxcb-ewmh)
+        if(needed MATCHES "\\[${library}\\.so")
+            message(FATAL_ERROR "${program} needs ${library}:\n${needed}")
+        endif()
+        if(loaded MATCHES "${library}\\.so")
+            message(FATAL_ERROR "${program} loads ${library}:\n${loaded}")
+        endif()
+    endforeach()
+    list(LENGTH needed count)
+    message(STATUS "${program}: ${count} NEEDED, neither libxcb-icccm nor libxcb-ewmh")
+endforeach()

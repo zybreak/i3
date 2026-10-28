@@ -14,7 +14,6 @@ module;
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
-#include <xcb/xcb_icccm.h>
 
 #include <ev.h>
 
@@ -39,6 +38,7 @@ module i3;
 import utils;
 import log;
 import rect;
+import xcb.icccm;
 
 struct placeholder_state {
     /** The X11 placeholder window. */
@@ -55,8 +55,8 @@ struct placeholder_state {
 
 static std::deque<std::unique_ptr<placeholder_state>> states{};
 
-/* The placeholders' connection: its libxcb handle, which owns it, for xcb-icccm and the drawing code, and the xcbpp
- * connection behind it. */
+/* The placeholders' connection: its libxcb handle, which owns it, for the drawing code, and the xcbpp connection
+ * behind it. */
 static xcb_connection_t *restore_conn;
 static xcb::Connection *restore_xconn;
 /* The drawing state of restore_conn, for the placeholders' surfaces. */
@@ -217,10 +217,10 @@ static void open_placeholder_window(X &conn, Con *con) {
             true,
             values);
         /* Make i3 not focus this window. */
-        xcb_icccm_wm_hints_t hints;
-        xcb_icccm_wm_hints_set_none(&hints);
-        xcb_icccm_wm_hints_set_input(&hints, 0);
-        xcb_icccm_set_wm_hints(restore_conn, placeholder, &hints);
+        xcb::icccm::wm_hints_t hints{};
+        hints.set_none();
+        hints.set_input(false);
+        xcb::icccm::set_wm_hints(restore_xconn, placeholder, hints);
         /* Set the same name as was stored in the layout file. While perhaps
          * slightly confusing in the first instant, this brings additional
          * clarity to which placeholder is waiting for which actual window. */

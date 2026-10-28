@@ -328,16 +328,15 @@ TEST_F(ManageWindowTest, APlaceholderWaitsForTheWindowItSwallows) {
                            std::chrono::seconds{5}))
         << "i3 manages the placeholder window in the container";
     EXPECT_EQ(property(placeholder, atom("_NET_WM_NAME")), "waiting for swallowme");
-    /* WM_HINTS (xcb-icccm, on the placeholders' connection): the InputHint flag, and input false. Defect (HEAD too):
-     * the other flags and fields are uninitialised stack bytes (xcb_icccm_wm_hints_set_none() clears only the flags'
-     * defined bits), so only these two are checked. */
+    /* WM_HINTS (xcb.icccm, on the placeholders' connection): the InputHint flag, input false, and nothing else. Until
+     * i3 used xcb.icccm, the other flags and fields were uninitialised stack bytes (xcb_icccm_wm_hints_set_none() clears
+     * only the state flag of an xcb_icccm_wm_hints_t that i3 didn't initialise). */
     auto const hints = property(placeholder, 35 /* WM_HINTS */);
     ASSERT_TRUE(hints);
-    ASSERT_GE(hints->size(), 8U);
-    std::array<std::uint32_t, 2> flags_and_input{};
-    std::memcpy(flags_and_input.data(), hints->data(), 8);
-    EXPECT_EQ(flags_and_input[0] & 1U, 1U);
-    EXPECT_EQ(flags_and_input[1], 0U);
+    ASSERT_EQ(hints->size(), 36U);
+    std::array<std::uint32_t, 9> values{};
+    std::memcpy(values.data(), hints->data(), 36);
+    EXPECT_THAT(values, testing::ElementsAre(1U, 0U, 0U, 0U, 0U, 0U, 0U, 0U, 0U));
 
     auto const window = create_window();
     std::string_view const wm_class{"swallowme\0swallowme\0", 20};
@@ -781,4 +780,275 @@ TEST_F(ManageWindowTest, ErrorsOnTheIgnoreListAreIgnoredPast65536Requests) {
     auto const [ignored_errors, received_errors] = errors_logged();
     EXPECT_EQ(ignored_errors, 2U) << "the errors of ReparentWindow and ChangeProperty";
     EXPECT_EQ(received_errors, 6U);
+}
+
+/* The properties i3 reads of a window, through GetProperty on xcbpp (property_request, xcb.icccm's parsers) */
+
+namespace {
+    /* The container of X window @p window in i3's tree @p node, std::nullopt if it has none. */
+    std::optional<json> container_of(json const &node, std::uint32_t window) {
+        if (node.contains("window") && node.at("window").is_number() && node.at("window").get<std::uint32_t>() == window) {
+            return node;
+        }
+        for (auto const *children : {"nodes", "floating_nodes"}) {
+            if (node.contains(children)) {
+                for (auto const &child : node.at(children)) {
+                    if (auto found = container_of(child, window)) {
+                        return found;
+                    }
+                }
+            }
+        }
+        return std::nullopt;
+    }
+
+    /* The name of the workspace (or dock area) whose subtree of @p node holds X window @p window, "" if none. */
+    std::string workspace_of(json const &node, std::uint32_t window, std::string const &workspace = {}) {
+        auto const here = (node.value("type", "") == "workspace" || node.value("type", "") == "dockarea") ? node.value("name", "") : workspace;
+        if (node.contains("window") && node.at("window").is_number() && node.at("window").get<std::uint32_t>() == window) {
+            return here;
+        }
+        for (auto const *children : {"nodes", "floating_nodes"}) {
+            if (node.contains(children)) {
+                for (auto const &child : node.at(children)) {
+                    if (auto found = workspace_of(child, window, here); !found.empty()) {
+                        return found;
+                    }
+                }
+            }
+        }
+        return {};
+    }
+
+    std::vector<xcb::xproto::xcbvoid_t> bytes_of(std::string_view value) {
+        return {value.begin(), value.end()};
+    }
+
+    std::vector<xcb::xproto::xcbvoid_t> bytes_of(std::vector<std::uint32_t> const &values) {
+        std::vector<xcb::xproto::xcbvoid_t> bytes(values.size() * 4);
+        std::memcpy(bytes.data(), values.data(), bytes.size());
+        return bytes;
+    }
+
+    constexpr std::uint32_t ATOM = 4, CARDINAL = 6, STRING = 31, WINDOW = 33, WM_HINTS = 35, WM_CLIENT_MACHINE = 36, WM_NAME = 39,
+                            WM_NORMAL_HINTS = 40, WM_SIZE_HINTS = 41, WM_CLASS = 67, WM_TRANSIENT_FOR = 68;
+}  // namespace
+
+class WindowPropertiesTest : public ManageWindowTest {
+  protected:
+    void set(std::uint32_t window, std::uint32_t property, std::uint32_t type, std::uint8_t format,
+             std::vector<xcb::xproto::xcbvoid_t> bytes) {
+        ASSERT_FALSE(xcb::xproto::change_property_checked(&client(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, window, property, type, format,
+                                                          bytes)
+                         .get());
+    }
+
+    /* The window_properties of @p window's container, null if i3 doesn't manage it. */
+    json properties(std::uint32_t window) {
+        auto const container = container_of(request(i3ipc::MESSAGE_TYPE::GET_TREE), window);
+        return container ? container->value("window_properties", json::object()) : json{};
+    }
+
+    /* @p window's container, an empty object if i3 doesn't manage it. */
+    json container(std::uint32_t window) {
+        return container_of(request(i3ipc::MESSAGE_TYPE::GET_TREE), window).value_or(json::object());
+    }
+
+    void map_and_wait(std::uint32_t window) {
+        ASSERT_FALSE(xcb::xproto::map_window_checked(&client(), window).get());
+        ASSERT_TRUE(poll_until([&] { return manages(request(i3ipc::MESSAGE_TYPE::GET_TREE), window); }, std::chrono::seconds{5}))
+            << "i3 manages the window";
+    }
+};
+
+/*
+ * manage_window() reads WM_CLASS, WM_NAME, _NET_WM_NAME, WM_WINDOW_ROLE, WM_CLIENT_MACHINE and WM_TRANSIENT_FOR
+ * (xcb.icccm's parse_wm_transient_for()) with its other properties, and the tree has them. A WM_CLASS without its
+ * trailing NUL is read to its end.
+ */
+TEST_F(WindowPropertiesTest, AreReadWhenTheWindowIsManaged) {
+    ASSERT_NO_FATAL_FAILURE(start_i3());
+    ASSERT_NO_FATAL_FAILURE(connect_client());
+    auto const parent = create_window();
+    auto const window = create_window();
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_CLASS, STRING, 8, bytes_of(std::string_view{"inst\0Class", 10})));
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_NAME, STRING, 8, bytes_of("legacy title")));
+    ASSERT_NO_FATAL_FAILURE(set(window, atom("_NET_WM_NAME"), atom("UTF8_STRING"), 8, bytes_of("caf\xc3\xa9")));
+    ASSERT_NO_FATAL_FAILURE(set(window, atom("WM_WINDOW_ROLE"), STRING, 8, bytes_of("a role")));
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_CLIENT_MACHINE, STRING, 8, bytes_of("a host")));
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_TRANSIENT_FOR, WINDOW, 32, bytes_of({parent})));
+
+    ASSERT_NO_FATAL_FAILURE(map_and_wait(window));
+
+    auto const p = properties(window);
+    EXPECT_EQ(p.value("instance", ""), "inst");
+    EXPECT_EQ(p.value("class", ""), "Class");
+    EXPECT_EQ(p.value("title", ""), "caf\xc3\xa9");
+    EXPECT_EQ(p.value("window_role", ""), "a role");
+    EXPECT_EQ(p.value("machine", ""), "a host");
+    EXPECT_EQ(p.value("transient_for", 0U), parent);
+}
+
+/*
+ * PropertyNotify: i3 reads the property again (property_request, any type, as long as its handler asks) and the tree
+ * follows. A deleted WM_TRANSIENT_FOR clears it; one of another type than WINDOW is no WM_TRANSIENT_FOR, and leaves
+ * it as it was.
+ */
+TEST_F(WindowPropertiesTest, FollowTheirChanges) {
+    ASSERT_NO_FATAL_FAILURE(start_i3());
+    ASSERT_NO_FATAL_FAILURE(connect_client());
+    auto const parent = create_window();
+    auto const window = create_window();
+    ASSERT_NO_FATAL_FAILURE(map_and_wait(window));
+
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_CLASS, STRING, 8, bytes_of(std::string_view{"one\0One\0", 8})));
+    ASSERT_NO_FATAL_FAILURE(set(window, atom("_NET_WM_NAME"), atom("UTF8_STRING"), 8, bytes_of("first")));
+    ASSERT_NO_FATAL_FAILURE(set(window, atom("WM_WINDOW_ROLE"), STRING, 8, bytes_of("role one")));
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_CLIENT_MACHINE, STRING, 8, bytes_of("host one")));
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_TRANSIENT_FOR, WINDOW, 32, bytes_of({parent})));
+    EXPECT_TRUE(poll_until([&] {
+        auto const p = properties(window);
+        return p.value("class", "") == "One" && p.value("instance", "") == "one" && p.value("title", "") == "first" &&
+               p.value("window_role", "") == "role one" && p.value("machine", "") == "host one" && p.value("transient_for", 0U) == parent;
+    }, std::chrono::seconds{5})) << properties(window).dump();
+
+    /* WM_TRANSIENT_FOR of type CARDINAL isn't one: i3 keeps the window it had. */
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_TRANSIENT_FOR, CARDINAL, 32, bytes_of({0x1234})));
+    ASSERT_NO_FATAL_FAILURE(set(window, atom("_NET_WM_NAME"), atom("UTF8_STRING"), 8, bytes_of("second")));
+    ASSERT_TRUE(poll_until([&] { return properties(window).value("title", "") == "second"; }, std::chrono::seconds{5}));
+    EXPECT_EQ(properties(window).value("transient_for", 0U), parent);
+
+    ASSERT_FALSE(xcb::xproto::delete_property_checked(&client(), window, WM_TRANSIENT_FOR).get());
+    EXPECT_TRUE(poll_until([&] { return !properties(window).contains("transient_for"); }, std::chrono::seconds{5}))
+        << "a deleted WM_TRANSIENT_FOR clears it";
+}
+
+/*
+ * WM_HINTS' urgency hint makes a window that isn't focused urgent, and clearing it makes it not urgent again. i3 reads
+ * WM_HINTS whole on PropertyNotify: one of more than 9 elements is read as its first 9 (xcb-icccm copied up to 72 bytes
+ * into its 36-byte struct, past i3's stack variable). One of fewer than 8 isn't WM_HINTS, and the window isn't urgent.
+ */
+TEST_F(WindowPropertiesTest, UrgencyFollowsWmHints) {
+    ASSERT_NO_FATAL_FAILURE(start_i3());
+    ASSERT_NO_FATAL_FAILURE(connect_client());
+    auto const window = create_window();
+    ASSERT_NO_FATAL_FAILURE(map_and_wait(window));
+    auto const focused = create_window();
+    ASSERT_NO_FATAL_FAILURE(map_and_wait(focused));
+    ASSERT_TRUE(poll_until([&] { return container(focused).value("focused", false); }, std::chrono::seconds{5}));
+    constexpr std::uint32_t urgency = 1U << 8U, input = 1U;
+
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_HINTS, WM_HINTS, 32, bytes_of({urgency | input, 1, 0, 0, 0, 0, 0, 0, 0})));
+    EXPECT_TRUE(poll_until([&] { return container(window).value("urgent", false); }, std::chrono::seconds{5})) << "urgent";
+
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_HINTS, WM_HINTS, 32, bytes_of({input, 1, 0, 0, 0, 0, 0, 0, 0})));
+    EXPECT_TRUE(poll_until([&] { return !container(window).value("urgent", true); }, std::chrono::seconds{5})) << "not urgent";
+
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_HINTS, WM_HINTS, 32, bytes_of({urgency, 1, 0, 0, 0, 0, 0, 0, 0, 0xdead, 0xbeef, 0xcafe, 0xf00d})));
+    EXPECT_TRUE(poll_until([&] { return container(window).value("urgent", false); }, std::chrono::seconds{5})) << "urgent, from 13 elements";
+
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_HINTS, WM_HINTS, 32, bytes_of({urgency, 1, 0, 0, 0, 0, 0})));
+    EXPECT_TRUE(poll_until([&] { return !container(window).value("urgent", true); }, std::chrono::seconds{5})) << "7 elements aren't WM_HINTS";
+    ASSERT_NO_FATAL_FAILURE(command("nop"));
+    EXPECT_TRUE(i3_process().running()) << "i3 is still running";
+}
+
+/*
+ * WM_NORMAL_HINTS (xcb.icccm's parse_wm_size_hints()): read when the window is managed (18 elements, type
+ * WM_SIZE_HINTS), its minimum size bounds the window once it floats; read again on PropertyNotify (the whole property,
+ * any type), its maximum size bounds it when it floats again. (handle_normal_hints() checks the size of the window's
+ * container, not of its floating container, so the change itself doesn't resize it, at HEAD too.)
+ */
+TEST_F(WindowPropertiesTest, NormalHintsBoundAFloatingWindow) {
+    ASSERT_NO_FATAL_FAILURE(start_i3());
+    ASSERT_NO_FATAL_FAILURE(connect_client());
+    auto const window = create_window();
+    constexpr std::uint32_t p_min_size = 1U << 4U, p_max_size = 1U << 5U;
+    std::vector<std::uint32_t> hints(18, 0);
+    hints[0] = p_min_size;
+    hints[5] = 600; /* min_width */
+    hints[6] = 500; /* min_height */
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_NORMAL_HINTS, WM_SIZE_HINTS, 32, bytes_of(hints)));
+    ASSERT_NO_FATAL_FAILURE(map_and_wait(window));
+
+    ASSERT_NO_FATAL_FAILURE(command(std::format("[id={}] floating enable", window)));
+    auto rect = container(window).value("window_rect", json::object());
+    EXPECT_GE(rect.value("width", 0), 600) << rect.dump();
+    EXPECT_GE(rect.value("height", 0), 500) << rect.dump();
+
+    hints[0] = p_max_size;
+    hints[7] = 300; /* max_width */
+    hints[8] = 250; /* max_height */
+    ASSERT_NO_FATAL_FAILURE(set(window, WM_NORMAL_HINTS, WM_SIZE_HINTS, 32, bytes_of(hints)));
+    ASSERT_TRUE(poll_until([&] { return read_file(work_dir() / "i3.log").contains("Maximum size: 300 (width) x 250 (height)"); },
+                           std::chrono::seconds{5}))
+        << "i3 reads the new WM_NORMAL_HINTS";
+
+    ASSERT_NO_FATAL_FAILURE(command(std::format("[id={}] floating disable", window)));
+    ASSERT_NO_FATAL_FAILURE(command(std::format("[id={}] floating enable", window)));
+    rect = container(window).value("window_rect", json::object());
+    EXPECT_LE(rect.value("width", 0), 300) << rect.dump();
+    EXPECT_LE(rect.value("height", 0), 250) << rect.dump();
+}
+
+/*
+ * _NET_WM_WINDOW_TYPE_DOCK with _NET_WM_STRUT_PARTIAL: a dock client, in the dock area that its strut names; a new
+ * strut on PropertyNotify moves it to the other one.
+ */
+TEST_F(WindowPropertiesTest, TheStrutPlacesADockClient) {
+    ASSERT_NO_FATAL_FAILURE(start_i3());
+    ASSERT_NO_FATAL_FAILURE(connect_client());
+    auto const window = create_window();
+    ASSERT_NO_FATAL_FAILURE(set(window, atom("_NET_WM_WINDOW_TYPE"), ATOM, 32, bytes_of({atom("_NET_WM_WINDOW_TYPE_DOCK")})));
+    std::vector<std::uint32_t> strut(12, 0);
+    strut[2] = 20; /* top */
+    ASSERT_NO_FATAL_FAILURE(set(window, atom("_NET_WM_STRUT_PARTIAL"), CARDINAL, 32, bytes_of(strut)));
+    ASSERT_NO_FATAL_FAILURE(map_and_wait(window));
+    EXPECT_EQ(workspace_of(request(i3ipc::MESSAGE_TYPE::GET_TREE), window), "topdock");
+
+    strut[2] = 0;
+    strut[3] = 20; /* bottom */
+    ASSERT_NO_FATAL_FAILURE(set(window, atom("_NET_WM_STRUT_PARTIAL"), CARDINAL, 32, bytes_of(strut)));
+    EXPECT_TRUE(poll_until([&] { return workspace_of(request(i3ipc::MESSAGE_TYPE::GET_TREE), window) == "bottomdock"; }, std::chrono::seconds{5}));
+}
+
+/*
+ * _NET_STARTUP_ID: a window of a program that i3 started (exec, with startup notification) goes to the workspace the
+ * program was started on, though another one is focused now; so does one whose WM_CLIENT_LEADER has the ID, if it has
+ * none (startup_sequence_get() reads the leader's _NET_STARTUP_ID through property_request).
+ */
+TEST_F(WindowPropertiesTest, TheStartupIdPlacesTheWindowOnItsWorkspace) {
+    ASSERT_NO_FATAL_FAILURE(start_i3());
+    ASSERT_NO_FATAL_FAILURE(connect_client());
+    ASSERT_NO_FATAL_FAILURE(command("workspace started-here"));
+    ASSERT_NO_FATAL_FAILURE(command("exec true"));
+    std::string startup_id;
+    ASSERT_TRUE(poll_until([&] {
+        std::string const log = read_file(work_dir() / "i3.log");
+        std::string_view const marker = "startup id = ";
+        auto const at = log.rfind(marker);
+        if (at == std::string::npos) {
+            return false;
+        }
+        startup_id = log.substr(at + marker.size(), log.find('\n', at) - at - marker.size());
+        return !startup_id.empty();
+    }, std::chrono::seconds{5})) << "i3 logs the startup ID";
+    ASSERT_NO_FATAL_FAILURE(command("workspace elsewhere"));
+    auto const net_startup_id = atom("_NET_STARTUP_ID");
+
+    auto const window = create_window();
+    ASSERT_NO_FATAL_FAILURE(set(window, net_startup_id, atom("UTF8_STRING"), 8, bytes_of(startup_id)));
+    ASSERT_NO_FATAL_FAILURE(map_and_wait(window));
+    EXPECT_EQ(workspace_of(request(i3ipc::MESSAGE_TYPE::GET_TREE), window), "started-here");
+
+    auto const leader = create_window();
+    ASSERT_NO_FATAL_FAILURE(set(leader, net_startup_id, atom("UTF8_STRING"), 8, bytes_of(startup_id)));
+    auto const led = create_window();
+    ASSERT_NO_FATAL_FAILURE(set(led, atom("WM_CLIENT_LEADER"), WINDOW, 32, bytes_of({leader})));
+    ASSERT_NO_FATAL_FAILURE(map_and_wait(led));
+    EXPECT_EQ(workspace_of(request(i3ipc::MESSAGE_TYPE::GET_TREE), led), "started-here");
+
+    auto const other = create_window();
+    ASSERT_NO_FATAL_FAILURE(map_and_wait(other));
+    EXPECT_EQ(workspace_of(request(i3ipc::MESSAGE_TYPE::GET_TREE), other), "elsewhere");
 }

@@ -10,7 +10,6 @@
  */
 module;
 #include <xcb/xcb.h>
-#include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
 #include <xcb/shape.h>
 #include <xcb/randr.h>

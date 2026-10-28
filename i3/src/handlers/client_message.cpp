@@ -10,7 +10,6 @@
  */
 module;
 #include <xcb/xcb.h>
-#include <xcb/xcb_icccm.h>
 #include <xcb/xcb_keysyms.h>
 
 #define SN_API_NOT_YET_FROZEN 1
@@ -25,6 +24,7 @@ module i3;
 import std;
 import log;
 import rect;
+import xcb.icccm;
 
 static uint32_t const _NET_WM_STATE_REMOVE = 0;
 static uint32_t const _NET_WM_STATE_ADD = 1;
@@ -217,11 +217,11 @@ static void handle_current_desktop(xcb::xproto::client_message_event_t *event) {
 
 static void handle_change_state(xcb::xproto::client_message_event_t *event) {
     /* http://tronche.com/gui/x/icccm/sec-4.html#s-4.1.4 */
-    if (event->data.data32[0] == XCB_ICCCM_WM_STATE_ICONIC) {
+    if (event->data.data32[0] == std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_ICONIC)) {
         /* For compatibility reasons, Wine will request iconic state and cannot ensure that the WM has agreed on it;
          * immediately revert to normal to avoid being stuck in a paused state. */
         DLOG(fmt::sprintf("Client has requested iconic state, rejecting. (window = %08x)\n", event->window));
-        std::array<uint32_t, 2> const data{XCB_ICCCM_WM_STATE_NORMAL, XCB_NONE};
+        std::array<uint32_t, 2> const data{std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_NORMAL), XCB_NONE};
         x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, event->window,
                           i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], std::span{data});
     } else {

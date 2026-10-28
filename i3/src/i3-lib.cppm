@@ -20,7 +20,6 @@ module;
 #include <xkbcommon/xkbcommon-x11.h>
 #include <xkbcommon/xkbcommon.h>
 #include <cairo.h>
-#include <xcb/xcb_icccm.h>
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-monitor.h>
 #undef SN_API_NOT_YET_FROZEN
@@ -1981,53 +1980,53 @@ export {
     };
 
     /**
-     * A GetProperty request (offset 0) sent through a libxcb handle, whose reply is waited for on first use, and
-     * discarded if it never is. i3's property parsers and the xcb-icccm functions take libxcb's reply type.
+     * A GetProperty request (offset 0, checked: an error comes back to it, not to the event loop), whose reply is waited
+     * for on first use, and discarded if it never is (xcbpp's future does that when it is dropped).
      */
     class property_request {
-        xcb_connection_t *conn;
-        xcb_get_property_cookie_t cookie;
+        std::future<std::expected<xcb::xproto::GetPropertyReplyObj, xcb::generic_error_t>> request;
+        std::optional<xcb::xproto::GetPropertyReplyObj> reply{};
         bool waited{false};
-        std::unique_ptr<xcb_get_property_reply_t, decltype(&std::free)> reply{nullptr, &std::free};
 
       public:
-        property_request(xcb_connection_t *conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t type,
+        property_request(xcb::Connection &conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t type,
                          uint32_t long_length)
-            : conn(conn), cookie(xcb_get_property(conn, false, window, property, type, 0, long_length)) {
+            : request(xcb::xproto::get_property(&conn, false, window, property, type, 0, long_length)) {
         }
 
-        property_request(property_request &&other) noexcept
-            : conn(std::exchange(other.conn, nullptr)), cookie(other.cookie), waited(other.waited),
-              reply(std::move(other.reply)) {
-        }
-
+        property_request(property_request &&other) noexcept = default;
         property_request &operator=(property_request &&) = delete;
-
-        ~property_request() {
-            if (conn != nullptr && !waited) {
-                xcb_discard_reply(conn, cookie.sequence);
-            }
-        }
+        ~property_request() = default;
 
         /**
          * The reply, or nullptr if the request failed. It stays owned by this object.
          */
-        xcb_get_property_reply_t *get() {
+        xcb::xproto::GetPropertyReplyObj const *get() {
             if (!waited) {
-                reply.reset(xcb_get_property_reply(conn, cookie, nullptr));
                 waited = true;
+                if (auto result = request.get()) {
+                    reply.emplace(std::move(*result));
+                }
             }
-            return reply.get();
+            return reply ? &*reply : nullptr;
         }
 
         /**
-         * The length of the property's value, 0 if the request failed.
+         * The size of the property's value in bytes, 0 if the request failed. Callers test it against 0, as they did
+         * libxcb's value_len (its length in format units).
          */
-        uint32_t value_len() {
-            auto *r = get();
-            return r != nullptr ? r->value_len : 0;
+        std::size_t value_len() {
+            auto const *r = get();
+            return r != nullptr ? r->value.size() : 0;
         }
     };
+
+    /**
+     * The 32-bit value at @p index of a property's value, read from its bytes whatever its format, as i3 read
+     * xcb_get_property_value() as an array of uint32_t. Bytes past the end of the value read as 0: libxcb's reply
+     * ended there, and reading past it was undefined.
+     */
+    uint32_t property_value32(xcb::xproto::GetPropertyReplyObj const &reply, std::size_t index);
 
     class X {
       private:
@@ -3061,12 +3060,14 @@ export {
             std::swap(icon, other.icon);
             std::swap(icon_data, other.icon_data);
         }
-        i3WindowIcon(uint32_t width, uint32_t height, uint32_t *data, uint64_t len) {
+        /* An icon of @p width × @p height @p pixels, ARGB, row by row (one of _NET_WM_ICON's). */
+        i3WindowIcon(uint32_t width, uint32_t height, std::span<uint32_t const> pixels) {
+            uint64_t const len = pixels.size();
             this->icon_data = new uint32_t[len * 4];
 
             for (uint64_t i = 0; i < len; i++) {
                 uint8_t r, g, b, a;
-                uint32_t const pixel = data[2 + i];
+                uint32_t const pixel = pixels[i];
                 a = (pixel >> 24) & 0xff;
                 r = (pixel >> 16) & 0xff;
                 g = (pixel >> 8) & 0xff;
@@ -3233,50 +3234,49 @@ export {
          *
          */
         [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
-        void window_update_leader(xcb_get_property_reply_t *prop);
+        void window_update_leader(xcb::xproto::GetPropertyReplyObj const *prop);
 
         /**
          * Updates the TRANSIENT_FOR (logical parent window).
          *
          */
         [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
-        void window_update_transient_for(xcb_get_property_reply_t *prop);
+        void window_update_transient_for(xcb::xproto::GetPropertyReplyObj const *prop);
 
         /**
          * Updates the _NET_WM_STRUT_PARTIAL (reserved pixels at the screen edges)
          *
          */
         [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
-        void window_update_strut_partial(xcb_get_property_reply_t *prop);
+        void window_update_strut_partial(xcb::xproto::GetPropertyReplyObj const *prop);
 
         /**
          * Updates the WM_WINDOW_ROLE
          *
          */
         [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
-        void window_update_role(xcb_get_property_reply_t *prop);
+        void window_update_role(xcb::xproto::GetPropertyReplyObj const *prop);
 
         /**
          * Updates the _NET_WM_WINDOW_TYPE property.
          *
          */
         [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
-        bool window_update_type(xcb_get_property_reply_t *reply);
+        bool window_update_type(xcb::xproto::GetPropertyReplyObj const *reply);
 
         /**
          * Updates the WM_NORMAL_HINTS
          *
          */
-        bool window_update_normal_hints(xcb_size_hints_t &size_hints, xcb::xproto::GetGeometryReplyObj *geom);
         [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
-        bool window_update_normal_hints(xcb_get_property_reply_t *reply, xcb::xproto::GetGeometryReplyObj *geom);
+        bool window_update_normal_hints(xcb::xproto::GetPropertyReplyObj const *reply, xcb::xproto::GetGeometryReplyObj *geom);
 
         /**
          * Updates the WM_HINTS (we only care about the input focus handling part).
          *
          */
         [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
-        void window_update_hints(xcb_get_property_reply_t *prop, bool *urgency_hint);
+        void window_update_hints(xcb::xproto::GetPropertyReplyObj const *prop, bool *urgency_hint);
 
         /**
          * Updates the MOTIF_WM_HINTS. The container's border style should be set to
@@ -3291,7 +3291,7 @@ export {
          *
          */
         [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
-        bool window_update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_border_style);
+        bool window_update_motif_hints(xcb::xproto::GetPropertyReplyObj const *prop, border_style_t *motif_border_style);
 
         /**
          * Updates the WM_CLIENT_MACHINE
@@ -3304,7 +3304,7 @@ export {
          *
          */
         [[deprecated("Replaced by handle_property method, refactor this to use the returned data from there instead of parsing xcb data")]]
-        void window_update_icon(xcb_get_property_reply_t *prop);
+        void window_update_icon(xcb::xproto::GetPropertyReplyObj const *prop);
     };
 }
 
@@ -3353,7 +3353,7 @@ export {
          * Returns NULL otherwise.
          *
          */
-        std::optional<std::string> startup_workspace_for_window(i3Window *cwindow, xcb_get_property_reply_t *startup_id_reply);
+        std::optional<std::string> startup_workspace_for_window(i3Window *cwindow, xcb::xproto::GetPropertyReplyObj const *startup_id_reply);
 
         /**
          * Deletes the startup sequence for a window if it exists.
@@ -3787,13 +3787,13 @@ export {
      * Returns the first supported _NET_WM_WINDOW_TYPE atom.
      *
      */
-    xcb_atom_t xcb_get_preferred_window_type(xcb_get_property_reply_t * reply);
+    xcb_atom_t xcb_get_preferred_window_type(xcb::xproto::GetPropertyReplyObj const *reply);
 
     /**
      * Returns true if the given reply contains the given data.
      *
      */
-    bool xcb_reply_contains_atom(xcb_get_property_reply_t * prop, xcb_atom_t atom);
+    bool xcb_reply_contains_atom(xcb::xproto::GetPropertyReplyObj const *prop, xcb_atom_t atom);
 
     /**
      * Get depth of visual specified by visualid
@@ -5263,14 +5263,14 @@ export namespace handle_property {
      * given window.
      *
      */
-    std::optional<window_class> window_update_class(xcb_get_property_reply_t* prop);
+    std::optional<window_class> window_update_class(xcb::xproto::GetPropertyReplyObj const *prop);
 
     /*
      * Updates the name by using _NET_WM_NAME (encoded in UTF-8) for the given
      * window. Further updates using window_update_name_legacy will be ignored.
      *
      */
-    std::optional<std::string> window_update_name(xcb_get_property_reply_t* prop);
+    std::optional<std::string> window_update_name(xcb::xproto::GetPropertyReplyObj const *prop);
 
     /*
      * Updates the name by using WM_NAME (encoded in COMPOUND_TEXT). We do not
@@ -5279,43 +5279,43 @@ export namespace handle_property {
      * window_update_name()).
      *
      */
-    std::optional<std::string> window_update_name_legacy(xcb_get_property_reply_t* prop);
+    std::optional<std::string> window_update_name_legacy(xcb::xproto::GetPropertyReplyObj const *prop);
 
     /*
      * Updates the CLIENT_LEADER (logical parent window).
      *
      */
-    std::optional<xcb_window_t> window_update_leader(xcb_get_property_reply_t* prop);
+    std::optional<xcb_window_t> window_update_leader(xcb::xproto::GetPropertyReplyObj const *prop);
 
     /*
      * Updates the TRANSIENT_FOR (logical parent window).
      *
      */
-    std::optional<xcb_window_t> window_update_transient_for(xcb_get_property_reply_t* prop);
+    std::optional<xcb_window_t> window_update_transient_for(xcb::xproto::GetPropertyReplyObj const *prop);
 
     /*
      * Updates the _NET_WM_STRUT_PARTIAL (reserved pixels at the screen edges)
      *
      */
-    std::optional<reservedpx> window_update_strut_partial(xcb_get_property_reply_t* prop);
+    std::optional<reservedpx> window_update_strut_partial(xcb::xproto::GetPropertyReplyObj const *prop);
 
     /*
      * Updates the WM_WINDOW_ROLE
      *
      */
-    std::optional<std::string> window_update_role(xcb_get_property_reply_t* prop);
+    std::optional<std::string> window_update_role(xcb::xproto::GetPropertyReplyObj const *prop);
 
     /*
      * Updates the _NET_WM_WINDOW_TYPE property.
      *
      */
-    std::optional<xcb_atom_t> window_update_type(xcb_get_property_reply_t* reply);
+    std::optional<xcb_atom_t> window_update_type(xcb::xproto::GetPropertyReplyObj const *reply);
 
     /*
      * Updates the WM_HINTS (we only care about the input focus handling part).
      *
      */
-    std::optional<window_hints> window_update_hints(xcb_get_property_reply_t* prop);
+    std::optional<window_hints> window_update_hints(xcb::xproto::GetPropertyReplyObj const *prop);
 
     /*
      * Updates the MOTIF_WM_HINTS. The container's border style should be set to
@@ -5329,13 +5329,13 @@ export namespace handle_property {
      * it is still in use by popular widget toolkits such as GTK+ and Java AWT.
      *
      */
-    std::optional<uint32_t> window_update_motif_hints(xcb_get_property_reply_t* prop);
+    std::optional<uint32_t> window_update_motif_hints(xcb::xproto::GetPropertyReplyObj const *prop);
 
     /*
      * Updates the WM_CLIENT_MACHINE
      *
      */
-    std::optional<std::string> window_update_machine(xcb_get_property_reply_t* prop);
+    std::optional<std::string> window_update_machine(xcb::xproto::GetPropertyReplyObj const *prop);
 }  // namespace handle_property
 
 // dump_node.cppm

@@ -10,7 +10,6 @@
 module;
 #include <cassert>
 #include <xcb/xcb.h>
-#include <xcb/xcb_icccm.h>
 
 #include <cairo.h>
 
@@ -21,6 +20,8 @@ module i3;
 
 import log;
 import utils;
+import xcb.icccm;
+import xcb.ewmh;
 
 /*
  * Updates the WM_CLASS (consisting of the class and instance) for the
@@ -85,38 +86,36 @@ void i3Window::window_update_name_legacy(std::string &name) {
  * Updates the CLIENT_LEADER (logical parent window).
  *
  */
-void i3Window::window_update_leader(xcb_get_property_reply_t *prop) {
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+void i3Window::window_update_leader(xcb::xproto::GetPropertyReplyObj const *prop) {
+    if (prop == nullptr || prop->value.empty()) {
         DLOG(fmt::sprintf("CLIENT_LEADER not set on window 0x%08x.\n", this->id));
         this->leader = XCB_NONE;
         return;
     }
 
-    auto *leader_prop = (xcb_window_t *)xcb_get_property_value(prop);
-    if (leader_prop == nullptr) {
-        return;
-    }
+    xcb_window_t const leader_prop = property_value32(*prop, 0);
 
-    DLOG(fmt::sprintf("Client leader changed to %08x\n", *leader_prop));
+    DLOG(fmt::sprintf("Client leader changed to %08x\n", leader_prop));
 
-    this->leader = *leader_prop;
+    this->leader = leader_prop;
 }
 
 /*
  * Updates the TRANSIENT_FOR (logical parent window).
  *
  */
-void i3Window::window_update_transient_for(xcb_get_property_reply_t *prop) {
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+void i3Window::window_update_transient_for(xcb::xproto::GetPropertyReplyObj const *prop) {
+    if (prop == nullptr || prop->value.empty()) {
         DLOG(fmt::sprintf("TRANSIENT_FOR not set on window 0x%08x.\n", this->id));
         this->transient_for = XCB_NONE;
         return;
     }
 
-    xcb_window_t transient_for;
-    if (!xcb_icccm_get_wm_transient_for_from_reply(&transient_for, prop)) {
+    auto const parsed = xcb::icccm::parse_wm_transient_for(*prop);
+    if (!parsed) {
         return;
     }
+    xcb_window_t const transient_for = *parsed;
 
     DLOG(fmt::sprintf("Transient for changed to 0x%08x (window 0x%08x)\n", transient_for, this->id));
 
@@ -127,16 +126,14 @@ void i3Window::window_update_transient_for(xcb_get_property_reply_t *prop) {
  * Updates the _NET_WM_STRUT_PARTIAL (reserved pixels at the screen edges)
  *
  */
-void i3Window::window_update_strut_partial(xcb_get_property_reply_t *prop) {
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+void i3Window::window_update_strut_partial(xcb::xproto::GetPropertyReplyObj const *prop) {
+    if (prop == nullptr || prop->value.empty()) {
         DLOG("_NET_WM_STRUT_PARTIAL not set.\n");
         return;
     }
 
-    uint32_t *strut;
-    if (!(strut = (uint32_t *)xcb_get_property_value(prop))) {
-        return;
-    }
+    std::array<uint32_t, 4> const strut{property_value32(*prop, 0), property_value32(*prop, 1), property_value32(*prop, 2),
+                                        property_value32(*prop, 3)};
 
     DLOG(fmt::sprintf("Reserved pixels changed to: left = %d, right = %d, top = %d, bottom = %d\n",
                       strut[0], strut[1], strut[2], strut[3]));
@@ -148,13 +145,13 @@ void i3Window::window_update_strut_partial(xcb_get_property_reply_t *prop) {
  * Updates the WM_WINDOW_ROLE
  *
  */
-void i3Window::window_update_role(xcb_get_property_reply_t *prop) {
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+void i3Window::window_update_role(xcb::xproto::GetPropertyReplyObj const *prop) {
+    if (prop == nullptr || prop->value.empty()) {
         DLOG("WM_WINDOW_ROLE not set.\n");
         return;
     }
 
-    this->role.assign((char *)xcb_get_property_value(prop), xcb_get_property_value_length(prop));
+    this->role.assign(reinterpret_cast<char const *>(prop->value.data()), prop->value.size());
     LOG(fmt::sprintf("WM_WINDOW_ROLE changed to \"%s\"\n", this->role));
 }
 
@@ -162,7 +159,7 @@ void i3Window::window_update_role(xcb_get_property_reply_t *prop) {
  * Updates the _NET_WM_WINDOW_TYPE property.
  *
  */
-bool i3Window::window_update_type(xcb_get_property_reply_t *reply) {
+bool i3Window::window_update_type(xcb::xproto::GetPropertyReplyObj const *reply) {
     xcb_atom_t new_type = xcb_get_preferred_window_type(reply);
     if (new_type == XCB_NONE) {
         DLOG("cannot read _NET_WM_WINDOW_TYPE from window.\n");
@@ -179,10 +176,25 @@ bool i3Window::window_update_type(xcb_get_property_reply_t *reply) {
  * Updates the WM_NORMAL_HINTS
  *
  */
-bool i3Window::window_update_normal_hints(xcb_size_hints_t &size_hints, xcb::xproto::GetGeometryReplyObj *geom) {
+bool i3Window::window_update_normal_hints(xcb::xproto::GetPropertyReplyObj const *reply, xcb::xproto::GetGeometryReplyObj *geom) {
+    using enum xcb::icccm::size_hints_flags_t;
+
+    /* If the hints were already in this event, use them, if not, request them */
+    std::optional<xcb::icccm::size_hints_t> parsed;
+    if (reply != nullptr) {
+        parsed = xcb::icccm::parse_wm_size_hints(*reply);
+    } else {
+        parsed = xcb::icccm::get_wm_normal_hints_unchecked(&global.x->connection(), this->id).get();
+    }
+    if (!parsed) {
+        DLOG("Could not get WM_NORMAL_HINTS\n");
+        return false;
+    }
+    xcb::icccm::size_hints_t const &size_hints = *parsed;
+
     bool changed = false;
 
-    if ((size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MIN_SIZE)) {
+    if ((size_hints.flags & SIZE_HINT_P_MIN_SIZE)) {
         DLOG(fmt::sprintf("Minimum size: %d (width) x %d (height)\n", size_hints.min_width, size_hints.min_height));
 
         if (this->min_width != size_hints.min_width) {
@@ -195,7 +207,7 @@ bool i3Window::window_update_normal_hints(xcb_size_hints_t &size_hints, xcb::xpr
         }
     }
 
-    if ((size_hints.flags & XCB_ICCCM_SIZE_HINT_P_MAX_SIZE)) {
+    if ((size_hints.flags & SIZE_HINT_P_MAX_SIZE)) {
         DLOG(fmt::sprintf("Maximum size: %d (width) x %d (height)\n", size_hints.max_width, size_hints.max_height));
 
         uint32_t max_width = std::max(0, size_hints.max_width);
@@ -222,7 +234,7 @@ bool i3Window::window_update_normal_hints(xcb_size_hints_t &size_hints, xcb::xpr
         }
     }
 
-    if ((size_hints.flags & XCB_ICCCM_SIZE_HINT_P_RESIZE_INC)) {
+    if ((size_hints.flags & SIZE_HINT_P_RESIZE_INC)) {
         DLOG(fmt::sprintf("Size increments: %d (width) x %d (height)\n", size_hints.width_inc, size_hints.height_inc));
 
         if (size_hints.width_inc > 0 && size_hints.width_inc < 0xFFFF) {
@@ -262,7 +274,7 @@ bool i3Window::window_update_normal_hints(xcb_size_hints_t &size_hints, xcb::xpr
     }
 
     /* The base width / height is the desired size of the window. */
-    if (size_hints.flags & XCB_ICCCM_SIZE_HINT_BASE_SIZE &&
+    if (size_hints.flags & SIZE_HINT_BASE_SIZE &&
         (this->base_width >= 0) && (this->base_height >= 0)) {
         DLOG(fmt::sprintf("Base size: %d (width) x %d (height)\n", size_hints.base_width, size_hints.base_height));
 
@@ -288,8 +300,8 @@ bool i3Window::window_update_normal_hints(xcb_size_hints_t &size_hints, xcb::xpr
     }
 
     if (geom != nullptr &&
-        (size_hints.flags & XCB_ICCCM_SIZE_HINT_US_POSITION || size_hints.flags & XCB_ICCCM_SIZE_HINT_P_POSITION) &&
-        (size_hints.flags & XCB_ICCCM_SIZE_HINT_US_SIZE || size_hints.flags & XCB_ICCCM_SIZE_HINT_P_SIZE)) {
+        (size_hints.flags & SIZE_HINT_US_POSITION || size_hints.flags & SIZE_HINT_P_POSITION) &&
+        (size_hints.flags & SIZE_HINT_US_SIZE || size_hints.flags & SIZE_HINT_P_SIZE)) {
         DLOG(fmt::sprintf("Setting geometry x=%d y=%d w=%d h=%d\n", size_hints.x, size_hints.y, size_hints.width, size_hints.height));
         geom->x = size_hints.x;
         geom->y = size_hints.y;
@@ -298,7 +310,7 @@ bool i3Window::window_update_normal_hints(xcb_size_hints_t &size_hints, xcb::xpr
     }
 
     /* If no aspect ratio was set or if it was invalid, we ignore the hints */
-    if (size_hints.flags & XCB_ICCCM_SIZE_HINT_P_ASPECT &&
+    if (size_hints.flags & SIZE_HINT_P_ASPECT &&
         (size_hints.min_aspect_num >= 0) && (size_hints.min_aspect_den > 0) &&
         (size_hints.max_aspect_num >= 0) && (size_hints.max_aspect_den > 0)) {
         /* Convert numerator/denominator to a double */
@@ -329,52 +341,33 @@ bool i3Window::window_update_normal_hints(xcb_size_hints_t &size_hints, xcb::xpr
     return changed;
 }
 
-bool i3Window::window_update_normal_hints(xcb_get_property_reply_t *reply, xcb::xproto::GetGeometryReplyObj *geom) {
-    xcb_size_hints_t size_hints;
-
-    /* If the hints were already in this event, use them, if not, request them */
-    bool success;
-    if (reply != nullptr) {
-        success = xcb_icccm_get_wm_size_hints_from_reply(&size_hints, reply);
-    } else {
-        success = xcb_icccm_get_wm_normal_hints_reply(global.x->c_handle(), xcb_icccm_get_wm_normal_hints_unchecked(global.x->c_handle(), this->id), &size_hints, nullptr);
-    }
-    if (!success) {
-        DLOG("Could not get WM_NORMAL_HINTS\n");
-        return false;
-    }
-
-    return this->window_update_normal_hints(size_hints, geom);
-}
-
 /*
  * Updates the WM_HINTS (we only care about the input focus handling part).
  *
  */
-void i3Window::window_update_hints(xcb_get_property_reply_t *prop, bool *urgency_hint) {
+void i3Window::window_update_hints(xcb::xproto::GetPropertyReplyObj const *prop, bool *urgency_hint) {
     if (urgency_hint != nullptr) {
         *urgency_hint = false;
     }
 
-    if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+    if (prop == nullptr || prop->value.empty()) {
         DLOG("WM_HINTS not set.\n");
         return;
     }
 
-    xcb_icccm_wm_hints_t hints;
-
-    if (!xcb_icccm_get_wm_hints_from_reply(&hints, prop)) {
+    auto const hints = xcb::icccm::parse_wm_hints(*prop);
+    if (!hints) {
         DLOG("Could not get WM_HINTS\n");
         return;
     }
 
-    if (hints.flags & XCB_ICCCM_WM_HINT_INPUT) {
-        this->doesnt_accept_focus = !hints.input;
-        LOG(fmt::sprintf("WM_HINTS.input changed to \"%d\"\n", hints.input));
+    if (hints->flags & xcb::icccm::wm_hints_flags_t::WM_HINT_INPUT) {
+        this->doesnt_accept_focus = !hints->input;
+        LOG(fmt::sprintf("WM_HINTS.input changed to \"%d\"\n", hints->input));
     }
 
     if (urgency_hint != nullptr) {
-        *urgency_hint = (xcb_icccm_wm_hints_get_urgency(&hints) != 0);
+        *urgency_hint = hints->urgency();
     }
 }
 
@@ -433,13 +426,13 @@ static border_style_t border_style_from_motif_value(uint32_t value) {
  * it is still in use by popular widget toolkits such as GTK+ and Java AWT.
  *
  */
-bool i3Window::window_update_motif_hints(xcb_get_property_reply_t *prop, border_style_t *motif_border_style) {
+bool i3Window::window_update_motif_hints(xcb::xproto::GetPropertyReplyObj const *prop, border_style_t *motif_border_style) {
     if (prop == nullptr) {
         return false;
     }
     assert(motif_border_style != nullptr);
 
-    if (xcb_get_property_value_length(prop) == 0) {
+    if (prop->value.empty()) {
         return false;
     }
 
@@ -452,10 +445,8 @@ bool i3Window::window_update_motif_hints(xcb_get_property_reply_t *prop, border_
      * (64-bits long on amd64 for example). On the other hand,
      * xcb_get_property_value() behaves strictly according to documentation,
      * i.e. returns 32-bit data fields. */
-    uint32_t *motif_hints = (uint32_t *)xcb_get_property_value(prop);
-
-    if (motif_hints[MWM_HINTS_FLAGS_FIELD] & MWM_HINTS_DECORATIONS) {
-        *motif_border_style = border_style_from_motif_value(motif_hints[MWM_HINTS_DECORATIONS_FIELD]);
+    if (property_value32(*prop, MWM_HINTS_FLAGS_FIELD) & MWM_HINTS_DECORATIONS) {
+        *motif_border_style = border_style_from_motif_value(property_value32(*prop, MWM_HINTS_DECORATIONS_FIELD));
         return true;
     }
     return false;
@@ -470,8 +461,8 @@ void i3Window::window_update_machine(std::string const &machine) {
     LOG(fmt::sprintf("WM_CLIENT_MACHINE changed to \"%s\"\n", this->machine));
 }
 
-void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
-    uint32_t *data = nullptr;
+void i3Window::window_update_icon(xcb::xproto::GetPropertyReplyObj const *prop) {
+    xcb::ewmh::wm_icon_t const *data = nullptr;
     uint32_t width = 0, height = 0;
     uint64_t len = 0;
     auto const pref_size = static_cast<uint32_t>(render_deco_height() - logical_px(global.x->root_screen, 2));
@@ -481,27 +472,19 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
         return;
     }
 
-    auto prop_value_len = static_cast<uint32_t>(xcb_get_property_value_length(prop));
-    auto *prop_value = static_cast<uint32_t *>(xcb_get_property_value(prop));
+    /* The icons, as xcb-ewmh finds them: each a width, a height and width × height pixels, while more than the
+     * width and height are left, up to one of size 0 or one that the property doesn't hold. */
+    auto const icons = xcb::ewmh::parse_wm_icon(*prop).value_or(std::vector<xcb::ewmh::wm_icon_t>{});
 
     /* Find an icon matching the preferred size.
      * If there is no such icon, take the smallest icon having at least
      * the preferred size.
      * If all icons are smaller than the preferred size, chose the largest.
      */
-    while (prop_value_len > (sizeof(uint32_t) * 2) && prop_value &&
-           prop_value[0] && prop_value[1]) {
-        uint32_t const cur_width = prop_value[0];
-        uint32_t const cur_height = prop_value[1];
-        /* Check that the property is as long as it should be (in bytes),
-           handling integer overflow. "+2" to handle the width and height
-           fields. */
-        uint64_t const cur_len = cur_width * static_cast<uint64_t>(cur_height);
-        uint64_t const expected_len = (cur_len + 2) * 4;
-
-        if (expected_len > prop_value_len) {
-            break;
-        }
+    for (auto const &current : icons) {
+        uint32_t const cur_width = current.width;
+        uint32_t const cur_height = current.height;
+        uint64_t const cur_len = current.pixels.size();
 
         DLOG(fmt::sprintf("Found _NET_WM_ICON of size: (%d,%d)\n", cur_width, cur_height));
 
@@ -522,16 +505,12 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
             len = cur_len;
             width = cur_width;
             height = cur_height;
-            data = prop_value;
+            data = &current;
         }
 
         if (width == pref_size && height == pref_size) {
             break;
         }
-
-        /* Find pointer to next icon in the reply. */
-        prop_value_len -= expected_len;
-        prop_value = (uint32_t *)(((uint8_t *)prop_value) + expected_len);
     }
 
     if (!data) {
@@ -546,5 +525,5 @@ void i3Window::window_update_icon(xcb_get_property_reply_t *prop) {
 
     // int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width); stride not really working for chromium?
 
-    this->icon = std::make_unique<i3WindowIcon>(width, height, data, len);
+    this->icon = std::make_unique<i3WindowIcon>(width, height, data->pixels);
 }

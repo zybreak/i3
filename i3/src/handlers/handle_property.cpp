@@ -1,12 +1,12 @@
 module;
 #include <xcb/xcb.h>
-#include <xcb/xcb_icccm.h>
 #include <cairo.h>
 #include <fmt/printf.h>
 module i3;
 
 import std;
 import log;
+import xcb.icccm;
 
 namespace handle_property {
 
@@ -15,8 +15,8 @@ namespace handle_property {
      * given window.
      *
      */
-    std::optional<window_class> window_update_class(xcb_get_property_reply_t *prop) {
-        if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+    std::optional<window_class> window_update_class(xcb::xproto::GetPropertyReplyObj const *prop) {
+        if (prop == nullptr || prop->value.empty()) {
             DLOG("WM_CLASS not set.\n");
             return std::nullopt;
         }
@@ -24,8 +24,8 @@ namespace handle_property {
         /* We cannot use asprintf here since this property contains two
          * null-terminated strings (for compatibility reasons). Instead, we
          * use strdup() on both strings */
-        size_t const prop_length = xcb_get_property_value_length(prop);
-        char *new_class = (char *)xcb_get_property_value(prop);
+        size_t const prop_length = prop->value.size();
+        char const *new_class = reinterpret_cast<char const *>(prop->value.data());
         size_t const class_class_index = strnlen(new_class, prop_length) + 1;
 
         window_class w{};
@@ -33,7 +33,7 @@ namespace handle_property {
         w.class_instance.assign(new_class, class_class_index - 1);
         if (class_class_index < prop_length) {
             size_t const class_class_max_length = prop_length - class_class_index;
-            char *new_class_class = new_class + class_class_index;
+            char const *new_class_class = new_class + class_class_index;
             w.class_name.assign(new_class_class, strnlen(new_class_class, class_class_max_length));
         }
 
@@ -45,15 +45,15 @@ namespace handle_property {
      * window. Further updates using window_update_name_legacy will be ignored.
      *
      */
-    std::optional<std::string> window_update_name(xcb_get_property_reply_t *prop) {
-        if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+    std::optional<std::string> window_update_name(xcb::xproto::GetPropertyReplyObj const *prop) {
+        if (prop == nullptr || prop->value.empty()) {
             DLOG("_NET_WM_NAME not specified, not changing\n");
             return std::nullopt;
         }
 
         /* Truncate the name at the first zero byte. See #3515. */
-        auto len = static_cast<std::string::size_type>(xcb_get_property_value_length(prop));
-        std::string name{(char const *)xcb_get_property_value(prop), len};
+        auto len = static_cast<std::string::size_type>(prop->value.size());
+        std::string name{reinterpret_cast<char const *>(prop->value.data()), len};
 
         return name;
     }
@@ -65,14 +65,14 @@ namespace handle_property {
      * window_update_name()).
      *
      */
-    std::optional<std::string> window_update_name_legacy(xcb_get_property_reply_t *prop) {
-        if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+    std::optional<std::string> window_update_name_legacy(xcb::xproto::GetPropertyReplyObj const *prop) {
+        if (prop == nullptr || prop->value.empty()) {
             DLOG("WM_NAME not set (_NET_WM_NAME is what you want anyways).\n");
             return std::nullopt;
         }
 
-        auto const len = static_cast<std::string::size_type>(xcb_get_property_value_length(prop));
-        std::string name{(char const *)xcb_get_property_value(prop), len};
+        auto const len = static_cast<std::string::size_type>(prop->value.size());
+        std::string name{reinterpret_cast<char const *>(prop->value.data()), len};
 
         return name;
     }
@@ -81,68 +81,53 @@ namespace handle_property {
      * Updates the CLIENT_LEADER (logical parent window).
      *
      */
-    std::optional<xcb_window_t> window_update_leader(xcb_get_property_reply_t *prop) {
-        if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+    std::optional<xcb_window_t> window_update_leader(xcb::xproto::GetPropertyReplyObj const *prop) {
+        if (prop == nullptr || prop->value.empty()) {
             DLOG(fmt::sprintf("CLIENT_LEADER not set.\n"));
             return std::nullopt;
         }
 
-        auto *leader_prop = (xcb_window_t *)xcb_get_property_value(prop);
-        if (leader_prop == nullptr) {
-            return std::nullopt;
-        }
-
-        return *leader_prop;
+        return property_value32(*prop, 0);
     }
 
     /*
      * Updates the TRANSIENT_FOR (logical parent window).
      *
      */
-    std::optional<xcb_window_t> window_update_transient_for(xcb_get_property_reply_t *prop) {
-        if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+    std::optional<xcb_window_t> window_update_transient_for(xcb::xproto::GetPropertyReplyObj const *prop) {
+        if (prop == nullptr || prop->value.empty()) {
             return std::nullopt;
         }
 
-        xcb_window_t transient_for;
-        if (!xcb_icccm_get_wm_transient_for_from_reply(&transient_for, prop)) {
-            return std::nullopt;
-        }
-
-        return transient_for;
+        return xcb::icccm::parse_wm_transient_for(*prop);
     }
 
     /*
      * Updates the _NET_WM_STRUT_PARTIAL (reserved pixels at the screen edges)
      *
      */
-    std::optional<reservedpx> window_update_strut_partial(xcb_get_property_reply_t *prop) {
-        if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
-            return std::nullopt;
-        }
-
-        uint32_t *strut;
-        if (!(strut = (uint32_t *)xcb_get_property_value(prop))) {
+    std::optional<reservedpx> window_update_strut_partial(xcb::xproto::GetPropertyReplyObj const *prop) {
+        if (prop == nullptr || prop->value.empty()) {
             return std::nullopt;
         }
 
         return reservedpx{
-            .left = strut[0],
-            .right = strut[1],
-            .top = strut[2],
-            .bottom = strut[3]};
+            .left = property_value32(*prop, 0),
+            .right = property_value32(*prop, 1),
+            .top = property_value32(*prop, 2),
+            .bottom = property_value32(*prop, 3)};
     }
 
     /*
      * Updates the WM_WINDOW_ROLE
      *
      */
-    std::optional<std::string> window_update_role(xcb_get_property_reply_t *prop) {
-        if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+    std::optional<std::string> window_update_role(xcb::xproto::GetPropertyReplyObj const *prop) {
+        if (prop == nullptr || prop->value.empty()) {
             return std::nullopt;
         }
 
-        std::string role{(char *)xcb_get_property_value(prop), static_cast<std::string::size_type>(xcb_get_property_value_length(prop))};
+        std::string role{reinterpret_cast<char const *>(prop->value.data()), prop->value.size()};
         return role;
     }
 
@@ -150,7 +135,7 @@ namespace handle_property {
      * Updates the _NET_WM_WINDOW_TYPE property.
      *
      */
-    std::optional<xcb_atom_t> window_update_type(xcb_get_property_reply_t *reply) {
+    std::optional<xcb_atom_t> window_update_type(xcb::xproto::GetPropertyReplyObj const *reply) {
         xcb_atom_t new_type = xcb_get_preferred_window_type(reply);
         if (new_type == XCB_NONE) {
             return std::nullopt;
@@ -163,26 +148,26 @@ namespace handle_property {
      * Updates the WM_HINTS (we only care about the input focus handling part).
      *
      */
-    std::optional<window_hints> window_update_hints(xcb_get_property_reply_t *prop) {
-        if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+    std::optional<window_hints> window_update_hints(xcb::xproto::GetPropertyReplyObj const *prop) {
+        if (prop == nullptr || prop->value.empty()) {
             DLOG("WM_HINTS not set.\n");
             return std::nullopt;
         }
 
-        xcb_icccm_wm_hints_t hints;
         bool doesnt_accept_focus = false;
 
-        if (!xcb_icccm_get_wm_hints_from_reply(&hints, prop)) {
+        auto const hints = xcb::icccm::parse_wm_hints(*prop);
+        if (!hints) {
             DLOG("Could not get WM_HINTS\n");
             return std::nullopt;
         }
 
-        if (hints.flags & XCB_ICCCM_WM_HINT_INPUT) {
-            doesnt_accept_focus = !hints.input;
-            LOG(fmt::sprintf("WM_HINTS.input changed to \"%d\"\n", hints.input));
+        if (hints->flags & xcb::icccm::wm_hints_flags_t::WM_HINT_INPUT) {
+            doesnt_accept_focus = !hints->input;
+            LOG(fmt::sprintf("WM_HINTS.input changed to \"%d\"\n", hints->input));
         }
 
-        bool urgency_hint = (xcb_icccm_wm_hints_get_urgency(&hints) != 0);
+        bool urgency_hint = hints->urgency();
 
         return window_hints{
             .doesnt_accept_focus = doesnt_accept_focus,
@@ -244,12 +229,12 @@ namespace handle_property {
      * it is still in use by popular widget toolkits such as GTK+ and Java AWT.
      *
      */
-    std::optional<uint32_t> window_update_motif_hints(xcb_get_property_reply_t *prop) {
+    std::optional<uint32_t> window_update_motif_hints(xcb::xproto::GetPropertyReplyObj const *prop) {
         if (prop == nullptr) {
             return std::nullopt;
         }
 
-        if (xcb_get_property_value_length(prop) == 0) {
+        if (prop->value.empty()) {
             return std::nullopt;
         }
 
@@ -262,10 +247,8 @@ namespace handle_property {
          * (64-bits long on amd64 for example). On the other hand,
          * xcb_get_property_value() behaves strictly according to documentation,
          * i.e. returns 32-bit data fields. */
-        uint32_t *motif_hints = reinterpret_cast<uint32_t *>(xcb_get_property_value(prop));
-
-        if (motif_hints[MWM_HINTS_FLAGS_FIELD] & MWM_HINTS_DECORATIONS) {
-            return std::to_underlying(border_style_from_motif_value(motif_hints[MWM_HINTS_DECORATIONS_FIELD]));
+        if (property_value32(*prop, MWM_HINTS_FLAGS_FIELD) & MWM_HINTS_DECORATIONS) {
+            return std::to_underlying(border_style_from_motif_value(property_value32(*prop, MWM_HINTS_DECORATIONS_FIELD)));
         }
         return std::nullopt;
     }
@@ -274,13 +257,13 @@ namespace handle_property {
      * Updates the WM_CLIENT_MACHINE
      *
      */
-    std::optional<std::string> window_update_machine(xcb_get_property_reply_t *prop) {
-        if (prop == nullptr || xcb_get_property_value_length(prop) == 0) {
+    std::optional<std::string> window_update_machine(xcb::xproto::GetPropertyReplyObj const *prop) {
+        if (prop == nullptr || prop->value.empty()) {
             DLOG("WM_CLIENT_MACHINE not set.\n");
             return std::nullopt;
         }
 
-        std::string machine{static_cast<char *>(xcb_get_property_value(prop)), static_cast<std::string::size_type>(xcb_get_property_value_length(prop))};
+        std::string machine{reinterpret_cast<char const *>(prop->value.data()), prop->value.size()};
 
         return machine;
     }

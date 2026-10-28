@@ -9,7 +9,6 @@
  */
 module;
 #include <xcb/xcb.h>
-#include <xcb/xcb_icccm.h>
 #include <fmt/core.h>
 #include <fmt/printf.h>
 
@@ -21,6 +20,7 @@ import utils;
 import log;
 import rect;
 import xcb.proto.shape;
+import xcb.icccm;
 
 template <typename T>
 struct window_data {
@@ -45,23 +45,23 @@ struct window_data {
 
 static auto get_window_data(xcb_window_t window) {
     return window_data{
-        .wm_type_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .strut_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .state_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_STATE], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .utf8_title_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_NAME], XCB_GET_PROPERTY_TYPE_ANY, 128),
-        .leader_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .transient_cookie = property_request(global.x->c_handle(), window, XCB_ATOM_WM_TRANSIENT_FOR, XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .title_cookie = property_request(global.x->c_handle(), window, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 128),
-        .class_cookie = property_request(global.x->c_handle(), window, XCB_ATOM_WM_CLASS, XCB_GET_PROPERTY_TYPE_ANY, 128),
-        .role_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], XCB_GET_PROPERTY_TYPE_ANY, 128),
-        .startup_id_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 512),
-        .wm_hints_cookie = property_request(global.x->c_handle(), window, XCB_ATOM_WM_HINTS, XCB_ATOM_WM_HINTS, XCB_ICCCM_NUM_WM_HINTS_ELEMENTS),
-        .wm_normal_hints_cookie = property_request(global.x->c_handle(), window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS, XCB_ICCCM_NUM_WM_SIZE_HINTS_ELEMENTS),
-        .motif_wm_hints_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], XCB_GET_PROPERTY_TYPE_ANY, 5 * sizeof(uint64_t)),
-        .wm_user_time_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .wm_desktop_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .wm_machine_cookie = property_request(global.x->c_handle(), window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .wm_icon_cookie = property_request(global.x->c_handle(), window, i3::atoms[i3::Atom::_NET_WM_ICON], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX)};
+        .wm_type_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .strut_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .state_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_STATE], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .utf8_title_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_NAME], XCB_GET_PROPERTY_TYPE_ANY, 128),
+        .leader_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .transient_cookie = property_request(global.x->connection(), window, XCB_ATOM_WM_TRANSIENT_FOR, XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .title_cookie = property_request(global.x->connection(), window, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 128),
+        .class_cookie = property_request(global.x->connection(), window, XCB_ATOM_WM_CLASS, XCB_GET_PROPERTY_TYPE_ANY, 128),
+        .role_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], XCB_GET_PROPERTY_TYPE_ANY, 128),
+        .startup_id_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 512),
+        .wm_hints_cookie = property_request(global.x->connection(), window, XCB_ATOM_WM_HINTS, XCB_ATOM_WM_HINTS, xcb::icccm::num_wm_hints_elements),
+        .wm_normal_hints_cookie = property_request(global.x->connection(), window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS, xcb::icccm::num_wm_size_hints_elements),
+        .motif_wm_hints_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], XCB_GET_PROPERTY_TYPE_ANY, 5 * sizeof(uint64_t)),
+        .wm_user_time_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .wm_desktop_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .wm_machine_cookie = property_request(global.x->connection(), window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
+        .wm_icon_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_ICON], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX)};
 }
 
 /*
@@ -484,19 +484,18 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     bool has_mwm_hints = false;
     i3Window *cwindow = create_window(w_data, window, visual, urgency_hint, motif_border_style, has_mwm_hints, geom);
 
-    xcb_get_property_reply_t *type_reply = (w_data.wm_type_cookie.value_len() > 0 ? w_data.wm_type_cookie.get() : nullptr);
-    xcb_get_property_reply_t *state_reply = (w_data.state_cookie.value_len() > 0 ? w_data.state_cookie.get() : nullptr);
+    xcb::xproto::GetPropertyReplyObj const *type_reply = (w_data.wm_type_cookie.value_len() > 0 ? w_data.wm_type_cookie.get() : nullptr);
+    xcb::xproto::GetPropertyReplyObj const *state_reply = (w_data.state_cookie.value_len() > 0 ? w_data.state_cookie.get() : nullptr);
 
     std::optional<std::string> startup_ws = global.applicationLauncher->startup_workspace_for_window(cwindow, (w_data.startup_id_cookie.value_len() > 0 ? w_data.startup_id_cookie.get() : nullptr));
     DLOG(fmt::format("startup workspace = {}", startup_ws.value_or("(null)")));
 
     /* Get _NET_WM_DESKTOP if it was set. */
-    xcb_get_property_reply_t *wm_desktop_reply;
+    xcb::xproto::GetPropertyReplyObj const *wm_desktop_reply;
     wm_desktop_reply = (w_data.wm_desktop_cookie.value_len() > 0) ? w_data.wm_desktop_cookie.get() : nullptr;
     cwindow->wm_desktop = NET_WM_DESKTOP_NONE;
-    if (wm_desktop_reply != nullptr && xcb_get_property_value_length(wm_desktop_reply) != 0) {
-        auto *wm_desktops = (uint32_t *)xcb_get_property_value(wm_desktop_reply);
-        cwindow->wm_desktop = static_cast<int32_t>(wm_desktops[0]);
+    if (wm_desktop_reply != nullptr && !wm_desktop_reply->value.empty()) {
+        cwindow->wm_desktop = static_cast<int32_t>(property_value32(*wm_desktop_reply, 0));
     }
 
     /* check if the window needs WM_TAKE_FOCUS */
@@ -741,11 +740,9 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     if (set_focus) {
         DLOG(fmt::sprintf("Checking con = %p for _NET_WM_USER_TIME.\n", fmt::ptr(nc)));
 
-        uint32_t *wm_user_time;
-        xcb_get_property_reply_t *wm_user_time_reply = w_data.wm_user_time_cookie.get();
-        if (wm_user_time_reply != nullptr && xcb_get_property_value_length(wm_user_time_reply) != 0 &&
-            (wm_user_time = (uint32_t *)xcb_get_property_value(wm_user_time_reply)) &&
-            wm_user_time[0] == 0) {
+        xcb::xproto::GetPropertyReplyObj const *wm_user_time_reply = w_data.wm_user_time_cookie.get();
+        if (wm_user_time_reply != nullptr && !wm_user_time_reply->value.empty() &&
+            property_value32(*wm_user_time_reply, 0) == 0) {
             DLOG(fmt::sprintf("_NET_WM_USER_TIME set to 0, not focusing con = %p.\n", fmt::ptr(nc)));
             set_focus = false;
         }

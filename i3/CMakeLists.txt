@@ -14,8 +14,8 @@ list(APPEND compile_options ${libsn_dep_CFLAGS_OTHER})
 find_package(libev CONFIG REQUIRED)
 list(APPEND libraries libev::libev)
 
-find_package(X11 REQUIRED COMPONENTS xcb xcb_cursor xcb_shape xcb_xrm xcb_xkb xcb_randr xcb_util xcb_keysyms xcb_icccm xkbcommon xkbcommon_X11)
-list(APPEND libraries X11 X11::xcb X11::xcb_cursor X11::xcb_shape X11::xcb_xrm X11::xcb_xkb X11::xcb_randr X11::xcb_util X11::xcb_keysyms X11::xcb_icccm X11::xkbcommon X11::xkbcommon_X11)
+find_package(X11 REQUIRED COMPONENTS xcb xcb_cursor xcb_shape xcb_xrm xcb_xkb xcb_randr xcb_util xcb_keysyms xkbcommon xkbcommon_X11)
+list(APPEND libraries X11 X11::xcb X11::xcb_cursor X11::xcb_shape X11::xcb_xrm X11::xcb_xkb X11::xcb_randr X11::xcb_util X11::xcb_keysyms X11::xkbcommon X11::xkbcommon_X11)
 
 find_package(PCRE2 CONFIG REQUIRED)
 list(APPEND libraries pcre2::pcre2)
@@ -74,6 +74,25 @@ i3_link_xcbcompat_instead_of_libxcb(xorg_DEPS_TARGET)
 foreach(component IN LISTS xorg_COMPONENT_NAMES)
     string(REPLACE "::" "_" component_name ${component})
     i3_link_xcbcompat_instead_of_libxcb(xorg_${component_name}_DEPS_TARGET)
+endforeach()
+
+# i3 uses xcbpp's xcb.icccm and xcb.ewmh, not libxcb-wm's xcb-icccm and xcb-ewmh, and links neither. Conan's xorg
+# targets name both as system libraries (xorg::xorg all of xorg's, which cairo and pango's libxft link): they are
+# dropped from them, as "xcb" is above. The test i3-links-no-libxcb-wm (test/CMakeLists.txt) checks the binaries.
+function(i3_drop_system_library target library)
+    get_target_property(libraries ${target} INTERFACE_LINK_LIBRARIES)
+    string(REGEX REPLACE "(^|;|[^:]:)${library}(;|>|$)" "\\1\\2" dropped "${libraries}")
+    if(NOT dropped STREQUAL libraries)
+        set_target_properties(${target} PROPERTIES INTERFACE_LINK_LIBRARIES "${dropped}")
+    endif()
+endfunction()
+
+foreach(library xcb-icccm xcb-ewmh)
+    i3_drop_system_library(xorg_DEPS_TARGET ${library})
+    foreach(component IN LISTS xorg_COMPONENT_NAMES)
+        string(REPLACE "::" "_" component_name ${component})
+        i3_drop_system_library(xorg_${component_name}_DEPS_TARGET ${library})
+    endforeach()
 endforeach()
 
 list(APPEND libraries libi3ipc)

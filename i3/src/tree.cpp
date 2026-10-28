@@ -10,7 +10,6 @@
 module;
 #include <cassert>
 #include <xcb/xcb.h>
-#include <xcb/xcb_icccm.h>
 
 #include <ev.h>
 
@@ -30,6 +29,7 @@ import utils;
 import rect;
 import program_arguments;
 import xcb.proto.shape;
+import xcb.icccm;
 
 /*
  * Calls fn on each container in cons, in order, like upstream's TAILQ_FOREACH_SAFE: fn may remove the container it
@@ -240,7 +240,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
 
             /* We are no longer handling this window, thus set WM_STATE to
              * WM_STATE_WITHDRAWN (see ICCCM 4.1.3.1) */
-            std::array<uint32_t, 2> const data{XCB_ICCCM_WM_STATE_WITHDRAWN, XCB_NONE};
+            std::array<uint32_t, 2> const data{std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_WITHDRAWN), XCB_NONE};
             /* The second ignore below is this ChangeProperty's sequence, as it was before the port, though its comment
              * names the ReparentWindow. */
             std::uint64_t const change_property_sequence =

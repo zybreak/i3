@@ -35,6 +35,7 @@ target_sources(UnitTest PRIVATE
         x_test.cpp
         i3_lib_test.cpp
         xcb_test.cpp
+        property_test.cpp
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES
@@ -51,6 +52,12 @@ add_test(NAME i3-loads-xcbcompat
          COMMAND ${CMAKE_COMMAND} -DPROGRAM=$<TARGET_FILE:i3> -DLAYER=${xcbcompat_location}
                  -P ${CMAKE_CURRENT_SOURCE_DIR}/check_xcbcompat.cmake)
 set_tests_properties(i3-loads-xcbcompat PROPERTIES ENVIRONMENT_MODIFICATION "LD_LIBRARY_PATH=unset:")
+
+# i3 uses xcbpp's xcb.icccm and xcb.ewmh in place of libxcb-wm's libraries, and links neither (see i3/CMakeLists.txt).
+add_test(NAME i3-links-no-libxcb-wm
+         COMMAND ${CMAKE_COMMAND} "-DPROGRAMS=$<TARGET_FILE:i3>;$<TARGET_FILE:UnitTest>$<$<TARGET_EXISTS:ITTest>:;$<TARGET_FILE:ITTest>>"
+                 -DREADELF=${CMAKE_READELF} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_no_libxcb_wm.cmake)
+set_tests_properties(i3-links-no-libxcb-wm PROPERTIES ENVIRONMENT_MODIFICATION "LD_LIBRARY_PATH=unset:")
 
 find_program(XVFB_PROGRAM Xvfb)
 find_program(CC_PROGRAM cc)

@@ -45,7 +45,7 @@ import log;
 
 static std::vector<std::unique_ptr<Startup_Sequence>> startup_sequences{};
 
-static Startup_Sequence *startup_sequence_get(i3Window *cwindow, xcb_get_property_reply_t *startup_id_reply, bool ignore_mapped_leader);
+static Startup_Sequence *startup_sequence_get(i3Window *cwindow, xcb::xproto::GetPropertyReplyObj const *startup_id_reply, bool ignore_mapped_leader);
 
 static void remove_startup_sequence(std::string id) {
     std::erase_if(startup_sequences, [&id](auto &currrent) {
@@ -277,12 +277,12 @@ void ApplicationLauncher::startup_sequence_rename_workspace(char const *old_name
  *
  */
 static Startup_Sequence *startup_sequence_get(i3Window *cwindow,
-                                              xcb_get_property_reply_t *startup_id_reply, bool ignore_mapped_leader) {
+                                              xcb::xproto::GetPropertyReplyObj const *startup_id_reply, bool ignore_mapped_leader) {
     /* Owns the leader's reply, if startup_id_reply is replaced by it. */
     std::optional<property_request> leader_property{};
     /* The _NET_STARTUP_ID is only needed during this function, so we get it
      * here and don’t save it in the 'cwindow'. */
-    if (startup_id_reply == nullptr || xcb_get_property_value_length(startup_id_reply) == 0) {
+    if (startup_id_reply == nullptr || startup_id_reply->value.empty()) {
         DLOG(fmt::sprintf("No _NET_STARTUP_ID set on window 0x%08x\n", cwindow->id));
         if (cwindow->leader == XCB_NONE) {
             return nullptr;
@@ -302,19 +302,20 @@ static Startup_Sequence *startup_sequence_get(i3Window *cwindow,
 
         DLOG(fmt::sprintf("Checking leader window 0x%08x\n", cwindow->leader));
 
-        leader_property.emplace(global.x->c_handle(), cwindow->leader, i3::atoms[i3::Atom::_NET_STARTUP_ID],
+        leader_property.emplace(global.x->connection(), cwindow->leader, i3::atoms[i3::Atom::_NET_STARTUP_ID],
                                 XCB_GET_PROPERTY_TYPE_ANY, 512);
         startup_id_reply = leader_property->get();
 
         if (startup_id_reply == nullptr ||
-            xcb_get_property_value_length(startup_id_reply) == 0) {
+            startup_id_reply->value.empty()) {
             DLOG("No _NET_STARTUP_ID set on the leader either\n");
             return nullptr;
         }
     }
 
-    auto startup_id = fmt::sprintf("%.*s", xcb_get_property_value_length(startup_id_reply),
-                                   (char *)xcb_get_property_value(startup_id_reply));
+    /* The value up to its first NUL, as printf's "%.*s" took it. */
+    std::string_view const startup_id_value{reinterpret_cast<char const *>(startup_id_reply->value.data()), startup_id_reply->value.size()};
+    std::string const startup_id{startup_id_value.substr(0, startup_id_value.find('\0'))};
 
     auto seq_ptr = std::ranges::find_if(startup_sequences, [&startup_id](auto &current) {
         return current->id == startup_id;
@@ -337,7 +338,7 @@ static Startup_Sequence *startup_sequence_get(i3Window *cwindow,
  * Returns NULL otherwise.
  *
  */
-std::optional<std::string> ApplicationLauncher::startup_workspace_for_window(i3Window *cwindow, xcb_get_property_reply_t *startup_id_reply) {
+std::optional<std::string> ApplicationLauncher::startup_workspace_for_window(i3Window *cwindow, xcb::xproto::GetPropertyReplyObj const *startup_id_reply) {
     auto *seq = startup_sequence_get(cwindow, startup_id_reply, false);
     if (seq == nullptr) {
         return std::nullopt;
@@ -360,7 +361,7 @@ std::optional<std::string> ApplicationLauncher::startup_workspace_for_window(i3W
  *
  */
 void ApplicationLauncher::startup_sequence_delete_by_window(i3Window *win) {
-    property_request startup_id_reply{global.x->c_handle(), win->id, i3::atoms[i3::Atom::_NET_STARTUP_ID],
+    property_request startup_id_reply{global.x->connection(), win->id, i3::atoms[i3::Atom::_NET_STARTUP_ID],
                                       XCB_GET_PROPERTY_TYPE_ANY, 512};
 
     auto *sequence = startup_sequence_get(win, startup_id_reply.get(), true);
