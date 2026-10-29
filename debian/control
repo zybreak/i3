@@ -5,7 +5,7 @@ Maintainer: Michael Stapelberg <stapelberg@debian.org>
 Build-Depends: debhelper (>= 10),
                meson,
                libx11-dev,
-               libxcb-util0-dev (>= 0.3.8),
+               libxcb-util0-dev (>= 0.3.8) <!nocheck>,
                libxcb-keysyms1-dev,
                libxcb-xinerama0-dev (>= 1.1),
                libxcb-randr0-dev,

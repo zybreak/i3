@@ -14,8 +14,11 @@ list(APPEND compile_options ${libsn_dep_CFLAGS_OTHER})
 find_package(libev CONFIG REQUIRED)
 list(APPEND libraries libev::libev)
 
-find_package(X11 REQUIRED COMPONENTS xcb xcb_cursor xcb_shape xcb_xrm xcb_xkb xcb_randr xcb_keysyms xkbcommon xkbcommon_X11)
-list(APPEND libraries X11 X11::xcb X11::xcb_cursor X11::xcb_shape X11::xcb_xrm X11::xcb_xkb X11::xcb_randr X11::xcb_keysyms X11::xkbcommon X11::xkbcommon_X11)
+find_package(X11 REQUIRED COMPONENTS xcb xcb_cursor xcb_shape xcb_xrm xcb_xkb xcb_keysyms xkbcommon xkbcommon_X11)
+list(APPEND libraries X11 X11::xcb X11::xcb_cursor X11::xcb_xrm X11::xcb_xkb X11::xcb_keysyms X11::xkbcommon X11::xkbcommon_X11)
+# i3 sends SHAPE and RandR requests through xcbpp's xcb.shape and xcb.randr, and links neither xcb-shape nor xcb-randr.
+# It still uses xcb-shape's header, for xcb_shape_sk_t.
+list(APPEND include_dirs ${X11_xcb_shape_INCLUDE_PATH})
 
 find_package(PCRE2 CONFIG REQUIRED)
 list(APPEND libraries pcre2::pcre2)
@@ -81,7 +84,8 @@ endforeach()
 # dropped from them, as "xcb" is above. The test i3-links-no-libxcb-wm (test/CMakeLists.txt) checks the binaries.
 # Nor does i3 link xcb-util (libxcb-util): it has its own versions of the helpers it used (xcb.cpp). The C libraries
 # that need it load it themselves (libstartup-notification, xcb-xrm, xcb-image), so the test i3-needs-no-libxcb-util
-# checks only that i3 doesn't need it directly.
+# checks only that i3 doesn't need it directly. Nor xcb-shape and xcb-randr (see X11 above): the test
+# i3-needs-no-libxcb-shape-or-randr checks that no binary needs them.
 function(i3_drop_system_library target library)
     get_target_property(libraries ${target} INTERFACE_LINK_LIBRARIES)
     string(REGEX REPLACE "(^|;|[^:]:)${library}(;|>|$)" "\\1\\2" dropped "${libraries}")
@@ -90,7 +94,7 @@ function(i3_drop_system_library target library)
     endif()
 endfunction()
 
-foreach(library xcb-icccm xcb-ewmh xcb-util)
+foreach(library xcb-icccm xcb-ewmh xcb-util xcb-shape xcb-randr)
     i3_drop_system_library(xorg_DEPS_TARGET ${library})
     foreach(component IN LISTS xorg_COMPONENT_NAMES)
         string(REPLACE "::" "_" component_name ${component})

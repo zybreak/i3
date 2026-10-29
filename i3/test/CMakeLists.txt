@@ -74,6 +74,12 @@ add_test(NAME i3-needs-no-libxcb-util
          COMMAND ${CMAKE_COMMAND} "-DPROGRAMS=$<TARGET_FILE:i3>" -DLIBRARIES=libxcb-util -DREADELF=${CMAKE_READELF}
                  -P ${CMAKE_CURRENT_SOURCE_DIR}/check_not_needed.cmake)
 
+# Nor do i3 and its tests link xcb-shape or xcb-randr: they use xcbpp's xcb.shape and xcb.randr (see i3/CMakeLists.txt).
+add_test(NAME i3-needs-no-libxcb-shape-or-randr
+         COMMAND ${CMAKE_COMMAND} "-DPROGRAMS=$<TARGET_FILE:i3>;$<TARGET_FILE:UnitTest>$<$<TARGET_EXISTS:ITTest>:;$<TARGET_FILE:ITTest>>"
+                 "-DLIBRARIES=libxcb-shape;libxcb-randr" -DREADELF=${CMAKE_READELF}
+                 -P ${CMAKE_CURRENT_SOURCE_DIR}/check_not_needed.cmake)
+
 find_program(XVFB_PROGRAM Xvfb)
 find_program(CC_PROGRAM cc)
 
