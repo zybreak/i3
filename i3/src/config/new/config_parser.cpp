@@ -6,7 +6,6 @@ module;
 #include "parser-specs/configLexer.h"
 #include "parser-specs/configGrammar.h"
 #include "parser-specs/configGrammarBaseListener.h"
-#include <xcb/xcb_xrm.h>
 module i3_config_new;
 
 import std;

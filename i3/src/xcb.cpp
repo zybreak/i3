@@ -10,8 +10,6 @@
 module;
 
 #include <xcb/xcb.h>
-#include <xcb/shape.h>
-#include <xcb/xcb_keysyms.h>
 #include <fmt/printf.h>
 module i3;
 
@@ -32,9 +30,9 @@ xcb_window_t create_window(xcb::Connection &conn, Rect dims,
 
     /* If the window class is XCB_WINDOW_CLASS_INPUT_ONLY, we copy depth and
      * visual id from the parent window. */
-    if (window_class == XCB_WINDOW_CLASS_INPUT_ONLY) {
-        depth = XCB_COPY_FROM_PARENT;
-        visual = XCB_COPY_FROM_PARENT;
+    if (window_class == std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_ONLY)) {
+        depth = xcb::copy_from_parent;
+        visual = xcb::copy_from_parent;
     }
 
     xcb::xproto::create_window(&conn,
@@ -80,7 +78,7 @@ void fake_absolute_configure_notify(Con *con) {
 
     generatedEvent.event = con->get_window()->id;
     generatedEvent.window = con->get_window()->id;
-    generatedEvent.response_type = XCB_CONFIGURE_NOTIFY;
+    generatedEvent.response_type = xcb::xproto::CONFIGURE_NOTIFY;
 
     generatedEvent.x = static_cast<int16_t>(con->rect.x + con->get_window_rect().x);
     generatedEvent.y = static_cast<int16_t>(con->rect.y + con->get_window_rect().y);
@@ -88,7 +86,7 @@ void fake_absolute_configure_notify(Con *con) {
     generatedEvent.height = static_cast<uint16_t>(con->get_window_rect().height);
 
     generatedEvent.border_width = con->border_width;
-    generatedEvent.above_sibling = XCB_NONE;
+    generatedEvent.above_sibling = xcb::none;
     generatedEvent.override_redirect = false;
 
     DLOG(fmt::sprintf("fake rect = (%d, %d, %d, %d)\n", generatedEvent.x, generatedEvent.y, generatedEvent.width, generatedEvent.height));
@@ -108,7 +106,7 @@ void fake_absolute_configure_notify(Con *con) {
 void send_take_focus(xcb_window_t window, xcb_timestamp_t timestamp) {
     xcb::xproto::client_message_event_t ev{};
 
-    ev.response_type = XCB_CLIENT_MESSAGE;
+    ev.response_type = xcb::xproto::CLIENT_MESSAGE;
     ev.window = window;
     ev.type = i3::atoms[i3::Atom::WM_PROTOCOLS];
     ev.format = 32;
@@ -151,7 +149,7 @@ uint32_t property_value32(xcb::xproto::GetPropertyReplyObj const &reply, std::si
  */
 xcb_atom_t xcb_get_preferred_window_type(xcb::xproto::GetPropertyReplyObj const *reply) {
     if (reply == nullptr || reply->value.empty()) {
-        return XCB_NONE;
+        return xcb::none;
     }
 
     for (std::size_t i = 0; i < reply->value.size() / (reply->format / 8U); i++) {
@@ -170,7 +168,7 @@ xcb_atom_t xcb_get_preferred_window_type(xcb::xproto::GetPropertyReplyObj const 
         }
     }
 
-    return XCB_NONE;
+    return xcb::none;
 }
 
 /*
@@ -233,12 +231,69 @@ xcb_visualid_t get_visualid_by_depth(uint16_t depth) {
 }
 
 /*
+ * Returns the screen with the given number, or nullptr if the connection has no such screen, as xcb-util's
+ * xcb_aux_get_screen() does.
+ *
+ */
+xcb_screen_t *get_screen(xcb_connection_t *conn, int screen) {
+    int number = 0;
+    for (xcb_screen_iterator_t it = xcb_setup_roots_iterator(xcb_get_setup(conn)); it.rem; xcb_screen_next(&it), ++number) {
+        if (number == screen) {
+            return it.data;
+        }
+    }
+    return nullptr;
+}
+
+/*
+ * Returns the first visual of the screen with the given class and depth, -1 meaning any, or nullptr if there is none,
+ * as xcb-util's xcb_aux_find_visual_by_attrs() does. Its parameters are xcb-util's: the class and the depth are int8_t,
+ * which it compares with the setup's uint8_t values as ints.
+ *
+ */
+xcb::xproto::visualtype_t *find_visual_by_attrs(xcb::xproto::screen_t const &screen, std::int8_t visual_class, std::int8_t depth) { // NOLINT(bugprone-easily-swappable-parameters)
+    for (auto const &allowed : screen.get_allowed_depths()) {
+        if (depth != -1 && int{allowed.depth} != int{depth}) {
+            continue;
+        }
+        for (auto &visual : allowed.get_visuals()) {
+            if (visual_class == -1 || int{visual._class} == int{visual_class}) {
+                return &visual;
+            }
+        }
+    }
+    return nullptr;
+}
+
+/*
+ * Returns the depth of the screen's visual with the given id, or 0 if the screen has no such visual, as xcb-util's
+ * xcb_aux_get_depth_of_visual() does.
+ *
+ */
+std::uint8_t get_depth_of_visual(xcb::xproto::screen_t const &screen, xcb::xproto::visualid_t id) {
+    for (auto const &allowed : screen.get_allowed_depths()) {
+        if (std::ranges::any_of(allowed.get_visuals(), [id](auto const &visual) { return visual.visual_id == id; })) {
+            return allowed.depth;
+        }
+    }
+    return 0;
+}
+
+/*
+ * Returns the name of a screen's selection atom, as xcb-util's xcb_atom_name_by_screen() makes it ("%s_S%u").
+ *
+ */
+std::string atom_name_by_screen(std::string_view base, std::uint8_t screen) {
+    return std::format("{}_S{}", base, screen);
+}
+
+/*
  * Add an atom to a list of atoms the given property defines.
  * This is useful, for example, for manipulating _NET_WM_STATE.
  *
  */
 void xcb_add_property_atom(xcb::Connection &conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t atom) {
-    x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_APPEND, window, property, XCB_ATOM_ATOM, std::span{&atom, 1});
+    x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_APPEND, window, property, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_ATOM), std::span{&atom, 1});
 }
 
 /*
@@ -250,7 +305,7 @@ void xcb_add_property_atom(xcb::Connection &conn, xcb_window_t window, xcb_atom_
 void xcb_remove_property_atom(xcb::Connection &conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t atom) {
     xcb::xproto::grab_server(&conn);
 
-    auto const reply = xcb::xproto::get_property(&conn, false, window, property, XCB_GET_PROPERTY_TYPE_ANY, 0, 4096).get();
+    auto const reply = xcb::xproto::get_property(&conn, false, window, property, std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 0, 4096).get();
     if (!reply || reply->value.empty()) {
         xcb::xproto::ungrab_server(&conn);
         return;
@@ -270,7 +325,7 @@ void xcb_remove_property_atom(xcb::Connection &conn, xcb_window_t window, xcb_at
             }
         }
 
-        x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, window, property, XCB_ATOM_ATOM, std::span{values});
+        x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, window, property, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_ATOM), std::span{values});
     }
 
     xcb::xproto::ungrab_server(&conn);
@@ -284,7 +339,7 @@ void xcb_grab_buttons(xcb_window_t window, std::set<int> &buttons) {
     for (int i : buttons) {
         xcb::xproto::grab_button(&global.x->connection(), false, window, xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_PRESS,
                                  xcb::xproto::grab_mode_t::GRAB_MODE_SYNC, xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC,
-                                 global.x->root, XCB_NONE, static_cast<xcb::xproto::button_index_t>(i),
+                                 global.x->root, xcb::none, static_cast<xcb::xproto::button_index_t>(i),
                                  xcb::xproto::mod_mask_t::MOD_MASK_ANY);
     }
 }

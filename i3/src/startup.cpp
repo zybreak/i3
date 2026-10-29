@@ -11,20 +11,11 @@
  *
  */
 module;
-#include <xcb/xcb.h>
-
 #include <ev.h>
 
 #include <config.h>
 
 #include <sys/time.h>
-
-#include <xcb/shape.h>
-#include <xcb/xcb_keysyms.h>
-
-#define explicit dont_use_cxx_explicit
-#include <xcb/xkb.h>
-#undef explicit
 
 #include <paths.h>
 #include <sys/types.h>
@@ -132,7 +123,7 @@ void Startup_Sequence::stop_timer() {
     this->timeout = nullptr;
 }
 
-Startup_Sequence::Startup_Sequence(int screen, WorkspaceCon *ws, std::string name, std::string description, std::string launchee, xcb_timestamp_t last_timestamp) {
+Startup_Sequence::Startup_Sequence(int screen, WorkspaceCon *ws, std::string name, std::string description, std::string launchee, xcb::xproto::timestamp_t last_timestamp) {
     /* Create a startup notification context to monitor the progress of this
      * startup. */
     SnLauncherContext *context = sn_launcher_context_new(global.applicationLauncher->sndisplay, screen);
@@ -284,7 +275,7 @@ static Startup_Sequence *startup_sequence_get(i3Window *cwindow,
      * here and don’t save it in the 'cwindow'. */
     if (startup_id_reply == nullptr || startup_id_reply->value.empty()) {
         DLOG(fmt::sprintf("No _NET_STARTUP_ID set on window 0x%08x\n", cwindow->id));
-        if (cwindow->leader == XCB_NONE) {
+        if (cwindow->leader == xcb::none) {
             return nullptr;
         }
 
@@ -303,7 +294,7 @@ static Startup_Sequence *startup_sequence_get(i3Window *cwindow,
         DLOG(fmt::sprintf("Checking leader window 0x%08x\n", cwindow->leader));
 
         leader_property.emplace(global.x->connection(), cwindow->leader, i3::atoms[i3::Atom::_NET_STARTUP_ID],
-                                XCB_GET_PROPERTY_TYPE_ANY, 512);
+                                std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 512);
         startup_id_reply = leader_property->get();
 
         if (startup_id_reply == nullptr ||
@@ -362,7 +353,7 @@ std::optional<std::string> ApplicationLauncher::startup_workspace_for_window(i3W
  */
 void ApplicationLauncher::startup_sequence_delete_by_window(i3Window *win) {
     property_request startup_id_reply{global.x->connection(), win->id, i3::atoms[i3::Atom::_NET_STARTUP_ID],
-                                      XCB_GET_PROPERTY_TYPE_ANY, 512};
+                                      std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 512};
 
     auto *sequence = startup_sequence_get(win, startup_id_reply.get(), true);
     if (sequence != nullptr) {

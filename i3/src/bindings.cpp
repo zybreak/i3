@@ -9,12 +9,7 @@
 module;
 #include <sys/types.h>
 
-#include <xcb/xcb.h>
-
 #include <ev.h>
-
-#include <xcb/shape.h>
-#include <xcb/xcb_keysyms.h>
 
 #define explicit dont_use_cxx_explicit
 #include <xcb/xkb.h>
@@ -46,26 +41,26 @@ i3_event_state_mask_t event_state_from_str(char const *str) {
         return result;
     }
     if (std::strstr(str, "Mod1") != nullptr) {
-        result |= XCB_KEY_BUT_MASK_MOD_1;
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_1);
     }
     if (std::strstr(str, "Mod2") != nullptr) {
-        result |= XCB_KEY_BUT_MASK_MOD_2;
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_2);
     }
     if (std::strstr(str, "Mod3") != nullptr) {
-        result |= XCB_KEY_BUT_MASK_MOD_3;
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_3);
     }
     if (std::strstr(str, "Mod4") != nullptr) {
-        result |= XCB_KEY_BUT_MASK_MOD_4;
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_4);
     }
     if (std::strstr(str, "Mod5") != nullptr) {
-        result |= XCB_KEY_BUT_MASK_MOD_5;
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_5);
     }
     if (std::strstr(str, "Control") != nullptr ||
         std::strstr(str, "Ctrl") != nullptr) {
-        result |= XCB_KEY_BUT_MASK_CONTROL;
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_CONTROL);
     }
     if (std::strstr(str, "Shift") != nullptr) {
-        result |= XCB_KEY_BUT_MASK_SHIFT;
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_SHIFT);
     }
     if (std::strstr(str, "Group1") != nullptr) {
         result |= (I3_XKB_GROUP_MASK_1 << 16);
@@ -123,7 +118,7 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
          * keycode */
         bool found_keycode = false;
         if (input_type == B_KEYBOARD && !bind.symbol.empty()) {
-            auto input_keycode = static_cast<xcb_keycode_t>(input_code);
+            auto input_keycode = static_cast<xcb::xproto::keycode_t>(input_code);
             for (auto &binding_keycode : bind.keycodes) {
                 uint32_t const modifiers_mask = (binding_keycode.modifiers & 0x0000FFFF);
                 bool const mods_match = (modifiers_mask == modifiers_state);
@@ -192,11 +187,11 @@ static Binding *get_binding(i3_event_state_mask_t state_filtered, bool is_releas
  */
 template <typename Event>
 static Binding *get_binding_from_event(Event const *event, std::vector<Binding> &bindings) {
-    bool const is_release = (event->response_type == XCB_KEY_RELEASE ||
-                             event->response_type == XCB_BUTTON_RELEASE);
+    bool const is_release = (event->response_type == xcb::xproto::KEY_RELEASE ||
+                             event->response_type == xcb::xproto::BUTTON_RELEASE);
 
-    input_type_t const input_type = ((event->response_type == XCB_BUTTON_RELEASE ||
-                                      event->response_type == XCB_BUTTON_PRESS)
+    input_type_t const input_type = ((event->response_type == xcb::xproto::BUTTON_RELEASE ||
+                                      event->response_type == xcb::xproto::BUTTON_PRESS)
                                          ? B_MOUSE
                                          : B_KEYBOARD);
 
@@ -204,7 +199,7 @@ static Binding *get_binding_from_event(Event const *event, std::vector<Binding> 
     uint16_t const event_detail = event->detail;
 
     /* Remove the CapsLock bit */
-    i3_event_state_mask_t state_filtered = event_state & ~XCB_MOD_MASK_LOCK;
+    i3_event_state_mask_t state_filtered = event_state & ~static_cast<std::uint32_t>(xcb::xproto::mod_mask_t::MOD_MASK_LOCK);
     DLOG(fmt::sprintf("(removed capslock, state = 0x%x)\n", state_filtered));
     /* Transform the keyboard_group from bit 13 and bit 14 into an
      * i3_xkb_group_mask_t, so that get_binding() can just bitwise AND the

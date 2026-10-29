@@ -15,8 +15,6 @@ module;
 
 #include <xcb/xcb.h>
 
-#include <xcb/randr.h>
-
 #include <fmt/core.h>
 #include <fmt/printf.h>
 module i3;
@@ -44,7 +42,7 @@ static bool update_if_necessary(uint32_t *destination, uint32_t const new_value)
  * re-scanning.
  *
  */
-Output *RandR::get_output_by_id(xcb_randr_output_t id) {
+Output *RandR::get_output_by_id(xcb::randr::randr_output_t id) {
     for (Output *output : outputs) {
         if (output->id == id) {
             return output;
@@ -560,10 +558,10 @@ void RandR::output_change_mode(xcb_connection_t *conn, Output *output) {
  *
  */
 bool RandR::randr_query_outputs_15() {
-#if XCB_RANDR_MINOR_VERSION < 5
-    return false;
-#else
-    /* RandR 1.5 available at compile-time, i.e. libxcb is new enough */
+    if constexpr (xcb::randr::XCB_RANDR_MINOR_VERSION < 5) {
+        return false;
+    }
+    /* RandR 1.5 available at compile-time, i.e. xcbpp's RandR module is new enough */
     if (!has_randr_1_5) {
         return false;
     }
@@ -603,10 +601,10 @@ bool RandR::randr_query_outputs_15() {
             new_output = new Output();
 
             /* Register associated output names in addition to the monitor name */
-            for (xcb_randr_output_t const randr_output : monitor_info.outputs) {
+            for (xcb::randr::randr_output_t const randr_output : monitor_info.outputs) {
                 auto const info = xcb::randr::randr_get_output_info(conn, randr_output, monitors->timestamp).get();
 
-                if (info && info->crtc != XCB_NONE) {
+                if (info && info->crtc != xcb::none) {
                     std::string oname{reinterpret_cast<char const *>(info->name.data()), info->name.size()};
 
                     if (name != oname) {
@@ -645,7 +643,6 @@ bool RandR::randr_query_outputs_15() {
                           monitor_info.primary, monitor_info.automatic));
     }
     return true;
-#endif
 }
 
 /*
@@ -656,7 +653,7 @@ bool RandR::randr_query_outputs_15() {
  * appropriate.
  *
  */
-void RandR::handle_output(xcb_randr_output_t id, std::string name, xcb_randr_crtc_t output_crtc, xcb_timestamp_t cts) {
+void RandR::handle_output(xcb::randr::randr_output_t id, std::string name, xcb::randr::randr_crtc_t output_crtc, xcb_timestamp_t cts) {
     Output *new_output = get_output_by_id(id);
     bool existing = (new_output != nullptr);
     if (!existing) {
@@ -672,7 +669,7 @@ void RandR::handle_output(xcb_randr_output_t id, std::string name, xcb_randr_crt
     /* Even if no CRTC is used at the moment, we store the output so that
      * we do not need to change the list ever again (we only update the
      * position/size) */
-    if (output_crtc == XCB_NONE) {
+    if (output_crtc == xcb::none) {
         if (!existing) {
             if (new_output->primary) {
                 outputs.insert(outputs.begin(), new_output);
@@ -1023,7 +1020,7 @@ RandR::RandR(X &x, ConfigurationManager &configManager, WorkspaceManager &worksp
         return;
     }
 
-    auto const randr_version = xcb::randr::randr_query_version(&x.connection(), XCB_RANDR_MAJOR_VERSION, XCB_RANDR_MINOR_VERSION).get();
+    auto const randr_version = xcb::randr::randr_query_version(&x.connection(), xcb::randr::XCB_RANDR_MAJOR_VERSION, xcb::randr::XCB_RANDR_MINOR_VERSION).get();
     if (!randr_version) {
         ELOG(fmt::sprintf("Could not query RandR version: X11 error code %d\n", randr_version.error().error_code));
         fallback_to_root_output();

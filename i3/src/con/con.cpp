@@ -18,14 +18,6 @@ module;
 
 #include <sys/time.h>
 
-#include <xcb/xcb.h>
-#include <xcb/shape.h>
-#include <xcb/xcb_keysyms.h>
-
-#define explicit dont_use_cxx_explicit
-#include <xcb/xkb.h>
-#undef explicit
-
 #include <fmt/printf.h>
 #include <glib.h>
 module i3;

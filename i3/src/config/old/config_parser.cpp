@@ -31,8 +31,6 @@ module;
 #include <unistd.h>
 #include <libgen.h>
 
-#include <xcb/xcb_xrm.h>
-
 #include <fmt/printf.h>
 module i3_config_old;
 

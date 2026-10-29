@@ -1,5 +1,4 @@
 module;
-#include <xcb/xcb.h>
 #include <cairo.h>
 #include <fmt/printf.h>
 module i3;
@@ -81,7 +80,7 @@ namespace handle_property {
      * Updates the CLIENT_LEADER (logical parent window).
      *
      */
-    std::optional<xcb_window_t> window_update_leader(xcb::xproto::GetPropertyReplyObj const *prop) {
+    std::optional<xcb::xproto::window_t> window_update_leader(xcb::xproto::GetPropertyReplyObj const *prop) {
         if (prop == nullptr || prop->value.empty()) {
             DLOG(fmt::sprintf("CLIENT_LEADER not set.\n"));
             return std::nullopt;
@@ -94,7 +93,7 @@ namespace handle_property {
      * Updates the TRANSIENT_FOR (logical parent window).
      *
      */
-    std::optional<xcb_window_t> window_update_transient_for(xcb::xproto::GetPropertyReplyObj const *prop) {
+    std::optional<xcb::xproto::window_t> window_update_transient_for(xcb::xproto::GetPropertyReplyObj const *prop) {
         if (prop == nullptr || prop->value.empty()) {
             return std::nullopt;
         }
@@ -135,9 +134,9 @@ namespace handle_property {
      * Updates the _NET_WM_WINDOW_TYPE property.
      *
      */
-    std::optional<xcb_atom_t> window_update_type(xcb::xproto::GetPropertyReplyObj const *reply) {
-        xcb_atom_t new_type = xcb_get_preferred_window_type(reply);
-        if (new_type == XCB_NONE) {
+    std::optional<xcb::xproto::atom_t> window_update_type(xcb::xproto::GetPropertyReplyObj const *reply) {
+        xcb::xproto::atom_t new_type = xcb_get_preferred_window_type(reply);
+        if (new_type == xcb::none) {
             return std::nullopt;
         }
 

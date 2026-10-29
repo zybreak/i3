@@ -9,12 +9,8 @@
  *
  */
 module;
-#include <xcb/xcb.h>
-#include <xcb/xcb_keysyms.h>
-
 #include <config.h>
 
-#include <xcb/randr.h>
 #include <fmt/printf.h>
 module i3;
 
@@ -285,12 +281,12 @@ static bool handle_windowicon_change(ConCon *con, xcb::xproto::GetPropertyReplyO
 using cb_property_handler_t = bool (*)(ConCon *con, xcb::xproto::GetPropertyReplyObj const *property);
 
 struct property_handler_t {
-    xcb_atom_t atom;
+    xcb::xproto::atom_t atom;
     uint32_t long_len;
     cb_property_handler_t cb;
 
     property_handler_t(
-        xcb_atom_t _atom,
+        xcb::xproto::atom_t _atom, // NOLINT(bugprone-easily-swappable-parameters)
         uint32_t _long_len,
         cb_property_handler_t _cb)
         : atom(_atom), long_len(_long_len), cb(_cb) {
@@ -301,22 +297,22 @@ void PropertyHandlers::property_notify(xcb::xproto::property_notify_event_t *eve
     global.last_timestamp = event->time;
 
     uint8_t state = event->state;
-    xcb_window_t window = event->window;
-    xcb_atom_t atom = event->atom;
+    xcb::xproto::window_t window = event->window;
+    xcb::xproto::atom_t atom = event->atom;
 
-    static std::map<xcb_atom_t, property_handler_t> property_handlers{
+    static std::map<xcb::xproto::atom_t, property_handler_t> property_handlers{
         {i3::atoms[i3::Atom::_NET_WM_NAME], {i3::atoms[i3::Atom::_NET_WM_NAME], 128, handle_windowname_change}},
-        {XCB_ATOM_WM_HINTS, {XCB_ATOM_WM_HINTS, UINT_MAX, handle_hints}},
-        {XCB_ATOM_WM_NAME, {XCB_ATOM_WM_NAME, 128, handle_windowname_change_legacy}},
-        {XCB_ATOM_WM_NORMAL_HINTS, {XCB_ATOM_WM_NORMAL_HINTS, UINT_MAX, handle_normal_hints}},
+        {std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_HINTS), {std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_HINTS), UINT_MAX, handle_hints}},
+        {std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_NAME), {std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_NAME), 128, handle_windowname_change_legacy}},
+        {std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_NORMAL_HINTS), {std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_NORMAL_HINTS), UINT_MAX, handle_normal_hints}},
         {i3::atoms[i3::Atom::WM_CLIENT_LEADER], {i3::atoms[i3::Atom::WM_CLIENT_LEADER], UINT_MAX, handle_clientleader_change}},
-        {XCB_ATOM_WM_TRANSIENT_FOR, {XCB_ATOM_WM_TRANSIENT_FOR, UINT_MAX, handle_transient_for}},
+        {std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_TRANSIENT_FOR), {std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_TRANSIENT_FOR), UINT_MAX, handle_transient_for}},
         {i3::atoms[i3::Atom::WM_WINDOW_ROLE], {i3::atoms[i3::Atom::WM_WINDOW_ROLE], 128, handle_windowrole_change}},
-        {XCB_ATOM_WM_CLASS, {XCB_ATOM_WM_CLASS, 128, handle_class_change}},
+        {std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLASS), {std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLASS), 128, handle_class_change}},
         {i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], {i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], UINT_MAX, handle_strut_partial_change}},
         {i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], {i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], UINT_MAX, handle_window_type}},
         {i3::atoms[i3::Atom::I3_FLOATING_WINDOW], {i3::atoms[i3::Atom::I3_FLOATING_WINDOW], UINT_MAX, handle_i3_floating}},
-        {XCB_ATOM_WM_CLIENT_MACHINE, {XCB_ATOM_WM_CLIENT_MACHINE, 128, handle_machine_change}},
+        {std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLIENT_MACHINE), {std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLIENT_MACHINE), 128, handle_machine_change}},
         {i3::atoms[i3::Atom::_MOTIF_WM_HINTS], {i3::atoms[i3::Atom::_MOTIF_WM_HINTS], 5 * sizeof(uint64_t), handle_motif_hints_change}},
         {i3::atoms[i3::Atom::_NET_WM_ICON], {i3::atoms[i3::Atom::_NET_WM_ICON], UINT_MAX, handle_windowicon_change}}};
 
@@ -336,8 +332,8 @@ void PropertyHandlers::property_notify(xcb::xproto::property_notify_event_t *eve
         return;
     }
 
-    if (state != XCB_PROPERTY_DELETE) {
-        property_request propr{global.x->connection(), window, atom, XCB_GET_PROPERTY_TYPE_ANY, handler.long_len};
+    if (state != std::to_underlying(xcb::xproto::property_t::PROPERTY_DELETE)) {
+        property_request propr{global.x->connection(), window, atom, std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), handler.long_len};
         if (propr.get() == nullptr) {
             DLOG(fmt::sprintf("got an error when getting property of atom %d\n", atom));
         } else {

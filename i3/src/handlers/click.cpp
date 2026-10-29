@@ -8,8 +8,6 @@
  *
  */
 module;
-#include <xcb/xcb.h>
-
 #include <fmt/printf.h>
 module i3;
 
@@ -18,11 +16,11 @@ import log;
 import rect;
 
 /** Mouse buttons */
-#define XCB_BUTTON_CLICK_LEFT XCB_BUTTON_INDEX_1
-#define XCB_BUTTON_CLICK_MIDDLE XCB_BUTTON_INDEX_2
-#define XCB_BUTTON_CLICK_RIGHT XCB_BUTTON_INDEX_3
-#define XCB_BUTTON_SCROLL_UP XCB_BUTTON_INDEX_4
-#define XCB_BUTTON_SCROLL_DOWN XCB_BUTTON_INDEX_5
+#define XCB_BUTTON_CLICK_LEFT std::to_underlying(xcb::xproto::button_index_t::BUTTON_INDEX_1)
+#define XCB_BUTTON_CLICK_MIDDLE std::to_underlying(xcb::xproto::button_index_t::BUTTON_INDEX_2)
+#define XCB_BUTTON_CLICK_RIGHT std::to_underlying(xcb::xproto::button_index_t::BUTTON_INDEX_3)
+#define XCB_BUTTON_SCROLL_UP std::to_underlying(xcb::xproto::button_index_t::BUTTON_INDEX_4)
+#define XCB_BUTTON_SCROLL_DOWN std::to_underlying(xcb::xproto::button_index_t::BUTTON_INDEX_5)
 /* xcb doesn't define constants for these. */
 #define XCB_BUTTON_SCROLL_LEFT 6
 #define XCB_BUTTON_SCROLL_RIGHT 7
@@ -176,7 +174,7 @@ static bool tiling_resize(PropertyHandlers &handlers, Con *con, xcb::xproto::but
     return false;
 }
 
-static void allow_replay_pointer(xcb_timestamp_t time) {
+static void allow_replay_pointer(xcb::xproto::timestamp_t time) {
     xcb::xproto::allow_events(&global.x->connection(), xcb::xproto::allow_t::ALLOW_REPLAY_POINTER, time);
     global.x->connection().flush();
     tree_render();
@@ -217,7 +215,7 @@ void PropertyHandlers::route_click(Con *con, xcb::xproto::button_press_event_t *
     }
 
     /* There is no default behavior for button release events so we are done. */
-    if (event->response_type == XCB_BUTTON_RELEASE) {
+    if (event->response_type == xcb::xproto::BUTTON_RELEASE) {
         allow_replay_pointer(event->time);
         return;
     }
@@ -238,7 +236,7 @@ void PropertyHandlers::route_click(Con *con, xcb::xproto::button_press_event_t *
 
     /* get the floating con */
     Con *floatingcon = con->con_inside_floating();
-    bool const proportional = (event->state & XCB_KEY_BUT_MASK_SHIFT) == XCB_KEY_BUT_MASK_SHIFT;
+    bool const proportional = (event->state & static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_SHIFT)) == static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_SHIFT);
     bool const in_stacked = (con->parent->layout == L_STACKED || con->parent->layout == L_TABBED);
     bool const was_focused = global.focused == con;
     bool const is_left_click = (event->detail == XCB_BUTTON_CLICK_LEFT);
@@ -392,7 +390,7 @@ void PropertyHandlers::route_click(Con *con, xcb::xproto::button_press_event_t *
  */
 void PropertyHandlers::handle_button_press(xcb::xproto::button_press_event_t *event) {
     DLOG(fmt::sprintf("Button %d (state %d) %s on window 0x%08x (child 0x%08x) at (%d, %d) (root %d, %d)\n",
-                      event->detail, event->state, (event->response_type == XCB_BUTTON_PRESS ? "press" : "release"),
+                      event->detail, event->state, (event->response_type == xcb::xproto::BUTTON_PRESS ? "press" : "release"),
                       event->event, event->child, event->event_x, event->event_y, event->root_x,
                       event->root_y));
 
@@ -417,7 +415,7 @@ void PropertyHandlers::handle_button_press(xcb::xproto::button_press_event_t *ev
 
         /* If the root window is clicked, find the relevant output from the
          * click coordinates and focus the output's active workspace. */
-        if (event->event == x.root && event->response_type == XCB_BUTTON_PRESS) {
+        if (event->event == x.root && event->response_type == xcb::xproto::BUTTON_PRESS) {
             OutputCon *output;
             WorkspaceCon *ws;
             for (auto &c : global.croot->nodes) {
@@ -459,7 +457,7 @@ void PropertyHandlers::handle_button_press(xcb::xproto::button_press_event_t *ev
         }
     }
 
-    if (event->child != XCB_NONE) {
+    if (event->child != xcb::none) {
         DLOG("event->child not XCB_NONE, so this is an event which originated from a click into the application, but the application did not handle it.\n");
         route_click(con, event, CLICK_INSIDE);
         return;

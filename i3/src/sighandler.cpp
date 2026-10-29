@@ -8,14 +8,6 @@
 module;
 #include <sys/types.h>
 
-#include <xcb/xcb.h>
-#include <xcb/xcb_keysyms.h>
-#include <xcb/shape.h>
-
-#define explicit dont_use_cxx_explicit
-#include <xcb/xkb.h>
-#undef explicit
-
 #include <sys/wait.h>
 #include <unistd.h>
 #include <fmt/printf.h>
@@ -28,8 +20,8 @@ import rect;
 
 class dialog_t {
   public:
-    xcb_window_t id{};
-    xcb_colormap_t colormap{};
+    xcb::xproto::window_t id{};
+    xcb::xproto::colormap_t colormap{};
     Rect dims{};
     std::unique_ptr<surface_t> surface{};
     ~dialog_t() {
@@ -169,7 +161,7 @@ static void sighandler_create_dialogs() {
 
         auto dialog = std::make_unique<dialog_t>();
 
-        xcb_visualid_t visual = get_visualid_by_depth(global.x->root_depth);
+        xcb::xproto::visualid_t visual = get_visualid_by_depth(global.x->root_depth);
         dialog->colormap = global.x->connection().generate_id();
         xcb::xproto::create_colormap(&global.x->connection(), xcb::xproto::colormap_alloc_t::COLORMAP_ALLOC_NONE, dialog->colormap,
                                      global.x->root, visual);
@@ -197,20 +189,20 @@ static void sighandler_create_dialogs() {
         dialog->dims.y -= dialog->dims.height / 2;
 
         dialog->id = create_window(global.x->connection(), dialog->dims, global.x->root_depth, visual,
-                                   XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER,
+                                   std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT), XCURSOR_CURSOR_POINTER,
                                    true, values);
 
         dialog->surface = std::make_unique<surface_t>(global.x->drawing(), dialog->id, get_visualtype_by_id(visual),
                                                       dialog->dims.width, dialog->dims.height);
 
         /* The replies aren't waited for: dropping their futures discards them. */
-        std::ignore = xcb::xproto::grab_keyboard(&global.x->connection(), false, dialog->id, XCB_CURRENT_TIME,
+        std::ignore = xcb::xproto::grab_keyboard(&global.x->connection(), false, dialog->id, xcb::current_time,
                                                  xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC, xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC);
 
         /* Confine the pointer to the crash dialog. */
         std::ignore = xcb::xproto::grab_pointer(&global.x->connection(), false, dialog->id, xcb::xproto::event_mask_t::EVENT_MASK_NO_EVENT,
                                                 xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC, xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC, dialog->id,
-                                                XCB_NONE, XCB_CURRENT_TIME);
+                                                xcb::none, xcb::current_time);
 
         dialogs.push_back(std::move(dialog));
     }
@@ -277,7 +269,7 @@ static void sighandler_handle_key_press(xcb::xproto::key_press_event_t *event) {
      * keysyms, we remove the numlock flag from the event state */
     state &= ~global.x->xcb_numlock_mask;
 
-    xcb_keysym_t sym = global.xkb->key_press_lookup_keysym(event, state);
+    xcb::xproto::keysym_t sym = global.xkb->key_press_lookup_keysym(event, state);
 
     if (sym == 'b') {
         DLOG("User issued core-dump command.\n");
@@ -313,10 +305,10 @@ static void handle_signal(int sig, siginfo_t *info, void *data) {
         /* Strip off the highest bit (set if the event is generated) */
         int type = (event->response_type & 0x7F);
         switch (type) {
-            case XCB_KEY_PRESS:
+            case xcb::xproto::KEY_PRESS:
                 sighandler_handle_key_press(reinterpret_cast<xcb::xproto::key_press_event_t *>(event.get()));
                 break;
-            case XCB_EXPOSE:
+            case xcb::xproto::EXPOSE:
                 if (reinterpret_cast<xcb::xproto::expose_event_t const *>(event.get())->count == 0) {
                     sighandler_handle_expose();
                 }

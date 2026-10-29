@@ -29,7 +29,7 @@ inline static void CAIRO_SURFACE_FLUSH(cairo_surface_t *surface) {
 }
 
 static bool surface_initialized(surface_t *surface) {
-    if (surface == nullptr || surface->id == XCB_NONE) {
+    if (surface == nullptr || surface->id == xcb::none) {
         ELOG(fmt::sprintf("Surface %p is not initialized, skipping drawing.\n", fmt::ptr(surface)));
         return false;
     }

@@ -10,8 +10,6 @@
 module;
 #include <fmt/printf.h>
 
-#include <xcb/xcb.h>
-
 #include <ev.h>
 
 module i3;
@@ -46,7 +44,7 @@ struct drag_x11_cb {
     bool threshold_exceeded;
 
     /* Cursor to set after the threshold is exceeded. */
-    xcb_cursor_t xcursor;
+    xcb::xproto::cursor_t xcursor;
 };
 
 static bool threshold_exceeded(uint32_t x1, uint32_t y1,
@@ -72,17 +70,17 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
         int type = (event->response_type & 0x7F);
 
         switch (type) {
-            case XCB_BUTTON_RELEASE:
+            case xcb::xproto::BUTTON_RELEASE:
                 dragloop->result = DRAG_SUCCESS;
                 break;
 
-            case XCB_KEY_PRESS:
+            case xcb::xproto::KEY_PRESS:
                 DLOG("A key was pressed during drag, reverting changes.\n");
                 dragloop->result = DRAG_REVERT;
                 handlers->handle_event(type, event.get());
                 break;
 
-            case XCB_UNMAP_NOTIFY: {
+            case xcb::xproto::UNMAP_NOTIFY: {
                 auto const *unmap_event = reinterpret_cast<xcb::xproto::unmap_notify_event_t const *>(event.get());
                 ConCon *con = con_by_window_id(unmap_event->window);
 
@@ -99,7 +97,7 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
                 break;
             }
 
-            case XCB_MOTION_NOTIFY:
+            case xcb::xproto::MOTION_NOTIFY:
                 /* motion_notify events are saved for later */
                 last_motion_notify = std::move(event);
                 break;
@@ -129,11 +127,11 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
     if (!dragloop->threshold_exceeded &&
         threshold_exceeded(motion->root_x, motion->root_y,
                            dragloop->event->root_x, dragloop->event->root_y)) {
-        if (dragloop->xcursor != XCB_NONE) {
+        if (dragloop->xcursor != xcb::none) {
             xcb::xproto::change_active_pointer_grab(
                 &x.connection(),
                 dragloop->xcursor,
-                XCB_CURRENT_TIME,
+                xcb::current_time,
                 xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_RELEASE | xcb::xproto::event_mask_t::EVENT_MASK_POINTER_MOTION);
         }
         dragloop->threshold_exceeded = true;
@@ -168,9 +166,9 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
  *
  */
 drag_result_t InputManager::drag_pointer(Con *con, xcb::xproto::button_press_event_t const *event,
-                                         xcb_window_t confine_to, int cursor,
+                                         xcb::xproto::window_t confine_to, int cursor, // NOLINT(bugprone-easily-swappable-parameters)
                                          bool use_threshold, callback_t callback) {
-    xcb_cursor_t xcursor = cursor ? x.xcursor_get_cursor(static_cast<xcursor_cursor_t>(cursor)) : XCB_NONE;
+    xcb::xproto::cursor_t xcursor = cursor ? x.xcursor_get_cursor(static_cast<xcursor_cursor_t>(cursor)) : xcb::none;
 
     xcb::Connection &conn = x.connection();
 
@@ -182,8 +180,8 @@ drag_result_t InputManager::drag_pointer(Con *con, xcb::xproto::button_press_eve
                                                  xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC,                                                                    /* pointer events should continue as normal */
                                                  xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC,                                                                    /* keyboard mode */
                                                  confine_to,                                                                                                   /* confine_to = in which window should the cursor stay */
-                                                 use_threshold ? XCB_NONE : xcursor,                                                                           /* possibly display a special cursor */
-                                                 XCB_CURRENT_TIME)
+                                                 use_threshold ? xcb::none : xcursor,                                                                          /* possibly display a special cursor */
+                                                 xcb::current_time)
                            .get();
     if (!reply) {
         ELOG(fmt::sprintf("Could not grab pointer (error_code = %d)\n", reply.error().error_code));
@@ -194,14 +192,14 @@ drag_result_t InputManager::drag_pointer(Con *con, xcb::xproto::button_press_eve
     auto const keyb_reply = xcb::xproto::grab_keyboard(&conn,
                                                        false,  /* get all keyboard events */
                                                        x.root, /* grab the root window */
-                                                       XCB_CURRENT_TIME,
+                                                       xcb::current_time,
                                                        xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC, /* continue processing pointer events as normal */
                                                        xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC  /* keyboard mode */
                                                        )
                                 .get();
     if (!keyb_reply) {
         ELOG(fmt::sprintf("Could not grab keyboard (error_code = %d)\n", keyb_reply.error().error_code));
-        xcb::xproto::ungrab_pointer(&conn, XCB_CURRENT_TIME);
+        xcb::xproto::ungrab_pointer(&conn, xcb::current_time);
         return DRAG_ABORT;
     }
 
@@ -234,8 +232,8 @@ drag_result_t InputManager::drag_pointer(Con *con, xcb::xproto::button_press_eve
     ev_prepare_stop(global.main_loop, prepare);
     global.eventHandler->main_set_x11_cb(true);
 
-    xcb::xproto::ungrab_keyboard(&conn, XCB_CURRENT_TIME);
-    xcb::xproto::ungrab_pointer(&conn, XCB_CURRENT_TIME);
+    xcb::xproto::ungrab_keyboard(&conn, xcb::current_time);
+    xcb::xproto::ungrab_pointer(&conn, xcb::current_time);
     conn.flush();
 
     return loop.result;

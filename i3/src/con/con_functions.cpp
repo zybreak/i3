@@ -11,16 +11,8 @@
  */
 module;
 #include <cassert>
-#include <xcb/xcb.h>
 
 #include <config.h>
-
-#include <xcb/shape.h>
-#include <xcb/xcb_keysyms.h>
-
-#define explicit dont_use_cxx_explicit
-#include <xcb/xkb.h>
-#undef explicit
 
 #include <fmt/printf.h>
 #include <glib.h>
@@ -116,7 +108,7 @@ static bool con_has_urgent_child(Con *con) {
  * container exists.
  *
  */
-ConCon *con_by_window_id(xcb_window_t window) {
+ConCon *con_by_window_id(xcb::xproto::window_t window) {
     for (auto const &c : global.all_cons) {
         auto con = dynamic_cast<ConCon *>(c);
         if (con && con->get_window() != nullptr && con->get_window()->id == window) {
@@ -131,7 +123,7 @@ ConCon *con_by_window_id(xcb_window_t window) {
  * exists.
  *
  */
-Con *con_by_frame_id(xcb_window_t frame) {
+Con *con_by_frame_id(xcb::xproto::window_t frame) {
     for (auto const &con : global.all_cons) {
         if (con->frame->id == frame) {
             return con;
@@ -146,12 +138,12 @@ Con *con_by_frame_id(xcb_window_t frame) {
  * cycles.
  *
  */
-bool con_find_transient_for_window(Con *start, xcb_window_t target) {
+bool con_find_transient_for_window(Con *start, xcb::xproto::window_t target) {
     Con *transient_con = start;
     int count = global.croot->con_num_windows();
     while (transient_con != nullptr &&
            transient_con->get_window() != nullptr &&
-           transient_con->get_window()->transient_for != XCB_NONE) {
+           transient_con->get_window()->transient_for != xcb::none) {
         DLOG(fmt::sprintf("transient_con = 0x%08x, transient_con->window->transient_for = 0x%08x, target = 0x%08x\n",
                           transient_con->get_window()->id, transient_con->get_window()->transient_for, target));
         if (transient_con->get_window()->transient_for == target) {

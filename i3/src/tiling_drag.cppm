@@ -9,7 +9,6 @@
  */
 module;
 class Con;
-#include <xcb/xproto.h>
 export module i3:tiling_drag;
 
 export {

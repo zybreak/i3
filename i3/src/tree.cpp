@@ -9,16 +9,8 @@
  */
 module;
 #include <cassert>
-#include <xcb/xcb.h>
 
 #include <ev.h>
-
-#include <xcb/shape.h>
-#include <xcb/xcb_keysyms.h>
-
-#define explicit dont_use_cxx_explicit
-#include <xcb/xkb.h>
-#undef explicit
 
 #include <fmt/printf.h>
 module i3;
@@ -223,7 +215,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
             return false;
         } else {
             xcb::Connection &conn = global.x->connection();
-            xcb_window_t const window = con2->get_window()->id;
+            xcb::xproto::window_t const window = con2->get_window()->id;
 
             /* Ignore any further events by clearing the event mask,
              * unmap the window,
@@ -240,7 +232,7 @@ bool tree_close_internal(Con *con, kill_window_t kill_window, bool dont_kill_par
 
             /* We are no longer handling this window, thus set WM_STATE to
              * WM_STATE_WITHDRAWN (see ICCCM 4.1.3.1) */
-            std::array<uint32_t, 2> const data{std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_WITHDRAWN), XCB_NONE};
+            std::array<uint32_t, 2> const data{std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_WITHDRAWN), xcb::none};
             /* The second ignore below is this ChangeProperty's sequence, as it was before the port, though its comment
              * names the ReparentWindow. */
             std::uint64_t const change_property_sequence =

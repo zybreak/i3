@@ -11,11 +11,11 @@
 module;
 #include <err.h>
 #include <cassert>
+#include <cstddef>
 #include <sys/types.h>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_cursor.h>
-#include <xcb/xcb_aux.h>
 #include <xcb/shape.h>
 
 #define explicit dont_use_cxx_explicit
@@ -77,10 +77,50 @@ xcb_cursor_t X::xcursor_get_cursor(xcursor_cursor_t c) {
     return cursors.at(c);
 }
 
+/* root_screen is libxcb's view of i3's screen in the setup data, which the C libraries get. find_visual_by_attrs() and
+ * get_depth_of_visual() read the same bytes as xcbpp's screen_t, depth_t and visualtype_t, which have libxcb's layout:
+ * each field at libxcb's offset, with libxcb's size. */
+#define I3_SAME_FIELD(type, field)                                                     \
+    static_assert(offsetof(xcb::xproto::type, field) == offsetof(xcb_##type, field) && \
+                  sizeof(xcb::xproto::type::field) == sizeof(xcb_##type::field))
+static_assert(sizeof(xcb::xproto::screen_t) == sizeof(xcb_screen_t));
+I3_SAME_FIELD(screen_t, root);
+I3_SAME_FIELD(screen_t, default_colormap);
+I3_SAME_FIELD(screen_t, white_pixel);
+I3_SAME_FIELD(screen_t, black_pixel);
+I3_SAME_FIELD(screen_t, current_input_masks);
+I3_SAME_FIELD(screen_t, width_in_pixels);
+I3_SAME_FIELD(screen_t, height_in_pixels);
+I3_SAME_FIELD(screen_t, width_in_millimeters);
+I3_SAME_FIELD(screen_t, height_in_millimeters);
+I3_SAME_FIELD(screen_t, min_installed_maps);
+I3_SAME_FIELD(screen_t, max_installed_maps);
+I3_SAME_FIELD(screen_t, root_visual);
+I3_SAME_FIELD(screen_t, backing_stores);
+I3_SAME_FIELD(screen_t, save_unders);
+I3_SAME_FIELD(screen_t, root_depth);
+I3_SAME_FIELD(screen_t, allowed_depths_len);
+static_assert(sizeof(xcb::xproto::depth_t) == sizeof(xcb_depth_t));
+I3_SAME_FIELD(depth_t, depth);
+I3_SAME_FIELD(depth_t, pad0);
+I3_SAME_FIELD(depth_t, visuals_len);
+I3_SAME_FIELD(depth_t, pad1);
+static_assert(sizeof(xcb::xproto::visualtype_t) == sizeof(xcb_visualtype_t));
+I3_SAME_FIELD(visualtype_t, visual_id);
+I3_SAME_FIELD(visualtype_t, _class);
+I3_SAME_FIELD(visualtype_t, bits_per_rgb_value);
+I3_SAME_FIELD(visualtype_t, colormap_entries);
+I3_SAME_FIELD(visualtype_t, red_mask);
+I3_SAME_FIELD(visualtype_t, green_mask);
+I3_SAME_FIELD(visualtype_t, blue_mask);
+I3_SAME_FIELD(visualtype_t, pad0);
+#undef I3_SAME_FIELD
+
 xcb_visualtype_t *X::get_visual_type_for_root() {
-    auto vt = xcb_aux_find_visual_by_attrs(root_screen, -1, 32);
+    auto const &screen = *reinterpret_cast<xcb::xproto::screen_t const *>(root_screen);
+    auto vt = reinterpret_cast<xcb_visualtype_t *>(find_visual_by_attrs(screen, -1, 32));
     if (vt != nullptr) {
-        root_depth = xcb_aux_get_depth_of_visual(root_screen, vt->visual_id);
+        root_depth = get_depth_of_visual(screen, vt->visual_id);
         colormap = connection().generate_id();
 
         auto error = xcb::xproto::create_colormap_checked(&connection(), xcb::xproto::colormap_alloc_t::COLORMAP_ALLOC_NONE,
@@ -116,7 +156,7 @@ void X::init(int screen) {
     xcbpp_conn = xcb::xcbcompat::connection(handle.get());
 
     this->conn_screen = screen;
-    this->root_screen = xcb_aux_get_screen(handle.get(), this->conn_screen);
+    this->root_screen = get_screen(handle.get(), this->conn_screen);
     this->root = root_screen->root;
     draw_context.emplace(handle.get(), root_screen);
 
@@ -183,11 +223,11 @@ static void change_ewmh_focus(xcb_window_t new_focus, xcb_window_t old_focus) {
 
     ewmh_update_active_window(new_focus);
 
-    if (new_focus != XCB_WINDOW_NONE) {
+    if (new_focus != std::to_underlying(xcb::xproto::window_enum_t::WINDOW_NONE)) {
         ewmh_update_focused(new_focus, true);
     }
 
-    if (old_focus != XCB_WINDOW_NONE) {
+    if (old_focus != std::to_underlying(xcb::xproto::window_enum_t::WINDOW_NONE)) {
         ewmh_update_focused(old_focus, false);
     }
 }
@@ -213,7 +253,7 @@ void X::con_init(Con *con, std::optional<xcb_drawable_t> id) {
     } else {
         /* Use the default colormap. */
         win_colormap = this->colormap;
-        con->colormap = XCB_NONE;
+        con->colormap = xcb::none;
     }
 
     /* We explicitly set a background color and border color (even though we
@@ -227,7 +267,7 @@ void X::con_init(Con *con, std::optional<xcb_drawable_t> id) {
     values.with_override_redirect(1);
 
     /* see include/xcb.h for the FRAME_EVENT_MASK (event_mask_t is a bit mask: any combination of its bits is valid) */
-    values.with_event_mask(static_cast<xcb::xproto::event_mask_t>(FRAME_EVENT_MASK & ~XCB_EVENT_MASK_ENTER_WINDOW)); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+    values.with_event_mask(static_cast<xcb::xproto::event_mask_t>(FRAME_EVENT_MASK & ~static_cast<std::uint32_t>(xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW))); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
 
     values.with_colormap(win_colormap);
 
@@ -235,11 +275,11 @@ void X::con_init(Con *con, std::optional<xcb_drawable_t> id) {
     if (id) {
         con->frame = std::make_unique<surface_t>(drawing(), *id, get_visualtype_by_id(visual), dims.width, dims.height);
     } else {
-        xcb_window_t frame_id = create_window(connection(), dims, con->depth, visual, XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_POINTER, false, values);
+        xcb_window_t frame_id = create_window(connection(), dims, con->depth, visual, std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT), XCURSOR_CURSOR_POINTER, false, values);
         con->frame = std::make_unique<surface_t>(drawing(), frame_id, get_visualtype_by_id(visual), dims.width, dims.height);
     }
     using namespace std::string_view_literals;
-    x_change_property(connection(), prop_mode_t::PROP_MODE_REPLACE, con->frame->id, XCB_ATOM_WM_CLASS, XCB_ATOM_STRING,
+    x_change_property(connection(), prop_mode_t::PROP_MODE_REPLACE, con->frame->id, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLASS), std::to_underlying(xcb::xproto::atom_enum_t::ATOM_STRING),
                       "i3-frame\0i3-frame\0"sv);
 
     auto *state = new con_state();
@@ -271,7 +311,7 @@ void x_reparent_child(Con *con, Con *old) {
 }
 
 static xcb_drawable_t _x_con_kill(Con *con) {
-    if (con->colormap != XCB_NONE) {
+    if (con->colormap != xcb::none) {
         xcb::xproto::free_colormap(&global.x->connection(), con->colormap);
     }
 
@@ -292,10 +332,10 @@ static xcb_drawable_t _x_con_kill(Con *con) {
 
         /* Invalidate focused_id to correctly focus new windows with the same ID */
         if (frame_id == global.x->focused_id) {
-            global.x->focused_id = XCB_NONE;
+            global.x->focused_id = xcb::none;
         }
         if (frame_id == global.x->last_focused) {
-            global.x->last_focused = XCB_NONE;
+            global.x->last_focused = xcb::none;
         }
 
         return frame_id;
@@ -355,12 +395,12 @@ void x_window_kill(X &x, xcb_window_t window, kill_window_t kill_window) {
 
     xcb::xproto::client_message_event_t ev{};
 
-    ev.response_type = XCB_CLIENT_MESSAGE;
+    ev.response_type = xcb::xproto::CLIENT_MESSAGE;
     ev.window = window;
     ev.type = i3::atoms[i3::Atom::WM_PROTOCOLS];
     ev.format = 32;
     ev.data.data32[0] = i3::atoms[i3::Atom::WM_DELETE_WINDOW];
-    ev.data.data32[1] = XCB_CURRENT_TIME;
+    ev.data.data32[1] = xcb::current_time;
 
     LOG("Sending WM_DELETE to the client\n");
     xcb::xproto::send_event(&x.connection(), false, window, xcb::xproto::event_mask_t::EVENT_MASK_NO_EVENT,
@@ -836,7 +876,7 @@ static void x_shape_frame(ConCon *con, xcb_shape_sk_t shape_kind) {
  */
 static void x_unshape_frame(ConCon *con, xcb_shape_sk_t shape_kind) {
     xcb::shape::shape_mask(&global.x->connection(), xcb::shape::shape_so_t::SHAPE_SO_SET,
-                           static_cast<xcb::shape::shape_sk_t>(shape_kind), con->frame->id, 0, 0, XCB_PIXMAP_NONE);
+                           static_cast<xcb::shape::shape_sk_t>(shape_kind), con->frame->id, 0, 0, std::to_underlying(xcb::xproto::pixmap_enum_t::PIXMAP_NONE));
 }
 
 /*
@@ -940,7 +980,7 @@ void x_push_node(Con *con) {
         DLOG(fmt::sprintf("pushing name %s for con %p\n", state->name, fmt::ptr(con)));
 
         x_change_property(global.x->connection(), prop_mode_t::PROP_MODE_REPLACE, con->frame->id,
-                          XCB_ATOM_WM_NAME, XCB_ATOM_STRING, std::string_view{state->name});
+                          std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_NAME), std::to_underlying(xcb::xproto::atom_enum_t::ATOM_STRING), std::string_view{state->name});
         state->name.clear();
     }
 
@@ -975,15 +1015,15 @@ void x_push_node(Con *con) {
          * UnmapNotify events (otherwise the handler would close the container).
          * These events are generated automatically when reparenting. */
         xcb::Connection &conn = global.x->connection();
-        set_event_mask(conn, state->old_frame, XCB_NONE);
-        set_event_mask(conn, con->get_window()->id, XCB_NONE);
+        set_event_mask(conn, state->old_frame, xcb::none);
+        set_event_mask(conn, con->get_window()->id, xcb::none);
 
         xcb::xproto::reparent_window(&conn, con->get_window()->id, con->frame->id, 0, 0);
 
         set_event_mask(conn, state->old_frame, FRAME_EVENT_MASK);
         set_event_mask(conn, con->get_window()->id, CHILD_EVENT_MASK);
 
-        state->old_frame = XCB_NONE;
+        state->old_frame = xcb::none;
         state->need_reparent = false;
 
         con->ignore_unmap++;
@@ -1127,7 +1167,7 @@ void x_push_node(Con *con) {
         if (con->get_window() != nullptr) {
             /* Set WM_STATE_NORMAL because GTK applications don’t want to
              * drag & drop if we don’t. Also, xprop(1) needs it. */
-            std::array<uint32_t, 2> const data{std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_NORMAL), XCB_NONE};
+            std::array<uint32_t, 2> const data{std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_NORMAL), xcb::none};
             x_change_property(conn, prop_mode_t::PROP_MODE_REPLACE, con->get_window()->id,
                               i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], std::span{data});
         }
@@ -1196,7 +1236,7 @@ static void x_push_node_unmaps(Con *con) {
         xcb::Connection &conn = global.x->connection();
         if (con->get_window() != nullptr) {
             /* Set WM_STATE_WITHDRAWN, it seems like Java apps need it */
-            std::array<uint32_t, 2> const data{std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_WITHDRAWN), XCB_NONE};
+            std::array<uint32_t, 2> const data{std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_WITHDRAWN), xcb::none};
             x_change_property(conn, prop_mode_t::PROP_MODE_REPLACE, con->get_window()->id,
                               i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], std::span{data});
         }
@@ -1264,7 +1304,7 @@ void x_push_changes(Con *con) {
      * them become ConfigureRequests that i3 handles. */
     for (auto &state : global.x->state_head | std::views::reverse) {
         if (state->mapped) {
-            set_event_mask(conn, state->id, XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT);
+            set_event_mask(conn, state->id, std::to_underlying(xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_REDIRECT));
         }
     }
     bool order_changed = false;
@@ -1343,8 +1383,8 @@ void x_push_changes(Con *con) {
             Output *target = global.randr->get_output_containing(mid_x, mid_y);
             if (current != target) {
                 /* Ignore MotionNotify events generated by warping */
-                set_event_mask(conn, global.x->root, XCB_EVENT_MASK_SUBSTRUCTURE_REDIRECT);
-                xcb::xproto::warp_pointer(&conn, XCB_NONE, global.x->root, 0, 0, 0, 0, mid_x, mid_y);
+                set_event_mask(conn, global.x->root, std::to_underlying(xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_REDIRECT));
+                xcb::xproto::warp_pointer(&conn, xcb::none, global.x->root, 0, 0, 0, 0, mid_x, mid_y); // NOLINT(bugprone-narrowing-conversions)
                 set_event_mask(conn, global.x->root, ROOT_EVENT_MASK);
             }
         }
@@ -1368,7 +1408,7 @@ void x_push_changes(Con *con) {
         if (!global.focused->mapped) {
             DLOG(fmt::sprintf("Not updating focus (to %p / %s), focused window is not mapped.\n", fmt::ptr(global.focused), global.focused->name));
             /* Invalidate focused_id to correctly focus new windows with the same ID */
-            global.x->focused_id = XCB_NONE;
+            global.x->focused_id = xcb::none;
         } else {
             if (global.focused->get_window() != nullptr &&
                 global.focused->get_window()->needs_take_focus &&
@@ -1377,7 +1417,7 @@ void x_push_changes(Con *con) {
                                   to_focus, fmt::ptr(global.focused), global.focused->name));
                 send_take_focus(to_focus, global.last_timestamp);
 
-                change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->get_window()->id : XCB_WINDOW_NONE), global.x->last_focused);
+                change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->get_window()->id : std::to_underlying(xcb::xproto::window_enum_t::WINDOW_NONE)), global.x->last_focused);
 
                 if (to_focus != global.x->last_focused && is_con_attached(global.focused)) {
                     global.ipcManager->ipc_send_window_event("focus", global.focused);
@@ -1388,16 +1428,16 @@ void x_push_changes(Con *con) {
                  * no focus change events for our own focus changes. We only want
                  * these generated by the clients. */
                 if (global.focused->get_window() != nullptr) {
-                    set_event_mask(conn, global.focused->get_window()->id, CHILD_EVENT_MASK & ~(XCB_EVENT_MASK_FOCUS_CHANGE));
+                    set_event_mask(conn, global.focused->get_window()->id, CHILD_EVENT_MASK & ~(static_cast<std::uint32_t>(xcb::xproto::event_mask_t::EVENT_MASK_FOCUS_CHANGE)));
                 }
                 xcb::xproto::set_input_focus(&conn, xcb::xproto::input_focus_t::INPUT_FOCUS_POINTER_ROOT, to_focus, global.last_timestamp);
                 if (global.focused->get_window() != nullptr) {
                     set_event_mask(conn, global.focused->get_window()->id, CHILD_EVENT_MASK);
                 }
 
-                change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->get_window()->id : XCB_WINDOW_NONE), global.x->last_focused);
+                change_ewmh_focus((global.focused->con_has_managed_window() ? global.focused->get_window()->id : std::to_underlying(xcb::xproto::window_enum_t::WINDOW_NONE)), global.x->last_focused);
 
-                if (to_focus != XCB_NONE && to_focus != global.x->last_focused && global.focused->get_window() != nullptr && is_con_attached(global.focused)) {
+                if (to_focus != xcb::none && to_focus != global.x->last_focused && global.focused->get_window() != nullptr && is_con_attached(global.focused)) {
                     global.ipcManager->ipc_send_window_event("focus", global.focused);
                 }
             }
@@ -1406,15 +1446,15 @@ void x_push_changes(Con *con) {
         }
     }
 
-    if (global.x->focused_id == XCB_NONE) {
+    if (global.x->focused_id == xcb::none) {
         /* If we still have no window to focus, we focus the EWMH window instead. We use this rather than the
          * root window in order to avoid an X11 fallback mechanism causing a ghosting effect (see #1378). */
         DLOG(fmt::sprintf("Still no window focused, better set focus to the EWMH support window (%d)\n", global.x->ewmh_window));
         xcb::xproto::set_input_focus(&conn, xcb::xproto::input_focus_t::INPUT_FOCUS_POINTER_ROOT, global.x->ewmh_window, global.last_timestamp);
-        change_ewmh_focus(XCB_WINDOW_NONE, global.x->last_focused);
+        change_ewmh_focus(std::to_underlying(xcb::xproto::window_enum_t::WINDOW_NONE), global.x->last_focused);
 
         global.x->focused_id = global.x->ewmh_window;
-        global.x->last_focused = XCB_NONE;
+        global.x->last_focused = xcb::none;
     }
 
     conn.flush();
@@ -1431,7 +1471,7 @@ void x_push_changes(Con *con) {
         if (!state->unmap_now) {
             continue;
         }
-        set_event_mask(conn, state->id, FRAME_EVENT_MASK & ~XCB_EVENT_MASK_ENTER_WINDOW);
+        set_event_mask(conn, state->id, FRAME_EVENT_MASK & ~static_cast<std::uint32_t>(xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW));
     }
 
     /* Push all pending unmaps */
@@ -1487,7 +1527,7 @@ void x_set_i3_atoms() {
     xcb::Connection &conn = global.x->connection();
     x_change_property(conn, prop_mode_t::PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_SOCKET_PATH], i3::atoms[i3::Atom::UTF8_STRING],
                       std::string_view{global.current_socketpath});
-    x_change_property(conn, prop_mode_t::PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_PID], XCB_ATOM_CARDINAL, std::span{&pid, 1});
+    x_change_property(conn, prop_mode_t::PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_PID], std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL), std::span{&pid, 1});
     x_change_property(conn, prop_mode_t::PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::I3_CONFIG_PATH], i3::atoms[i3::Atom::UTF8_STRING],
                       std::string_view{current_configpath});
 }
@@ -1558,7 +1598,7 @@ void x_set_shape(ConCon *con, xcb_shape_sk_t kind, bool enable) {
 void ungrab_all_keys(X &x) {
     DLOG("Ungrabbing all keys\n");
 
-    xcb::xproto::ungrab_key(&x.connection(), XCB_GRAB_ANY, x.root, xcb::xproto::mod_mask_t::MOD_MASK_ANY);
+    xcb::xproto::ungrab_key(&x.connection(), std::to_underlying(xcb::xproto::grab_t::GRAB_ANY), x.root, xcb::xproto::mod_mask_t::MOD_MASK_ANY);
 }
 
 static bool binding_in_current_group(Binding const &bind) {
@@ -1589,7 +1629,7 @@ static void grab_keycode_for_binding(X &x, Binding &bind, uint32_t keycode) {
     /* Also bind the key with active NumLock */
     /* Also bind the key with active CapsLock */
     /* Also bind the key with active NumLock+CapsLock */
-    uint32_t mod_list[] = {mods, mods | x.xcb_numlock_mask, mods | XCB_MOD_MASK_LOCK, mods | x.xcb_numlock_mask | XCB_MOD_MASK_LOCK};
+    uint32_t mod_list[] = {mods, mods | x.xcb_numlock_mask, mods | static_cast<std::uint32_t>(xcb::xproto::mod_mask_t::MOD_MASK_LOCK), mods | x.xcb_numlock_mask | static_cast<std::uint32_t>(xcb::xproto::mod_mask_t::MOD_MASK_LOCK)};
 
     std::ranges::for_each(mod_list, [&](uint32_t mod) {
         xcb::xproto::grab_key(

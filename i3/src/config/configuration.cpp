@@ -13,7 +13,6 @@ module;
 
 #include <err.h>
 
-#include <xcb/xcb.h>
 #include <fmt/printf.h>
 module i3;
 

@@ -1,6 +1,7 @@
 /*
  * i3 taking the WM_Sn selection at startup (main.cpp's aquire_selection()) on Xvfb, with a test client on xcbpp: the
- * owner window, the MANAGER announcement, refusing to start while another window manager owns it, and --replace.
+ * owner window, the MANAGER announcement, refusing to start while another window manager owns it, --replace, and the
+ * selection of the screen i3 runs on when that isn't screen 0.
  */
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
@@ -87,6 +88,49 @@ namespace {
         std::uint32_t root_{};
         std::uint32_t wm_s0_{};
     };
+
+    /* An Xvfb with two screens, and $DISPLAY naming the second (":N.1"), so that i3 runs on screen 1. The test client
+     * stays connected to screen 0, which reaches both screens' windows. */
+    class WmSelectionOnScreen1Test : public WmSelectionTest {
+      protected:
+        [[nodiscard]] XvfbOptions xvfb_options() const override {
+            auto options = WmSelectionTest::xvfb_options();
+            options.screens = {XvfbScreen{}, XvfbScreen{}};
+            return options;
+        }
+
+        void SetUp() override {
+            WmSelectionTest::SetUp();
+            if (HasFatalFailure()) {
+                return;
+            }
+            display_.emplace("DISPLAY", server().display() + ".1");
+            auto const *setup = xcb::get_setup(client());
+            ASSERT_EQ(setup->roots_length(), 2U);
+            root1_ = setup->get_roots()[1].root;
+            wm_s1_ = atom("WM_S1");
+        }
+
+        [[nodiscard]] std::uint32_t root1() const noexcept {
+            return root1_;
+        }
+
+        [[nodiscard]] std::uint32_t wm_s1() const noexcept {
+            return wm_s1_;
+        }
+
+        /* The owner of @p selection, 0 if none. */
+        std::uint32_t owner_of(std::uint32_t selection) {
+            auto const reply = xcb::xproto::get_selection_owner(&client(), selection).get();
+            return reply ? reply->owner : 0;
+        }
+
+      private:
+        std::uint32_t root1_{};
+        std::uint32_t wm_s1_{};
+        /* Destroyed before the base class's: $DISPLAY is ":N" again, then what it was before the test. */
+        std::optional<ScopedEnv> display_{};
+    };
 }  // namespace
 
 /*
@@ -163,4 +207,31 @@ TEST_F(WmSelectionTest, ReplaceTakesTheSelectionOver) {
     EXPECT_NE(second_owner, first_owner);
     EXPECT_FALSE(xcb::xproto::get_geometry(&client(), first_owner).get()) << "the first i3's owner window is gone";
     EXPECT_THAT(read_file(work_dir() / "second.log"), ::testing::HasSubstr("waiting for old WM_Sn selection owner to exit"));
+}
+
+/*
+ * On screen 1, i3 owns WM_S1, not WM_S0: the selection's name has its screen's number, and the owner window and the
+ * MANAGER ClientMessage are on that screen's root window.
+ */
+TEST_F(WmSelectionOnScreen1Test, I3OwnsTheSelectionOfItsScreen) {
+    ASSERT_FALSE(xcb::xproto::change_window_attributes_checked(&client(), root1(),
+                                                               xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(
+                                                                   xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY))
+                     .get());
+    auto const manager = atom("MANAGER");
+    auto i3 = I3Process::start(i3_options("i3"));
+    ASSERT_TRUE(i3) << i3.error();
+
+    auto const owner = owner_of(wm_s1());
+    ASSERT_NE(owner, 0U);
+    EXPECT_EQ(owner_of(wm_s0()), 0U);
+    auto const tree = xcb::xproto::query_tree(&client(), owner).get();
+    ASSERT_TRUE(tree);
+    EXPECT_EQ(tree->root, root1());
+    EXPECT_EQ(tree->parent, root1());
+    auto const message = wait_for_client_message(manager);
+    ASSERT_TRUE(message) << "a MANAGER ClientMessage";
+    EXPECT_EQ(message->window, root1());
+    EXPECT_EQ(message->data.data32[1], wm_s1());
+    EXPECT_EQ(message->data.data32[2], owner);
 }

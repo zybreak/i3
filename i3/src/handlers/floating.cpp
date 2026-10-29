@@ -1,10 +1,6 @@
 module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
-
-#include <xcb/xcb.h>
-#include <xcb/shape.h>
-#include <xcb/xcb_keysyms.h>
 module i3;
 
 import std;
@@ -47,7 +43,7 @@ void PropertyHandlers::floating_drag_window(Con *con, xcb::xproto::button_press_
     Rect initial_rect = con->rect;
 
     /* Drag the window */
-    drag_result_t drag_result = inputManager.drag_pointer(con, event, XCB_NONE, XCURSOR_CURSOR_MOVE, use_threshold, drag_window_callback);
+    drag_result_t drag_result = inputManager.drag_pointer(con, event, xcb::none, XCURSOR_CURSOR_MOVE, use_threshold, drag_window_callback);
 
     if (!con->exists()) {
         DLOG("The container has been closed in the meantime.\n");
@@ -170,7 +166,7 @@ void PropertyHandlers::floating_resize_window(Con *con, bool const proportional,
                         xcb::xproto::button_press_event_t const *event) {
         resize_window_callback(con, old_rect, new_x, new_y, event, &params);
     };
-    drag_result_t drag_result = inputManager.drag_pointer(con, event, XCB_NONE, cursor, false, cb);
+    drag_result_t drag_result = inputManager.drag_pointer(con, event, xcb::none, cursor, false, cb);
 
     if (!con->exists()) {
         DLOG("The container has been closed in the meantime.\n");

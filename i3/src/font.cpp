@@ -13,7 +13,6 @@ module;
 #include <cairo.h>
 #include <cairo/cairo-xcb.h>
 #include <xcb/xcb.h>
-#include <xcb/xproto.h>
 module i3;
 
 import utils;

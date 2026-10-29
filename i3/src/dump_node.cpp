@@ -1,5 +1,4 @@
 module;
-#include <xcb/xcb.h>
 #include <fmt/printf.h>
 module i3;
 
@@ -108,7 +107,7 @@ static void dump_window(json &j, i3Window const *const window, bool const inplac
             map["title"] = window->name;
         }
 
-        if (window->transient_for != XCB_NONE) {
+        if (window->transient_for != xcb::none) {
             map["transient_for"] = window->transient_for;
         }
 

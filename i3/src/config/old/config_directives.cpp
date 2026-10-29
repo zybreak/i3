@@ -10,8 +10,6 @@
 module;
 struct criteria_state;
 
-#include <xcb/xcb.h>
-
 #include <wordexp.h>
 
 #include <fmt/printf.h>

@@ -9,10 +9,7 @@
  *
  */
 module;
-#include <xcb/xcb.h>
-#include <xcb/xcb_keysyms.h>
 #include <xcb/shape.h>
-#include <xcb/randr.h>
 
 #define explicit dont_use_cxx_explicit
 #include <xcb/xkb.h>
@@ -129,13 +126,13 @@ void PropertyHandlers::handle_enter_notify(xcb::xproto::enter_notify_event_t *ev
     DLOG(fmt::sprintf("enter_notify for %08x, mode = %d, detail %d, serial %d\n",
                       event->event, event->mode, event->detail, event->sequence));
     DLOG(fmt::sprintf("coordinates %d, %d\n", event->event_x, event->event_y));
-    if (event->mode != XCB_NOTIFY_MODE_NORMAL) {
+    if (event->mode != std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_NORMAL)) {
         DLOG("This was not a normal notify, ignoring\n");
         return;
     }
     /* Some events are not interesting, because they were not generated
      * actively by the user, but by reconfiguration of windows */
-    if (event_is_ignored(full_sequence, XCB_ENTER_NOTIFY)) {
+    if (event_is_ignored(full_sequence, xcb::xproto::ENTER_NOTIFY)) {
         DLOG("Event ignored\n");
         return;
     }
@@ -185,7 +182,7 @@ void PropertyHandlers::handle_enter_notify(xcb::xproto::enter_notify_event_t *ev
         workspaceManager.workspace_show(ws);
     }
 
-    x.focused_id = XCB_NONE;
+    x.focused_id = xcb::none;
     con_descend_focused(con)->con_focus();
     tree_render();
 }
@@ -201,7 +198,7 @@ void PropertyHandlers::handle_motion_notify(xcb::xproto::motion_notify_event_t *
 
     /* Skip events where the pointer was over a child window, we are only
      * interested in events on the root window. */
-    if (event->child != XCB_NONE) {
+    if (event->child != xcb::none) {
         return;
     }
 
@@ -256,8 +253,8 @@ void PropertyHandlers::handle_motion_notify(xcb::xproto::motion_notify_event_t *
  *
  */
 void PropertyHandlers::handle_mapping_notify(xcb::xproto::mapping_notify_event_t *event) {
-    if (event->request != XCB_MAPPING_KEYBOARD &&
-        event->request != XCB_MAPPING_MODIFIER) {
+    if (event->request != std::to_underlying(xcb::xproto::mapping_t::MAPPING_KEYBOARD) &&
+        event->request != std::to_underlying(xcb::xproto::mapping_t::MAPPING_MODIFIER)) {
         return;
     }
 
@@ -317,25 +314,25 @@ void PropertyHandlers::handle_configure_request(xcb::xproto::configure_request_e
         DLOG("Configure request for unmanaged window, can do that.\n");
 
         xcb::xproto::ConfigureWindowValueList values{};
-        if (event->value_mask & XCB_CONFIG_WINDOW_X) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_X)) {
             values.with_x(event->x);
         }
-        if (event->value_mask & XCB_CONFIG_WINDOW_Y) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_Y)) {
             values.with_y(event->y);
         }
-        if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_WIDTH)) {
             values.with_width(event->width);
         }
-        if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_HEIGHT)) {
             values.with_height(event->height);
         }
-        if (event->value_mask & XCB_CONFIG_WINDOW_BORDER_WIDTH) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_BORDER_WIDTH)) {
             values.with_border_width(event->border_width);
         }
-        if (event->value_mask & XCB_CONFIG_WINDOW_SIBLING) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_SIBLING)) {
             values.with_sibling(event->sibling);
         }
-        if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_STACK_MODE)) {
             values.with_stack_mode(static_cast<xcb::xproto::stack_mode_t>(event->stack_mode));
         }
 
@@ -357,21 +354,21 @@ void PropertyHandlers::handle_configure_request(xcb::xproto::configure_request_e
         Con *floatingcon = con->parent;
         Rect newrect = floatingcon->rect;
 
-        if (event->value_mask & XCB_CONFIG_WINDOW_X) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_X)) {
             newrect.x = event->x + (-1) * bsr.x;
             DLOG(fmt::sprintf("proposed x = %d, new x is %d\n", event->x, newrect.x));
         }
-        if (event->value_mask & XCB_CONFIG_WINDOW_Y) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_Y)) {
             newrect.y = event->y + (-1) * bsr.y;
             DLOG(fmt::sprintf("proposed y = %d, new y is %d\n", event->y, newrect.y));
         }
-        if (event->value_mask & XCB_CONFIG_WINDOW_WIDTH) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_WIDTH)) {
             newrect.width = event->width + (-1) * bsr.width;
             newrect.width += con->border_width * 2;
             DLOG(fmt::sprintf("proposed width = %d, new width is %d (x11 border %d)\n",
                               event->width, newrect.width, con->border_width));
         }
-        if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_HEIGHT)) {
             newrect.height = event->height + (-1) * bsr.height;
             newrect.height += con->border_width * 2;
             DLOG(fmt::sprintf("proposed height = %d, new height is %d (x11 border %d)\n",
@@ -386,16 +383,16 @@ void PropertyHandlers::handle_configure_request(xcb::xproto::configure_request_e
     /* Dock windows can be reconfigured in their height and moved to another output. */
     if (con->parent && con->parent->type == CT_DOCKAREA) {
         DLOG(fmt::sprintf("Reconfiguring dock window (con = %p).\n", fmt::ptr(con)));
-        if (event->value_mask & XCB_CONFIG_WINDOW_HEIGHT) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_HEIGHT)) {
             DLOG(fmt::sprintf("Dock client wants to change height to %d, we can do that.\n", event->height));
 
             con->get_geometry().height = event->height;
             tree_render();
         }
 
-        if (event->value_mask & XCB_CONFIG_WINDOW_X || event->value_mask & XCB_CONFIG_WINDOW_Y) {
-            int16_t x = event->value_mask & XCB_CONFIG_WINDOW_X ? event->x : static_cast<int16_t>(con->get_geometry().x);
-            int16_t y = event->value_mask & XCB_CONFIG_WINDOW_Y ? event->y : static_cast<int16_t>(con->get_geometry().y);
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_X) || event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_Y)) {
+            int16_t x = event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_X) ? event->x : static_cast<int16_t>(con->get_geometry().x);
+            int16_t y = event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_Y) ? event->y : static_cast<int16_t>(con->get_geometry().y);
 
             Con *current_output = con->con_get_output();
             Output *target = randr.get_output_containing(x, y);
@@ -415,12 +412,12 @@ void PropertyHandlers::handle_configure_request(xcb::xproto::configure_request_e
         goto out;
     }
 
-    if (event->value_mask & XCB_CONFIG_WINDOW_STACK_MODE) {
+    if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_STACK_MODE)) {
         DLOG(fmt::sprintf("window 0x%08x wants to be stacked %d\n", event->window, event->stack_mode));
 
         /* Emacs and IntelliJ Idea “request focus” by stacking their window
          * above all others. */
-        if (event->stack_mode != XCB_STACK_MODE_ABOVE) {
+        if (event->stack_mode != std::to_underlying(xcb::xproto::stack_mode_t::STACK_MODE_ABOVE)) {
             DLOG("stack_mode != XCB_STACK_MODE_ABOVE, ignoring ConfigureRequest\n");
             goto out;
         }
@@ -537,7 +534,7 @@ ignore_end:
      *
      * Therefore, we ignore all EnterNotify events which have the same sequence
      * as an UnmapNotify event. */
-    add_ignore_event(full_sequence, XCB_ENTER_NOTIFY);
+    add_ignore_event(full_sequence, xcb::xproto::ENTER_NOTIFY);
 
     /* Since we just ignored the sequence of this UnmapNotify, we want to make
      * sure that following events use a different sequence. When putting xterm
@@ -619,7 +616,7 @@ void PropertyHandlers::handle_focus_in(xcb::xproto::focus_in_event_t *event) {
     if (event->event == x.root) {
         DLOG("Received focus in for root window, refocusing the focused window.\n");
         global.focused->con_focus();
-        x.focused_id = XCB_NONE;
+        x.focused_id = xcb::none;
         x_push_changes(global.croot);
     }
 
@@ -629,13 +626,13 @@ void PropertyHandlers::handle_focus_in(xcb::xproto::focus_in_event_t *event) {
     }
     DLOG(fmt::sprintf("That is con %p / %s\n", fmt::ptr(con), con->name));
 
-    if (event->mode == XCB_NOTIFY_MODE_GRAB ||
-        event->mode == XCB_NOTIFY_MODE_UNGRAB) {
+    if (event->mode == std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_GRAB) ||
+        event->mode == std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_UNGRAB)) {
         DLOG("FocusIn event for grab/ungrab, ignoring\n");
         return;
     }
 
-    if (event->detail == XCB_NOTIFY_DETAIL_POINTER) {
+    if (event->detail == std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_POINTER)) {
         DLOG("notify detail is pointer, ignoring this event\n");
         return;
     }
@@ -682,16 +679,16 @@ void PropertyHandlers::handle_focus_out(xcb::xproto::focus_in_event_t *event) {
     }
 
     switch (event->mode) {
-        case XCB_NOTIFY_MODE_NORMAL:
+        case std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_NORMAL):
             mode = "Normal";
             break;
-        case XCB_NOTIFY_MODE_GRAB:
+        case std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_GRAB):
             mode = "Grab";
             break;
-        case XCB_NOTIFY_MODE_UNGRAB:
+        case std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_UNGRAB):
             mode = "Ungrab";
             break;
-        case XCB_NOTIFY_MODE_WHILE_GRABBED:
+        case std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_WHILE_GRABBED):
             mode = "WhileGrabbed";
             break;
         default:
@@ -700,28 +697,28 @@ void PropertyHandlers::handle_focus_out(xcb::xproto::focus_in_event_t *event) {
     }
 
     switch (event->detail) {
-        case XCB_NOTIFY_DETAIL_ANCESTOR:
+        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_ANCESTOR):
             detail = "Ancestor";
             break;
-        case XCB_NOTIFY_DETAIL_VIRTUAL:
+        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_VIRTUAL):
             detail = "Virtual";
             break;
-        case XCB_NOTIFY_DETAIL_INFERIOR:
+        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_INFERIOR):
             detail = "Inferior";
             break;
-        case XCB_NOTIFY_DETAIL_NONLINEAR:
+        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_NONLINEAR):
             detail = "Nonlinear";
             break;
-        case XCB_NOTIFY_DETAIL_NONLINEAR_VIRTUAL:
+        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_NONLINEAR_VIRTUAL):
             detail = "NonlinearVirtual";
             break;
-        case XCB_NOTIFY_DETAIL_POINTER:
+        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_POINTER):
             detail = "Pointer";
             break;
-        case XCB_NOTIFY_DETAIL_POINTER_ROOT:
+        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_POINTER_ROOT):
             detail = "PointerRoot";
             break;
-        case XCB_NOTIFY_DETAIL_NONE:
+        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_NONE):
             detail = "NONE";
             break;
         default:
@@ -780,7 +777,7 @@ PropertyHandlers::PropertyHandlers(X &x, WorkspaceManager &workspaceManager, Con
  *
  */
 void PropertyHandlers::handle_key_press(xcb::xproto::key_press_event_t *event) {
-    bool const key_release = (event->response_type == XCB_KEY_RELEASE);
+    bool const key_release = (event->response_type == xcb::xproto::KEY_RELEASE);
 
     global.last_timestamp = event->time;
 
@@ -802,12 +799,12 @@ void PropertyHandlers::handle_key_press(xcb::xproto::key_press_event_t *event) {
  *
  */
 void PropertyHandlers::handle_event(int type, xcb::generic_event_t *event) {
-    if (type != XCB_MOTION_NOTIFY) {
+    if (type != xcb::xproto::MOTION_NOTIFY) {
         DLOG(fmt::sprintf("event type %d, xkb_base %d\n", type, global.xkb->xkb_base));
     }
 
     if (randr.randr_base > -1 &&
-        type == randr.randr_base + XCB_RANDR_SCREEN_CHANGE_NOTIFY) {
+        type == randr.randr_base + xcb::randr::RANDR_SCREEN_CHANGE_NOTIFY) {
         handle_screen_change(reinterpret_cast<xcb::randr::randr_screen_change_notify_event_t *>(event));
         return;
     }
@@ -851,7 +848,7 @@ void PropertyHandlers::handle_event(int type, xcb::generic_event_t *event) {
         return;
     }
 
-    if (x.shape_supported && type == x.shape_base + XCB_SHAPE_NOTIFY) {
+    if (x.shape_supported && type == x.shape_base + xcb::shape::SHAPE_NOTIFY) {
         auto *shape = reinterpret_cast<xcb::shape::shape_notify_event_t *>(event);
 
         DLOG(fmt::sprintf("shape_notify_event for window 0x%08x, shape_kind = %d, shaped = %d\n",
@@ -864,8 +861,8 @@ void PropertyHandlers::handle_event(int type, xcb::generic_event_t *event) {
             return;
         }
 
-        if (shape->shape_kind == XCB_SHAPE_SK_BOUNDING ||
-            shape->shape_kind == XCB_SHAPE_SK_INPUT) {
+        if (shape->shape_kind == std::to_underlying(xcb::shape::shape_sk_t::SHAPE_SK_BOUNDING) ||
+            shape->shape_kind == std::to_underlying(xcb::shape::shape_sk_t::SHAPE_SK_INPUT)) {
             x_set_shape(con, static_cast<xcb_shape_sk_t>(shape->shape_kind), shape->shaped);
         }
 
@@ -873,76 +870,76 @@ void PropertyHandlers::handle_event(int type, xcb::generic_event_t *event) {
     }
 
     switch (type) {
-        case XCB_KEY_PRESS:
-        case XCB_KEY_RELEASE:
+        case xcb::xproto::KEY_PRESS:
+        case xcb::xproto::KEY_RELEASE:
             handle_key_press(reinterpret_cast<xcb::xproto::key_press_event_t *>(event));
             break;
 
-        case XCB_BUTTON_PRESS:
-        case XCB_BUTTON_RELEASE:
+        case xcb::xproto::BUTTON_PRESS:
+        case xcb::xproto::BUTTON_RELEASE:
             handle_button_press(reinterpret_cast<xcb::xproto::button_press_event_t *>(event));
             break;
 
-        case XCB_MAP_REQUEST:
+        case xcb::xproto::MAP_REQUEST:
             handle_map_request(reinterpret_cast<xcb::xproto::map_request_event_t *>(event), event->full_sequence);
             break;
 
-        case XCB_UNMAP_NOTIFY:
+        case xcb::xproto::UNMAP_NOTIFY:
             handle_unmap_notify_event(reinterpret_cast<xcb::xproto::unmap_notify_event_t *>(event), event->full_sequence);
             break;
 
-        case XCB_DESTROY_NOTIFY:
+        case xcb::xproto::DESTROY_NOTIFY:
             handle_destroy_notify_event(reinterpret_cast<xcb::xproto::destroy_notify_event_t *>(event), event->full_sequence);
             break;
 
-        case XCB_EXPOSE:
+        case xcb::xproto::EXPOSE:
             handle_expose_event(reinterpret_cast<xcb::xproto::expose_event_t *>(event));
             break;
 
-        case XCB_MOTION_NOTIFY:
+        case xcb::xproto::MOTION_NOTIFY:
             handle_motion_notify(reinterpret_cast<xcb::xproto::motion_notify_event_t *>(event));
             break;
 
         /* Enter window = user moved their mouse over the window */
-        case XCB_ENTER_NOTIFY:
+        case xcb::xproto::ENTER_NOTIFY:
             handle_enter_notify(reinterpret_cast<xcb::xproto::enter_notify_event_t *>(event), event->full_sequence);
             break;
 
         /* Client message are sent to the root window. The only interesting
          * client message for us is _NET_WM_STATE, we honour
          * _NET_WM_STATE_FULLSCREEN and _NET_WM_STATE_DEMANDS_ATTENTION */
-        case XCB_CLIENT_MESSAGE:
+        case xcb::xproto::CLIENT_MESSAGE:
             handle_client_message(reinterpret_cast<xcb::xproto::client_message_event_t *>(event));
             break;
 
         /* Configure request = window tried to change size on its own */
-        case XCB_CONFIGURE_REQUEST:
+        case xcb::xproto::CONFIGURE_REQUEST:
             handle_configure_request(reinterpret_cast<xcb::xproto::configure_request_event_t *>(event));
             break;
 
         /* Mapping notify = keyboard mapping changed (Xmodmap), re-grab bindings */
-        case XCB_MAPPING_NOTIFY:
+        case xcb::xproto::MAPPING_NOTIFY:
             handle_mapping_notify(reinterpret_cast<xcb::xproto::mapping_notify_event_t *>(event));
             break;
 
-        case XCB_FOCUS_IN:
+        case xcb::xproto::FOCUS_IN:
             handle_focus_in(reinterpret_cast<xcb::xproto::focus_in_event_t *>(event));
             break;
 
-        case XCB_FOCUS_OUT:
+        case xcb::xproto::FOCUS_OUT:
             handle_focus_out(reinterpret_cast<xcb::xproto::focus_out_event_t *>(event));
             break;
 
-        case XCB_PROPERTY_NOTIFY: {
+        case xcb::xproto::PROPERTY_NOTIFY: {
             property_notify(reinterpret_cast<xcb::xproto::property_notify_event_t *>(event));
             break;
         }
 
-        case XCB_CONFIGURE_NOTIFY:
+        case xcb::xproto::CONFIGURE_NOTIFY:
             handle_configure_notify(reinterpret_cast<xcb::xproto::configure_notify_event_t *>(event));
             break;
 
-        case XCB_SELECTION_CLEAR:
+        case xcb::xproto::SELECTION_CLEAR:
             handle_selection_clear(reinterpret_cast<xcb::xproto::selection_clear_event_t *>(event));
             break;
 

@@ -10,7 +10,6 @@
 module;
 #include <config.h>
 #include <cassert>
-#include <xcb/xcb.h>
 
 #include <ev.h>
 
@@ -284,43 +283,43 @@ static json dump_event_state_mask(Binding *bind) {
     for (int i = 0; i < 20; i++) {
         if (bind->event_state_mask & (1 << i)) {
             switch (1 << i) {
-                case XCB_KEY_BUT_MASK_SHIFT:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_SHIFT):
                     a.push_back("shift");
                     break;
-                case XCB_KEY_BUT_MASK_LOCK:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_LOCK):
                     a.push_back("lock");
                     break;
-                case XCB_KEY_BUT_MASK_CONTROL:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_CONTROL):
                     a.push_back("ctrl");
                     break;
-                case XCB_KEY_BUT_MASK_MOD_1:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_1):
                     a.push_back("Mod1");
                     break;
-                case XCB_KEY_BUT_MASK_MOD_2:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_2):
                     a.push_back("Mod2");
                     break;
-                case XCB_KEY_BUT_MASK_MOD_3:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_3):
                     a.push_back("Mod3");
                     break;
-                case XCB_KEY_BUT_MASK_MOD_4:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_4):
                     a.push_back("Mod4");
                     break;
-                case XCB_KEY_BUT_MASK_MOD_5:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_5):
                     a.push_back("Mod5");
                     break;
-                case XCB_KEY_BUT_MASK_BUTTON_1:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_BUTTON_1):
                     a.push_back("Button1");
                     break;
-                case XCB_KEY_BUT_MASK_BUTTON_2:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_BUTTON_2):
                     a.push_back("Button2");
                     break;
-                case XCB_KEY_BUT_MASK_BUTTON_3:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_BUTTON_3):
                     a.push_back("Button3");
                     break;
-                case XCB_KEY_BUT_MASK_BUTTON_4:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_BUTTON_4):
                     a.push_back("Button4");
                     break;
-                case XCB_KEY_BUT_MASK_BUTTON_5:
+                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_BUTTON_5):
                     a.push_back("Button5");
                     break;
                 case (I3_XKB_GROUP_MASK_1 << 16):
@@ -572,14 +571,14 @@ static void handle_send_tick(ipc_client *client, uint8_t *message, int size, uin
 struct sync_state {
     std::string last_key{};
     uint32_t rnd;
-    xcb_window_t window;
+    xcb::xproto::window_t window;
 };
 
 static void _sync_json_int(sync_state &state, long long val) {
     if (state.last_key == "rnd") {
         state.rnd = val;
     } else if (state.last_key == "window") {
-        state.window = static_cast<xcb_window_t>(val);
+        state.window = static_cast<xcb::xproto::window_t>(val);
     }
 }
 
@@ -828,7 +827,7 @@ void IPCManager::ipc_send_workspace_event(char const *change, Con *current, Con 
  */
 void IPCManager::ipc_send_window_event(char const *property, Con *con) {
     DLOG(fmt::sprintf("Issue IPC window %s event (con = %p, window = 0x%08x)\n",
-                      property, fmt::ptr(con), (con->get_window() ? con->get_window()->id : XCB_WINDOW_NONE)));
+                      property, fmt::ptr(con), (con->get_window() ? con->get_window()->id : std::to_underlying(xcb::xproto::window_enum_t::WINDOW_NONE))));
 
     json j;
 

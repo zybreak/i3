@@ -9,7 +9,6 @@
  */
 module;
 #include <fmt/printf.h>
-#include <xcb/xcb.h>
 module i3;
 
 import std;
@@ -31,7 +30,7 @@ void ewmh_update_current_desktop() {
     }
     old_idx = idx;
 
-    x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_CURRENT_DESKTOP], XCB_ATOM_CARDINAL,
+    x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_CURRENT_DESKTOP], std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL),
                       std::span{&idx, 1});
 }
 
@@ -53,7 +52,7 @@ static void ewmh_update_number_of_desktops() {
     old_idx = idx;
 
     x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, global.x->root,
-                      i3::atoms[i3::Atom::_NET_NUMBER_OF_DESKTOPS], XCB_ATOM_CARDINAL, std::span{&idx, 1});
+                      i3::atoms[i3::Atom::_NET_NUMBER_OF_DESKTOPS], std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL), std::span{&idx, 1});
 }
 
 /*
@@ -109,7 +108,7 @@ static void ewmh_update_desktop_viewport() {
     }
 
     x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, global.x->root,
-                      i3::atoms[i3::Atom::_NET_DESKTOP_VIEWPORT], XCB_ATOM_CARDINAL, std::span{viewports});
+                      i3::atoms[i3::Atom::_NET_DESKTOP_VIEWPORT], std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL), std::span{viewports});
 }
 
 /*
@@ -159,10 +158,10 @@ static void ewmh_update_wm_desktop_recursively(Con *c, uint32_t const desktop) {
     }
     con->get_window()->wm_desktop = wm_desktop;
 
-    xcb_window_t const window = con->get_window()->id;
+    xcb::xproto::window_t const window = con->get_window()->id;
     if (wm_desktop != NET_WM_DESKTOP_NONE) {
         DLOG(fmt::sprintf("Setting _NET_WM_DESKTOP = %d for window 0x%08x.\n", wm_desktop, window));
-        x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_ATOM_CARDINAL,
+        x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL),
                           std::span{&wm_desktop, 1});
     } else {
         /* If we can't determine the workspace index, delete the property. We'd
@@ -195,16 +194,16 @@ void ewmh_update_wm_desktop() {
  * the focus.
  *
  */
-void ewmh_update_active_window(xcb_window_t window) {
+void ewmh_update_active_window(xcb::xproto::window_t window) {
     x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, global.x->root,
-                      i3::atoms[i3::Atom::_NET_ACTIVE_WINDOW], XCB_ATOM_WINDOW, std::span{&window, 1});
+                      i3::atoms[i3::Atom::_NET_ACTIVE_WINDOW], std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WINDOW), std::span{&window, 1});
 }
 
 /*
  * Updates _NET_WM_VISIBLE_NAME.
  *
  */
-void ewmh_update_visible_name(xcb_window_t window, char const *name) {
+void ewmh_update_visible_name(xcb::xproto::window_t window, char const *name) {
     if (name != nullptr) {
         x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, window, i3::atoms[i3::Atom::_NET_WM_VISIBLE_NAME], i3::atoms[i3::Atom::UTF8_STRING],
                           std::string_view{name});
@@ -236,13 +235,13 @@ void ewmh_update_workarea() {
  * Updates the _NET_CLIENT_LIST hint.
  *
  */
-void ewmh_update_client_list(xcb_window_t *list, int num_windows) {
+void ewmh_update_client_list(xcb::xproto::window_t *list, int num_windows) {
     x_change_property(
         global.x->connection(),
         xcb::xproto::prop_mode_t::PROP_MODE_REPLACE,
         global.x->root,
         i3::atoms[i3::Atom::_NET_CLIENT_LIST],
-        XCB_ATOM_WINDOW,
+        std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WINDOW),
         std::span{list, static_cast<std::size_t>(num_windows)});
 }
 
@@ -250,13 +249,13 @@ void ewmh_update_client_list(xcb_window_t *list, int num_windows) {
  * Updates the _NET_CLIENT_LIST_STACKING hint.
  *
  */
-void ewmh_update_client_list_stacking(xcb_window_t *stack, int num_windows) {
+void ewmh_update_client_list_stacking(xcb::xproto::window_t *stack, int num_windows) {
     x_change_property(
         global.x->connection(),
         xcb::xproto::prop_mode_t::PROP_MODE_REPLACE,
         global.x->root,
         i3::atoms[i3::Atom::_NET_CLIENT_LIST_STACKING],
-        XCB_ATOM_WINDOW,
+        std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WINDOW),
         std::span{stack, static_cast<std::size_t>(num_windows)});
 }
 
@@ -264,7 +263,7 @@ void ewmh_update_client_list_stacking(xcb_window_t *stack, int num_windows) {
  * Set or remove _NET_WM_STATE_STICKY on the window.
  *
  */
-void ewmh_update_sticky(xcb_window_t window, bool sticky) {
+void ewmh_update_sticky(xcb::xproto::window_t window, bool sticky) {
     if (sticky) {
         DLOG(fmt::sprintf("Setting _NET_WM_STATE_STICKY for window = %08x.\n", window));
         xcb_add_property_atom(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_STICKY]);
@@ -278,7 +277,7 @@ void ewmh_update_sticky(xcb_window_t window, bool sticky) {
  * Set or remove _NEW_WM_STATE_FOCUSED on the window.
  *
  */
-void ewmh_update_focused(xcb_window_t window, bool is_focused) {
+void ewmh_update_focused(xcb::xproto::window_t window, bool is_focused) {
     if (is_focused) {
         DLOG(fmt::sprintf("Setting _NET_WM_STATE_FOCUSED for window = %08x.\n", window));
         xcb_add_property_atom(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_STATE], i3::atoms[i3::Atom::_NET_WM_STATE_FOCUSED]);
@@ -336,26 +335,26 @@ void ewmh_setup_hints() {
      * window manager is running) which has the _NET_SUPPORTING_WM_CHECK and
      * _NET_WM_ATOMS. */
     xcb::Connection &conn = global.x->connection();
-    xcb_window_t const ewmh_window = conn.generate_id();
+    xcb::xproto::window_t const ewmh_window = conn.generate_id();
     /* We create the window and put it at (-1, -1) so that it is off-screen. */
     xcb::xproto::create_window(
         &conn,
-        XCB_COPY_FROM_PARENT,                                  /* depth */
+        xcb::copy_from_parent,                                 /* depth */
         ewmh_window,                                           /* window id */
         global.x->root,                                        /* parent */
         -1, -1, 1, 1,                                          /* dimensions (x, y, w, h) */
         0,                                                     /* border */
         xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_ONLY, /* window class */
-        XCB_COPY_FROM_PARENT,                                  /* visual */
+        xcb::copy_from_parent,                                 /* visual */
         xcb::xproto::CreateWindowValueList{}.with_override_redirect(1));
-    x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, ewmh_window, i3::atoms[i3::Atom::_NET_SUPPORTING_WM_CHECK], XCB_ATOM_WINDOW, std::span{&ewmh_window, 1});
+    x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, ewmh_window, i3::atoms[i3::Atom::_NET_SUPPORTING_WM_CHECK], std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WINDOW), std::span{&ewmh_window, 1});
     x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, ewmh_window, i3::atoms[i3::Atom::_NET_WM_NAME], i3::atoms[i3::Atom::UTF8_STRING], std::string_view{"i3"});
-    x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_SUPPORTING_WM_CHECK], XCB_ATOM_WINDOW, std::span{&ewmh_window, 1});
+    x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_SUPPORTING_WM_CHECK], std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WINDOW), std::span{&ewmh_window, 1});
 
     /* I’m not entirely sure if we need to keep _NET_WM_NAME on root. */
     x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_WM_NAME], i3::atoms[i3::Atom::UTF8_STRING], std::string_view{"i3"});
 
-    x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_SUPPORTED], XCB_ATOM_ATOM, std::span{supported_atoms});
+    x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, global.x->root, i3::atoms[i3::Atom::_NET_SUPPORTED], std::to_underlying(xcb::xproto::atom_enum_t::ATOM_ATOM), std::span{supported_atoms});
 
     /* We need to map this window to be able to set the input focus to it if no other window is available to be focused. */
     xcb::xproto::map_window(&conn, ewmh_window);

@@ -8,8 +8,6 @@
  *
  */
 module;
-#include <xcb/xcb.h>
-
 #include <fmt/printf.h>
 
 #include <wordexp.h>

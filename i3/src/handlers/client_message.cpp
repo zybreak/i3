@@ -10,14 +10,12 @@
  */
 module;
 #include <xcb/xcb.h>
-#include <xcb/xcb_keysyms.h>
 
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-launcher.h>
 #include <libsn/sn-monitor.h>
 #undef SN_API_NOT_YET_FROZEN
 
-#include <xcb/randr.h>
 #include <fmt/printf.h>
 module i3;
 
@@ -147,7 +145,7 @@ static void handle_active_window(xcb::xproto::client_message_event_t *event) {
 
         global.workspaceManager->workspace_show(ws);
         /* Re-set focus, even if unchanged from i3’s perspective. */
-        global.x->focused_id = XCB_NONE;
+        global.x->focused_id = xcb::none;
         con->con_activate_unblock();
     } else {
         /* Request is from an application. */
@@ -192,7 +190,7 @@ static void handle_frame_extents(xcb::xproto::client_message_event_t *event) {
         xcb::xproto::prop_mode_t::PROP_MODE_REPLACE,
         event->window,
         i3::atoms[i3::Atom::_NET_FRAME_EXTENTS],
-        XCB_ATOM_CARDINAL,
+        std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL),
         std::span{r});
     global.x->connection().flush();
 }
@@ -221,7 +219,7 @@ static void handle_change_state(xcb::xproto::client_message_event_t *event) {
         /* For compatibility reasons, Wine will request iconic state and cannot ensure that the WM has agreed on it;
          * immediately revert to normal to avoid being stuck in a paused state. */
         DLOG(fmt::sprintf("Client has requested iconic state, rejecting. (window = %08x)\n", event->window));
-        std::array<uint32_t, 2> const data{std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_NORMAL), XCB_NONE};
+        std::array<uint32_t, 2> const data{std::to_underlying(xcb::icccm::wm_state_t::WM_STATE_NORMAL), xcb::none};
         x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, event->window,
                           i3::atoms[i3::Atom::WM_STATE], i3::atoms[i3::Atom::WM_STATE], std::span{data});
     } else {
@@ -325,23 +323,23 @@ static xcb::xproto::configure_request_event_t handle_move_resize_window(xcb::xpr
     xcb::xproto::configure_request_event_t generated_event{};
 
     generated_event.window = event->window;
-    generated_event.response_type = XCB_CONFIGURE_REQUEST;
+    generated_event.response_type = xcb::xproto::CONFIGURE_REQUEST;
 
     generated_event.value_mask = 0;
     if (event->data.data32[0] & _NET_MOVERESIZE_WINDOW_X) {
-        generated_event.value_mask |= XCB_CONFIG_WINDOW_X;
+        generated_event.value_mask |= static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_X);
         generated_event.x = event->data.data32[1];
     }
     if (event->data.data32[0] & _NET_MOVERESIZE_WINDOW_Y) {
-        generated_event.value_mask |= XCB_CONFIG_WINDOW_Y;
+        generated_event.value_mask |= static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_Y);
         generated_event.y = event->data.data32[2];
     }
     if (event->data.data32[0] & _NET_MOVERESIZE_WINDOW_WIDTH) {
-        generated_event.value_mask |= XCB_CONFIG_WINDOW_WIDTH;
+        generated_event.value_mask |= static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_WIDTH);
         generated_event.width = event->data.data32[3];
     }
     if (event->data.data32[0] & _NET_MOVERESIZE_WINDOW_HEIGHT) {
-        generated_event.value_mask |= XCB_CONFIG_WINDOW_HEIGHT;
+        generated_event.value_mask |= static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_HEIGHT);
         generated_event.height = event->data.data32[4];
     }
 

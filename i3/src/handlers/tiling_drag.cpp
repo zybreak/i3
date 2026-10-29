@@ -8,14 +8,13 @@
  *
  */
 module;
-#include <xcb/xproto.h>
 #include <fmt/printf.h>
 module i3;
 
 import rect;
 import log;
 
-static xcb_window_t create_drop_indicator(Rect rect);
+static xcb::xproto::window_t create_drop_indicator(Rect rect);
 
 /*
  * Converts direction to a string representation.
@@ -126,7 +125,7 @@ enum drop_type_t { DT_SIBLING,
 };
 
 struct callback_params {
-    xcb_window_t *indicator;
+    xcb::xproto::window_t *indicator;
     Con **target;
     direction_t *direction;
     drop_type_t *drop_type;
@@ -188,7 +187,7 @@ static void create_indicator(drop_type_t drop_type, direction_t direction, Con *
                                               .with_height(rect.height));
         }
     }
-    x_mask_event_mask(~XCB_EVENT_MASK_ENTER_WINDOW);
+    x_mask_event_mask(~static_cast<std::uint32_t>(xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW));
     global.x->connection().flush();
 
     *(params->target) = target;
@@ -200,13 +199,13 @@ static void create_indicator(drop_type_t drop_type, direction_t direction, Con *
  * Returns a new drop indicator window with the given initial coordinates.
  *
  */
-static xcb_window_t create_drop_indicator(Rect rect) {
+static xcb::xproto::window_t create_drop_indicator(Rect rect) {
     auto const values = xcb::xproto::CreateWindowValueList{}
                             .with_background_pixel(global.configManager->config->client.focused.indicator.colorpixel)
                             .with_override_redirect(1);
 
-    xcb_window_t indicator = create_window(global.x->connection(), rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
-                                           XCB_WINDOW_CLASS_INPUT_OUTPUT, XCURSOR_CURSOR_MOVE, false, values);
+    xcb::xproto::window_t indicator = create_window(global.x->connection(), rect, xcb::copy_from_parent, xcb::copy_from_parent,
+                                           std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT), XCURSOR_CURSOR_MOVE, false, values);
     /* Change the window class to "i3-drag", so that it can be matched in a
      * compositor configuration. Note that the class needs to be changed before
      * mapping the window. */
@@ -214,8 +213,8 @@ static xcb_window_t create_drop_indicator(Rect rect) {
     x_change_property(global.x->connection(),
                       xcb::xproto::prop_mode_t::PROP_MODE_REPLACE,
                       indicator,
-                      XCB_ATOM_WM_CLASS,
-                      XCB_ATOM_STRING,
+                      std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLASS),
+                      std::to_underlying(xcb::xproto::atom_enum_t::ATOM_STRING),
                       "i3-drag\0i3-drag\0"sv);
     xcb::xproto::map_window(&global.x->connection(), indicator);
     xcb::xproto::circulate_window(&global.x->connection(), xcb::xproto::circulate_t::CIRCULATE_RAISE_LOWEST, indicator);
@@ -335,20 +334,20 @@ void PropertyHandlers::tiling_drag(Con *con, xcb::xproto::button_press_event_t *
     bool set_fs = con->fullscreen_mode != CF_NONE;
 
     /* Don't change focus while dragging. */
-    x_mask_event_mask(~XCB_EVENT_MASK_ENTER_WINDOW);
+    x_mask_event_mask(~static_cast<std::uint32_t>(xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW));
     x.connection().flush();
 
     /* Indicate drop location while dragging. This blocks until the drag is completed. */
     Con *target = nullptr;
     direction_t direction;
     drop_type_t drop_type;
-    xcb_window_t indicator = 0;
+    xcb::xproto::window_t indicator = 0;
     callback_params const params{.indicator = &indicator, .target = &target, .direction = &direction, .drop_type = &drop_type};
     auto cb = [&params](Con *con, Rect const &old_rect, uint32_t new_x, uint32_t new_y, xcb::xproto::button_press_event_t const *event) {
         drag_callback(con, old_rect, new_x, new_y, event, &params);
     };
 
-    drag_result_t drag_result = inputManager.drag_pointer(con, event, XCB_NONE, XCURSOR_CURSOR_MOVE, use_threshold, cb);
+    drag_result_t drag_result = inputManager.drag_pointer(con, event, xcb::none, XCURSOR_CURSOR_MOVE, use_threshold, cb);
 
     /* Dragging is done. We don't need the indicator window any more. */
     xcb::xproto::destroy_window(&x.connection(), indicator);

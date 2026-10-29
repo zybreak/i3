@@ -146,7 +146,7 @@ export {
         FakeHandler handler{};
     };
 
-    /** What the fake server's setup says about its one screen, and which extensions it has. */
+    /** What the fake server's setup says about its screens, and which extensions it has. */
     struct FakeXServerOptions {
         std::uint16_t width{1280};
         std::uint16_t height{800};
@@ -156,6 +156,11 @@ export {
         /** None by default: QueryExtension reports every other extension absent. A test that adds one answers its
          *  requests that have a reply with the extension's handler, or with FakeXServer::on(). */
         std::vector<FakeExtension> extensions{};
+        /** The setup's vendor string, which the setup pads to a multiple of four bytes. */
+        std::string vendor{"i3 fake X server"};
+        /** The number of screens. Screen n is screen 0 with root_window + n as its root window, default_colormap + n as
+         *  its colormap, and visual ids 0x100 * n above screen 0's. */
+        std::uint8_t screens{1};
     };
 
     /**
@@ -322,7 +327,7 @@ FakeXServer::~FakeXServer() {
 }
 
 std::vector<std::byte> FakeXServer::setup() const {
-    constexpr std::string_view vendor{"i3 fake X server"};
+    std::string_view const vendor{options_.vendor};
     struct Depth {
         std::uint8_t depth;
         std::optional<std::uint32_t> visual;
@@ -332,15 +337,18 @@ std::vector<std::byte> FakeXServer::setup() const {
         depths.push_back({32, argb_visual});
     }
 
-    ByteWriter screen{};
-    screen.u32(root_window).u32(default_colormap).u32(white_pixel).u32(black_pixel).u32(0);
-    screen.u16(options_.width).u16(options_.height).u16(options_.width / 4).u16(options_.height / 4);
-    screen.u16(1).u16(1).u32(root_visual).u8(0).u8(0).u8(24).u8(static_cast<std::uint8_t>(depths.size()));
-    for (auto const &depth : depths) {
-        screen.u8(depth.depth).u8(0).u16(depth.visual ? 1 : 0).u32(0);
-        if (depth.visual) {
-            /* TrueColor, 8 bits per channel. */
-            screen.u32(*depth.visual).u8(4).u8(8).u16(256).u32(0xff0000).u32(0x00ff00).u32(0x0000ff).u32(0);
+    ByteWriter roots{};
+    for (std::uint32_t n = 0; n < options_.screens; ++n) {
+        std::uint32_t const visuals = 0x100 * n;
+        roots.u32(root_window + n).u32(default_colormap + n).u32(white_pixel).u32(black_pixel).u32(0);
+        roots.u16(options_.width).u16(options_.height).u16(options_.width / 4).u16(options_.height / 4);
+        roots.u16(1).u16(1).u32(root_visual + visuals).u8(0).u8(0).u8(24).u8(static_cast<std::uint8_t>(depths.size()));
+        for (auto const &depth : depths) {
+            roots.u8(depth.depth).u8(0).u16(depth.visual ? 1 : 0).u32(0);
+            if (depth.visual) {
+                /* TrueColor, 8 bits per channel. */
+                roots.u32(*depth.visual + visuals).u8(4).u8(8).u16(256).u32(0xff0000).u32(0x00ff00).u32(0x0000ff).u32(0);
+            }
         }
     }
 
@@ -353,9 +361,9 @@ std::vector<std::byte> FakeXServer::setup() const {
 
     ByteWriter body{};
     body.u32(0).u32(0x00400000).u32(0x001fffff).u32(0);
-    body.u16(static_cast<std::uint16_t>(vendor.size())).u16(0xffff).u8(1);
+    body.u16(static_cast<std::uint16_t>(vendor.size())).u16(0xffff).u8(options_.screens);
     body.u8(static_cast<std::uint8_t>(formats.size() / 8)).u8(0).u8(0).u8(32).u8(32).u8(8).u8(255).u32(0);
-    body.string(vendor).pad().bytes(formats.take()).bytes(screen.take());
+    body.string(vendor).pad().bytes(formats.take()).bytes(roots.take());
 
     ByteWriter packet{};
     packet.u8(1).u8(0).u16(11).u16(0).u16(static_cast<std::uint16_t>(body.size() / 4)).bytes(body.take());

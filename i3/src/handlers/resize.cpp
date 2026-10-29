@@ -9,7 +9,6 @@
  */
 module;
 #include <cassert>
-#include <xcb/xcb.h>
 
 #include <fmt/printf.h>
 module i3;
@@ -28,7 +27,7 @@ import rect;
 struct callback_params {
     orientation_t orientation;
     Con *output;
-    xcb_window_t helpwin;
+    xcb::xproto::window_t helpwin;
     uint32_t *new_position;
     bool *threshold_exceeded;
 };
@@ -44,11 +43,11 @@ static void resize_callback(Con *con, Rect const &, uint32_t new_x, uint32_t new
          * if threshold wasn't enabled, but also take into account travelled
          * distance. */
         if (params->orientation == HORIZ) {
-            xcb::xproto::warp_pointer(&global.x->connection(), XCB_NONE, event->root, 0, 0, 0, 0,
+            xcb::xproto::warp_pointer(&global.x->connection(), xcb::none, event->root, 0, 0, 0, 0,
                                       *params->new_position + new_x - event->root_x,
                                       new_y);
         } else {
-            xcb::xproto::warp_pointer(&global.x->connection(), XCB_NONE, event->root, 0, 0, 0, 0,
+            xcb::xproto::warp_pointer(&global.x->connection(), xcb::none, event->root, 0, 0, 0, 0,
                                       new_x,
                                       *params->new_position + new_y - event->root_y);
         }
@@ -88,13 +87,13 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
     DLOG(fmt::sprintf("first = %p / %s\n", fmt::ptr(first), first->name));
     DLOG(fmt::sprintf("second = %p / %s\n", fmt::ptr(second), second->name));
 
-    x_mask_event_mask(~XCB_EVENT_MASK_ENTER_WINDOW);
+    x_mask_event_mask(~static_cast<std::uint32_t>(xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW));
     global.x->connection().flush();
 
     /* Open a new window, the resizebar. Grab the pointer and move the window
      * around as the user moves the pointer. */
-    xcb_window_t grabwin = create_window(global.x->connection(), output->rect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
-                                         XCB_WINDOW_CLASS_INPUT_ONLY, XCURSOR_CURSOR_POINTER, true,
+    xcb::xproto::window_t grabwin = create_window(global.x->connection(), output->rect, xcb::copy_from_parent, xcb::copy_from_parent,
+                                         std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_ONLY), XCURSOR_CURSOR_POINTER, true,
                                          xcb::xproto::CreateWindowValueList{}.with_override_redirect(1));
 
     /* Keep track of the coordinate orthogonal to motion so we can determine the
@@ -137,16 +136,16 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
                             .with_background_pixel(global.configManager->config->client.focused.border.colorpixel)
                             .with_override_redirect(1);
 
-    xcb_window_t helpwin = create_window(global.x->connection(), helprect, XCB_COPY_FROM_PARENT, XCB_COPY_FROM_PARENT,
-                                         XCB_WINDOW_CLASS_INPUT_OUTPUT, (orientation == HORIZ ? XCURSOR_CURSOR_RESIZE_HORIZONTAL : XCURSOR_CURSOR_RESIZE_VERTICAL), false, values);
+    xcb::xproto::window_t helpwin = create_window(global.x->connection(), helprect, xcb::copy_from_parent, xcb::copy_from_parent,
+                                         std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT), (orientation == HORIZ ? XCURSOR_CURSOR_RESIZE_HORIZONTAL : XCURSOR_CURSOR_RESIZE_VERTICAL), false, values);
 
     if (!use_threshold) {
         xcb::xproto::map_window(&global.x->connection(), helpwin);
         if (orientation == HORIZ) {
-            xcb::xproto::warp_pointer(&global.x->connection(), XCB_NONE, event->root, 0, 0, 0, 0,
+            xcb::xproto::warp_pointer(&global.x->connection(), xcb::none, event->root, 0, 0, 0, 0,
                                       initial_position, event->root_y);
         } else {
-            xcb::xproto::warp_pointer(&global.x->connection(), XCB_NONE, event->root, 0, 0, 0, 0,
+            xcb::xproto::warp_pointer(&global.x->connection(), xcb::none, event->root, 0, 0, 0, 0,
                                       event->root_x, initial_position);
         }
     }

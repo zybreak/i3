@@ -1,5 +1,3 @@
-module;
-#include <xcb/xcb.h>
 module i3;
 
 import log;

@@ -36,6 +36,7 @@ target_sources(UnitTest PRIVATE
         i3_lib_test.cpp
         xcb_test.cpp
         property_test.cpp
+        xcbpp_names_test.cpp
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES
@@ -43,6 +44,14 @@ target_sources(UnitTest PRIVATE
         mocks.cppm
 )
 target_link_libraries(UnitTest PUBLIC i3_lib GTest::gtest_main GTest::gmock)
+# i3 has its own versions of the xcb-util (libxcb-util) helpers it used, which xcb_util_test.cpp checks against xcb-util:
+# UnitTest links it, i3 doesn't (see i3/CMakeLists.txt). Without xcb-util, the test is left out.
+if(TARGET X11::xcb_util)
+    target_sources(UnitTest PRIVATE xcb_util_test.cpp)
+    target_link_libraries(UnitTest PRIVATE X11::xcb_util)
+else()
+    message(STATUS "xcb-util missing: xcb_util_test.cpp is left out of UnitTest")
+endif()
 gtest_discover_tests(UnitTest)
 target_code_coverage(UnitTest ALL)
 target_compile_features(UnitTest PUBLIC cxx_std_26)
@@ -58,6 +67,12 @@ add_test(NAME i3-links-no-libxcb-wm
          COMMAND ${CMAKE_COMMAND} "-DPROGRAMS=$<TARGET_FILE:i3>;$<TARGET_FILE:UnitTest>$<$<TARGET_EXISTS:ITTest>:;$<TARGET_FILE:ITTest>>"
                  -DREADELF=${CMAKE_READELF} -P ${CMAKE_CURRENT_SOURCE_DIR}/check_no_libxcb_wm.cmake)
 set_tests_properties(i3-links-no-libxcb-wm PROPERTIES ENVIRONMENT_MODIFICATION "LD_LIBRARY_PATH=unset:")
+
+# i3 doesn't link xcb-util (libxcb-util), which libstartup-notification, xcb-xrm and xcb-image still load (see
+# i3/CMakeLists.txt): i3 itself must not need it.
+add_test(NAME i3-needs-no-libxcb-util
+         COMMAND ${CMAKE_COMMAND} "-DPROGRAMS=$<TARGET_FILE:i3>" -DLIBRARIES=libxcb-util -DREADELF=${CMAKE_READELF}
+                 -P ${CMAKE_CURRENT_SOURCE_DIR}/check_not_needed.cmake)
 
 find_program(XVFB_PROGRAM Xvfb)
 find_program(CC_PROGRAM cc)

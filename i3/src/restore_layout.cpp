@@ -13,20 +13,12 @@ module;
 #include <err.h>
 
 #include <xcb/xcb.h>
-#include <xcb/xcb_aux.h>
 
 #include <ev.h>
 
 #include <config.h>
 
 #include <sys/time.h>
-
-#include <xcb/shape.h>
-#include <xcb/xcb_keysyms.h>
-
-#define explicit dont_use_cxx_explicit
-#include <xcb/xkb.h>
-#undef explicit
 
 #ifdef I3_ASAN_ENABLED
 #include <sanitizer/lsan_interface.h>
@@ -134,7 +126,7 @@ void restore_connect() {
 #endif
         errx(EXIT_FAILURE, "Cannot open display");
     }
-    restore_drawing.emplace(restore_conn, xcb_aux_get_screen(restore_conn, screen));
+    restore_drawing.emplace(restore_conn, get_screen(restore_conn, screen));
 
     xcb_watcher = new ev_io{};
     xcb_prepare = new ev_prepare{};
@@ -201,7 +193,7 @@ static void update_placeholder_contents(X &conn, placeholder_state *state) {
 
 static void open_placeholder_window(X &conn, Con *con) {
     if (con->con_is_leaf() &&
-        (con->get_window() == nullptr || con->get_window()->id == XCB_NONE) &&
+        (con->get_window() == nullptr || con->get_window()->id == xcb::none) &&
         !con->swallow.empty() &&
         con->type == CT_CON) {
         auto const values = xcb::xproto::CreateWindowValueList{}
@@ -210,9 +202,9 @@ static void open_placeholder_window(X &conn, Con *con) {
         xcb_window_t placeholder = create_window(
             *restore_xconn,
             con->rect,
-            XCB_COPY_FROM_PARENT,
-            XCB_COPY_FROM_PARENT,
-            XCB_WINDOW_CLASS_INPUT_OUTPUT,
+            xcb::copy_from_parent,
+            xcb::copy_from_parent,
+            std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT),
             XCURSOR_CURSOR_POINTER,
             true,
             values);
@@ -348,13 +340,13 @@ static void configure_notify(xcb::xproto::configure_notify_event_t *event) {
 
 static void restore_handle_event(int type, xcb::generic_event_t *event) {
     switch (type) {
-        case XCB_EXPOSE:
+        case xcb::xproto::EXPOSE:
             if (auto *expose = reinterpret_cast<xcb::xproto::expose_event_t *>(event); expose->count == 0) {
                 expose_event(expose);
             }
 
             break;
-        case XCB_CONFIGURE_NOTIFY:
+        case xcb::xproto::CONFIGURE_NOTIFY:
             configure_notify(reinterpret_cast<xcb::xproto::configure_notify_event_t *>(event));
             break;
         default:

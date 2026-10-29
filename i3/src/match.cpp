@@ -12,7 +12,7 @@
  *
  */
 module;
-#include <xcb/xcb.h>
+#include <cstdint>
 
 #include <fmt/printf.h>
 module i3;
@@ -51,7 +51,7 @@ bool Match::match_is_empty() {
             !is_initialized(this->workspace.get()) &&
             !is_initialized(this->machine.get()) &&
             this->urgent == U_DONTCHECK &&
-            this->id == XCB_NONE &&
+            this->id == xcb::none &&
             this->window_type == UINT32_MAX &&
             this->con_id == nullptr &&
             this->dock == M_NODOCK &&
@@ -91,7 +91,7 @@ bool Match::match_matches_window(i3Window const *window) const {
         return false;
     }
 
-    if (this->id != XCB_NONE) {
+    if (this->id != xcb::none) {
         if (window->id == this->id) {
             LOG(fmt::sprintf("match made by window id (%d)\n", window->id));
         } else {
@@ -264,7 +264,7 @@ static int get_id(std::string const cvalue) {
     return parsed;
 }
 
-static xcb_atom_t get_window_type(std::string const cvalue) {
+static xcb::xproto::atom_t get_window_type(std::string const cvalue) {
     if (cvalue == "normal") {
         return i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_NORMAL];
     } else if (cvalue == "dialog") {

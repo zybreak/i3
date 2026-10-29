@@ -12,8 +12,6 @@ module;
 #include <fmt/printf.h>
 
 #include <xcb/xcb.h>
-#include <xcb/shape.h>
-#include <xcb/xcb_keysyms.h>
 module i3;
 
 import std;
@@ -58,7 +56,7 @@ static void floating_set_hint_atom(Con *con, bool floating) {
     if (floating) {
         uint32_t const val = 1;
         x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, con->get_window()->id,
-                          i3::atoms[i3::Atom::I3_FLOATING_WINDOW], XCB_ATOM_CARDINAL, std::span{&val, 1});
+                          i3::atoms[i3::Atom::I3_FLOATING_WINDOW], std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL), std::span{&val, 1});
     } else {
         xcb::xproto::delete_property(&global.x->connection(), con->get_window()->id, i3::atoms[i3::Atom::I3_FLOATING_WINDOW]);
     }
@@ -379,7 +377,7 @@ bool floating_enable(ConCon *con, bool automatic) {
      * (centered over their leader) */
     if (nc->rect.x == 0 && nc->rect.y == 0) {
         Con *leader;
-        if (con->get_window() && con->get_window()->leader != XCB_NONE &&
+        if (con->get_window() && con->get_window()->leader != xcb::none &&
             con->get_window()->id != con->get_window()->leader &&
             (leader = con_by_window_id(con->get_window()->leader)) != nullptr) {
             DLOG("Centering above leader\n");

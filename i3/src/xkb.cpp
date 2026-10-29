@@ -23,7 +23,7 @@ static int fill_rmlvo_from_root(xkb_rule_names *xkb_names) {
     }
 
     auto prop_reply = xcb::xproto::get_property(conn, false, global.x->root, atom_reply->atom,
-                                                XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words)
+                                                std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 0, content_max_words)
                           .get();
     if (!prop_reply) {
         return -1;
@@ -34,7 +34,7 @@ static int fill_rmlvo_from_root(xkb_rule_names *xkb_names) {
         content_max_words += ceil(prop_reply->bytes_after / 4.0);
         /* Repeat the request, with adjusted size */
         prop_reply = xcb::xproto::get_property(conn, false, global.x->root, atom_reply->atom,
-                                               XCB_GET_PROPERTY_TYPE_ANY, 0, content_max_words)
+                                               std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 0, content_max_words)
                          .get();
         if (!prop_reply) {
             return -1;
@@ -337,7 +337,7 @@ static void add_keycode_if_matches(xkb_keymap *keymap, xkb_keycode_t key, void *
 
     /* Also bind the key with active CapsLock */
     xcb_keycode_t code1 = key;
-    i3_event_state_mask_t mods1 = bind->event_state_mask | XCB_MOD_MASK_LOCK;
+    i3_event_state_mask_t mods1 = bind->event_state_mask | static_cast<std::uint32_t>(xcb::xproto::mod_mask_t::MOD_MASK_LOCK);
     bind->keycodes.emplace_back(code1, mods1);
 
     /* If this binding is not explicitly for NumLock, check whether we need to
@@ -356,7 +356,7 @@ static void add_keycode_if_matches(xkb_keymap *keymap, xkb_keycode_t key, void *
 
             /* Also bind the key with active NumLock+CapsLock */
             xcb_keycode_t code3 = key;
-            i3_event_state_mask_t mods3 = bind->event_state_mask | global.x->xcb_numlock_mask | XCB_MOD_MASK_LOCK;
+            i3_event_state_mask_t mods3 = bind->event_state_mask | global.x->xcb_numlock_mask | static_cast<std::uint32_t>(xcb::xproto::mod_mask_t::MOD_MASK_LOCK);
             bind->keycodes.emplace_back(code3, mods3);
         } else {
             DLOG(fmt::sprintf("Skipping automatic numlock fallback, key %d resolves to 0x%x with numlock\n",
@@ -418,7 +418,7 @@ void translate_keysyms(Keymap const &keymap) {
 
             (void)xkb_state_update_mask(
                 dummy_state_no_shift,
-                (bind.event_state_mask & 0x1FFF) ^ XCB_KEY_BUT_MASK_SHIFT /* xkb_mod_mask_t base_mods, */,
+                (bind.event_state_mask & 0x1FFF) ^ static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_SHIFT) /* xkb_mod_mask_t base_mods, */, // NOLINT(bugprone-signed-bitwise)
                 0 /* xkb_mod_mask_t latched_mods, */,
                 0 /* xkb_mod_mask_t locked_mods, */,
                 0 /* xkb_layout_index_t base_group, */,
@@ -436,7 +436,7 @@ void translate_keysyms(Keymap const &keymap) {
 
             (void)xkb_state_update_mask(
                 dummy_state_numlock_no_shift,
-                ((bind.event_state_mask & 0x1FFF) | global.x->xcb_numlock_mask) ^ XCB_KEY_BUT_MASK_SHIFT /* xkb_mod_mask_t base_mods, */,
+                ((bind.event_state_mask & 0x1FFF) | global.x->xcb_numlock_mask) ^ static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_SHIFT) /* xkb_mod_mask_t base_mods, */, // NOLINT(bugprone-signed-bitwise)
                 0 /* xkb_mod_mask_t latched_mods, */,
                 0 /* xkb_mod_mask_t locked_mods, */,
                 0 /* xkb_layout_index_t base_group, */,
@@ -456,7 +456,7 @@ void translate_keysyms(Keymap const &keymap) {
                 /* Also bind the key with active CapsLock */
                 Binding *bind2 = &bind;
                 xcb_keycode_t code1 = bind.keycode;
-                i3_event_state_mask_t mods1 = bind.event_state_mask | XCB_MOD_MASK_LOCK;
+                i3_event_state_mask_t mods1 = bind.event_state_mask | static_cast<std::uint32_t>(xcb::xproto::mod_mask_t::MOD_MASK_LOCK);
                 bind2->keycodes.emplace_back(code1, mods1);
 
                 /* If this binding is not explicitly for NumLock, check whether we need to
@@ -478,7 +478,7 @@ void translate_keysyms(Keymap const &keymap) {
                         /* Also bind the key with active NumLock+CapsLock */
                         Binding *bind4 = &bind;
                         xcb_keycode_t code3 = bind.keycode;
-                        i3_event_state_mask_t mods3 = bind.event_state_mask | global.x->xcb_numlock_mask | XCB_MOD_MASK_LOCK;
+                        i3_event_state_mask_t mods3 = bind.event_state_mask | global.x->xcb_numlock_mask | static_cast<std::uint32_t>(xcb::xproto::mod_mask_t::MOD_MASK_LOCK);
                         bind4->keycodes.emplace_back(code3, mods3);
                     } else {
                         DLOG(fmt::sprintf("Skipping automatic numlock fallback, key %d resolves to 0x%x with numlock\n",

@@ -8,7 +8,6 @@
  *
  */
 module;
-#include <xcb/xcb.h>
 #include <xkbcommon/xkbcommon-x11.h>
 #include <xkbcommon/xkbcommon.h>
 export module bindings;
@@ -46,10 +45,10 @@ export {
      *
      */
     struct Binding_Keycode {
-        xcb_keycode_t keycode{};
+        xcb::xproto::keycode_t keycode{};
         i3_event_state_mask_t modifiers{};
 
-        Binding_Keycode(xcb_keycode_t keycode, i3_event_state_mask_t modifiers)
+        Binding_Keycode(xcb::xproto::keycode_t keycode, i3_event_state_mask_t modifiers) // NOLINT(bugprone-easily-swappable-parameters)
             : keycode(keycode), modifiers(modifiers) {
         }
 

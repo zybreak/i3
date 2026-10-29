@@ -15,9 +15,7 @@ module;
 #include <getopt.h>
 
 #include <xcb/xcb.h>
-#include <xcb/xcb_aux.h>
 #include <xcb/xcb_cursor.h>
-#include <xcb/xproto.h>
 
 #if defined(__OpenBSD__)
 #include <sys/cdefs.h>
@@ -133,7 +131,7 @@ class Nagbar {
         /* To avoid the input window disappearing while determining its position */
         xcb::xproto::grab_server(xconn);
 
-        if (auto const input_focus = xcb::xproto::get_input_focus(xconn).get(); !input_focus || input_focus->focus == XCB_NONE) {
+        if (auto const input_focus = xcb::xproto::get_input_focus(xconn).get(); !input_focus || input_focus->focus == xcb::none) {
             LOG("Failed to receive the current input focus or no window has the input focus right now.\n");
         } else if (auto const geometry = xcb::xproto::get_geometry(xconn, input_focus->focus).get(); !geometry) {
             LOG("Failed to received window geometry.\n");
@@ -203,7 +201,7 @@ class Nagbar {
         }
 
         auto const output = xcb::randr::randr_get_output_info(xconn, primary->output, res->config_timestamp).get();
-        if (!output || output->crtc == XCB_NONE) {
+        if (!output || output->crtc == xcb::none) {
             LOG("Could not query primary screen.\n");
             return;
         }
@@ -278,7 +276,7 @@ class Nagbar {
         // SnLauncheeContext *sncontext = sn_launchee_context_new_from_environment(sndisplay, screens);
         // sn_display_unref(sndisplay);
 
-        root_screen = xcb_aux_get_screen(conn, screens);
+        root_screen = get_screen(conn, screens);
         drawing.emplace(conn, root_screen);
 
         if (bar_type == bar_type_t::TYPE_ERROR) {
@@ -334,13 +332,13 @@ class Nagbar {
 
         xcb::xproto::create_window(
             xconn,
-            XCB_COPY_FROM_PARENT,
+            xcb::copy_from_parent,
             win,                                                 /* the window id */
             root_screen->root,                                   /* parent == root */
             win_pos.x, win_pos.y, win_pos.width, win_pos.height, /* dimensions */
             0,                                                   /* x11 border = 0, we draw our own */
             xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT,
-            XCB_COPY_FROM_PARENT, /* copy visual from parent */
+            xcb::copy_from_parent, /* copy visual from parent */
             xcb::xproto::CreateWindowValueList{}
                 .with_background_pixel(0)
                 .with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_EXPOSURE |
@@ -431,33 +429,33 @@ class Nagbar {
             int type = (event->response_type & 0x7F);
 
             switch (type) {
-                case XCB_EXPOSE:
+                case xcb::xproto::EXPOSE:
                     if (auto *expose = reinterpret_cast<xcb::xproto::expose_event_t *>(event.get()); expose->count == 0) {
                         handle_expose(expose);
                     }
 
                     break;
 
-                case XCB_BUTTON_PRESS:
+                case xcb::xproto::BUTTON_PRESS:
                     nagbar_handle_button_press(reinterpret_cast<xcb::xproto::button_press_event_t *>(event.get()));
                     break;
 
-                case XCB_BUTTON_RELEASE:
+                case xcb::xproto::BUTTON_RELEASE:
                     handle_button_release(reinterpret_cast<xcb::xproto::button_release_event_t *>(event.get()));
                     break;
 
-                case XCB_CONFIGURE_NOTIFY: {
+                case xcb::xproto::CONFIGURE_NOTIFY: {
                     auto *configure_notify = reinterpret_cast<xcb::xproto::configure_notify_event_t *>(event.get());
                     if (configure_notify->width > 0 && configure_notify->height > 0) {
                         bar->draw_util_surface_set_size(configure_notify->width, configure_notify->height);
                     }
                     break;
                 }
-                case XCB_DESTROY_NOTIFY:
+                case xcb::xproto::DESTROY_NOTIFY:
                     running = false;
                     LOG(fmt::sprintf("DESTROY\n"));
                     break;
-                case XCB_UNMAP_NOTIFY:
+                case xcb::xproto::UNMAP_NOTIFY:
                     LOG(fmt::sprintf("UNMAP\n"));
                     break;
                 default:

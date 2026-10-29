@@ -12,20 +12,12 @@
 
 #include <err.h>
 #include <xcb/xcb.h>
-#include <xcb/xcb_keysyms.h>
 
 #include <ev.h>
 
 #include <config.h>
 
 #include <sys/time.h>
-
-#include <xcb/shape.h>
-#include <xcb/xcb_keysyms.h>
-
-#define explicit dont_use_cxx_explicit
-#include <xcb/xkb.h>
-#undef explicit
 
 #define SN_API_NOT_YET_FROZEN 1
 #include <libsn/sn-launcher.h>
@@ -39,8 +31,6 @@
 #include <unistd.h>
 #include <fmt/core.h>
 #include <fmt/printf.h>
-#include <xcb/xproto.h>
-#include <xcb/xcb_atom.h>
 #include <boost/di.hpp>
 
 #ifdef I3_ASAN_ENABLED
@@ -304,7 +294,7 @@ static void ignore_restart_events(X &x) {
             /* We still need to handle MapRequests which are sent in the
              * timespan starting from when we register as a window manager and
              * this piece of code which drops events. */
-            if (type == XCB_MAP_REQUEST) {
+            if (type == xcb::xproto::MAP_REQUEST) {
                 global.handlers->handle_event(type, event.get());
             }
         }
@@ -324,7 +314,7 @@ static void fix_empty_background(X &x) {
      */
     LOG("This is not an in-place restart, checking if a wallpaper is set.\n");
 
-    /* The connection's screen: X::X() looked it up as xcb_aux_get_screen(…, conn_screen). */
+    /* The connection's screen: X::X() looked it up as get_screen(…, conn_screen). */
     xcb_screen_t *s = x.root_screen;
     if (is_background_set(x, s)) {
         LOG("A wallpaper is set, so no screenshot is necessary.\n");
@@ -336,17 +326,12 @@ static void fix_empty_background(X &x) {
 
 /* Acquire the WM_Sn selection. */
 static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
-    /* Get the WM_Sn atom */
-    char *atom_name = xcb_atom_name_by_screen("WM", x.conn_screen);
+    /* Get the WM_Sn atom (a screen number fits in 8 bits: a setup lists at most 255 screens) */
+    std::string const atom_name = atom_name_by_screen("WM", static_cast<std::uint8_t>(x.conn_screen));
     xcb::Connection &conn = x.connection();
     x.wm_sn_selection_owner = conn.generate_id();
 
-    if (atom_name == nullptr) {
-        throw std::runtime_error(fmt::sprintf("xcb_atom_name_by_screen(\"WM\", %d) failed, exiting\n", x.conn_screen));
-    }
-
     auto const atom_reply = xcb::xproto::intern_atom_unchecked(&conn, false, atom_name).get();
-    free(atom_name);
     if (!atom_reply) {
         throw std::runtime_error("Failed to intern the WM_Sn atom, exiting\n");
     }
@@ -354,7 +339,7 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
 
     /* Check if the selection is already owned */
     auto const selection_reply = xcb::xproto::get_selection_owner(&conn, x.wm_sn).get();
-    if (selection_reply && selection_reply->owner != XCB_NONE && !global.args->replace_wm) {
+    if (selection_reply && selection_reply->owner != xcb::none && !global.args->replace_wm) {
         throw std::runtime_error("Another window manager is already running (WM_Sn is owned)");
     }
 
@@ -369,12 +354,12 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
                                x.root_screen->root_visual,
                                xcb::xproto::CreateWindowValueList{});
     using namespace std::string_view_literals;
-    x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, x.wm_sn_selection_owner, XCB_ATOM_WM_CLASS, XCB_ATOM_STRING,
+    x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, x.wm_sn_selection_owner, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLASS), std::to_underlying(xcb::xproto::atom_enum_t::ATOM_STRING),
                       "i3-WM_Sn\0i3-WM_Sn\0"sv);
 
     xcb::xproto::set_selection_owner(&conn, x.wm_sn_selection_owner, x.wm_sn, last_timestamp);
 
-    if (selection_reply && selection_reply->owner != XCB_NONE) {
+    if (selection_reply && selection_reply->owner != xcb::none) {
         unsigned int usleep_time = 100000; /* 0.1 seconds */
         int check_rounds = 150;            /* Wait for a maximum of 15 seconds */
 
@@ -389,7 +374,7 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
 
     /* Announce that we are the new owner */
     xcb::xproto::client_message_event_t event{};
-    event.response_type = XCB_CLIENT_MESSAGE;
+    event.response_type = xcb::xproto::CLIENT_MESSAGE;
     event.window = x.root_screen->root;
     event.format = 32;
     event.type = i3::atoms[i3::Atom::MANAGER];
@@ -474,19 +459,19 @@ int main(int argc, char *argv[]) {
 
     xcb::xproto::change_window_attributes(&x.connection(), x.root,
                                           xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_PROPERTY_CHANGE));
-    x_change_property(x.connection(), xcb::xproto::prop_mode_t::PROP_MODE_APPEND, x.root, XCB_ATOM_SUPERSCRIPT_X, XCB_ATOM_CARDINAL,
+    x_change_property(x.connection(), xcb::xproto::prop_mode_t::PROP_MODE_APPEND, x.root, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_SUPERSCRIPT_X), std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL),
                       std::span<uint32_t const>{});
 
     /* Place requests for the atoms we need as soon as possible */
     setup_atoms(x);
-    xcb_timestamp_t last_timestamp = XCB_CURRENT_TIME;
+    xcb_timestamp_t last_timestamp = xcb::current_time;
 
     /* Get the PropertyNotify event we caused above */
     x.connection().flush();
     {
         DLOG("waiting for PropertyNotify event\n");
         while (auto const event = x.connection().wait_for_event()) {
-            if (event->response_type == XCB_PROPERTY_NOTIFY) {
+            if (event->response_type == xcb::xproto::PROPERTY_NOTIFY) {
                 last_timestamp = reinterpret_cast<xcb::xproto::property_notify_event_t const *>(event.get())->time;
                 break;
             }

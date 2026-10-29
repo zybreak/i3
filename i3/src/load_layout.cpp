@@ -11,7 +11,6 @@
 module;
 #include <fmt/core.h>
 #include <fmt/printf.h>
-#include <xcb/xproto.h>
 module i3;
 
 import std;
@@ -202,7 +201,7 @@ static void extract_basecon(json &j, Con *con, Con *parent, parser_context &ctx)
                     match->machine = std::make_unique<Regex>(match_json["machine"].get<std::string>());
                 }
                 if (match_json.contains("id")) {
-                    match->id = match_json["id"].get<xcb_window_t>();
+                    match->id = match_json["id"].get<xcb::xproto::window_t>();
                 }
                 if (match_json.contains("dock")) {
                     match->dock = match_json["dock"].get<match_dock_t>();

@@ -8,11 +8,9 @@
  *
  */
 module;
-#include <xcb/xcb.h>
+#include <cstdint>
 #include <fmt/core.h>
 #include <fmt/printf.h>
-
-#include <xcb/xcb_keysyms.h>
 module i3;
 
 import std;
@@ -43,25 +41,25 @@ struct window_data {
     T wm_icon_cookie;
 };
 
-static auto get_window_data(xcb_window_t window) {
+static auto get_window_data(xcb::xproto::window_t window) {
     return window_data{
-        .wm_type_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .strut_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .state_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_STATE], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .utf8_title_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_NAME], XCB_GET_PROPERTY_TYPE_ANY, 128),
-        .leader_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .transient_cookie = property_request(global.x->connection(), window, XCB_ATOM_WM_TRANSIENT_FOR, XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .title_cookie = property_request(global.x->connection(), window, XCB_ATOM_WM_NAME, XCB_GET_PROPERTY_TYPE_ANY, 128),
-        .class_cookie = property_request(global.x->connection(), window, XCB_ATOM_WM_CLASS, XCB_GET_PROPERTY_TYPE_ANY, 128),
-        .role_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], XCB_GET_PROPERTY_TYPE_ANY, 128),
-        .startup_id_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_STARTUP_ID], XCB_GET_PROPERTY_TYPE_ANY, 512),
-        .wm_hints_cookie = property_request(global.x->connection(), window, XCB_ATOM_WM_HINTS, XCB_ATOM_WM_HINTS, xcb::icccm::num_wm_hints_elements),
-        .wm_normal_hints_cookie = property_request(global.x->connection(), window, XCB_ATOM_WM_NORMAL_HINTS, XCB_ATOM_WM_SIZE_HINTS, xcb::icccm::num_wm_size_hints_elements),
-        .motif_wm_hints_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], XCB_GET_PROPERTY_TYPE_ANY, 5 * sizeof(uint64_t)),
-        .wm_user_time_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .wm_desktop_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .wm_machine_cookie = property_request(global.x->connection(), window, XCB_ATOM_WM_CLIENT_MACHINE, XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX),
-        .wm_icon_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_ICON], XCB_GET_PROPERTY_TYPE_ANY, UINT32_MAX)};
+        .wm_type_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
+        .strut_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
+        .state_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_STATE], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
+        .utf8_title_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_NAME], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 128),
+        .leader_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
+        .transient_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_TRANSIENT_FOR), std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
+        .title_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_NAME), std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 128),
+        .class_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLASS), std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 128),
+        .role_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 128),
+        .startup_id_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_STARTUP_ID], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 512),
+        .wm_hints_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_HINTS), std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_HINTS), xcb::icccm::num_wm_hints_elements),
+        .wm_normal_hints_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_NORMAL_HINTS), std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_SIZE_HINTS), xcb::icccm::num_wm_size_hints_elements),
+        .motif_wm_hints_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 5 * sizeof(uint64_t)),
+        .wm_user_time_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
+        .wm_desktop_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
+        .wm_machine_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLIENT_MACHINE), std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
+        .wm_icon_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_ICON], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX)};
 }
 
 /*
@@ -69,8 +67,8 @@ static auto get_window_data(xcb_window_t window) {
  * window whose background is ParentRelative under a window with a different depth.
  *
  */
-static xcb_window_t _match_depth(i3Window const *win, Con *con) {
-    xcb_window_t old_frame = XCB_NONE;
+static xcb::xproto::window_t _match_depth(i3Window const *win, Con *con) { // NOLINT(bugprone-reserved-identifier)
+    xcb::xproto::window_t old_frame = xcb::none;
     if (con->depth != win->depth) {
         old_frame = con->frame->id;
         con->depth = win->depth;
@@ -91,7 +89,7 @@ static void _remove_matches(Con *con) {
  * Go through all existing windows (if the window manager is restarted) and manage them
  *
  */
-void manage_existing_windows(xcb_window_t root) {
+void manage_existing_windows(xcb::xproto::window_t root) {
     /* Get the tree of windows whose parent is the root window (= all) */
     xcb::Connection *conn = &global.x->connection();
     auto reply = xcb::xproto::query_tree(conn, root).get();
@@ -387,7 +385,7 @@ static void handle_dock(i3Window *cwindow, Con **search_at_p, xcb::xproto::GetGe
 }
 
 template <typename Window_data>
-static i3Window *create_window(Window_data &w_data, xcb_window_t window, xcb_visualid_t visual, bool &urgency_hint, border_style_t &motif_border_style, bool &has_mwm_hints, xcb::xproto::GetGeometryReplyObj *geom) {
+static i3Window *create_window(Window_data &w_data, xcb::xproto::window_t window, xcb::xproto::visualid_t visual, bool &urgency_hint, border_style_t &motif_border_style, bool &has_mwm_hints, xcb::xproto::GetGeometryReplyObj *geom) { // NOLINT(bugprone-easily-swappable-parameters)
     auto cwindow = new i3Window(window);
     cwindow->depth = get_visual_depth(visual);
 
@@ -438,7 +436,7 @@ static i3Window *create_window(Window_data &w_data, xcb_window_t window, xcb_vis
  * Do some sanity checks and then reparent the window.
  *
  */
-void manage_window(xcb_window_t window, xcb_visualid_t visual) {
+void manage_window(xcb::xproto::window_t window, xcb::xproto::visualid_t visual) {
     DLOG(fmt::sprintf("window 0x%08x\n", window));
 
     /* Check if the window is already managed */
@@ -531,7 +529,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
             _remove_matches(nc);
         }
     }
-    xcb_window_t old_frame = XCB_NONE;
+    xcb::xproto::window_t old_frame = xcb::none;
     if (nc->get_window() != cwindow && nc->get_window() != nullptr) {
         old_frame = _match_depth(cwindow, nc);
     }
@@ -598,8 +596,8 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
         want_floating = true;
     }
 
-    if (nc->get_window()->transient_for != XCB_NONE ||
-        (nc->get_window()->leader != XCB_NONE &&
+    if (nc->get_window()->transient_for != xcb::none ||
+        (nc->get_window()->leader != xcb::none &&
          nc->get_window()->leader != nc->get_window()->id &&
          con_by_window_id(nc->get_window()->leader) != nullptr)) {
         DLOG("This window is transient for another window, setting floating\n");
@@ -669,7 +667,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
     /* event_mask_t is a bit mask: any combination of its bits is valid. */
     xcb::xproto::change_window_attributes(&conn, window,
                                           xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(
-                                              static_cast<xcb::xproto::event_mask_t>(CHILD_EVENT_MASK & ~XCB_EVENT_MASK_ENTER_WINDOW))); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+                                              static_cast<xcb::xproto::event_mask_t>(CHILD_EVENT_MASK & ~static_cast<std::uint32_t>(xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW)))); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
     conn.flush();
 
     /* Put the client inside the save set. Upon termination (whether killed or
@@ -768,7 +766,7 @@ void manage_window(xcb_window_t window, xcb_visualid_t visual) {
 
     /* Destroy the old frame if we had to reframe the container. This needs to be done
      * after rendering in order to prevent the background from flickering in its place. */
-    if (old_frame != XCB_NONE) {
+    if (old_frame != xcb::none) {
         xcb::xproto::destroy_window(&global.x->connection(), old_frame);
     }
 
@@ -833,7 +831,7 @@ ConCon *remanage_window(ConCon *con) {
     }
     nc->set_window(nullptr);
 
-    xcb_window_t old_frame = _match_depth(con->get_window(), nc);
+    xcb::xproto::window_t old_frame = _match_depth(con->get_window(), nc);
 
     x_reparent_child(nc, con);
 
@@ -843,7 +841,7 @@ ConCon *remanage_window(ConCon *con) {
 
     /* Destroy the old frame if we had to reframe the container. This needs to be done
      * after rendering in order to prevent the background from flickering in its place. */
-    if (old_frame != XCB_NONE) {
+    if (old_frame != xcb::none) {
         xcb::xproto::destroy_window(&global.x->connection(), old_frame);
     }
 

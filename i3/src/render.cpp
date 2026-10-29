@@ -10,7 +10,6 @@
  */
 module;
 #include <cassert>
-#include <xcb/xcb.h>
 
 #include <fmt/printf.h>
 module i3;

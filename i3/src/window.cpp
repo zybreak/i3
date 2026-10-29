@@ -9,7 +9,6 @@
  */
 module;
 #include <cassert>
-#include <xcb/xcb.h>
 
 #include <cairo.h>
 
@@ -89,11 +88,11 @@ void i3Window::window_update_name_legacy(std::string &name) {
 void i3Window::window_update_leader(xcb::xproto::GetPropertyReplyObj const *prop) {
     if (prop == nullptr || prop->value.empty()) {
         DLOG(fmt::sprintf("CLIENT_LEADER not set on window 0x%08x.\n", this->id));
-        this->leader = XCB_NONE;
+        this->leader = xcb::none;
         return;
     }
 
-    xcb_window_t const leader_prop = property_value32(*prop, 0);
+    xcb::xproto::window_t const leader_prop = property_value32(*prop, 0);
 
     DLOG(fmt::sprintf("Client leader changed to %08x\n", leader_prop));
 
@@ -107,7 +106,7 @@ void i3Window::window_update_leader(xcb::xproto::GetPropertyReplyObj const *prop
 void i3Window::window_update_transient_for(xcb::xproto::GetPropertyReplyObj const *prop) {
     if (prop == nullptr || prop->value.empty()) {
         DLOG(fmt::sprintf("TRANSIENT_FOR not set on window 0x%08x.\n", this->id));
-        this->transient_for = XCB_NONE;
+        this->transient_for = xcb::none;
         return;
     }
 
@@ -115,7 +114,7 @@ void i3Window::window_update_transient_for(xcb::xproto::GetPropertyReplyObj cons
     if (!parsed) {
         return;
     }
-    xcb_window_t const transient_for = *parsed;
+    xcb::xproto::window_t const transient_for = *parsed;
 
     DLOG(fmt::sprintf("Transient for changed to 0x%08x (window 0x%08x)\n", transient_for, this->id));
 
@@ -160,8 +159,8 @@ void i3Window::window_update_role(xcb::xproto::GetPropertyReplyObj const *prop) 
  *
  */
 bool i3Window::window_update_type(xcb::xproto::GetPropertyReplyObj const *reply) {
-    xcb_atom_t new_type = xcb_get_preferred_window_type(reply);
-    if (new_type == XCB_NONE) {
+    xcb::xproto::atom_t new_type = xcb_get_preferred_window_type(reply);
+    if (new_type == xcb::none) {
         DLOG("cannot read _NET_WM_WINDOW_TYPE from window.\n");
         return false;
     }
@@ -467,7 +466,7 @@ void i3Window::window_update_icon(xcb::xproto::GetPropertyReplyObj const *prop) 
     uint64_t len = 0;
     auto const pref_size = static_cast<uint32_t>(render_deco_height() - logical_px(global.x->root_screen, 2));
 
-    if (!prop || prop->type != XCB_ATOM_CARDINAL || prop->format != 32) {
+    if (!prop || prop->type != std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL) || prop->format != 32) {
         DLOG("_NET_WM_ICON is not set\n");
         return;
     }
