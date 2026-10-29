@@ -36,7 +36,6 @@ target_sources(UnitTest PRIVATE
         i3_lib_test.cpp
         xcb_test.cpp
         property_test.cpp
-        xcbpp_names_test.cpp
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
         FILES

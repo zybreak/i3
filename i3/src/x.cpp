@@ -16,7 +16,6 @@ module;
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_cursor.h>
-#include <xcb/shape.h>
 
 #define explicit dont_use_cxx_explicit
 #include <xcb/xkb.h>
@@ -855,8 +854,7 @@ static void set_maximized_state(Con *con) {
  * Set the container frame shape as the union of the window shape and the
  * shape of the frame borders.
  */
-static void x_shape_frame(ConCon *con, xcb_shape_sk_t shape_kind) {
-    auto const kind = static_cast<xcb::shape::shape_sk_t>(shape_kind);
+static void x_shape_frame(ConCon *con, xcb::shape::shape_sk_t kind) {
     xcb::shape::shape_combine(&global.x->connection(), xcb::shape::shape_so_t::SHAPE_SO_SET, kind, kind,
                               con->frame->id,
                               con->get_window_rect().x + con->border_width,
@@ -874,9 +872,9 @@ static void x_shape_frame(ConCon *con, xcb_shape_sk_t shape_kind) {
 /*
  * Reset the container frame shape.
  */
-static void x_unshape_frame(ConCon *con, xcb_shape_sk_t shape_kind) {
+static void x_unshape_frame(ConCon *con, xcb::shape::shape_sk_t shape_kind) {
     xcb::shape::shape_mask(&global.x->connection(), xcb::shape::shape_so_t::SHAPE_SO_SET,
-                           static_cast<xcb::shape::shape_sk_t>(shape_kind), con->frame->id, 0, 0, std::to_underlying(xcb::xproto::pixmap_enum_t::PIXMAP_NONE));
+                           shape_kind, con->frame->id, 0, 0, std::to_underlying(xcb::xproto::pixmap_enum_t::PIXMAP_NONE));
 }
 
 /*
@@ -898,20 +896,20 @@ static void set_shape_state(ConCon *con, bool need_reshape) {
     if (need_reshape && con->con_is_floating()) {
         /* We need to reshape the window frame only if it already has shape. */
         if (con->get_window()->shaped) {
-            x_shape_frame(con, XCB_SHAPE_SK_BOUNDING);
+            x_shape_frame(con, xcb::shape::shape_sk_t::SHAPE_SK_BOUNDING);
         }
         if (con->get_window()->input_shaped) {
-            x_shape_frame(con, XCB_SHAPE_SK_INPUT);
+            x_shape_frame(con, xcb::shape::shape_sk_t::SHAPE_SK_INPUT);
         }
     }
 
     if (state->was_floating && !con->con_is_floating()) {
         /* Remove the shape when container is no longer floating. */
         if (con->get_window()->shaped) {
-            x_unshape_frame(con, XCB_SHAPE_SK_BOUNDING);
+            x_unshape_frame(con, xcb::shape::shape_sk_t::SHAPE_SK_BOUNDING);
         }
         if (con->get_window()->input_shaped) {
-            x_unshape_frame(con, XCB_SHAPE_SK_INPUT);
+            x_unshape_frame(con, xcb::shape::shape_sk_t::SHAPE_SK_INPUT);
         }
     }
 }
@@ -1560,17 +1558,17 @@ void x_mask_event_mask(uint32_t mask) {
 /*
  * Enables or disables nonrectangular shape of the container frame.
  */
-void x_set_shape(ConCon *con, xcb_shape_sk_t kind, bool enable) {
+void x_set_shape(ConCon *con, xcb::shape::shape_sk_t kind, bool enable) {
     if (state_for_frame(con->frame->id) == nullptr) {
         ELOG(fmt::sprintf("window state for con %p not found\n", fmt::ptr(con)));
         return;
     }
 
     switch (kind) {
-        case XCB_SHAPE_SK_BOUNDING:
+        case xcb::shape::shape_sk_t::SHAPE_SK_BOUNDING:
             con->get_window()->shaped = enable;
             break;
-        case XCB_SHAPE_SK_INPUT:
+        case xcb::shape::shape_sk_t::SHAPE_SK_INPUT:
             con->get_window()->input_shaped = enable;
             break;
         default:

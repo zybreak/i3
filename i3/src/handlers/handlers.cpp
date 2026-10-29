@@ -9,8 +9,6 @@
  *
  */
 module;
-#include <xcb/shape.h>
-
 #define explicit dont_use_cxx_explicit
 #include <xcb/xkb.h>
 #undef explicit
@@ -863,7 +861,7 @@ void PropertyHandlers::handle_event(int type, xcb::generic_event_t *event) {
 
         if (shape->shape_kind == std::to_underlying(xcb::shape::shape_sk_t::SHAPE_SK_BOUNDING) ||
             shape->shape_kind == std::to_underlying(xcb::shape::shape_sk_t::SHAPE_SK_INPUT)) {
-            x_set_shape(con, static_cast<xcb_shape_sk_t>(shape->shape_kind), shape->shaped);
+            x_set_shape(con, static_cast<xcb::shape::shape_sk_t>(shape->shape_kind), shape->shaped);
         }
 
         return;

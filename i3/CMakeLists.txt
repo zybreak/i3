@@ -14,11 +14,9 @@ list(APPEND compile_options ${libsn_dep_CFLAGS_OTHER})
 find_package(libev CONFIG REQUIRED)
 list(APPEND libraries libev::libev)
 
-find_package(X11 REQUIRED COMPONENTS xcb xcb_cursor xcb_shape xcb_xrm xcb_xkb xcb_keysyms xkbcommon xkbcommon_X11)
+find_package(X11 REQUIRED COMPONENTS xcb xcb_cursor xcb_xrm xcb_xkb xcb_keysyms xkbcommon xkbcommon_X11)
 list(APPEND libraries X11 X11::xcb X11::xcb_cursor X11::xcb_xrm X11::xcb_xkb X11::xcb_keysyms X11::xkbcommon X11::xkbcommon_X11)
-# i3 sends SHAPE and RandR requests through xcbpp's xcb.shape and xcb.randr, and links neither xcb-shape nor xcb-randr.
-# It still uses xcb-shape's header, for xcb_shape_sk_t.
-list(APPEND include_dirs ${X11_xcb_shape_INCLUDE_PATH})
+# i3 sends SHAPE and RandR requests through xcbpp's xcb.shape and xcb.randr, and uses neither xcb-shape nor xcb-randr.
 
 find_package(PCRE2 CONFIG REQUIRED)
 list(APPEND libraries pcre2::pcre2)

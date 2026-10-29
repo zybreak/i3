@@ -6,7 +6,6 @@ module;
 #include <err.h>
 #include <config.h>
 #include <xcb/xcb.h>
-#include <xcb/shape.h>
 #include <xcb/xcb_cursor.h>
 #include <ev.h>
 #include <fmt/printf.h>
@@ -38,6 +37,7 @@ import log;
 import xcb;
 import xcb.xcbcompat;
 import xcb.proto.randr;
+import xcb.proto.shape;
 import i3.json;
 
 using std::int32_t;
@@ -2290,7 +2290,7 @@ export {
     /**
      * Enables or disables nonrectangular shape of the container frame.
      */
-    void x_set_shape(ConCon * con, xcb_shape_sk_t kind, bool enable);
+    void x_set_shape(ConCon * con, xcb::shape::shape_sk_t kind, bool enable);
     
     /**
      * Ungrabs all keys, to be called before re-grabbing the keys because of a
