@@ -3816,8 +3816,8 @@ export {
     /**
      * Returns the screen of the connection with the given number, or nullptr if it has no such screen, as xcb-util's
      * xcb_aux_get_screen() does. It is libxcb's view of the setup data, which the C libraries get. xcbpp's
-     * setup_t::get_roots() can't replace it: it doesn't pad the vendor string to four bytes, and so finds the screens
-     * at the wrong place when the vendor's length isn't a multiple of four.
+     * setup_t::get_roots() finds the same screens since xcbpp 1.4.1, which pads the vendor string to four bytes as
+     * libxcb does.
      *
      */
     xcb_screen_t *get_screen(xcb_connection_t * conn, int screen);
