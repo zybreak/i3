@@ -87,7 +87,7 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
     DLOG(fmt::sprintf("first = %p / %s\n", fmt::ptr(first), first->name));
     DLOG(fmt::sprintf("second = %p / %s\n", fmt::ptr(second), second->name));
 
-    x_mask_event_mask(~static_cast<std::uint32_t>(xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW));
+    x_mask_event_mask(~xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW);
     global.x->connection().flush();
 
     /* Open a new window, the resizebar. Grab the pointer and move the window

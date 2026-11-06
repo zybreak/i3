@@ -533,8 +533,7 @@ int main(int argc, char *argv[]) {
 
     auto error = xcb::xproto::change_window_attributes_checked(
                      &x.connection(), x.root,
-                     xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(
-                         static_cast<xcb::xproto::event_mask_t>(ROOT_EVENT_MASK)))
+                     xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(ROOT_EVENT_MASK))
                      .get();
     if (error) {
         ELOG(fmt::sprintf("Another window manager seems to be running (X error %d)\n", error->error_code));

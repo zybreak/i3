@@ -116,7 +116,7 @@ namespace {
                                 }}}};
     }
 
-    constexpr std::uint32_t frame_mask_without_enter = FRAME_EVENT_MASK & ~std::uint32_t{XCB_EVENT_MASK_ENTER_WINDOW};
+    constexpr std::uint32_t frame_mask_without_enter = FRAME_EVENT_MASK.to_underlying() & ~std::uint32_t{XCB_EVENT_MASK_ENTER_WINDOW};
 }  // namespace
 
 /*
@@ -314,7 +314,7 @@ TEST_F(XTest, MaskEventMaskChangesTheMappedFrames) {
     }
     std::ignore = sent();
 
-    x_mask_event_mask(~std::uint32_t{XCB_EVENT_MASK_ENTER_WINDOW});
+    x_mask_event_mask(~xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW);
     auto const requests = sent();
 
     /* con_init() puts a new frame on top of the stack (the front of state_head). */

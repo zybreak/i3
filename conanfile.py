@@ -59,7 +59,7 @@ class i3(ConanFile):
             self.requires(library, override=True)
         # xcbpp opens i3's X connections. Its libxcb compatibility layer (a libxcb.so.1 on xcbpp's runtime) replaces
         # libxcb in i3's process, so that i3's libxcb calls and the C libraries share each connection with xcbpp.
-        self.requires("xcbpp/1.4.1", options={"xcbcompat": True})
+        self.requires("xcbpp/2.0.0", options={"xcbcompat": True})
 
 
     def layout(self):

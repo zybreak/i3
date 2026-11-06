@@ -2285,7 +2285,7 @@ export {
      * is untouched.
      *
      */
-    void x_mask_event_mask(uint32_t mask);
+    void x_mask_event_mask(xcb::flags<xcb::xproto::event_mask_t> mask);
 
     /**
      * Enables or disables nonrectangular shape of the container frame.
@@ -3720,29 +3720,29 @@ export uint32_t const XCB_NUM_LOCK = 0xff7f;
    need to set slight variations of them (without XCB_EVENT_MASK_ENTER_WINDOW
    while rendering the layout) */
 /** The XCB_CW_EVENT_MASK for the child (= real window) */
-export uint32_t const CHILD_EVENT_MASK = std::to_underlying(xcb::xproto::event_mask_t::EVENT_MASK_PROPERTY_CHANGE |
-                                                            xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY |
-                                                            xcb::xproto::event_mask_t::EVENT_MASK_FOCUS_CHANGE);
+export constexpr xcb::flags<xcb::xproto::event_mask_t> CHILD_EVENT_MASK = xcb::xproto::event_mask_t::EVENT_MASK_PROPERTY_CHANGE |
+                                                                          xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY |
+                                                                          xcb::xproto::event_mask_t::EVENT_MASK_FOCUS_CHANGE;
 
 /** The XCB_CW_EVENT_MASK for its frame */
-export uint32_t const FRAME_EVENT_MASK = std::to_underlying(xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_PRESS |          /* …mouse is pressed/released */
-                                                            xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_RELEASE |
-                                                            xcb::xproto::event_mask_t::EVENT_MASK_POINTER_MOTION |        /* …mouse is moved */
-                                                            xcb::xproto::event_mask_t::EVENT_MASK_EXPOSURE |              /* …our window needs to be redrawn */
-                                                            xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY |      /* …the frame gets destroyed */
-                                                            xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_REDIRECT | /* …the application tries to resize itself */
-                                                            xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_NOTIFY |   /* …subwindows get notifies */
-                                                            xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW);          /* …user moves cursor inside our window */
+export constexpr xcb::flags<xcb::xproto::event_mask_t> FRAME_EVENT_MASK = xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_PRESS |          /* …mouse is pressed/released */
+                                                                          xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_RELEASE |
+                                                                          xcb::xproto::event_mask_t::EVENT_MASK_POINTER_MOTION |        /* …mouse is moved */
+                                                                          xcb::xproto::event_mask_t::EVENT_MASK_EXPOSURE |              /* …our window needs to be redrawn */
+                                                                          xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY |      /* …the frame gets destroyed */
+                                                                          xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_REDIRECT | /* …the application tries to resize itself */
+                                                                          xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_NOTIFY |   /* …subwindows get notifies */
+                                                                          xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW;           /* …user moves cursor inside our window */
 
-export uint32_t const ROOT_EVENT_MASK = std::to_underlying(xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_REDIRECT |
-                                                           xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_PRESS |
-                                                           xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY | /* when the user adds a screen (e.g. video \
-                                                                                                                     * projector), the root window gets a      \
-                                                                                                                     * ConfigureNotify */
-                                                           xcb::xproto::event_mask_t::EVENT_MASK_POINTER_MOTION |
-                                                           xcb::xproto::event_mask_t::EVENT_MASK_PROPERTY_CHANGE |
-                                                           xcb::xproto::event_mask_t::EVENT_MASK_FOCUS_CHANGE |
-                                                           xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW);
+export constexpr xcb::flags<xcb::xproto::event_mask_t> ROOT_EVENT_MASK = xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_REDIRECT |
+                                                                         xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_PRESS |
+                                                                         xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY | /* when the user adds a screen (e.g. video \
+                                                                                                                                   * projector), the root window gets a      \
+                                                                                                                                   * ConfigureNotify */
+                                                                         xcb::xproto::event_mask_t::EVENT_MASK_POINTER_MOTION |
+                                                                         xcb::xproto::event_mask_t::EVENT_MASK_PROPERTY_CHANGE |
+                                                                         xcb::xproto::event_mask_t::EVENT_MASK_FOCUS_CHANGE |
+                                                                         xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW;
 
 export {
     /**

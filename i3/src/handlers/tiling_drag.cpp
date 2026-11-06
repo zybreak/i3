@@ -187,7 +187,7 @@ static void create_indicator(drop_type_t drop_type, direction_t direction, Con *
                                               .with_height(rect.height));
         }
     }
-    x_mask_event_mask(~static_cast<std::uint32_t>(xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW));
+    x_mask_event_mask(~xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW);
     global.x->connection().flush();
 
     *(params->target) = target;
@@ -334,7 +334,7 @@ void PropertyHandlers::tiling_drag(Con *con, xcb::xproto::button_press_event_t *
     bool set_fs = con->fullscreen_mode != CF_NONE;
 
     /* Don't change focus while dragging. */
-    x_mask_event_mask(~static_cast<std::uint32_t>(xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW));
+    x_mask_event_mask(~xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW);
     x.connection().flush();
 
     /* Indicate drop location while dragging. This blocks until the drag is completed. */

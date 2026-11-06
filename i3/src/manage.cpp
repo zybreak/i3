@@ -664,10 +664,8 @@ void manage_window(xcb::xproto::window_t window, xcb::xproto::visualid_t visual)
         return;
     }
 
-    /* event_mask_t is a bit mask: any combination of its bits is valid. */
     xcb::xproto::change_window_attributes(&conn, window,
-                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(
-                                              static_cast<xcb::xproto::event_mask_t>(CHILD_EVENT_MASK & ~static_cast<std::uint32_t>(xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW)))); // NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange)
+                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(CHILD_EVENT_MASK & ~xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW));
     conn.flush();
 
     /* Put the client inside the save set. Upon termination (whether killed or
