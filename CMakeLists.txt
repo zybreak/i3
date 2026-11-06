@@ -26,6 +26,10 @@ add_compile_definitions(I3_ASAN_ENABLED=1)
 endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-deprecated-declarations -Wno-unused-const-variable")
+# cairo's package gives the targets that link it -pthread, but not the BMIs that CMake synthesizes of xcbpp's modules
+# for them: they then import std built two ways, CMake stops collating their modules ("Disagreement of the location
+# of the 'std' module") and doesn't order the BMIs before them. With -pthread everywhere, std is built one way.
+add_compile_options(-pthread)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
