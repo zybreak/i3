@@ -35,7 +35,7 @@ ConCon::ConCon(i3Window* window, bool skeleton)
 }
 
 bool ConCon::con_has_managed_window() {
-    return (this->window && this->window->id != std::to_underlying(xcb::xproto::window_enum_t::WINDOW_NONE) && this->con_get_workspace() != nullptr);
+    return (this->window && this->window->id != std::to_underlying(xcb::xproto::window_enum_t::none) && this->con_get_workspace() != nullptr);
 }
 
 bool ConCon::con_accepts_window() {

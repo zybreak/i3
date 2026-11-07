@@ -129,7 +129,7 @@ namespace {
             auto const &root = xcb::get_setup(**connection)->get_roots()[static_cast<std::size_t>(screen)];
             auto const id = (*connection)->generate_id();
             if (auto const error = xcb::xproto::create_window_checked(connection->get(), 0, id, root.root, 0, 0, 300, 200, 0,
-                                                                      xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT, root.root_visual,
+                                                                      xcb::xproto::window_class_t::input_output, root.root_visual,
                                                                       xcb::xproto::CreateWindowValueList{})
                                        .get()) {
                 return std::unexpected{std::format("CreateWindow: X error {}", error->error_code)};
@@ -146,7 +146,7 @@ namespace {
 
         /* Gives the window the input focus (SetInputFocus at CurrentTime), and waits until the server has. */
         [[nodiscard]] bool focus() const {
-            xcb::xproto::set_input_focus(connection_.get(), xcb::xproto::input_focus_t::INPUT_FOCUS_POINTER_ROOT, id_, 0);
+            xcb::xproto::set_input_focus(connection_.get(), xcb::xproto::input_focus_t::pointer_root, id_, 0);
             auto const reply = xcb::xproto::get_input_focus(connection_.get()).get();
             return reply && reply->focus == id_;
         }

@@ -294,7 +294,7 @@ static Startup_Sequence *startup_sequence_get(i3Window *cwindow,
         DLOG(fmt::sprintf("Checking leader window 0x%08x\n", cwindow->leader));
 
         leader_property.emplace(global.x->connection(), cwindow->leader, i3::atoms[i3::Atom::_NET_STARTUP_ID],
-                                std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 512);
+                                std::to_underlying(xcb::xproto::get_property_type_t::any), 512);
         startup_id_reply = leader_property->get();
 
         if (startup_id_reply == nullptr ||
@@ -353,7 +353,7 @@ std::optional<std::string> ApplicationLauncher::startup_workspace_for_window(i3W
  */
 void ApplicationLauncher::startup_sequence_delete_by_window(i3Window *win) {
     property_request startup_id_reply{global.x->connection(), win->id, i3::atoms[i3::Atom::_NET_STARTUP_ID],
-                                      std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 512};
+                                      std::to_underlying(xcb::xproto::get_property_type_t::any), 512};
 
     auto *sequence = startup_sequence_get(win, startup_id_reply.get(), true);
     if (sequence != nullptr) {

@@ -43,23 +43,23 @@ struct window_data {
 
 static auto get_window_data(xcb::xproto::window_t window) {
     return window_data{
-        .wm_type_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
-        .strut_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
-        .state_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_STATE], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
-        .utf8_title_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_NAME], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 128),
-        .leader_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
-        .transient_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_TRANSIENT_FOR), std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
-        .title_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_NAME), std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 128),
-        .class_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLASS), std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 128),
-        .role_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 128),
-        .startup_id_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_STARTUP_ID], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 512),
-        .wm_hints_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_HINTS), std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_HINTS), xcb::icccm::num_wm_hints_elements),
-        .wm_normal_hints_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_NORMAL_HINTS), std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_SIZE_HINTS), xcb::icccm::num_wm_size_hints_elements),
-        .motif_wm_hints_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 5 * sizeof(uint64_t)),
-        .wm_user_time_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
-        .wm_desktop_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
-        .wm_machine_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLIENT_MACHINE), std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX),
-        .wm_icon_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_ICON], std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), UINT32_MAX)};
+        .wm_type_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE], std::to_underlying(xcb::xproto::get_property_type_t::any), UINT32_MAX),
+        .strut_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL], std::to_underlying(xcb::xproto::get_property_type_t::any), UINT32_MAX),
+        .state_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_STATE], std::to_underlying(xcb::xproto::get_property_type_t::any), UINT32_MAX),
+        .utf8_title_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_NAME], std::to_underlying(xcb::xproto::get_property_type_t::any), 128),
+        .leader_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::WM_CLIENT_LEADER], std::to_underlying(xcb::xproto::get_property_type_t::any), UINT32_MAX),
+        .transient_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::wm_transient_for), std::to_underlying(xcb::xproto::get_property_type_t::any), UINT32_MAX),
+        .title_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::wm_name), std::to_underlying(xcb::xproto::get_property_type_t::any), 128),
+        .class_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::wm_class), std::to_underlying(xcb::xproto::get_property_type_t::any), 128),
+        .role_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::WM_WINDOW_ROLE], std::to_underlying(xcb::xproto::get_property_type_t::any), 128),
+        .startup_id_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_STARTUP_ID], std::to_underlying(xcb::xproto::get_property_type_t::any), 512),
+        .wm_hints_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::wm_hints), std::to_underlying(xcb::xproto::atom_enum_t::wm_hints), xcb::icccm::num_wm_hints_elements),
+        .wm_normal_hints_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::wm_normal_hints), std::to_underlying(xcb::xproto::atom_enum_t::wm_size_hints), xcb::icccm::num_wm_size_hints_elements),
+        .motif_wm_hints_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_MOTIF_WM_HINTS], std::to_underlying(xcb::xproto::get_property_type_t::any), 5 * sizeof(uint64_t)),
+        .wm_user_time_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_USER_TIME], std::to_underlying(xcb::xproto::get_property_type_t::any), UINT32_MAX),
+        .wm_desktop_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_DESKTOP], std::to_underlying(xcb::xproto::get_property_type_t::any), UINT32_MAX),
+        .wm_machine_cookie = property_request(global.x->connection(), window, std::to_underlying(xcb::xproto::atom_enum_t::wm_client_machine), std::to_underlying(xcb::xproto::get_property_type_t::any), UINT32_MAX),
+        .wm_icon_cookie = property_request(global.x->connection(), window, i3::atoms[i3::Atom::_NET_WM_ICON], std::to_underlying(xcb::xproto::get_property_type_t::any), UINT32_MAX)};
 }
 
 /*
@@ -102,7 +102,7 @@ void manage_existing_windows(xcb::xproto::window_t root) {
         auto attr = xcb::xproto::get_window_attributes(conn, child).get();
         if (!attr) {
             DLOG(std::format("Could not get attributes on window {}", child));
-        } else if (attr->map_state == xcb::xproto::map_state_t::MAP_STATE_VIEWABLE && !attr->override_redirect) {
+        } else if (attr->map_state == xcb::xproto::map_state_t::viewable && !attr->override_redirect) {
             manage_window(child, attr->visual);
         } else {
             DLOG(std::format("Existing window {} is already mapped, unviewable or has override redirect", child));
@@ -136,7 +136,7 @@ void restore_geometry() {
     /* Strictly speaking, this line doesn’t really belong here, but since we
      * are syncing, let’s un-register as a window manager first */
     xcb::xproto::change_window_attributes(&global.x->connection(), global.x->root,
-                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_REDIRECT));
+                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(xcb::xproto::event_mask_t::substructure_redirect));
 
     /* Make sure our changes reach the X server, we restart/exit now: a round trip, as xcb_aux_sync() makes. */
     std::ignore = xcb::xproto::get_input_focus(&global.x->connection()).get();
@@ -467,8 +467,8 @@ void manage_window(xcb::xproto::window_t window, xcb::xproto::visualid_t visual)
     auto const event_mask_error =
         xcb::xproto::change_window_attributes_checked(&global.x->connection(), window,
                                                       xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(
-                                                          xcb::xproto::event_mask_t::EVENT_MASK_PROPERTY_CHANGE |
-                                                          xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY))
+                                                          xcb::xproto::event_mask_t::property_change |
+                                                          xcb::xproto::event_mask_t::structure_notify))
             .get();
     if (event_mask_error) {
         LOG("Could not change event mask, the window probably already disappeared.\n");
@@ -657,7 +657,7 @@ void manage_window(xcb::xproto::window_t window, xcb::xproto::visualid_t visual)
      * declare no interest in any state change event of this window */
     xcb::Connection &conn = global.x->connection();
     xcb::xproto::change_window_attributes(&conn, window,
-                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_NO_EVENT));
+                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(xcb::xproto::event_mask_t::no_event));
 
     if (xcb::xproto::reparent_window_checked(&conn, window, nc->frame->id, 0, 0).get()) {
         LOG("Could not reparent the window, aborting\n");
@@ -665,23 +665,23 @@ void manage_window(xcb::xproto::window_t window, xcb::xproto::visualid_t visual)
     }
 
     xcb::xproto::change_window_attributes(&conn, window,
-                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(CHILD_EVENT_MASK & ~xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW));
+                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(CHILD_EVENT_MASK & ~xcb::xproto::event_mask_t::enter_window));
     conn.flush();
 
     /* Put the client inside the save set. Upon termination (whether killed or
      * normal exit does not matter) of the window manager, these clients will
      * be correctly reparented to their most closest living ancestor (=
      * cleanup) */
-    xcb::xproto::change_save_set(&global.x->connection(), xcb::xproto::set_mode_t::SET_MODE_INSERT, window);
+    xcb::xproto::change_save_set(&global.x->connection(), xcb::xproto::set_mode_t::insert, window);
 
     if (global.x->shape_supported) {
         /* Receive ShapeNotify events whenever the client altered its window
          * shape. */
-        xcb::shape::shape_select_input(&conn, window, true);
+        xcb::shape::select_input(&conn, window, true);
 
         /* Check if the window is shaped. Sadly, we can check only for the
          * bounding shape, not for the input shape. */
-        auto const reply = xcb::shape::shape_query_extents(&conn, window).get();
+        auto const reply = xcb::shape::query_extents(&conn, window).get();
         if (reply && reply->bounding_shaped) {
             nc->get_window()->shaped = true;
         }

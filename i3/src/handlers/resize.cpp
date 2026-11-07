@@ -87,14 +87,14 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
     DLOG(fmt::sprintf("first = %p / %s\n", fmt::ptr(first), first->name));
     DLOG(fmt::sprintf("second = %p / %s\n", fmt::ptr(second), second->name));
 
-    x_mask_event_mask(~xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW);
+    x_mask_event_mask(~xcb::xproto::event_mask_t::enter_window);
     global.x->connection().flush();
 
     /* Open a new window, the resizebar. Grab the pointer and move the window
      * around as the user moves the pointer. */
     xcb::xproto::window_t grabwin = create_window(global.x->connection(), output->rect, xcb::copy_from_parent, xcb::copy_from_parent,
-                                         std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_ONLY), XCURSOR_CURSOR_POINTER, true,
-                                         xcb::xproto::CreateWindowValueList{}.with_override_redirect(1));
+                                                  std::to_underlying(xcb::xproto::window_class_t::input_only), XCURSOR_CURSOR_POINTER, true,
+                                                  xcb::xproto::CreateWindowValueList{}.with_override_redirect(1));
 
     /* Keep track of the coordinate orthogonal to motion so we can determine the
      * length of the resize afterward. */
@@ -137,7 +137,7 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
                             .with_override_redirect(1);
 
     xcb::xproto::window_t helpwin = create_window(global.x->connection(), helprect, xcb::copy_from_parent, xcb::copy_from_parent,
-                                         std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT), (orientation == HORIZ ? XCURSOR_CURSOR_RESIZE_HORIZONTAL : XCURSOR_CURSOR_RESIZE_VERTICAL), false, values);
+                                                  std::to_underlying(xcb::xproto::window_class_t::input_output), (orientation == HORIZ ? XCURSOR_CURSOR_RESIZE_HORIZONTAL : XCURSOR_CURSOR_RESIZE_VERTICAL), false, values);
 
     if (!use_threshold) {
         xcb::xproto::map_window(&global.x->connection(), helpwin);
@@ -150,7 +150,7 @@ void PropertyHandlers::resize_graphical_handler(Con *first, Con *second, orienta
         }
     }
 
-    xcb::xproto::circulate_window(&global.x->connection(), xcb::xproto::circulate_t::CIRCULATE_RAISE_LOWEST, helpwin);
+    xcb::xproto::circulate_window(&global.x->connection(), xcb::xproto::circulate_t::raise_lowest, helpwin);
 
     global.x->connection().flush();
 

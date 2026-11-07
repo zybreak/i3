@@ -16,11 +16,11 @@ import log;
 import rect;
 
 /** Mouse buttons */
-#define XCB_BUTTON_CLICK_LEFT std::to_underlying(xcb::xproto::button_index_t::BUTTON_INDEX_1)
-#define XCB_BUTTON_CLICK_MIDDLE std::to_underlying(xcb::xproto::button_index_t::BUTTON_INDEX_2)
-#define XCB_BUTTON_CLICK_RIGHT std::to_underlying(xcb::xproto::button_index_t::BUTTON_INDEX_3)
-#define XCB_BUTTON_SCROLL_UP std::to_underlying(xcb::xproto::button_index_t::BUTTON_INDEX_4)
-#define XCB_BUTTON_SCROLL_DOWN std::to_underlying(xcb::xproto::button_index_t::BUTTON_INDEX_5)
+#define XCB_BUTTON_CLICK_LEFT std::to_underlying(xcb::xproto::button_index_t::_1)
+#define XCB_BUTTON_CLICK_MIDDLE std::to_underlying(xcb::xproto::button_index_t::_2)
+#define XCB_BUTTON_CLICK_RIGHT std::to_underlying(xcb::xproto::button_index_t::_3)
+#define XCB_BUTTON_SCROLL_UP std::to_underlying(xcb::xproto::button_index_t::_4)
+#define XCB_BUTTON_SCROLL_DOWN std::to_underlying(xcb::xproto::button_index_t::_5)
 /* xcb doesn't define constants for these. */
 #define XCB_BUTTON_SCROLL_LEFT 6
 #define XCB_BUTTON_SCROLL_RIGHT 7
@@ -175,7 +175,7 @@ static bool tiling_resize(PropertyHandlers &handlers, Con *con, xcb::xproto::but
 }
 
 static void allow_replay_pointer(xcb::xproto::timestamp_t time) {
-    xcb::xproto::allow_events(&global.x->connection(), xcb::xproto::allow_t::ALLOW_REPLAY_POINTER, time);
+    xcb::xproto::allow_events(&global.x->connection(), xcb::xproto::allow_t::replay_pointer, time);
     global.x->connection().flush();
     tree_render();
 }
@@ -208,7 +208,7 @@ void PropertyHandlers::route_click(Con *con, xcb::xproto::button_press_event_t *
         run_binding(bind, con);
 
         /* ASYNC_POINTER eats the event */
-        xcb::xproto::allow_events(&x.connection(), xcb::xproto::allow_t::ALLOW_ASYNC_POINTER, event->time);
+        xcb::xproto::allow_events(&x.connection(), xcb::xproto::allow_t::async_pointer, event->time);
         x.connection().flush();
 
         return;
@@ -236,7 +236,7 @@ void PropertyHandlers::route_click(Con *con, xcb::xproto::button_press_event_t *
 
     /* get the floating con */
     Con *floatingcon = con->con_inside_floating();
-    bool const proportional = (event->state & static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_SHIFT)) == static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_SHIFT);
+    bool const proportional = (event->state & static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::shift)) == static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::shift);
     bool const in_stacked = (con->parent->layout == L_STACKED || con->parent->layout == L_TABBED);
     bool const was_focused = global.focused == con;
     bool const is_left_click = (event->detail == XCB_BUTTON_CLICK_LEFT);
@@ -366,7 +366,7 @@ void PropertyHandlers::route_click(Con *con, xcb::xproto::button_press_event_t *
         }
         /* Avoid propagating events to clients, since the user expects
          * $mod+click to be handled by i3. */
-        xcb::xproto::allow_events(&x.connection(), xcb::xproto::allow_t::ALLOW_ASYNC_POINTER, event->time);
+        xcb::xproto::allow_events(&x.connection(), xcb::xproto::allow_t::async_pointer, event->time);
         x.connection().flush();
         return;
     }
@@ -435,7 +435,7 @@ void PropertyHandlers::handle_button_press(xcb::xproto::button_press_event_t *ev
         }
 
         ELOG("Clicked into unknown window?!\n");
-        xcb::xproto::allow_events(&x.connection(), xcb::xproto::allow_t::ALLOW_REPLAY_POINTER, event->time);
+        xcb::xproto::allow_events(&x.connection(), xcb::xproto::allow_t::replay_pointer, event->time);
         x.connection().flush();
         return;
     }

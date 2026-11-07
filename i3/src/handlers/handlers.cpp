@@ -124,7 +124,7 @@ void PropertyHandlers::handle_enter_notify(xcb::xproto::enter_notify_event_t *ev
     DLOG(fmt::sprintf("enter_notify for %08x, mode = %d, detail %d, serial %d\n",
                       event->event, event->mode, event->detail, event->sequence));
     DLOG(fmt::sprintf("coordinates %d, %d\n", event->event_x, event->event_y));
-    if (event->mode != std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_NORMAL)) {
+    if (event->mode != std::to_underlying(xcb::xproto::notify_mode_t::normal)) {
         DLOG("This was not a normal notify, ignoring\n");
         return;
     }
@@ -251,8 +251,8 @@ void PropertyHandlers::handle_motion_notify(xcb::xproto::motion_notify_event_t *
  *
  */
 void PropertyHandlers::handle_mapping_notify(xcb::xproto::mapping_notify_event_t *event) {
-    if (event->request != std::to_underlying(xcb::xproto::mapping_t::MAPPING_KEYBOARD) &&
-        event->request != std::to_underlying(xcb::xproto::mapping_t::MAPPING_MODIFIER)) {
+    if (event->request != std::to_underlying(xcb::xproto::mapping_t::keyboard) &&
+        event->request != std::to_underlying(xcb::xproto::mapping_t::modifier)) {
         return;
     }
 
@@ -312,25 +312,25 @@ void PropertyHandlers::handle_configure_request(xcb::xproto::configure_request_e
         DLOG("Configure request for unmanaged window, can do that.\n");
 
         xcb::xproto::ConfigureWindowValueList values{};
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_X)) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::x)) {
             values.with_x(event->x);
         }
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_Y)) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::y)) {
             values.with_y(event->y);
         }
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_WIDTH)) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::width)) {
             values.with_width(event->width);
         }
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_HEIGHT)) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::height)) {
             values.with_height(event->height);
         }
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_BORDER_WIDTH)) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::border_width)) {
             values.with_border_width(event->border_width);
         }
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_SIBLING)) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::sibling)) {
             values.with_sibling(event->sibling);
         }
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_STACK_MODE)) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::stack_mode)) {
             values.with_stack_mode(static_cast<xcb::xproto::stack_mode_t>(event->stack_mode));
         }
 
@@ -352,21 +352,21 @@ void PropertyHandlers::handle_configure_request(xcb::xproto::configure_request_e
         Con *floatingcon = con->parent;
         Rect newrect = floatingcon->rect;
 
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_X)) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::x)) {
             newrect.x = event->x + (-1) * bsr.x;
             DLOG(fmt::sprintf("proposed x = %d, new x is %d\n", event->x, newrect.x));
         }
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_Y)) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::y)) {
             newrect.y = event->y + (-1) * bsr.y;
             DLOG(fmt::sprintf("proposed y = %d, new y is %d\n", event->y, newrect.y));
         }
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_WIDTH)) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::width)) {
             newrect.width = event->width + (-1) * bsr.width;
             newrect.width += con->border_width * 2;
             DLOG(fmt::sprintf("proposed width = %d, new width is %d (x11 border %d)\n",
                               event->width, newrect.width, con->border_width));
         }
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_HEIGHT)) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::height)) {
             newrect.height = event->height + (-1) * bsr.height;
             newrect.height += con->border_width * 2;
             DLOG(fmt::sprintf("proposed height = %d, new height is %d (x11 border %d)\n",
@@ -381,16 +381,16 @@ void PropertyHandlers::handle_configure_request(xcb::xproto::configure_request_e
     /* Dock windows can be reconfigured in their height and moved to another output. */
     if (con->parent && con->parent->type == CT_DOCKAREA) {
         DLOG(fmt::sprintf("Reconfiguring dock window (con = %p).\n", fmt::ptr(con)));
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_HEIGHT)) {
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::height)) {
             DLOG(fmt::sprintf("Dock client wants to change height to %d, we can do that.\n", event->height));
 
             con->get_geometry().height = event->height;
             tree_render();
         }
 
-        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_X) || event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_Y)) {
-            int16_t x = event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_X) ? event->x : static_cast<int16_t>(con->get_geometry().x);
-            int16_t y = event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_Y) ? event->y : static_cast<int16_t>(con->get_geometry().y);
+        if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::x) || event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::y)) {
+            int16_t x = event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::x) ? event->x : static_cast<int16_t>(con->get_geometry().x);
+            int16_t y = event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::y) ? event->y : static_cast<int16_t>(con->get_geometry().y);
 
             Con *current_output = con->con_get_output();
             Output *target = randr.get_output_containing(x, y);
@@ -410,12 +410,12 @@ void PropertyHandlers::handle_configure_request(xcb::xproto::configure_request_e
         goto out;
     }
 
-    if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::CONFIG_WINDOW_STACK_MODE)) {
+    if (event->value_mask & static_cast<std::uint32_t>(xcb::xproto::config_window_t::stack_mode)) {
         DLOG(fmt::sprintf("window 0x%08x wants to be stacked %d\n", event->window, event->stack_mode));
 
         /* Emacs and IntelliJ Idea “request focus” by stacking their window
          * above all others. */
-        if (event->stack_mode != std::to_underlying(xcb::xproto::stack_mode_t::STACK_MODE_ABOVE)) {
+        if (event->stack_mode != std::to_underlying(xcb::xproto::stack_mode_t::above)) {
             DLOG("stack_mode != XCB_STACK_MODE_ABOVE, ignoring ConfigureRequest\n");
             goto out;
         }
@@ -454,7 +454,7 @@ out:
  * changes the screen configuration in any way (mode, position, …)
  *
  */
-void PropertyHandlers::handle_screen_change(xcb::randr::randr_screen_change_notify_event_t *e) {
+void PropertyHandlers::handle_screen_change(xcb::randr::screen_change_notify_event_t* e) {
     DLOG("RandR screen change\n");
 
     /* The geometry of the root window is used for “fullscreen global” and
@@ -624,13 +624,13 @@ void PropertyHandlers::handle_focus_in(xcb::xproto::focus_in_event_t *event) {
     }
     DLOG(fmt::sprintf("That is con %p / %s\n", fmt::ptr(con), con->name));
 
-    if (event->mode == std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_GRAB) ||
-        event->mode == std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_UNGRAB)) {
+    if (event->mode == std::to_underlying(xcb::xproto::notify_mode_t::grab) ||
+        event->mode == std::to_underlying(xcb::xproto::notify_mode_t::ungrab)) {
         DLOG("FocusIn event for grab/ungrab, ignoring\n");
         return;
     }
 
-    if (event->detail == std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_POINTER)) {
+    if (event->detail == std::to_underlying(xcb::xproto::notify_detail_t::pointer)) {
         DLOG("notify detail is pointer, ignoring this event\n");
         return;
     }
@@ -677,16 +677,16 @@ void PropertyHandlers::handle_focus_out(xcb::xproto::focus_in_event_t *event) {
     }
 
     switch (event->mode) {
-        case std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_NORMAL):
+        case std::to_underlying(xcb::xproto::notify_mode_t::normal):
             mode = "Normal";
             break;
-        case std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_GRAB):
+        case std::to_underlying(xcb::xproto::notify_mode_t::grab):
             mode = "Grab";
             break;
-        case std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_UNGRAB):
+        case std::to_underlying(xcb::xproto::notify_mode_t::ungrab):
             mode = "Ungrab";
             break;
-        case std::to_underlying(xcb::xproto::notify_mode_t::NOTIFY_MODE_WHILE_GRABBED):
+        case std::to_underlying(xcb::xproto::notify_mode_t::while_grabbed):
             mode = "WhileGrabbed";
             break;
         default:
@@ -695,28 +695,28 @@ void PropertyHandlers::handle_focus_out(xcb::xproto::focus_in_event_t *event) {
     }
 
     switch (event->detail) {
-        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_ANCESTOR):
+        case std::to_underlying(xcb::xproto::notify_detail_t::ancestor):
             detail = "Ancestor";
             break;
-        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_VIRTUAL):
+        case std::to_underlying(xcb::xproto::notify_detail_t::virtual_):
             detail = "Virtual";
             break;
-        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_INFERIOR):
+        case std::to_underlying(xcb::xproto::notify_detail_t::inferior):
             detail = "Inferior";
             break;
-        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_NONLINEAR):
+        case std::to_underlying(xcb::xproto::notify_detail_t::nonlinear):
             detail = "Nonlinear";
             break;
-        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_NONLINEAR_VIRTUAL):
+        case std::to_underlying(xcb::xproto::notify_detail_t::nonlinear_virtual):
             detail = "NonlinearVirtual";
             break;
-        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_POINTER):
+        case std::to_underlying(xcb::xproto::notify_detail_t::pointer):
             detail = "Pointer";
             break;
-        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_POINTER_ROOT):
+        case std::to_underlying(xcb::xproto::notify_detail_t::pointer_root):
             detail = "PointerRoot";
             break;
-        case std::to_underlying(xcb::xproto::notify_detail_t::NOTIFY_DETAIL_NONE):
+        case std::to_underlying(xcb::xproto::notify_detail_t::none):
             detail = "NONE";
             break;
         default:
@@ -802,8 +802,8 @@ void PropertyHandlers::handle_event(int type, xcb::generic_event_t *event) {
     }
 
     if (randr.randr_base > -1 &&
-        type == randr.randr_base + xcb::randr::RANDR_SCREEN_CHANGE_NOTIFY) {
-        handle_screen_change(reinterpret_cast<xcb::randr::randr_screen_change_notify_event_t *>(event));
+        type == randr.randr_base + xcb::randr::SCREEN_CHANGE_NOTIFY) {
+        handle_screen_change(reinterpret_cast<xcb::randr::screen_change_notify_event_t*>(event));
         return;
     }
 
@@ -846,8 +846,8 @@ void PropertyHandlers::handle_event(int type, xcb::generic_event_t *event) {
         return;
     }
 
-    if (x.shape_supported && type == x.shape_base + xcb::shape::SHAPE_NOTIFY) {
-        auto *shape = reinterpret_cast<xcb::shape::shape_notify_event_t *>(event);
+    if (x.shape_supported && type == x.shape_base + xcb::shape::NOTIFY) {
+        auto* shape = reinterpret_cast<xcb::shape::notify_event_t*>(event);
 
         DLOG(fmt::sprintf("shape_notify_event for window 0x%08x, shape_kind = %d, shaped = %d\n",
                           shape->affected_window, shape->shape_kind, shape->shaped));
@@ -859,9 +859,9 @@ void PropertyHandlers::handle_event(int type, xcb::generic_event_t *event) {
             return;
         }
 
-        if (shape->shape_kind == std::to_underlying(xcb::shape::shape_sk_t::SHAPE_SK_BOUNDING) ||
-            shape->shape_kind == std::to_underlying(xcb::shape::shape_sk_t::SHAPE_SK_INPUT)) {
-            x_set_shape(con, static_cast<xcb::shape::shape_sk_t>(shape->shape_kind), shape->shaped);
+        if (shape->shape_kind == std::to_underlying(xcb::shape::sk_t::bounding) ||
+            shape->shape_kind == std::to_underlying(xcb::shape::sk_t::input)) {
+            x_set_shape(con, static_cast<xcb::shape::sk_t>(shape->shape_kind), shape->shaped);
         }
 
         return;

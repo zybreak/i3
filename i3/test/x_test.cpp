@@ -314,7 +314,7 @@ TEST_F(XTest, MaskEventMaskChangesTheMappedFrames) {
     }
     std::ignore = sent();
 
-    x_mask_event_mask(~xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW);
+    x_mask_event_mask(~xcb::xproto::event_mask_t::enter_window);
     auto const requests = sent();
 
     /* con_init() puts a new frame on top of the stack (the front of state_head). */
@@ -338,23 +338,23 @@ TEST_F(XTest, ShapesAFloatingFrame) {
     con->get_window_rect() = Rect{2, 2, 96, 76};
     std::ignore = sent();
 
-    x_set_shape(con, xcb::shape::shape_sk_t::SHAPE_SK_BOUNDING, true);
+    x_set_shape(con, xcb::shape::sk_t::bounding, true);
     auto const shaped = only(sent(), {shape_opcode});
     EXPECT_TRUE(window->shaped);
     ASSERT_THAT(majors(shaped), ElementsAre(shape_opcode, shape_opcode));
     auto const &combine = shaped[0];
     EXPECT_EQ(combine.minor(), ShapeCombine);
-    EXPECT_EQ(combine.u8(4), std::to_underlying(xcb::shape::shape_so_t::SHAPE_SO_SET));
-    EXPECT_EQ(combine.u8(5), std::to_underlying(xcb::shape::shape_sk_t::SHAPE_SK_BOUNDING));
-    EXPECT_EQ(combine.u8(6), std::to_underlying(xcb::shape::shape_sk_t::SHAPE_SK_BOUNDING));
+    EXPECT_EQ(combine.u8(4), std::to_underlying(xcb::shape::so_t::set));
+    EXPECT_EQ(combine.u8(5), std::to_underlying(xcb::shape::sk_t::bounding));
+    EXPECT_EQ(combine.u8(6), std::to_underlying(xcb::shape::sk_t::bounding));
     EXPECT_EQ(combine.u32(8), con->frame->id);
     EXPECT_EQ(combine.i16(12), 4);
     EXPECT_EQ(combine.i16(14), 4);
     EXPECT_EQ(combine.u32(16), window->id);
     auto const &rectangles = shaped[1];
     EXPECT_EQ(rectangles.minor(), ShapeRectangles);
-    EXPECT_EQ(rectangles.u8(4), std::to_underlying(xcb::shape::shape_so_t::SHAPE_SO_UNION));
-    EXPECT_EQ(rectangles.u8(5), std::to_underlying(xcb::shape::shape_sk_t::SHAPE_SK_BOUNDING));
+    EXPECT_EQ(rectangles.u8(4), std::to_underlying(xcb::shape::so_t::union_));
+    EXPECT_EQ(rectangles.u8(5), std::to_underlying(xcb::shape::sk_t::bounding));
     EXPECT_EQ(rectangles.u8(6), XCB_CLIP_ORDERING_UNSORTED);
     EXPECT_EQ(rectangles.u32(8), con->frame->id);
     EXPECT_EQ(rectangles.i16(12), 0);
@@ -363,13 +363,13 @@ TEST_F(XTest, ShapesAFloatingFrame) {
     EXPECT_THAT(rectangles_of(rectangles, 16), ElementsAre(std::array{0, 0, 2, 80}, std::array{98, 0, 2, 80},
                                                            std::array{2, 78, 96, 2}, std::array{2, 0, 96, 2}));
 
-    x_set_shape(con, xcb::shape::shape_sk_t::SHAPE_SK_INPUT, false);
+    x_set_shape(con, xcb::shape::sk_t::input, false);
     auto const unshaped = only(sent(), {shape_opcode});
     EXPECT_FALSE(window->input_shaped);
     ASSERT_THAT(majors(unshaped), ElementsAre(shape_opcode));
     EXPECT_EQ(unshaped[0].minor(), ShapeMask);
-    EXPECT_EQ(unshaped[0].u8(4), std::to_underlying(xcb::shape::shape_so_t::SHAPE_SO_SET));
-    EXPECT_EQ(unshaped[0].u8(5), std::to_underlying(xcb::shape::shape_sk_t::SHAPE_SK_INPUT));
+    EXPECT_EQ(unshaped[0].u8(4), std::to_underlying(xcb::shape::so_t::set));
+    EXPECT_EQ(unshaped[0].u8(5), std::to_underlying(xcb::shape::sk_t::input));
     EXPECT_EQ(unshaped[0].u32(8), con->frame->id);
     EXPECT_EQ(unshaped[0].u32(16), XCB_PIXMAP_NONE);
 }

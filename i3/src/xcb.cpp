@@ -30,7 +30,7 @@ xcb_window_t create_window(xcb::Connection &conn, Rect dims,
 
     /* If the window class is XCB_WINDOW_CLASS_INPUT_ONLY, we copy depth and
      * visual id from the parent window. */
-    if (window_class == std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_ONLY)) {
+    if (window_class == std::to_underlying(xcb::xproto::window_class_t::input_only)) {
         depth = xcb::copy_from_parent;
         visual = xcb::copy_from_parent;
     }
@@ -95,7 +95,7 @@ void fake_absolute_configure_notify(Con *con) {
     std::array<char, 32> event{};
     std::memcpy(event.data(), &generatedEvent, sizeof generatedEvent);
     xcb::Connection &conn = global.x->connection();
-    xcb::xproto::send_event(&conn, false, con->get_window()->id, xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY, event);
+    xcb::xproto::send_event(&conn, false, con->get_window()->id, xcb::xproto::event_mask_t::structure_notify, event);
     conn.flush();
 }
 
@@ -114,7 +114,7 @@ void send_take_focus(xcb_window_t window, xcb_timestamp_t timestamp) {
     ev.data.data32[1] = timestamp;
 
     DLOG("Sending WM_TAKE_FOCUS to the client\n");
-    xcb::xproto::send_event(&global.x->connection(), false, window, xcb::xproto::event_mask_t::EVENT_MASK_NO_EVENT,
+    xcb::xproto::send_event(&global.x->connection(), false, window, xcb::xproto::event_mask_t::no_event,
                             std::bit_cast<std::array<char, 32>>(ev));
 }
 
@@ -251,13 +251,13 @@ xcb_screen_t *get_screen(xcb_connection_t *conn, int screen) {
  * which it compares with the setup's uint8_t values as ints.
  *
  */
-xcb::xproto::visualtype_t *find_visual_by_attrs(xcb::xproto::screen_t const &screen, std::int8_t visual_class, std::int8_t depth) { // NOLINT(bugprone-easily-swappable-parameters)
+xcb::xproto::visualtype_t const* find_visual_by_attrs(xcb::xproto::screen_t const& screen, std::int8_t visual_class, std::int8_t depth) {  // NOLINT(bugprone-easily-swappable-parameters)
     for (auto const &allowed : screen.get_allowed_depths()) {
         if (depth != -1 && int{allowed.depth} != int{depth}) {
             continue;
         }
-        for (auto &visual : allowed.get_visuals()) {
-            if (visual_class == -1 || int{visual._class} == int{visual_class}) {
+        for (auto const& visual : allowed.get_visuals()) {
+            if (visual_class == -1 || int{visual.class_} == int{visual_class}) {
                 return &visual;
             }
         }
@@ -293,7 +293,7 @@ std::string atom_name_by_screen(std::string_view base, std::uint8_t screen) {
  *
  */
 void xcb_add_property_atom(xcb::Connection &conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t atom) {
-    x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_APPEND, window, property, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_ATOM), std::span{&atom, 1});
+    x_change_property(conn, xcb::xproto::prop_mode_t::append, window, property, std::to_underlying(xcb::xproto::atom_enum_t::atom), std::span{&atom, 1});
 }
 
 /*
@@ -305,7 +305,7 @@ void xcb_add_property_atom(xcb::Connection &conn, xcb_window_t window, xcb_atom_
 void xcb_remove_property_atom(xcb::Connection &conn, xcb_window_t window, xcb_atom_t property, xcb_atom_t atom) {
     xcb::xproto::grab_server(&conn);
 
-    auto const reply = xcb::xproto::get_property(&conn, false, window, property, std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 0, 4096).get();
+    auto const reply = xcb::xproto::get_property(&conn, false, window, property, std::to_underlying(xcb::xproto::get_property_type_t::any), 0, 4096).get();
     if (!reply || reply->value.empty()) {
         xcb::xproto::ungrab_server(&conn);
         return;
@@ -325,7 +325,7 @@ void xcb_remove_property_atom(xcb::Connection &conn, xcb_window_t window, xcb_at
             }
         }
 
-        x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, window, property, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_ATOM), std::span{values});
+        x_change_property(conn, xcb::xproto::prop_mode_t::replace, window, property, std::to_underlying(xcb::xproto::atom_enum_t::atom), std::span{values});
     }
 
     xcb::xproto::ungrab_server(&conn);
@@ -337,9 +337,9 @@ void xcb_remove_property_atom(xcb::Connection &conn, xcb_window_t window, xcb_at
  */
 void xcb_grab_buttons(xcb_window_t window, std::set<int> &buttons) {
     for (int i : buttons) {
-        xcb::xproto::grab_button(&global.x->connection(), false, window, xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_PRESS,
-                                 xcb::xproto::grab_mode_t::GRAB_MODE_SYNC, xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC,
+        xcb::xproto::grab_button(&global.x->connection(), false, window, xcb::xproto::event_mask_t::button_press,
+                                 xcb::xproto::grab_mode_t::sync, xcb::xproto::grab_mode_t::async,
                                  global.x->root, xcb::none, static_cast<xcb::xproto::button_index_t>(i),
-                                 xcb::xproto::mod_mask_t::MOD_MASK_ANY);
+                                 xcb::xproto::mod_mask_t::any);
     }
 }

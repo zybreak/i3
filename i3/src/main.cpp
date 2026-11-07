@@ -199,10 +199,10 @@ static void set_screenshot_as_wallpaper(X &x, xcb_screen_t *screen) {
 
     create_gc(conn, gc, screen->root,
               CreateGcValueList{}
-                  .with_function(gx_t::GX_COPY)
+                  .with_function(gx_t::copy)
                   .with_plane_mask(~0U)
-                  .with_fill_style(fill_style_t::FILL_STYLE_SOLID)
-                  .with_subwindow_mode(subwindow_mode_t::SUBWINDOW_MODE_INCLUDE_INFERIORS));
+                  .with_fill_style(fill_style_t::solid)
+                  .with_subwindow_mode(subwindow_mode_t::include_inferiors));
 
     copy_area(conn, screen->root, pixmap, gc, 0, 0, 0, 0, width, height);
     change_window_attributes(conn, screen->root, ChangeWindowAttributesValueList{}.with_background_pixmap(pixmap));
@@ -350,11 +350,11 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
                                x.root_screen->root,     /* parent */
                                -1, -1, 1, 1,            /* geometry */
                                0,                       /* border width */
-                               xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT,
+                               xcb::xproto::window_class_t::input_output,
                                x.root_screen->root_visual,
                                xcb::xproto::CreateWindowValueList{});
     using namespace std::string_view_literals;
-    x_change_property(conn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, x.wm_sn_selection_owner, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLASS), std::to_underlying(xcb::xproto::atom_enum_t::ATOM_STRING),
+    x_change_property(conn, xcb::xproto::prop_mode_t::replace, x.wm_sn_selection_owner, std::to_underlying(xcb::xproto::atom_enum_t::wm_class), std::to_underlying(xcb::xproto::atom_enum_t::string),
                       "i3-WM_Sn\0i3-WM_Sn\0"sv);
 
     xcb::xproto::set_selection_owner(&conn, x.wm_sn_selection_owner, x.wm_sn, last_timestamp);
@@ -382,7 +382,7 @@ static void aquire_selection(X &x, xcb_timestamp_t last_timestamp) {
     event.data.data32[1] = x.wm_sn;
     event.data.data32[2] = x.wm_sn_selection_owner;
 
-    xcb::xproto::send_event(&conn, false, x.root_screen->root, xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY,
+    xcb::xproto::send_event(&conn, false, x.root_screen->root, xcb::xproto::event_mask_t::structure_notify,
                             std::bit_cast<std::array<char, 32>>(event));
 }
 
@@ -458,8 +458,8 @@ int main(int argc, char *argv[]) {
     }
 
     xcb::xproto::change_window_attributes(&x.connection(), x.root,
-                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_PROPERTY_CHANGE));
-    x_change_property(x.connection(), xcb::xproto::prop_mode_t::PROP_MODE_APPEND, x.root, std::to_underlying(xcb::xproto::atom_enum_t::ATOM_SUPERSCRIPT_X), std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL),
+                                          xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(xcb::xproto::event_mask_t::property_change));
+    x_change_property(x.connection(), xcb::xproto::prop_mode_t::append, x.root, std::to_underlying(xcb::xproto::atom_enum_t::superscript_x), std::to_underlying(xcb::xproto::atom_enum_t::cardinal),
                       std::span<uint32_t const>{});
 
     /* Place requests for the atoms we need as soon as possible */

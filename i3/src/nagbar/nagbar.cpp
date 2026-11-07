@@ -185,8 +185,8 @@ class Nagbar {
      * Tries to position the rectangle on the primary output.
      */
     void set_window_position_primary(xcb::xproto::rectangle_t *result) {
-        auto resources_cookie = xcb::randr::randr_get_screen_resources_current(xconn, root_screen->root);
-        auto primary_cookie = xcb::randr::randr_get_output_primary(xconn, root_screen->root);
+        auto resources_cookie = xcb::randr::get_screen_resources_current(xconn, root_screen->root);
+        auto primary_cookie = xcb::randr::get_output_primary(xconn, root_screen->root);
 
         auto const primary = primary_cookie.get();
         if (!primary) {
@@ -200,13 +200,13 @@ class Nagbar {
             return;
         }
 
-        auto const output = xcb::randr::randr_get_output_info(xconn, primary->output, res->config_timestamp).get();
+        auto const output = xcb::randr::get_output_info(xconn, primary->output, res->config_timestamp).get();
         if (!output || output->crtc == xcb::none) {
             LOG("Could not query primary screen.\n");
             return;
         }
 
-        auto const crtc = xcb::randr::randr_get_crtc_info(xconn, output->crtc, res->config_timestamp).get();
+        auto const crtc = xcb::randr::get_crtc_info(xconn, output->crtc, res->config_timestamp).get();
         if (!crtc) {
             LOG("Could not get CRTC.\n");
             return;
@@ -337,14 +337,14 @@ class Nagbar {
             root_screen->root,                                   /* parent == root */
             win_pos.x, win_pos.y, win_pos.width, win_pos.height, /* dimensions */
             0,                                                   /* x11 border = 0, we draw our own */
-            xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT,
-            xcb::copy_from_parent, /* copy visual from parent */
+            xcb::xproto::window_class_t::input_output,
+            xcb::copy_from_parent,                               /* copy visual from parent */
             xcb::xproto::CreateWindowValueList{}
                 .with_background_pixel(0)
-                .with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_EXPOSURE |
-                                 xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY |
-                                 xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_PRESS |
-                                 xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_RELEASE)
+                .with_event_mask(xcb::xproto::event_mask_t::exposure |
+                                 xcb::xproto::event_mask_t::structure_notify |
+                                 xcb::xproto::event_mask_t::button_press |
+                                 xcb::xproto::event_mask_t::button_release)
                 .with_cursor(cursor));
         // if (sncontext) {
         //     sn_launchee_context_setup_window(sncontext, win);
@@ -368,7 +368,7 @@ class Nagbar {
 
         /* Set dock mode */
         xcb_atom_t const dock = i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE_DOCK];
-        x_change_property(*xconn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, win, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE],
+        x_change_property(*xconn, xcb::xproto::prop_mode_t::replace, win, i3::atoms[i3::Atom::_NET_WM_WINDOW_TYPE],
                           A_ATOM, std::span{&dock, 1});
 
         /* Reserve some space at the top of the screen: _NET_WM_STRUT_PARTIAL's left, right, top, bottom,
@@ -379,7 +379,7 @@ class Nagbar {
         strut_partial[8] = 0;                                                                 /* top_start_x */
         strut_partial[9] = 800;                                                               /* top_end_x */
 
-        x_change_property(*xconn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, win, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL],
+        x_change_property(*xconn, xcb::xproto::prop_mode_t::replace, win, i3::atoms[i3::Atom::_NET_WM_STRUT_PARTIAL],
                           A_CARDINAL, std::span{strut_partial});
 
         /* Initialize the drawable bar */

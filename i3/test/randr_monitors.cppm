@@ -54,11 +54,11 @@ export {
             }
             xcb::xproto::window_t const root = roots[static_cast<std::size_t>(screen)].root;
 
-            auto const extension = xcb::get_extension_data(**connection, xcb::randr::randr_id);
+            auto const extension = xcb::get_extension_data(**connection, xcb::randr::id);
             if (!extension || !extension->present) {
                 return std::unexpected{std::format("{} has no RandR", display)};
             }
-            auto const version = xcb::randr::randr_query_version(connection->get(), 1, 6).get();
+            auto const version = xcb::randr::query_version(connection->get(), 1, 6).get();
             if (!version) {
                 return std::unexpected{std::format("RRQueryVersion failed: X error {}", version.error().error_code)};
             }
@@ -71,7 +71,7 @@ export {
         /** Adds @p monitor (RRSetMonitor). The server has made the change when this returns. Xvfb refuses the name
          *  of a monitor it has already (BadValue, as `xrandr --setmonitor` gets): remove() that one first. */
         std::expected<void, std::string> set(Monitor const &monitor) {
-            std::vector<xcb::randr::randr_output_t> outputs;
+            std::vector<xcb::randr::output_t> outputs;
             for (auto const &name : monitor.outputs) {
                 auto const output = output_named(name);
                 if (!output) {
@@ -85,9 +85,9 @@ export {
             }
 
             /* MONITORINFO is followed by its outputs on the wire, and the request sends xcb_sizeof() of it. */
-            static_assert(sizeof(xcb::randr::randr_monitor_info_t) == 24 && sizeof(xcb::randr::randr_output_t) == 4);
-            std::vector<std::uint32_t> buffer(sizeof(xcb::randr::randr_monitor_info_t) / 4 + outputs.size());
-            auto *info = ::new (static_cast<void *>(buffer.data())) xcb::randr::randr_monitor_info_t{
+            static_assert(sizeof(xcb::randr::monitor_info_t) == 24 && sizeof(xcb::randr::output_t) == 4);
+            std::vector<std::uint32_t> buffer(sizeof(xcb::randr::monitor_info_t) / 4 + outputs.size());
+            auto* info = ::new (static_cast<void*>(buffer.data())) xcb::randr::monitor_info_t{
                 .name = *name,
                 .primary = monitor.primary,
                 .automatic = false,
@@ -100,9 +100,9 @@ export {
                 .width_in_millimeters = static_cast<std::uint32_t>(monitor.width * 254 / 960),
                 .height_in_millimeters = static_cast<std::uint32_t>(monitor.height * 254 / 960),
             };
-            std::ranges::copy(outputs, buffer.begin() + sizeof(xcb::randr::randr_monitor_info_t) / 4);
+            std::ranges::copy(outputs, buffer.begin() + sizeof(xcb::randr::monitor_info_t) / 4);
 
-            if (auto const error = xcb::randr::randr_set_monitor_checked(connection_.get(), root_, info).get()) {
+            if (auto const error = xcb::randr::set_monitor_checked(connection_.get(), root_, info).get()) {
                 return std::unexpected{std::format("RRSetMonitor {}: X error {}", monitor.name, error->error_code)};
             }
             return {};
@@ -114,7 +114,7 @@ export {
             if (!atom_of_name) {
                 return std::unexpected{atom_of_name.error()};
             }
-            if (auto const error = xcb::randr::randr_delete_monitor_checked(connection_.get(), root_, *atom_of_name).get()) {
+            if (auto const error = xcb::randr::delete_monitor_checked(connection_.get(), root_, *atom_of_name).get()) {
                 return std::unexpected{std::format("RRDeleteMonitor {}: X error {}", name, error->error_code)};
             }
             return {};
@@ -127,7 +127,7 @@ export {
             if (!output) {
                 return std::unexpected{output.error()};
             }
-            if (auto const error = xcb::randr::randr_set_output_primary_checked(connection_.get(), root_, *output).get()) {
+            if (auto const error = xcb::randr::set_output_primary_checked(connection_.get(), root_, *output).get()) {
                 return std::unexpected{std::format("RRSetOutputPrimary {}: X error {}", name, error->error_code)};
             }
             return {};
@@ -135,11 +135,11 @@ export {
 
         /** The active monitors (RRGetMonitors), as i3 asks for them, automatic ones included. */
         std::expected<std::vector<Monitor>, std::string> list() {
-            auto const reply = xcb::randr::randr_get_monitors(connection_.get(), root_, true).get();
+            auto const reply = xcb::randr::get_monitors(connection_.get(), root_, true).get();
             if (!reply) {
                 return std::unexpected{std::format("RRGetMonitors: X error {}", reply.error().error_code)};
             }
-            auto const resources = xcb::randr::randr_get_screen_resources_current(connection_.get(), root_).get();
+            auto const resources = xcb::randr::get_screen_resources_current(connection_.get(), root_).get();
             if (!resources) {
                 return std::unexpected{std::format("RRGetScreenResourcesCurrent: X error {}", resources.error().error_code)};
             }
@@ -151,7 +151,7 @@ export {
                 }
                 Monitor monitor{.name = name->name, .x = info.x, .y = info.y, .width = info.width, .height = info.height, .primary = info.primary != 0};
                 for (auto const output : info.outputs) {
-                    auto const output_info = xcb::randr::randr_get_output_info(connection_.get(), output, resources->config_timestamp).get();
+                    auto const output_info = xcb::randr::get_output_info(connection_.get(), output, resources->config_timestamp).get();
                     if (!output_info) {
                         return std::unexpected{std::format("RRGetOutputInfo {}: X error {}", output, output_info.error().error_code)};
                     }
@@ -174,13 +174,13 @@ export {
             return reply->atom;
         }
 
-        std::expected<xcb::randr::randr_output_t, std::string> output_named(std::string const &name) {
-            auto const resources = xcb::randr::randr_get_screen_resources_current(connection_.get(), root_).get();
+        std::expected<xcb::randr::output_t, std::string> output_named(std::string const& name) {
+            auto const resources = xcb::randr::get_screen_resources_current(connection_.get(), root_).get();
             if (!resources) {
                 return std::unexpected{std::format("RRGetScreenResourcesCurrent: X error {}", resources.error().error_code)};
             }
             for (auto const output : resources->outputs) {
-                auto const info = xcb::randr::randr_get_output_info(connection_.get(), output, resources->config_timestamp).get();
+                auto const info = xcb::randr::get_output_info(connection_.get(), output, resources->config_timestamp).get();
                 if (info && std::string_view{reinterpret_cast<char const *>(info->name.data()), info->name.size()} == name) {
                     return output;
                 }

@@ -55,8 +55,8 @@ static void floating_set_hint_atom(Con *con, bool floating) {
 
     if (floating) {
         uint32_t const val = 1;
-        x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, con->get_window()->id,
-                          i3::atoms[i3::Atom::I3_FLOATING_WINDOW], std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL), std::span{&val, 1});
+        x_change_property(global.x->connection(), xcb::xproto::prop_mode_t::replace, con->get_window()->id,
+                          i3::atoms[i3::Atom::I3_FLOATING_WINDOW], std::to_underlying(xcb::xproto::atom_enum_t::cardinal), std::span{&val, 1});
     } else {
         xcb::xproto::delete_property(&global.x->connection(), con->get_window()->id, i3::atoms[i3::Atom::I3_FLOATING_WINDOW]);
     }

@@ -140,7 +140,7 @@ namespace {
 TEST_F(WmSelectionTest, I3OwnsTheSelectionAndAnnouncesIt) {
     ASSERT_FALSE(xcb::xproto::change_window_attributes_checked(&client(), root(),
                                                                xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(
-                                                                   xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY))
+                                                                   xcb::xproto::event_mask_t::structure_notify))
                      .get());
     auto const manager = atom("MANAGER");
     auto i3 = I3Process::start(i3_options("i3"));
@@ -216,7 +216,7 @@ TEST_F(WmSelectionTest, ReplaceTakesTheSelectionOver) {
 TEST_F(WmSelectionOnScreen1Test, I3OwnsTheSelectionOfItsScreen) {
     ASSERT_FALSE(xcb::xproto::change_window_attributes_checked(&client(), root1(),
                                                                xcb::xproto::ChangeWindowAttributesValueList{}.with_event_mask(
-                                                                   xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY))
+                                                                   xcb::xproto::event_mask_t::structure_notify))
                      .get());
     auto const manager = atom("MANAGER");
     auto i3 = I3Process::start(i3_options("i3"));

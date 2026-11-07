@@ -50,9 +50,9 @@ TEST(FakeXServerTest, KeepsProperties) {
     auto const value_bytes = std::as_bytes(std::span{values});
     std::vector<std::uint8_t> data(value_bytes.size());
     std::memcpy(data.data(), value_bytes.data(), value_bytes.size());
-    xcb::xproto::change_property(connection.get(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, 0x1234, 39, 6, 32, data);
+    xcb::xproto::change_property(connection.get(), xcb::xproto::prop_mode_t::replace, 0x1234, 39, 6, 32, data);
     data.assign({3, 0, 0, 0});
-    xcb::xproto::change_property(connection.get(), xcb::xproto::prop_mode_t::PROP_MODE_APPEND, 0x1234, 39, 6, 32, data);
+    xcb::xproto::change_property(connection.get(), xcb::xproto::prop_mode_t::append, 0x1234, 39, 6, 32, data);
 
     auto const reply = xcb::xproto::get_property(connection.get(), false, 0x1234, 39, 0, 0, 100).get();
     ASSERT_TRUE(reply);

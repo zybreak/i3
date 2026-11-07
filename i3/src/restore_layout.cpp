@@ -198,13 +198,13 @@ static void open_placeholder_window(X &conn, Con *con) {
         con->type == CT_CON) {
         auto const values = xcb::xproto::CreateWindowValueList{}
                                 .with_background_pixel(global.configManager->config->client.placeholder.background.colorpixel)
-                                .with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_EXPOSURE | xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY);
+                                .with_event_mask(xcb::xproto::event_mask_t::exposure | xcb::xproto::event_mask_t::structure_notify);
         xcb_window_t placeholder = create_window(
             *restore_xconn,
             con->rect,
             xcb::copy_from_parent,
             xcb::copy_from_parent,
-            std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT),
+            std::to_underlying(xcb::xproto::window_class_t::input_output),
             XCURSOR_CURSOR_POINTER,
             true,
             values);
@@ -217,7 +217,7 @@ static void open_placeholder_window(X &conn, Con *con) {
          * slightly confusing in the first instant, this brings additional
          * clarity to which placeholder is waiting for which actual window. */
         if (!con->name.empty()) {
-            x_change_property(*restore_xconn, xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, placeholder,
+            x_change_property(*restore_xconn, xcb::xproto::prop_mode_t::replace, placeholder,
                               i3::atoms[i3::Atom::_NET_WM_NAME], i3::atoms[i3::Atom::UTF8_STRING], std::string_view{con->name});
         }
         DLOG(fmt::sprintf("Created placeholder window 0x%08x for leaf container %p / %s\n",

@@ -466,7 +466,7 @@ void i3Window::window_update_icon(xcb::xproto::GetPropertyReplyObj const *prop) 
     uint64_t len = 0;
     auto const pref_size = static_cast<uint32_t>(render_deco_height() - logical_px(global.x->root_screen, 2));
 
-    if (!prop || prop->type != std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL) || prop->format != 32) {
+    if (!prop || prop->type != std::to_underlying(xcb::xproto::atom_enum_t::cardinal) || prop->format != 32) {
         DLOG("_NET_WM_ICON is not set\n");
         return;
     }

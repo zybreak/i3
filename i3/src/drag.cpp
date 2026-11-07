@@ -132,7 +132,7 @@ bool InputManager::drain_drag_events(EV_P_ drag_x11_cb *dragloop) {
                 &x.connection(),
                 dragloop->xcursor,
                 xcb::current_time,
-                xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_RELEASE | xcb::xproto::event_mask_t::EVENT_MASK_POINTER_MOTION);
+                xcb::xproto::event_mask_t::button_release | xcb::xproto::event_mask_t::pointer_motion);
         }
         dragloop->threshold_exceeded = true;
     }
@@ -174,13 +174,13 @@ drag_result_t InputManager::drag_pointer(Con *con, xcb::xproto::button_press_eve
 
     /* Grab the pointer (its status isn't checked, only that the request succeeded) */
     auto const reply = xcb::xproto::grab_pointer(&conn,
-                                                 false,                                                                                                        /* get all pointer events specified by the following mask */
-                                                 x.root,                                                                                                       /* grab the root window */
-                                                 xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_RELEASE | xcb::xproto::event_mask_t::EVENT_MASK_POINTER_MOTION, /* which events to let through */
-                                                 xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC,                                                                    /* pointer events should continue as normal */
-                                                 xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC,                                                                    /* keyboard mode */
-                                                 confine_to,                                                                                                   /* confine_to = in which window should the cursor stay */
-                                                 use_threshold ? xcb::none : xcursor,                                                                          /* possibly display a special cursor */
+                                                 false,                                                                                 /* get all pointer events specified by the following mask */
+                                                 x.root,                                                                                /* grab the root window */
+                                                 xcb::xproto::event_mask_t::button_release | xcb::xproto::event_mask_t::pointer_motion, /* which events to let through */
+                                                 xcb::xproto::grab_mode_t::async,                                                       /* pointer events should continue as normal */
+                                                 xcb::xproto::grab_mode_t::async,                                                       /* keyboard mode */
+                                                 confine_to,                                                                            /* confine_to = in which window should the cursor stay */
+                                                 use_threshold ? xcb::none : xcursor,                                                   /* possibly display a special cursor */
                                                  xcb::current_time)
                            .get();
     if (!reply) {
@@ -190,11 +190,11 @@ drag_result_t InputManager::drag_pointer(Con *con, xcb::xproto::button_press_eve
 
     /* Grab the keyboard */
     auto const keyb_reply = xcb::xproto::grab_keyboard(&conn,
-                                                       false,  /* get all keyboard events */
-                                                       x.root, /* grab the root window */
+                                                       false,                           /* get all keyboard events */
+                                                       x.root,                          /* grab the root window */
                                                        xcb::current_time,
-                                                       xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC, /* continue processing pointer events as normal */
-                                                       xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC  /* keyboard mode */
+                                                       xcb::xproto::grab_mode_t::async, /* continue processing pointer events as normal */
+                                                       xcb::xproto::grab_mode_t::async  /* keyboard mode */
                                                        )
                                 .get();
     if (!keyb_reply) {

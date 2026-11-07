@@ -822,7 +822,7 @@ export {
         
         /** The modifier which needs to be pressed in combination with the floating
          * modifier and your mouse buttons to swap containers during tiling drag */
-        uint32_t swap_modifier{std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_SHIFT)};
+        uint32_t swap_modifier{std::to_underlying(xcb::xproto::key_but_mask_t::shift)};
 
         /* Gap sizes */
         gaps_t gaps{};
@@ -2290,8 +2290,8 @@ export {
     /**
      * Enables or disables nonrectangular shape of the container frame.
      */
-    void x_set_shape(ConCon * con, xcb::shape::shape_sk_t kind, bool enable);
-    
+    void x_set_shape(ConCon* con, xcb::shape::sk_t kind, bool enable);
+
     /**
      * Ungrabs all keys, to be called before re-grabbing the keys because of a
      * mapping_notify event or a configuration file reload
@@ -2847,7 +2847,7 @@ export {
          * Gets triggered upon a RandR screen change event, that is when the user
          * changes the screen configuration in any way (mode, position, …)
          */
-        void handle_screen_change(xcb::randr::randr_screen_change_notify_event_t *e);
+        void handle_screen_change(xcb::randr::screen_change_notify_event_t* e);
 
         /**
          * Our window decorations were unmapped. That means, the window will be killed
@@ -3101,12 +3101,12 @@ export {
      */
     class i3Window {
       public:
-        xcb_window_t id{std::to_underlying(xcb::xproto::window_enum_t::WINDOW_NONE)};
+        xcb_window_t id{std::to_underlying(xcb::xproto::window_enum_t::none)};
 
         /** Holds the xcb_window_t (just an ID) for the leader window (logical
          * parent for toolwindows and similar floating windows) */
-        xcb_window_t leader{std::to_underlying(xcb::xproto::window_enum_t::WINDOW_NONE)};
-        xcb_window_t transient_for{std::to_underlying(xcb::xproto::window_enum_t::WINDOW_NONE)};
+        xcb_window_t leader{std::to_underlying(xcb::xproto::window_enum_t::none)};
+        xcb_window_t transient_for{std::to_underlying(xcb::xproto::window_enum_t::none)};
 
         /** Pointers to the Assignments which were already ran for this Window
          * (assignments run only once) */
@@ -3140,7 +3140,7 @@ export {
         bool doesnt_accept_focus{false};
 
         /** The _NET_WM_WINDOW_TYPE for this window. */
-        xcb_atom_t window_type{std::to_underlying(xcb::xproto::atom_enum_t::ATOM_NONE)};
+        xcb_atom_t window_type{std::to_underlying(xcb::xproto::atom_enum_t::none)};
 
         /** The _NET_WM_DESKTOP for this window. */
         uint32_t wm_desktop{0};
@@ -3432,7 +3432,7 @@ export void sync_respond(X *x, xcb_window_t window, uint32_t rnd) {
     ev.data.data32[0] = window;
     ev.data.data32[1] = rnd;
 
-    xcb::xproto::send_event(&x->connection(), false, window, xcb::xproto::event_mask_t::EVENT_MASK_NO_EVENT,
+    xcb::xproto::send_event(&x->connection(), false, window, xcb::xproto::event_mask_t::no_event,
                             std::bit_cast<std::array<char, 32>>(ev));
     x->connection().flush();
 }
@@ -3448,8 +3448,8 @@ export {
     class Output {
       public:
         /** Output id, so that we can requery the output directly later */
-        xcb::randr::randr_output_t id{};
-        
+        xcb::randr::output_t id{};
+
         /** Whether the output is currently active (has a CRTC attached with a
          * valid mode) */
         bool active{};
@@ -3539,12 +3539,12 @@ export {
         WorkspaceManager &workspaceManager;
 
         /* Pointer to the result of the query for primary output */
-        xcb::randr::randr_output_t primary;
+        xcb::randr::output_t primary;
         /* This is the output covering the root window */
         Output *root_output;
         bool has_randr_1_5 = false;
 
-        Output *get_output_by_id(xcb::randr::randr_output_t id);
+        Output* get_output_by_id(xcb::randr::output_t id);
         /*
          * Check whether there are any active outputs (excluding the root output).
          *
@@ -3577,7 +3577,7 @@ export {
          * appropriate.
          *
          */
-        void handle_output(xcb::randr::randr_output_t id, std::string name, xcb::randr::randr_crtc_t output_crtc, xcb_timestamp_t cts);
+        void handle_output(xcb::randr::output_t id, std::string name, xcb::randr::crtc_t output_crtc, xcb_timestamp_t cts);
 
         /*
          * randr_query_outputs_14 uses RandR ≤ 1.4 to update outputs.
@@ -3720,29 +3720,29 @@ export uint32_t const XCB_NUM_LOCK = 0xff7f;
    need to set slight variations of them (without XCB_EVENT_MASK_ENTER_WINDOW
    while rendering the layout) */
 /** The XCB_CW_EVENT_MASK for the child (= real window) */
-export constexpr xcb::flags<xcb::xproto::event_mask_t> CHILD_EVENT_MASK = xcb::xproto::event_mask_t::EVENT_MASK_PROPERTY_CHANGE |
-                                                                          xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY |
-                                                                          xcb::xproto::event_mask_t::EVENT_MASK_FOCUS_CHANGE;
+export constexpr xcb::flags<xcb::xproto::event_mask_t> CHILD_EVENT_MASK = xcb::xproto::event_mask_t::property_change |
+                                                                          xcb::xproto::event_mask_t::structure_notify |
+                                                                          xcb::xproto::event_mask_t::focus_change;
 
 /** The XCB_CW_EVENT_MASK for its frame */
-export constexpr xcb::flags<xcb::xproto::event_mask_t> FRAME_EVENT_MASK = xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_PRESS |          /* …mouse is pressed/released */
-                                                                          xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_RELEASE |
-                                                                          xcb::xproto::event_mask_t::EVENT_MASK_POINTER_MOTION |        /* …mouse is moved */
-                                                                          xcb::xproto::event_mask_t::EVENT_MASK_EXPOSURE |              /* …our window needs to be redrawn */
-                                                                          xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY |      /* …the frame gets destroyed */
-                                                                          xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_REDIRECT | /* …the application tries to resize itself */
-                                                                          xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_NOTIFY |   /* …subwindows get notifies */
-                                                                          xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW;           /* …user moves cursor inside our window */
+export constexpr xcb::flags<xcb::xproto::event_mask_t> FRAME_EVENT_MASK = xcb::xproto::event_mask_t::button_press |          /* …mouse is pressed/released */
+                                                                          xcb::xproto::event_mask_t::button_release |
+                                                                          xcb::xproto::event_mask_t::pointer_motion |        /* …mouse is moved */
+                                                                          xcb::xproto::event_mask_t::exposure |              /* …our window needs to be redrawn */
+                                                                          xcb::xproto::event_mask_t::structure_notify |      /* …the frame gets destroyed */
+                                                                          xcb::xproto::event_mask_t::substructure_redirect | /* …the application tries to resize itself */
+                                                                          xcb::xproto::event_mask_t::substructure_notify |   /* …subwindows get notifies */
+                                                                          xcb::xproto::event_mask_t::enter_window;           /* …user moves cursor inside our window */
 
-export constexpr xcb::flags<xcb::xproto::event_mask_t> ROOT_EVENT_MASK = xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_REDIRECT |
-                                                                         xcb::xproto::event_mask_t::EVENT_MASK_BUTTON_PRESS |
-                                                                         xcb::xproto::event_mask_t::EVENT_MASK_STRUCTURE_NOTIFY | /* when the user adds a screen (e.g. video \
-                                                                                                                                   * projector), the root window gets a      \
-                                                                                                                                   * ConfigureNotify */
-                                                                         xcb::xproto::event_mask_t::EVENT_MASK_POINTER_MOTION |
-                                                                         xcb::xproto::event_mask_t::EVENT_MASK_PROPERTY_CHANGE |
-                                                                         xcb::xproto::event_mask_t::EVENT_MASK_FOCUS_CHANGE |
-                                                                         xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW;
+export constexpr xcb::flags<xcb::xproto::event_mask_t> ROOT_EVENT_MASK = xcb::xproto::event_mask_t::substructure_redirect |
+                                                                         xcb::xproto::event_mask_t::button_press |
+                                                                         xcb::xproto::event_mask_t::structure_notify | /* when the user adds a screen (e.g. video \
+                                                                                                                        * projector), the root window gets a      \
+                                                                                                                        * ConfigureNotify */
+                                                                         xcb::xproto::event_mask_t::pointer_motion |
+                                                                         xcb::xproto::event_mask_t::property_change |
+                                                                         xcb::xproto::event_mask_t::focus_change |
+                                                                         xcb::xproto::event_mask_t::enter_window;
 
 export {
     /**
@@ -3828,7 +3828,7 @@ export {
      * searched in the order of the setup data.
      *
      */
-    xcb::xproto::visualtype_t *find_visual_by_attrs(xcb::xproto::screen_t const &screen, std::int8_t visual_class, std::int8_t depth);
+    xcb::xproto::visualtype_t const* find_visual_by_attrs(xcb::xproto::screen_t const& screen, std::int8_t visual_class, std::int8_t depth);
 
     /**
      * Returns the depth of @p screen that has the visual @p id, or 0 if none has it, as xcb-util's
@@ -4435,7 +4435,7 @@ export std::optional<std::string> root_atom_contents(char const *atomname, xcb::
     auto atom_reply = atom_cookie.get();
     if (atom_reply) {
         auto prop_reply = xcb::xproto::get_property_unchecked(conn, false, root, atom_reply->atom,
-                                                              std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 0, content_max_words)
+                                                              std::to_underlying(xcb::xproto::get_property_type_t::any), 0, content_max_words)
                               .get();
         if (prop_reply && !prop_reply->value.empty() && prop_reply->bytes_after > 0) {
             /* We received an incomplete value. Ask again but with a properly
@@ -4443,11 +4443,11 @@ export std::optional<std::string> root_atom_contents(char const *atomname, xcb::
             content_max_words += std::ceil(prop_reply->bytes_after / 4.0);
             /* Repeat the request, with adjusted size */
             prop_reply = xcb::xproto::get_property_unchecked(conn, false, root, atom_reply->atom,
-                                                             std::to_underlying(xcb::xproto::get_property_type_t::GET_PROPERTY_TYPE_ANY), 0, content_max_words)
+                                                             std::to_underlying(xcb::xproto::get_property_type_t::any), 0, content_max_words)
                              .get();
         }
         if (prop_reply && !prop_reply->value.empty()) {
-            if (prop_reply->type == std::to_underlying(xcb::xproto::atom_enum_t::ATOM_CARDINAL)) {
+            if (prop_reply->type == std::to_underlying(xcb::xproto::atom_enum_t::cardinal)) {
                 /* We treat a CARDINAL as a >= 32-bit unsigned int. The only CARDINAL
                  * we query is I3_PID, which is 32-bit. */
                 unsigned int value = 0;
@@ -4738,7 +4738,7 @@ static cairo_region_t *unobscured_region(X &conn, xcb_window_t window,
         auto geom = geometries.at(i).get();
         auto attr = attributes.at(i).get();
 
-        if (geom && attr && attr->map_state == xcb::xproto::map_state_t::MAP_STATE_VIEWABLE) {
+        if (geom && attr && attr->map_state == xcb::xproto::map_state_t::viewable) {
             rectangle.x = geom->x;
             rectangle.y = geom->y;
             rectangle.width = geom->width;
@@ -4771,8 +4771,8 @@ static void find_unobscured_pixel(X &conn, xcb_window_t window,
 static uint32_t flicker_window_at(X &conn, xcb_screen_t *screen, uint16_t x, uint16_t y, xcb_window_t window,
                                   uint32_t pixel) {
     xcb::Connection *c = &conn.connection();
-    xcb::xproto::create_window(c, xcb::copy_from_parent, window, screen->root, x, y, 10, 10, 0, // NOLINT(bugprone-narrowing-conversions)
-                               xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT, xcb::copy_from_parent,
+    xcb::xproto::create_window(c, xcb::copy_from_parent, window, screen->root, x, y, 10, 10, 0,  // NOLINT(bugprone-narrowing-conversions)
+                               xcb::xproto::window_class_t::input_output, xcb::copy_from_parent,
                                xcb::xproto::CreateWindowValueList{}.with_background_pixel(pixel).with_override_redirect(1));
     xcb::xproto::map_window(c, window);
     xcb::xproto::clear_area(c, 0, window, 0, 0, 0, 0);
@@ -4780,7 +4780,7 @@ static uint32_t flicker_window_at(X &conn, xcb_screen_t *screen, uint16_t x, uin
     std::ignore = xcb::xproto::get_input_focus(c).get();
     xcb::xproto::destroy_window(c, window);
 
-    auto img = xcb::xproto::get_image_unchecked(c, xcb::xproto::image_format_t::IMAGE_FORMAT_Z_PIXMAP, screen->root, x, y, 1, 1, ~0).get();
+    auto img = xcb::xproto::get_image_unchecked(c, xcb::xproto::image_format_t::z_pixmap, screen->root, x, y, 1, 1, ~0).get();
     uint32_t result = 0;
     if (img) {
         for (std::size_t i = 0; i < std::min<std::size_t>({img->depth, 4, img->data.size()}); i++) {

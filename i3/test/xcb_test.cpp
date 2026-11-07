@@ -81,7 +81,7 @@ TEST_F(XcbTest, CreateWindowCreatesSetsTheCursorAndMaps) {
     auto const values = xcb::xproto::CreateWindowValueList{}
                             .with_background_pixel(0x123456)
                             .with_override_redirect(1)
-                            .with_event_mask(xcb::xproto::event_mask_t::EVENT_MASK_EXPOSURE);
+                            .with_event_mask(xcb::xproto::event_mask_t::exposure);
     xcb_window_t const window = create_window(x.connection(), Rect{10, 20, 300, 200}, 24, FakeXServer::root_visual, XCB_WINDOW_CLASS_INPUT_OUTPUT,
                                               XCURSOR_CURSOR_MOVE, true, values);
     auto const requests = sent();

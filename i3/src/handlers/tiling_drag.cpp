@@ -187,7 +187,7 @@ static void create_indicator(drop_type_t drop_type, direction_t direction, Con *
                                               .with_height(rect.height));
         }
     }
-    x_mask_event_mask(~xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW);
+    x_mask_event_mask(~xcb::xproto::event_mask_t::enter_window);
     global.x->connection().flush();
 
     *(params->target) = target;
@@ -205,19 +205,19 @@ static xcb::xproto::window_t create_drop_indicator(Rect rect) {
                             .with_override_redirect(1);
 
     xcb::xproto::window_t indicator = create_window(global.x->connection(), rect, xcb::copy_from_parent, xcb::copy_from_parent,
-                                           std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT), XCURSOR_CURSOR_MOVE, false, values);
+                                                    std::to_underlying(xcb::xproto::window_class_t::input_output), XCURSOR_CURSOR_MOVE, false, values);
     /* Change the window class to "i3-drag", so that it can be matched in a
      * compositor configuration. Note that the class needs to be changed before
      * mapping the window. */
     using namespace std::string_view_literals;
     x_change_property(global.x->connection(),
-                      xcb::xproto::prop_mode_t::PROP_MODE_REPLACE,
+                      xcb::xproto::prop_mode_t::replace,
                       indicator,
-                      std::to_underlying(xcb::xproto::atom_enum_t::ATOM_WM_CLASS),
-                      std::to_underlying(xcb::xproto::atom_enum_t::ATOM_STRING),
+                      std::to_underlying(xcb::xproto::atom_enum_t::wm_class),
+                      std::to_underlying(xcb::xproto::atom_enum_t::string),
                       "i3-drag\0i3-drag\0"sv);
     xcb::xproto::map_window(&global.x->connection(), indicator);
-    xcb::xproto::circulate_window(&global.x->connection(), xcb::xproto::circulate_t::CIRCULATE_RAISE_LOWEST, indicator);
+    xcb::xproto::circulate_window(&global.x->connection(), xcb::xproto::circulate_t::raise_lowest, indicator);
 
     return indicator;
 }
@@ -334,7 +334,7 @@ void PropertyHandlers::tiling_drag(Con *con, xcb::xproto::button_press_event_t *
     bool set_fs = con->fullscreen_mode != CF_NONE;
 
     /* Don't change focus while dragging. */
-    x_mask_event_mask(~xcb::xproto::event_mask_t::EVENT_MASK_ENTER_WINDOW);
+    x_mask_event_mask(~xcb::xproto::event_mask_t::enter_window);
     x.connection().flush();
 
     /* Indicate drop location while dragging. This blocks until the drag is completed. */

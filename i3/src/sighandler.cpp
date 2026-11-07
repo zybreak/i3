@@ -163,7 +163,7 @@ static void sighandler_create_dialogs() {
 
         xcb::xproto::visualid_t visual = get_visualid_by_depth(global.x->root_depth);
         dialog->colormap = global.x->connection().generate_id();
-        xcb::xproto::create_colormap(&global.x->connection(), xcb::xproto::colormap_alloc_t::COLORMAP_ALLOC_NONE, dialog->colormap,
+        xcb::xproto::create_colormap(&global.x->connection(), xcb::xproto::colormap_alloc_t::none, dialog->colormap,
                                      global.x->root, visual);
 
         xcb::xproto::CreateWindowValueList values{};
@@ -189,7 +189,7 @@ static void sighandler_create_dialogs() {
         dialog->dims.y -= dialog->dims.height / 2;
 
         dialog->id = create_window(global.x->connection(), dialog->dims, global.x->root_depth, visual,
-                                   std::to_underlying(xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT), XCURSOR_CURSOR_POINTER,
+                                   std::to_underlying(xcb::xproto::window_class_t::input_output), XCURSOR_CURSOR_POINTER,
                                    true, values);
 
         dialog->surface = std::make_unique<surface_t>(global.x->drawing(), dialog->id, get_visualtype_by_id(visual),
@@ -197,11 +197,11 @@ static void sighandler_create_dialogs() {
 
         /* The replies aren't waited for: dropping their futures discards them. */
         std::ignore = xcb::xproto::grab_keyboard(&global.x->connection(), false, dialog->id, xcb::current_time,
-                                                 xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC, xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC);
+                                                 xcb::xproto::grab_mode_t::async, xcb::xproto::grab_mode_t::async);
 
         /* Confine the pointer to the crash dialog. */
-        std::ignore = xcb::xproto::grab_pointer(&global.x->connection(), false, dialog->id, xcb::xproto::event_mask_t::EVENT_MASK_NO_EVENT,
-                                                xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC, xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC, dialog->id,
+        std::ignore = xcb::xproto::grab_pointer(&global.x->connection(), false, dialog->id, xcb::xproto::event_mask_t::no_event,
+                                                xcb::xproto::grab_mode_t::async, xcb::xproto::grab_mode_t::async, dialog->id,
                                                 xcb::none, xcb::current_time);
 
         dialogs.push_back(std::move(dialog));

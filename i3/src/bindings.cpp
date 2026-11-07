@@ -41,26 +41,26 @@ i3_event_state_mask_t event_state_from_str(char const *str) {
         return result;
     }
     if (std::strstr(str, "Mod1") != nullptr) {
-        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_1);
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::mod_1);
     }
     if (std::strstr(str, "Mod2") != nullptr) {
-        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_2);
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::mod_2);
     }
     if (std::strstr(str, "Mod3") != nullptr) {
-        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_3);
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::mod_3);
     }
     if (std::strstr(str, "Mod4") != nullptr) {
-        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_4);
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::mod_4);
     }
     if (std::strstr(str, "Mod5") != nullptr) {
-        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_5);
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::mod_5);
     }
     if (std::strstr(str, "Control") != nullptr ||
         std::strstr(str, "Ctrl") != nullptr) {
-        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_CONTROL);
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::control);
     }
     if (std::strstr(str, "Shift") != nullptr) {
-        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_SHIFT);
+        result |= static_cast<std::uint32_t>(xcb::xproto::key_but_mask_t::shift);
     }
     if (std::strstr(str, "Group1") != nullptr) {
         result |= (I3_XKB_GROUP_MASK_1 << 16);
@@ -199,7 +199,7 @@ static Binding *get_binding_from_event(Event const *event, std::vector<Binding> 
     uint16_t const event_detail = event->detail;
 
     /* Remove the CapsLock bit */
-    i3_event_state_mask_t state_filtered = event_state & ~static_cast<std::uint32_t>(xcb::xproto::mod_mask_t::MOD_MASK_LOCK);
+    i3_event_state_mask_t state_filtered = event_state & ~static_cast<std::uint32_t>(xcb::xproto::mod_mask_t::lock);
     DLOG(fmt::sprintf("(removed capslock, state = 0x%x)\n", state_filtered));
     /* Transform the keyboard_group from bit 13 and bit 14 into an
      * i3_xkb_group_mask_t, so that get_binding() can just bitwise AND the

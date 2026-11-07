@@ -283,43 +283,43 @@ static json dump_event_state_mask(Binding *bind) {
     for (int i = 0; i < 20; i++) {
         if (bind->event_state_mask & (1 << i)) {
             switch (1 << i) {
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_SHIFT):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::shift):
                     a.push_back("shift");
                     break;
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_LOCK):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::lock):
                     a.push_back("lock");
                     break;
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_CONTROL):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::control):
                     a.push_back("ctrl");
                     break;
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_1):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::mod_1):
                     a.push_back("Mod1");
                     break;
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_2):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::mod_2):
                     a.push_back("Mod2");
                     break;
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_3):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::mod_3):
                     a.push_back("Mod3");
                     break;
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_4):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::mod_4):
                     a.push_back("Mod4");
                     break;
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_MOD_5):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::mod_5):
                     a.push_back("Mod5");
                     break;
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_BUTTON_1):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::button_1):
                     a.push_back("Button1");
                     break;
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_BUTTON_2):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::button_2):
                     a.push_back("Button2");
                     break;
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_BUTTON_3):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::button_3):
                     a.push_back("Button3");
                     break;
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_BUTTON_4):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::button_4):
                     a.push_back("Button4");
                     break;
-                case std::to_underlying(xcb::xproto::key_but_mask_t::KEY_BUT_MASK_BUTTON_5):
+                case std::to_underlying(xcb::xproto::key_but_mask_t::button_5):
                     a.push_back("Button5");
                     break;
                 case (I3_XKB_GROUP_MASK_1 << 16):
@@ -827,7 +827,7 @@ void IPCManager::ipc_send_workspace_event(char const *change, Con *current, Con 
  */
 void IPCManager::ipc_send_window_event(char const *property, Con *con) {
     DLOG(fmt::sprintf("Issue IPC window %s event (con = %p, window = 0x%08x)\n",
-                      property, fmt::ptr(con), (con->get_window() ? con->get_window()->id : std::to_underlying(xcb::xproto::window_enum_t::WINDOW_NONE))));
+                      property, fmt::ptr(con), (con->get_window() ? con->get_window()->id : std::to_underlying(xcb::xproto::window_enum_t::none))));
 
     json j;
 

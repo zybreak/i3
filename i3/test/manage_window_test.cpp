@@ -135,7 +135,7 @@ namespace {
         std::uint32_t create_window() {
             auto const id = client().generate_id();
             auto const error = xcb::xproto::create_window_checked(&client(), 0, id, root_, 0, 0, 300, 200, 0,
-                                                                  xcb::xproto::window_class_t::WINDOW_CLASS_INPUT_OUTPUT, 0,
+                                                                  xcb::xproto::window_class_t::input_output, 0,
                                                                   xcb::xproto::CreateWindowValueList{})
                                    .get();
             EXPECT_FALSE(error) << "CreateWindow: X error " << (error ? error->error_code : 0);
@@ -171,14 +171,14 @@ namespace {
 
         /* XTEST: moves the pointer to (@p x, @p y) on the root window. */
         void move_pointer(int x, int y) {
-            ASSERT_FALSE(xcb::xtest::test_fake_input_checked(&client(), 6 /* MotionNotify */, 0, 0, root_, static_cast<std::int16_t>(x),
-                                                             static_cast<std::int16_t>(y), 0)
+            ASSERT_FALSE(xcb::xtest::fake_input_checked(&client(), 6 /* MotionNotify */, 0, 0, root_, static_cast<std::int16_t>(x),
+                                                        static_cast<std::int16_t>(y), 0)
                              .get());
         }
 
         /* XTEST: presses (@p press) or releases the key @p keycode. */
         void key(std::uint8_t keycode, bool press) {
-            ASSERT_FALSE(xcb::xtest::test_fake_input_checked(&client(), press ? 2 /* KeyPress */ : 3 /* KeyRelease */, keycode, 0, root_, 0, 0, 0)
+            ASSERT_FALSE(xcb::xtest::fake_input_checked(&client(), press ? 2 /* KeyPress */ : 3 /* KeyRelease */, keycode, 0, root_, 0, 0, 0)
                              .get());
         }
 
@@ -208,7 +208,7 @@ namespace {
             }
             for (auto const child : tree->children) {
                 auto const attributes = xcb::xproto::get_window_attributes(&client(), child).get();
-                if (attributes && attributes->override_redirect && attributes->map_state == xcb::xproto::map_state_t::MAP_STATE_VIEWABLE) {
+                if (attributes && attributes->override_redirect && attributes->map_state == xcb::xproto::map_state_t::viewable) {
                     windows.push_back(child);
                 }
             }
@@ -217,10 +217,10 @@ namespace {
 
         /* Whether the client can grab the keyboard (and then ungrabs it): not while i3 has it grabbed. */
         bool keyboard_grabbable() {
-            auto const reply = xcb::xproto::grab_keyboard(&client(), false, root_, 0, xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC,
-                                                          xcb::xproto::grab_mode_t::GRAB_MODE_ASYNC)
+            auto const reply = xcb::xproto::grab_keyboard(&client(), false, root_, 0, xcb::xproto::grab_mode_t::async,
+                                                          xcb::xproto::grab_mode_t::async)
                                    .get();
-            bool const grabbed = reply && reply->status == xcb::xproto::grab_status_t::GRAB_STATUS_SUCCESS;
+            bool const grabbed = reply && reply->status == xcb::xproto::grab_status_t::success;
             if (grabbed) {
                 xcb::xproto::ungrab_keyboard(&client(), 0);
                 client().flush();
@@ -230,7 +230,7 @@ namespace {
 
         /* XTEST: presses (@p press) or releases button 1. */
         void button1(bool press) {
-            ASSERT_FALSE(xcb::xtest::test_fake_input_checked(&client(), press ? 4 /* ButtonPress */ : 5 /* ButtonRelease */, 1, 0, root_, 0, 0, 0)
+            ASSERT_FALSE(xcb::xtest::fake_input_checked(&client(), press ? 4 /* ButtonPress */ : 5 /* ButtonRelease */, 1, 0, root_, 0, 0, 0)
                              .get());
         }
 
@@ -244,8 +244,8 @@ namespace {
             event.type = type;
             event.data.data32 = data;
             ASSERT_FALSE(xcb::xproto::send_event_checked(&client(), false, root_,
-                                                         xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_REDIRECT |
-                                                             xcb::xproto::event_mask_t::EVENT_MASK_SUBSTRUCTURE_NOTIFY,
+                                                         xcb::xproto::event_mask_t::substructure_redirect |
+                                                             xcb::xproto::event_mask_t::substructure_notify,
                                                          std::bit_cast<std::array<char, 32>>(event))
                              .get());
         }
@@ -257,7 +257,7 @@ namespace {
 
         /* Whether @p window has a bounding shape of its own (SHAPE QueryExtents). */
         bool bounding_shaped(std::uint32_t window) {
-            auto const extents = xcb::shape::shape_query_extents(&client(), window).get();
+            auto const extents = xcb::shape::query_extents(&client(), window).get();
             if (!extents) {
                 ADD_FAILURE() << "ShapeQueryExtents: X error " << extents.error().error_code;
                 return false;
@@ -282,8 +282,8 @@ TEST_F(ManageWindowTest, AWindowShapedBeforeItIsManagedGetsAShapedFrameWhenItFlo
     ASSERT_NO_FATAL_FAILURE(connect_client());
     auto const window = create_window();
     std::array rectangles{xcb::xproto::rectangle_t{.x = 0, .y = 0, .width = 100, .height = 50}};
-    xcb::shape::shape_rectangles(&client(), xcb::shape::shape_so_t::SHAPE_SO_SET, xcb::shape::shape_sk_t::SHAPE_SK_BOUNDING,
-                                 xcb::xproto::clip_ordering_t::CLIP_ORDERING_UNSORTED, window, 0, 0, std::span<xcb::xproto::rectangle_t>{rectangles});
+    xcb::shape::rectangles(&client(), xcb::shape::so_t::set, xcb::shape::sk_t::bounding,
+                           xcb::xproto::clip_ordering_t::unsorted, window, 0, 0, std::span<xcb::xproto::rectangle_t>{rectangles});
     ASSERT_FALSE(xcb::xproto::map_window_checked(&client(), window).get());
     ASSERT_TRUE(poll_until([&] { return manages(request(i3ipc::MESSAGE_TYPE::GET_TREE), window); }, std::chrono::seconds{5}))
         << "i3 manages the window";
@@ -340,8 +340,8 @@ TEST_F(ManageWindowTest, APlaceholderWaitsForTheWindowItSwallows) {
 
     auto const window = create_window();
     std::string_view const wm_class{"swallowme\0swallowme\0", 20};
-    xcb::xproto::change_property(&client(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, window, 67 /* WM_CLASS */, 31 /* STRING */, 8,
-                                 std::span{reinterpret_cast<std::uint8_t *>(const_cast<char *>(wm_class.data())), wm_class.size()});
+    xcb::xproto::change_property(&client(), xcb::xproto::prop_mode_t::replace, window, 67 /* WM_CLASS */, 31 /* STRING */, 8,
+                                 std::span{reinterpret_cast<std::uint8_t*>(const_cast<char*>(wm_class.data())), wm_class.size()});
     ASSERT_FALSE(xcb::xproto::map_window_checked(&client(), window).get());
 
     EXPECT_TRUE(poll_until([&] { return window_of_container(request(i3ipc::MESSAGE_TYPE::GET_TREE), "waiting for swallowme") == window ||
@@ -683,7 +683,7 @@ TEST_F(ManageWindowTest, IconicStateIsRefused) {
     auto const wm_state = atom("WM_STATE");
     /* Iconic (3), as a client that went ahead would have it. */
     std::array<std::uint8_t, 8> iconic{3, 0, 0, 0, 0, 0, 0, 0};
-    xcb::xproto::change_property(&client(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, window, wm_state, wm_state, 32, iconic);
+    xcb::xproto::change_property(&client(), xcb::xproto::prop_mode_t::replace, window, wm_state, wm_state, 32, iconic);
     ASSERT_EQ(property(window, wm_state), (std::string{"\x03\0\0\0\0\0\0\0", 8}));
 
     ASSERT_NO_FATAL_FAILURE(client_message(window, atom("WM_CHANGE_STATE"), {3, 0, 0, 0, 0}));
@@ -746,7 +746,7 @@ TEST_F(ManageWindowTest, ErrorsOnTheIgnoreListAreIgnoredPast65536Requests) {
     for (int i = 1; i <= titles; ++i) {
         std::string const title = std::format("title {}", i);
         std::vector<xcb::xproto::xcbvoid_t> bytes{title.begin(), title.end()};
-        xcb::xproto::change_property(&client(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, busy, net_wm_name, utf8_string, 8, bytes);
+        xcb::xproto::change_property(&client(), xcb::xproto::prop_mode_t::replace, busy, net_wm_name, utf8_string, 8, bytes);
     }
     client().flush();
     ASSERT_TRUE(poll_until([&] { return window_of_container(request(i3ipc::MESSAGE_TYPE::GET_TREE), std::format("title {}", titles)) == busy; },
@@ -838,7 +838,7 @@ class WindowPropertiesTest : public ManageWindowTest {
   protected:
     void set(std::uint32_t window, std::uint32_t property, std::uint32_t type, std::uint8_t format,
              std::vector<xcb::xproto::xcbvoid_t> bytes) {
-        ASSERT_FALSE(xcb::xproto::change_property_checked(&client(), xcb::xproto::prop_mode_t::PROP_MODE_REPLACE, window, property, type, format,
+        ASSERT_FALSE(xcb::xproto::change_property_checked(&client(), xcb::xproto::prop_mode_t::replace, window, property, type, format,
                                                           bytes)
                          .get());
     }
